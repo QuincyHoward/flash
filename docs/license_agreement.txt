@@ -1,0 +1,115 @@
+This document constitutes a binding license agreement (the "License Agreement")
+between the University of Rochester, through its Flash Center for Computational
+Science (hereafter, "we", "us" or the "Center") and users outside the Center
+("users") regarding the dissemination of the "FLASH Code" by the Center and use
+of the FLASH Code by users. Users are responsible for following all applicable
+rules described below.
+
+1. Public Release. Publicly released versions of the FLASH Code are available
+via the Center's website. We expect to include any external contributions to the
+Code in public releases that occur after the end of negotiated testing period
+with users.
+
+2. Decision Process. Release of the FLASH Code to users not located at the
+University of Chicago or at the University of Rochester is governed solely by
+the Center's Director and Management Committee at the University of Rochester;
+decisions related to public release of the FLASH Code will be made in the same
+manner.
+
+3. License and Distribution Rights. The University of Chicago owns the copyright
+to the FLASH Code developed by the members of the Flash Center. The University
+of Rochester serves as the exclusive operator of the Flash Center for
+Computational Science and holds a perpetual, worldwide, fully transferable,
+fully sublicensable and fully enforceable license of the FLASH Code. External
+contributors to the FLASH Code may choose to be included in the Copyright
+Assertion. Users of the FLASH Code pursuant to this License Agreement agree that
+the FLASH Code, or any part of the code, can only be released and distributed by
+the Flash Center; individual users of the FLASH Code are not free to
+re-distribute the FLASH Code, or any of its components, outside the Center. All
+users of the FLASH Code must accept the online version of this License Agreement
+at https://flash.rochester.edu. Distribution of the FLASH Code can only occur
+once the user accepts the License Agreement.  For those users who accept this
+License Agreement and who are granted access to the FLASH Code, the Center
+grants to those users a non-exclusive, non-transferable, non-sublicensable right
+to use the FLASH Code, subject to the terms of this License Agreement.
+
+4. Modifications and Acknowledgments. Users may make modifications to the FLASH
+Code, and they are encouraged to send such modifications to the Center. Users
+are not free to distribute the FLASH Code to others, as noted in Section 3
+above. As resources permit, we will incorporate such modifications in subsequent
+releases of the FLASH Code, and we will acknowledge these external
+contributions. Note that modifications that do not make it into an officially
+released version of the FLASH Code will not be supported by us. If a user
+modifies a copy or copies of the FLASH Code or any portion of it, thus forming a
+work based on the FLASH Code, to be included in a FLASH release it must meet the
+following conditions:
+
+(a) The software must carry prominent notices stating that the user changed
+specified portions of the FLASH Code. This will also assist us in clearly
+identifying the portions of the FLASH Code that the user has contributed.
+(b) The software must display the following acknowledgement: "This product
+includes software developed by and/or derived from the Flash Center for
+Computational Science (https://flash.rochester.edu) to which the U.S. Government
+retains certain rights."
+(c) The FLASH Code header section, which describes the origins of the FLASH Code
+and of its components, must remain intact, and should be included in all
+modified versions of the code.
+
+Furthermore, all publications resulting from the use of the FLASH Code, or any
+modified version or portion of the FLASH Code, must acknowledge the Flash Center
+for Computational Science; addition of the following text to the paper
+acknowledgments will be sufficient:
+
+"The software used in this work was developed in part by the DOE NNSA- and DOE
+Office of Science-supported Flash Center for Computational Science at the
+University of Chicago and the University of Rochester."
+
+The Code header provides information on software that has been utilized as part
+of the FLASH development effort. The Center website includes a list of key
+scientific journal references for the FLASH Code. We request that such
+references be included in the reference section of any papers based on the
+FLASH Code.
+
+5. Commercial Use. All users interested in commercial use of the FLASH Code must
+obtain prior written approval from the Director of the Center. Use of the FLASH
+Code, or any modification thereof, for commercial purposes is not permitted
+otherwise.
+
+6. Bug Fixes and New Releases. As part of the FLASH Code dissemination process,
+the Center has set up and will maintain as part of its website mechanisms for
+announcing new FLASH Code releases, collecting requests for FLASH Code use and
+collecting and disseminating relevant documentation. We support the user
+community through mailing lists and by providing a bug report facility.
+
+7. User Feedback. The Center requests that all users of the FLASH Code notify
+the Center about all publications that incorporate results based on the use of
+the code, or modified versions of the code or its components. All such
+information can be sent to info@flash.rochester.edu.
+
+8. No Assignment.  User may not assign or otherwise transfer any of its rights
+or obligations under this Agreement.
+
+9. Governing Law.  This Agreement will be interpreted, construed, and enforced
+in all respects in accordance with the local laws of the State of New York.
+
+10. Disclaimer. The FLASH Code was prepared, in part, as an account of work
+sponsored by an agency of the United States Government.
+
+THE FLASH CODE IS PROVIDED "AS IS" AND THE UNITED STATES, THE UNIVERSITY OF
+CHICAGO, THE UNIVERSITY OF ROCHESTER, THE CENTER, ANY CONTRIBUTORS TO THE FLASH
+CODE, OR ANY OF THEIR EMPLOYEES OR CONTRACTORS, MAKE NO WARRANTIES, EXPRESS OR
+IMPLIED (INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE), OR
+ASSUMES ANY LEGAL LIABILITY OR RESPONSIBILITY FOR THE ACCURACY, COMPLETENESS,
+OR USEFULNESS OF THE FLASH CODE OR THAT THE FLASH CODE WILL BE FREE FROM
+DEFECTS.
+
+IN NO EVENT WILL THE UNIVERSITY OF CHICAGO OR THE UNIVERSITY OF ROCHESTER OR
+THE CENTER OR ANY CONTRIBUTORS TO THE FLASH CODE OR ANY OF THEIR TRUSTEES,
+EMPLOYEES, FACULTY, AGENTS, OR OTHER REPRESENTATIVES BE LIABLE FOR ANY INDIRECT,
+INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THIS AGREEMENT OR
+THE USE OF THE SOFTWARE.  TO THE FULLEST EXTENT PERMITTED BY LAW, UNDER NO
+CIRCUMSTANCES WILL THE UNIVERSITY CHICAGO OR THE UNIVERSITY ROCHESTER OR THE
+CENTER HAVE ANY LIABILITY OF ANY KIND (MONETARY OR OTHERWISE) ARISING OUT OF
+OR RELATED TO THIS AGREEMENT, REGARDLESS OF THE FORUM AND REGARDLESS OF WHETHER
+ANY ACTION OR CLAIM IS BASED ON CONTRACT, TORT, OR OTHERWISE.

@@ -1,0 +1,103 @@
+#!/bin/bash
+# Pre-push 钩子 - 运行 Flash 框架测试
+#
+# 此钩子在 git push 之前运行，执行 Flash 框架测试：
+# 1. Flash 框架测试（flash/test/）
+#
+# 如果测试失败，push 将被中止。
+#
+# 注意：
+# - 此钩子只运行框架测试，不运行全局测试（全局测试在打标签时运行）。
+# - 如果你想跳过测试，使用 'git push --no-verify'。
+
+echo "🧪 Running pre-push tests..."
+
+# 获取脚本所在目录（即 scripts/git-hooks/）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 获取项目根目录（scripts/git-hooks/ 的父目录的父目录）
+# scripts/git-hooks/ -> scripts/ -> flash/
+# 所以需要使用 ../../.. 来获取 flash/ 的父目录
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# 如果在 Windows Git Bash 中运行，将 Unix 路径转换为 Windows 格式
+if command -v cygpath &> /dev/null; then
+    PROJECT_ROOT_PY="$(cygpath -w "$PROJECT_ROOT")"
+else
+    PROJECT_ROOT_PY="$PROJECT_ROOT"
+fi
+
+# 添加项目根目录到 PYTHONPATH
+export PYTHONPATH="${PROJECT_ROOT_PY}:${PYTHONPATH}"
+
+# 切换到项目根目录（这样才能用相对路径 flash/test/）
+cd "$PROJECT_ROOT" 2>/dev/null || cd "$PROJECT_ROOT_PY" 2>/dev/null
+
+echo "  - Script dir: $SCRIPT_DIR"
+echo "  - Project root: $PROJECT_ROOT"
+
+# 使用正确的 Python 解释器 (支持环境变量覆盖)
+# 默认: WSL 路径; 自定义: export PYTHON=/path/to/python
+PYTHON="${PYTHON:-/c/Users/15735/.workbuddy/binaries/python/versions/3.13.12/python.exe}"
+
+# 检查 Python 是否可用
+if [ ! -f "$PYTHON" ]; then
+    # 尝试从 PATH 查找 python
+    if command -v python3 &> /dev/null; then
+        PYTHON="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON="python"
+    else
+        echo "Warning: Python not found at $PYTHON and not in PATH"
+        echo "  - Skipping tests."
+        echo "  - Set PYTHON environment variable to override"
+        echo "  - (Or fix the Python path in scripts/git-hooks/pre-push)"
+        exit 0
+    fi
+fi
+
+echo "  - Using Python: $PYTHON"
+
+# 检查 flash 模块是否可导入
+FLASH_IMPORT_OK=false
+"$PYTHON" -c "import flash; print('Flash imported successfully!')" 2>/dev/null
+if [ $? -eq 0 ]; then
+    FLASH_IMPORT_OK=true
+    echo "  ✅ Flash (standalone) importable"
+else
+    # 尝试 PhySimX 模式
+    "$PYTHON" -c "import physimx_sim.flash; print('Flash (PhySimX) imported successfully!')" 2>/dev/null
+    if [ $? -eq 0 ]; then
+        FLASH_IMPORT_OK=true
+        echo "  ✅ Flash (PhySimX) importable"
+    fi
+fi
+
+if [ "$FLASH_IMPORT_OK" = false ]; then
+    echo "⚠️  Warning: flash module not importable"
+    echo "  - Python sys.path: $("$PYTHON" -c "import sys; print(sys.path)")"
+    echo "  - Trying to install in development mode..."
+
+    # 尝试安装到开发模式
+    "$PYTHON" -m pip install -e "$PROJECT_ROOT/flash" 2>/dev/null
+
+    if [ $? -ne 0 ]; then
+        echo "  - Failed to install. Skipping tests."
+        echo "  - (Install the package manually with: pip install -e flash/)"
+        exit 0
+    fi
+fi
+
+# 运行 Flash 框架测试
+# 注意：测试用例在 flash/test/ 目录下
+echo "  - Running Flash framework tests (flash/test/)..."
+"$PYTHON" -m pytest flash/test/ -v --tb=short
+if [ $? -ne 0 ]; then
+    echo "❌ Tests failed! Push aborted."
+    echo "Fix the tests before pushing."
+    echo "If you want to skip this check, use 'git push --no-verify'."
+    exit 1
+fi
+
+echo "✅ Pre-push tests passed!"
+exit 0

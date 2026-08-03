@@ -1,0 +1,96 @@
+#!/bin/bash
+# Pre-commit 钩子 - 运行快速测试（代码风格检查）
+#
+# 此钩子在 git commit 之前运行，执行快速检查：
+# 1. Black 代码风格检查
+# 2. 导入检查（确保模块可导入）
+#
+# 如果检查失败，commit 将被中止。
+
+echo "📝 Running pre-commit checks..."
+
+# 使用正确的 Python 解释器 (支持环境变量覆盖)
+# 默认: WSL 路径; 自定义: export PYTHON=/path/to/python
+PYTHON="${PYTHON:-/c/Users/15735/.workbuddy/binaries/python/versions/3.13.12/python.exe}"
+
+# 检查 Python 是否可用
+if [ ! -f "$PYTHON" ]; then
+    # 尝试从 PATH 查找 python
+    if command -v python3 &> /dev/null; then
+        PYTHON="python3"
+    elif command -v python &> /dev/null; then
+        PYTHON="python"
+    else
+        echo "Warning: Python not found at $PYTHON and not in PATH"
+        echo "  - Skipping pre-commit checks."
+        echo "  - Set PYTHON environment variable to override"
+        exit 0
+    fi
+fi
+
+echo "  - Using Python: $PYTHON"
+
+# 获取脚本所在目录（即 scripts/git-hooks/）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 获取项目根目录（scripts/git-hooks/ 的父目录的父目录）
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# 如果在 Windows Git Bash 中运行，将 Unix 路径转换为 Windows 格式
+# 否则 Windows Python 无法识别 /e/... 这种路径
+if command -v cygpath &> /dev/null; then
+    PROJECT_ROOT_PY="$(cygpath -w "$PROJECT_ROOT")"
+else
+    PROJECT_ROOT_PY="$PROJECT_ROOT"
+fi
+
+# 添加项目根目录到 PYTHONPATH
+export PYTHONPATH="${PROJECT_ROOT_PY}:${PYTHONPATH}"
+
+echo "  - Project root: $PROJECT_ROOT"
+echo "  - Running code style check..."
+
+# 尝试使用 Black
+"$PYTHON" -m black --check --line-length=120 "$PROJECT_ROOT" 2>/dev/null
+if [ $? -eq 0 ]; then
+    echo "    ✅ Black check passed!"
+else
+    # Black 不可用或检查失败，尝试 autopep8
+    "$(dirname "$PYTHON")/autopep8" --version >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo "    - Black not available, trying autopep8..."
+        "$(dirname "$PYTHON")/autopep8" --recursive --diff "$PROJECT_ROOT" >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            echo "⚠️  autopep8 check failed! Formatting issues found."
+            echo "  - Run 'autopep8 --in-place --recursive .' to auto-format."
+            exit 1
+        else
+            echo "    ✅ autopep8 check passed!"
+        fi
+    else
+        # 两者都不可用，跳过检查
+        echo "    ⚠️  Warning: Neither Black nor autopep8 is available."
+        echo "    - Skipping code style check."
+    fi
+fi
+
+# 2. 导入检查（确保模块可导入）
+echo "  - Checking imports..."
+"$PYTHON" -c "import flash; print('✅ Flash module imported successfully!')" 2>/dev/null
+if [ $? -eq 0 ]; then
+    echo "    ✅ Flash module importable"
+else
+    # 尝试 PhySimX 模式
+    "$PYTHON" -c "import physimx_sim.flash; print('✅ Flash module (PhySimX) imported successfully!')" 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "    ✅ Flash module (PhySimX) importable"
+    else
+        echo "    ⚠️  Warning: flash module not importable"
+        echo "    - Check your PYTHONPATH and module structure."
+        echo "    - If you want to skip this check, use 'git commit --no-verify'."
+        # 软性警告，不阻止提交
+    fi
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0

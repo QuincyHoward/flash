@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Knudsen Number Criterion — Nonlocal Electron Heat Conduction Judge</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.getElementById('formulasContent'),{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --border: #e0e3e8;
+    --text: #1a1d23;
+    --text-secondary: #5f6b7a;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --yellow: #ca8a04;
+    --yellow-bg: #fefce8;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --slider-track: #d1d5db;
+    --slider-fill: #2563eb;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header .badge {
+    font-size: 12px;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 28px;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+  }
+
+  /* ---- LEFT PANEL ---- */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    padding: 18px 20px;
+  }
+  .card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .param-group {
+    margin-bottom: 14px;
+  }
+  .param-group:last-child { margin-bottom: 0; }
+  .param-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .param-label .name { color: var(--text); }
+  .param-label .unit { color: var(--text-secondary); font-weight: 400; font-size: 11px; }
+  .param-value {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: right;
+    min-width: 70px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--slider-track);
+    outline: none;
+    margin: 6px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  input[type="range"]:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.25);
+  }
+  input[type="number"] {
+    width: 90px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    text-align: right;
+    color: var(--text);
+    background: #fafbfc;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.12);
+  }
+  .mode-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fafbfc;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-secondary);
+  }
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .mode-btn:hover:not(.active) {
+    background: var(--accent-light);
+  }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .preset-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    background: #fafbfc;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .preset-btn:hover { background: var(--accent-light); color: var(--accent); }
+  .preset-btn:active { background: var(--accent); color: #fff; }
+
+  /* ---- RIGHT PANEL ---- */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .result-item {
+    background: var(--card);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    box-shadow: var(--card-shadow);
+  }
+  .result-item.primary {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #f8fafc 0%, #eff4ff 100%);
+    border: 2px solid var(--accent);
+  }
+  .result-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+  }
+  .result-value {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .result-value .cgs {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .result-name {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ---- GAUGE ---- */
+  .gauge-section {
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    padding: 20px 24px;
+  }
+  .gauge-section h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+  .gauge-container {
+    position: relative;
+    height: 80px;
+    margin-bottom: 10px;
+  }
+  .gauge-bar {
+    position: relative;
+    height: 36px;
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(to right,
+      #16a34a 0%, #16a34a 18%,
+      #84cc16 18%, #84cc16 30%,
+      #eab308 30%, #eab308 48%,
+      #f97316 48%, #f97316 65%,
+      #dc2626 65%, #dc2626 100%
+    );
+  }
+  .gauge-bar.light { opacity: 0.85; }
+  .gauge-marker {
+    position: absolute;
+    top: -8px;
+    width: 4px;
+    height: 52px;
+    background: #1a1d23;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 0.2s ease;
+    z-index: 2;
+    box-shadow: 0 0 6px rgba(0,0,0,0.3);
+  }
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .gauge-labels span { text-align: center; flex: 1; }
+  .gauge-thresholds {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .gauge-thresholds span { flex: 1; text-align: center; }
+
+  /* ---- VERDICT ---- */
+  .verdict {
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 16px;
+    text-align: center;
+    margin-top: 12px;
+    transition: all 0.3s;
+  }
+  .verdict.local {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 2px solid var(--green);
+  }
+  .verdict.transition {
+    background: var(--yellow-bg);
+    color: var(--yellow);
+    border: 2px solid var(--yellow);
+  }
+  .verdict.nonlocal {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 2px solid var(--red);
+  }
+
+  /* ---- DERIVATION NOTE ---- */
+  .note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    background: #fefce8;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .note strong { color: #92400e; }
+
+  /* ---- TOOLTIP ---- */
+  .info-icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--slider-track);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 4px;
+  }
+
+  /* ---- DIRECT INPUT ---- */
+  .direct-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .direct-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 960px) {
+    .container { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---- AUX TABLE ---- */
+  .aux-table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+  .aux-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .aux-table td:first-child {
+    font-weight: 600;
+    color: var(--text-secondary);
+    width: 140px;
+  }
+  .aux-table td:last-child {
+    font-family: var(--font-mono);
+    text-align: right;
+  }
+
+  /* SLIDER DUAL HANDLE - numeric input next to it */
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .param-row input[type="range"] { flex: 1; }
+
+  /* ---- FORMULA REFERENCE ---- */
+  .formulas-header h2 {
+    cursor: default;
+  }
+  .formula-block {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f1f3;
+  }
+  .formula-block:last-of-type { border-bottom: none; }
+  .formula-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .formula-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .formula-body strong {
+    color: var(--accent);
+  }
+  .formula-cgs {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-style: italic;
+  }
+  #formulasContent.collapsed { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>
+    &#9883; Knudsen Number Criterion
+    <span class="badge">Nonlocal Electron Heat Conduction</span>
+  </h1>
+  <span style="font-size:12px;color:var(--text-secondary)">CGS Units &bull; Spitzer-H&auml;rm Baseline</span>
+</div>
+
+<div class="container">
+
+  <!-- ========== LEFT PANEL: INPUTS ========== -->
+  <div class="left-panel">
+
+    <!-- Mode Toggle -->
+    <div class="card">
+      <h2>L<sub>T</sub> Input Mode</h2>
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn active" data-mode="derived">Derived from dT<sub>e</sub>/dt &amp; v</button>
+        <button class="mode-btn" data-mode="direct">Direct L<sub>T</sub> Input</button>
+      </div>
+    </div>
+
+    <!-- Plasma Parameters -->
+    <div class="card" id="plasmaParams">
+      <h2>Plasma Parameters</h2>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">T<sub>e</sub> &mdash; Electron Temperature</span>
+          <span class="unit">[eV]</span>
+          <span class="param-value" id="valTe">1000</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderTe" min="0" max="100" value="50" step="0.1">
+          <input type="number" id="numTe" value="1000" step="any" min="1" max="20000">
+        </div>
+      </div>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">n<sub>e</sub> &mdash; Electron Density</span>
+          <span class="unit">[cm<sup>&minus;3</sup>]</span>
+          <span class="param-value" id="valNe">1.00&times;10<sup>21</sup></span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderNe" min="0" max="100" value="50" step="0.1">
+          <input type="number" id="numNe" value="1e21" step="any">
+        </div>
+      </div>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name"><span style="text-decoration:overline">Z</span> &mdash; Mean Ionization Degree</span>
+          <span class="unit">[dimensionless]</span>
+          <span class="param-value" id="valZ">3.50</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderZ" min="1" max="50" value="3.5" step="0.1">
+          <input type="number" id="numZ" value="3.5" step="0.1" min="1" max="50">
+        </div>
+      </div>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">&alpha;<sub>ele</sub> &mdash; Flux Limiter Factor</span>
+          <span class="unit">[dimensionless]</span>
+          <span class="param-value" id="valAlpha">0.06</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderAlpha" min="0.01" max="1.0" value="0.06" step="0.01">
+          <input type="number" id="numAlpha" value="0.06" step="0.01" min="0.01" max="1.0">
+        </div>
+      </div>
+    </div>
+
+    <!-- L_T: Derived Mode -->
+    <div class="card" id="derivedMode">
+      <h2>Temperature Gradient Scale Length</h2>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">dT<sub>e</sub>/dt &mdash; Material Derivative</span>
+          <span class="unit">[eV/ns]</span>
+          <span class="param-value" id="valDT">10.0</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderDT" min="0" max="100" value="30" step="0.1">
+          <input type="number" id="numDT" value="10" step="any">
+        </div>
+      </div>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">v &mdash; Fluid Velocity</span>
+          <span class="unit">[&mu;m/ns]</span>
+          <span class="param-value" id="valV">100</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderV" min="0" max="100" value="40" step="0.1">
+          <input type="number" id="numV" value="100" step="any">
+        </div>
+      </div>
+
+      <div class="note" id="ltDerivation">
+        <strong>&#9432; Derivation:</strong><br>
+        L<sub>T</sub> = T<sub>e</sub> &middot; v / |dT<sub>e</sub>/dt|<br>
+        Assumes <em>quasi-steady</em> (&part;/&part;t &asymp; 0), <em>1D flow</em>, and &nabla;T<sub>e</sub> aligned with v.
+        <br><strong>Warning:</strong> Invalid when v &rarr; 0 (stagnation) or in strongly transient regions (shock fronts).
+      </div>
+    </div>
+
+    <!-- L_T: Direct Mode (hidden by default) -->
+    <div class="card" id="directMode" style="display:none;">
+      <h2>Temperature Gradient Scale Length (Direct)</h2>
+
+      <div class="param-group">
+        <div class="param-label">
+          <span class="name">L<sub>T</sub> &mdash; Scale Length</span>
+          <span class="unit">[&mu;m]</span>
+          <span class="param-value" id="valLTdirect">10.0</span>
+        </div>
+        <div class="param-row">
+          <input type="range" id="sliderLTdirect" min="0" max="100" value="30" step="0.1">
+          <input type="number" id="numLTdirect" value="10" step="any">
+        </div>
+      </div>
+      <div class="note">
+        <strong>&#9432; Direct input:</strong> Use this mode when L<sub>T</sub> is known from simulation data:
+        L<sub>T</sub> = T<sub>e</sub> / |&nabla;T<sub>e</sub>|
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="card">
+      <h2>Preset Scenarios</h2>
+      <div class="presets" id="presets">
+        <button class="preset-btn" data-preset="corona">&#9728; Corona (2 keV)</button>
+        <button class="preset-btn" data-preset="critical">&#9679; Critical Surface (1 keV)</button>
+        <button class="preset-btn" data-preset="ablation">&#9650; Ablation Front (100 eV)</button>
+        <button class="preset-btn" data-preset="solid">&#9632; Solid Density (10 eV)</button>
+        <button class="preset-btn" data-preset="hohlraum">&#9675; Hohlraum Wall</button>
+        <button class="preset-btn" data-preset="shock">&#9889; Shock Front</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== RIGHT PANEL: RESULTS ========== -->
+  <div class="right-panel">
+
+    <!-- Results Grid -->
+    <div class="results-grid">
+      <div class="result-item primary">
+        <div class="result-label">Knudsen Number &mdash; Kn = &lambda;<sub>ei</sub> / L<sub>T</sub> (standard)</div>
+        <div class="result-value" id="resKn">--</div>
+        <div class="result-name">Nonlocality Indicator</div>
+      </div>
+
+      <div class="result-item">
+        <div class="result-label">&lambda;<sub>ei</sub> &mdash; e<sup>&minus;</sup> Particle MFP</div>
+        <div class="result-value" id="resLambda">--</div>
+        <div class="result-name"></div>
+      </div>
+
+      <div class="result-item">
+        <div class="result-label">L<sub>T</sub> &mdash; Temperature Gradient Scale Length</div>
+        <div class="result-value" id="resLT">--</div>
+        <div class="result-name"></div>
+      </div>
+
+      <div class="result-item">
+        <div class="result-label">ln &Lambda; &mdash; Coulomb Logarithm</div>
+        <div class="result-value" id="resLnLambda">--</div>
+        <div class="result-name"></div>
+      </div>
+
+      <div class="result-item">
+        <div class="result-label">&lambda;<sub>D</sub> &mdash; Debye Length</div>
+        <div class="result-value" id="resDebye">--</div>
+        <div class="result-name"></div>
+      </div>
+
+      <div class="result-item">
+        <div class="result-label">N<sub>D</sub> &mdash; Particles in Debye Sphere</div>
+        <div class="result-value" id="resND">--</div>
+        <div class="result-name">Plasma Parameter</div>
+      </div>
+    </div>
+
+    <!-- Gauge -->
+    <div class="gauge-section">
+      <h2>Nonlocality Gauge</h2>
+      <div class="gauge-container">
+        <div class="gauge-bar light"></div>
+        <div class="gauge-marker" id="gaugeMarker" style="left:5%;"></div>
+      </div>
+      <div class="gauge-labels">
+        <span style="color:#16a34a">Local (SH)</span>
+        <span style="color:#eab308">Transition</span>
+        <span style="color:#dc2626">Nonlocal</span>
+      </div>
+      <div class="gauge-thresholds">
+        <span>Kn=0</span><span>10<sup>&minus;3</sup></span><span>10<sup>&minus;2</sup></span><span>0.1</span><span>1+</span>
+      </div>
+      <div class="verdict" id="verdictBox">--</div>
+    </div>
+
+    <!-- Supplementary Table -->
+    <div class="card">
+      <h2>Supplementary Diagnostics</h2>
+      <table class="aux-table" id="auxTable">
+        <tr><td>e<sup>&minus;</sup> Thermal Velocity v<sub>th</sub></td><td id="auxVth">--</td></tr>
+        <tr><td>e<sup>&minus;</sup>&minus;i Collision Freq. &nu;<sub>ei</sub></td><td id="auxNuei">--</td></tr>
+        <tr><td>&Lambda;<sub>C</sub> = b<sub>max</sub> / b<sub>min</sub></td><td id="auxLambda">--</td></tr>
+        <tr><td>Thermal Conductivity D = K<sub>ele</sub></td><td id="auxKappa">--</td></tr>
+        <tr><td>Free-streaming q<sub>fs</sub> (uncapped)</td><td id="auxQfs">--</td></tr>
+        <tr><td>q<sub>SH</sub> (uncapped) / q<sub>eff</sub> (limited)</td><td id="auxQsh">--</td></tr>
+        <tr><td>Flux Limiter f = q<sub>SH</sub>/q<sub>fs</sub></td><td id="auxFluxF">--</td></tr>
+      </table>
+    </div>
+
+    <!-- Physics Formulas Reference -->
+    <div class="card" id="formulasCard">
+      <div class="formulas-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0;">
+        <h2 style="margin-bottom:0;border-bottom:none;padding-bottom:0;">&#128218; 关键物理公式（来自 equation_cal.tex，全部 CGS 单位制）</h2>
+        <button id="toggleFormulas" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;color:var(--text-secondary);">收起 &#9650;</button>
+      </div>
+      <div id="formulasContent" style="font-size:14px;line-height:2.2;">
+
+<div class="formula-block"><div class="formula-num">(1)</div><div class="formula-body"><strong>有效电子热流 q<sub>eff</sub> — 通量限制 SH 模型</strong>
+$$ q_{\mathrm{eff}} = \min\!\left\{D,\ \frac{q_{\max}}{|\nabla T_e|}\right\} \cdot \nabla T_e $$
+其中 $D = K_{ele}$ 为 SH 热导率，$q_{\max}$ 为最大容许热流。
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(2)</div><div class="formula-body"><strong>最大热流 q<sub>max</sub> — 自由流限幅</strong>
+$$ q_{\max} = \alpha_{ele}\, n_e k_B T_e \cdot \sqrt{\frac{k_B T_e}{m_e}} = \boldsymbol{A} \cdot n_e T_e^{3/2} $$
+$$ \boldsymbol{A} = \alpha_{ele}\, k_B^{3/2} m_e^{-1/2} \qquad (\text{CH}: \alpha_{ele}=0.06) $$
+<span class="formula-cgs">v<sub>th</sub> = √(k_B T_e/m_e) 采用用户约定（不含 √3 因子）</span>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(3)</div><div class="formula-body"><strong>SH 热导率 D = K<sub>ele</sub> — 修正 Spitzer-H&auml;rm</strong>
+$$ D = K_{ele} = \left(\frac{8}{\pi}\right)^{3/2} \frac{k_B^{7/2}}{e^4 \sqrt{m_e}} \cdot \frac{1}{1+3.3/\bar{z}} \cdot \frac{T_e^{5/2}}{\bar{z} \cdot \ln\Lambda_{ei}} $$
+化简为：$$ D = \boldsymbol{B} \cdot T_e^{5/2} \cdot \frac{1}{\ln\Lambda_{ei}},\quad \boldsymbol{B} = \boldsymbol{B}_0 \cdot \boldsymbol{G}_1 $$
+$$ \boldsymbol{B}_0 = \left(\frac{8}{\pi}\right)^{3/2} \frac{k_B^{7/2}}{e^4 \sqrt{m_e}},\qquad \boldsymbol{G}_1 = \frac{1}{\bar{z} + 3.3} $$
+<span class="formula-cgs">注意：系数 (8/π)<sup>3/2</sup> 而非标准 Spitzer 的 20(2/π)<sup>3/2</sup>；Z 依赖为 1/(Z+3.3) 而非 1/Z</span>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(4)</div><div class="formula-body"><strong>库仑对数 lnΛ<sub>ei</sub> — 量子修正版</strong>
+$$ \ln\Lambda_{ei} = \ln\!\left(1 + \frac{b_{\max}}{b_{\min}}\right) $$
+$$ b_{\max} = \sqrt{\frac{k_B T_e}{4\pi e^2 n_e}} = \boldsymbol{C} \cdot T_e^{1/2} n_e^{-1/2} $$
+$$ b_{\min} = \max\!\left\{\frac{\bar{z} e^2}{3 k_B T_e},\ \frac{\hbar}{2\sqrt{3 k_B T_e m_e}}\right\} $$
+<span class="formula-cgs">使用 ln(1+Λ) 替代 ln(Λ)，高密度低温下数值稳定</span>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(5)</div><div class="formula-body"><strong>预计算常数（CGS 制）</strong>
+$$ \boldsymbol{C} = \sqrt{\frac{k_B}{4\pi e^2}} \qquad
+   \boldsymbol{E} = \frac{\bar{z} e^2}{3 k_B} \qquad
+   \boldsymbol{F} = \frac{\hbar}{2\sqrt{3 k_B m_e}} $$
+$$ \boldsymbol{A} = \alpha_{ele} k_B^{3/2} m_e^{-1/2} \qquad
+   \boldsymbol{B}_0 = \left(\frac{8}{\pi}\right)^{3/2} \frac{k_B^{7/2}}{e^4 \sqrt{m_e}} $$
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(6)</div><div class="formula-body"><strong>电子平均自由程 λ<sub>ei</sub>（粒子碰撞 MFP，标准定义）</strong>
+$$ \nu_{ei} = \frac{4\sqrt{2\pi}}{3} \cdot \frac{n_e Z e^4 \ln\Lambda_{ei}}{\sqrt{m_e}\,(k_B T_e)^{3/2}} \quad [\mathrm{s^{-1}}] $$
+$$ v_{\mathrm{th}} = \sqrt{\frac{3k_B T_e}{m_e}}, \qquad \lambda_{ei} = \frac{v_{\mathrm{th}}}{\nu_{ei}} \quad [\mathrm{cm}] $$
+<span class="formula-cgs">标准库仑碰撞平均自由程。lnΛ<sub>ei</sub> 使用 formula (4) 的量子修正定义。此为文献标准 Kn = λ<sub>ei</sub>/L<sub>T</sub> 中的 λ。</span>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(7)</div><div class="formula-body"><strong>温度梯度标长 L<sub>T</sub></strong>
+<em style="color:#2563eb;">物质导数估算：</em>
+$$ L_T = \frac{T_e[\mathrm{eV}] \cdot v[\mu\mathrm{m/ns}] \times 10^{-4}}{|dT_e/dt|[\mathrm{eV/ns}]} \quad [\mathrm{cm}] $$
+<span class="formula-cgs">⚠ 适用条件：准稳态(∂/∂t≈0)、一维流动、∇T<sub>e</sub>∥v。v→0 时失效。</span>
+<em style="color:#2563eb;">直接输入：</em> L<sub>T</sub>[cm] = L<sub>T</sub>[μm] × 10<sup>−4</sup>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(8)</div><div class="formula-body"><strong>克努森数 Kn & 通量限制因子 f</strong>
+$$ \mathrm{Kn} = \frac{\lambda_{ei}}{L_T} \quad \text{(standard Knudsen number)} $$
+$$ f = \frac{q_{\mathrm{SH}}}{q_{\mathrm{fs}}} = \frac{D \cdot |\nabla T_e|}{n_e k_B T_e v_{\mathrm{th}}} \quad \text{(flux limiter, independent of Kn)} $$
+<span class="formula-cgs">注意：Kn 与 f 是两个独立量——Kn 判定非局域程度（阈值 10<sup>−3</sup>/10<sup>−2</sup>/0.1），f 判定通量限制状态（f &gt; α<sub>ele</sub> 时热流被主动限幅）。</span>
+</div></div>
+
+<div class="formula-block"><div class="formula-num">(9)</div><div class="formula-body"><strong>有效热流 q<sub>eff</sub> 完整表达式</strong>
+$$ q_{\mathrm{eff}} = \min\!\left\{ \frac{\boldsymbol{B}_0}{\bar{z}+3.3} \cdot \frac{T_e^{5/2}}{\ln\!\left[1 + \frac{\boldsymbol{C} T_e^{1/2} n_e^{-1/2}}{\max\{\boldsymbol{E} T_e^{-1}, \boldsymbol{F} T_e^{-1/2}\}}\right]},\ \frac{\boldsymbol{A} n_e T_e^{3/2}}{|\nabla T_e|} \right\} \cdot \nabla T_e $$
+</div></div>
+
+<div class="formula-block" style="background:#f0f4ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 14px;margin-top:8px;">
+  <div class="formula-num" style="background:#bfdbfe;color:#1e40af;">CGS</div>
+  <div class="formula-body"><strong>物理常数表 CGS Constants</strong>
+$$ k_B = 1.380649\times 10^{-16}\ \mathrm{erg/K} \qquad e = 4.8032047\times 10^{-10}\ \mathrm{esu} $$
+$$ m_e = 9.1093837\times 10^{-28}\ \mathrm{g} \qquad \hbar = 1.0545718\times 10^{-27}\ \mathrm{erg\cdot s} $$
+$$ 1\ \mathrm{eV} = 1.602176634\times 10^{-12}\ \mathrm{erg} $$
+<span style="font-size:11px;color:var(--text-secondary)">$1\ \mathrm{K} = 8.617\times 10^{-5}\ \mathrm{eV}$ | $1\ \mu\mathrm{m} = 10^{-4}\ \mathrm{cm}$ | $1\ \mathrm{ns} = 10^{-9}\ \mathrm{s}$ | $T[\mathrm{K}] = T[\mathrm{eV}] \times 11604.5$</span>
+  </div>
+</div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// CONSTANTS (CGS) — equation_cal.tex: eq. A, B, C, E, F
+// ============================================================================
+const kB   = 1.380649e-16;   // erg/K
+const eCGS = 4.8032047e-10;  // esu
+const me   = 9.1093837e-28;  // g
+const hbar = 1.054571817e-27;// erg·s
+const eV2erg = 1.602176634e-12;
+const PI   = Math.PI;
+
+// Precomputed (CGS) — matches eq. (A/B/C/E/F) from equation_cal.tex
+const C_const = Math.sqrt(kB / (4 * PI * eCGS * eCGS));   // C = √(k_B/(4πe²))
+const F_const = hbar / (2 * Math.sqrt(3 * kB * me));       // F = ħ/(2√(3kB me))
+const A_pre   = Math.pow(kB, 1.5) / Math.sqrt(me);         // A₀ = k_B^(3/2)·m_e^(−1/2)
+const B_pre   = Math.pow(8/PI, 1.5) * Math.pow(kB, 3.5)
+              / (Math.pow(eCGS, 4) * Math.sqrt(me));       // B₀ = (8/π)^(3/2)·k_B^(7/2)/(e⁴√m_e)
+
+// ============================================================================
+// LOG-SCALE SLIDER HELPERS
+// ============================================================================
+function sliderToLog(sliderVal, minExp, maxExp) {
+  return Math.pow(10, minExp + (maxExp - minExp) * sliderVal / 100);
+}
+function logToSlider(logVal, minExp, maxExp) {
+  if (logVal <= 0) return 0;
+  return (Math.log10(logVal) - minExp) / (maxExp - minExp) * 100;
+}
+
+// ============================================================================
+// STATE
+// ============================================================================
+let mode = 'derived'; // 'derived' or 'direct'
+
+// Log-scale parameter ranges
+const TE_EXP_MIN = 1,   TE_EXP_MAX = 4.3;    // 10 - 20000 eV
+const NE_EXP_MIN = 18,  NE_EXP_MAX = 24;     // 1e18 - 1e24 cm^-3
+const DT_EXP_MIN = -2,  DT_EXP_MAX = 5;      // 0.01 - 1e5 eV/ns (0 via numeric input)
+const V_EXP_MIN  = 0,   V_EXP_MAX  = 3;      // 1 - 1000 um/ns
+const LT_EXP_MIN = -2,  LT_EXP_MAX = 4;      // 0.01 - 10000 um
+
+// Current parameter values
+let params = {
+  Te:    1000,    // eV
+  ne:    1e21,    // cm^-3
+  Z:     3.5,
+  alpha: 0.06,    // flux limiter α_ele (CH: 0.06)
+  dTdt:  10,      // eV/ns
+  v:     100,     // um/ns
+  LTdirect: 10,   // um (direct mode)
+};
+
+// ============================================================================
+// PHYSICS: Coulomb Logarithm — eq. lnΛ_ei from equation_cal.tex
+// ============================================================================
+function coulombLog(Te_eV, ne, Z) {
+  const Te_erg = Te_eV * eV2erg;
+  // b_max = C · √(T_e / n_e)   [eq. C]
+  const b_max = C_const * Math.sqrt(Te_erg / ne);
+  // b_min = max{ zbar·e²/(3kB·T_e) ,  ħ/(2√(3kB·T_e·m_e)) }   [eq. E, F]
+  const b_min_cl = Z * eCGS * eCGS / (3 * Te_erg);
+  const b_min_qm = F_const / Math.sqrt(Te_erg);
+  const b_min = Math.max(b_min_cl, b_min_qm);
+  // lnΛ_ei = ln(1 + b_max/b_min)
+  const lnL = Math.log(1 + b_max / b_min);
+  return Math.max(lnL, 2.0);
+}
+
+// ============================================================================
+// PHYSICS: Standard thermal velocity v_th = √(3k_B T_e / m_e)
+// ============================================================================
+function thermalVelocityStd(Te_eV) {
+  return Math.sqrt(3 * Te_eV * eV2erg / me);
+}
+
+// ============================================================================
+// PHYSICS: User-convention thermal velocity v_th = √(k_B T_e / m_e)
+// ============================================================================
+function thermalVelocity(Te_eV) {
+  return Math.sqrt(Te_eV * eV2erg / me);
+}
+
+// ============================================================================
+// PHYSICS: e-i collision frequency (standard Spitzer, with user's lnΛ)
+//   ν_ei = (4√(2π)/3) · n_e Z e^4 lnΛ / (√m_e · (k_B T_e)^(3/2))
+// ============================================================================
+function collisionFreq_ei(Te_erg, ne, Z, lnLambda) {
+  return (4 * Math.sqrt(2*PI) / 3) * ne * Z * Math.pow(eCGS, 4) * lnLambda
+       / (Math.sqrt(me) * Math.pow(Te_erg, 1.5));  // [s⁻¹]
+}
+
+// ============================================================================
+// PHYSICS: Standard particle mean free path λ_ei = v_th^std / ν_ei
+// ============================================================================
+function particleMFP(Te_eV, ne, Z, lnLambda) {
+  const Te_erg = Te_eV * eV2erg;
+  const nu_ei = collisionFreq_ei(Te_erg, ne, Z, lnLambda);
+  const vth_std = thermalVelocityStd(Te_eV);
+  return { lambda_ei: vth_std / nu_ei, nu_ei };  // λ_ei [cm], ν_ei [s⁻¹]
+}
+
+// ============================================================================
+// PHYSICS: Thermal conductivity D = K_ele — eq. from equation_cal.tex
+//   D = B · T_e^(5/2) / lnΛ_ei
+//   B = B₀ · G₁   where  G₁ = 1/(zbar + 3.3)
+// ============================================================================
+function thermalConductivity_D(Te_eV, Z, lnLambda) {
+  const T_K = Te_eV * 11604.5;
+  const G1 = 1.0 / (Z + 3.3);
+  return B_pre * G1 * Math.pow(T_K, 2.5) / lnLambda;  // [erg/(s·cm·K)]
+}
+
+// ============================================================================
+// RECALCULATE EVERYTHING
+// ============================================================================
+function recalculate() {
+  const { Te, ne, Z, alpha, dTdt, v, LTdirect } = params;
+
+  // ---- Electron temperature in erg ----
+  const Te_erg = Te * eV2erg;
+
+  // ---- Coulomb Logarithm (user formula, eq. from equation_cal.tex) ----
+  const lnL = coulombLog(Te, ne, Z);
+
+  // ---- Thermal velocities (two conventions) ----
+  const vth_std = thermalVelocityStd(Te);   // √(3kB·T/m_e) — standard
+  const vth     = thermalVelocity(Te);       // √(kB·T/m_e) — user convention
+
+  // ---- Standard particle MFP (λ_ei = v_th^std / ν_ei) ----
+  const { lambda_ei, nu_ei } = particleMFP(Te, ne, Z, lnL);  // cm
+
+  // ---- Thermal conductivity D = K_ele (user formula) ----
+  const D_kappa = thermalConductivity_D(Te, Z, lnL);  // erg/(s·cm·K)
+
+  // ---- Debye Length ----
+  const lambdaD = Math.sqrt(Te_erg / (4 * PI * ne * eCGS * eCGS));
+
+  // ---- Debye Sphere Particles ----
+  const ND = (4*PI/3) * Math.pow(lambdaD, 3) * ne;
+
+  // ---- b_max / b_min / Lambda_C (for display) ----
+  const b_max = C_const * Math.sqrt(Te_erg / ne);
+  const b_min_cl = Z * eCGS * eCGS / (3 * Te_erg);
+  const b_min_qm = F_const / Math.sqrt(Te_erg);
+  const b_min_val = Math.max(b_min_cl, b_min_qm);
+  const Lambda_C = b_max / b_min_val;
+
+  // ---- L_T (temperature gradient scale length) ----
+  let L_T_cm;
+  if (mode === 'direct') {
+    L_T_cm = LTdirect * 1e-4; // um -> cm
+  } else {
+    if (Math.abs(dTdt) < 1e-12) {
+      L_T_cm = Infinity;
+    } else {
+      L_T_cm = Te * v * 1e-4 / Math.abs(dTdt);
+    }
+  }
+  const L_T_um = isFinite(L_T_cm) ? L_T_cm * 1e4 : Infinity;
+
+  // ---- Knudsen Number (standard: Kn = λ_ei / L_T) ----
+  const Kn = (L_T_cm > 0 && isFinite(L_T_cm)) ? lambda_ei / L_T_cm : Infinity;
+
+  // ---- Free-streaming heat flux (user convention v_th) ----
+  const q_fs = ne * Te_erg * vth;  // erg/(cm²·s)
+
+  // ---- q_max = α_ele · q_fs  [eq. from equation_cal.tex] ----
+  const q_max = alpha * q_fs;
+
+  // ---- SH heat flux (uncapped, user's D) ----
+  const gradT_erg = isFinite(L_T_cm) ? (Te_erg / L_T_cm) : 0;
+  const q_SH_uncapped = D_kappa * gradT_erg;  // erg/(cm²·s)
+
+  // ---- Effective heat flux (flux-limited) ----
+  const q_eff = Math.min(q_SH_uncapped, q_max);
+
+  // ---- Flux limiter f = q_SH / q_fs (standard definition) ----
+  const fluxF = q_fs > 0 ? q_SH_uncapped / q_fs : Infinity;
+
+  // ---- Is flux being actively limited? ----
+  const fluxLimited = q_SH_uncapped > q_max;
+
+  // ============================
+  // UPDATE DISPLAY
+  // ============================
+
+  // Knudsen (heat conduction MFP based)
+  const knEl = document.getElementById('resKn');
+  if (!isFinite(Kn)) {
+    knEl.innerHTML = '<span style="color:#dc2626">&#8734;</span> <span class="cgs">(L<sub>T</sub>&rarr;0)</span>';
+  } else {
+    knEl.innerHTML = Kn.toExponential(3);
+  }
+
+  // lambda_ei (standard particle MFP)
+  document.getElementById('resLambda').innerHTML =
+    `${lambda_ei.toExponential(3)} <span class="cgs">cm</span><br><span style="font-size:14px;color:var(--text-secondary)">${(lambda_ei*1e4).toExponential(3)} &mu;m</span>`;
+
+  // L_T
+  if (!isFinite(L_T_cm)) {
+    document.getElementById('resLT').innerHTML =
+      '<span style="color:#16a34a">&infin;</span> <span class="cgs">cm</span><br><span style="font-size:14px;color:var(--text-secondary)">(dT<sub>e</sub>/dt = 0, no gradient)</span>';
+  } else {
+    document.getElementById('resLT').innerHTML =
+      `${L_T_cm.toExponential(3)} <span class="cgs">cm</span><br><span style="font-size:14px;color:var(--text-secondary)">${L_T_um.toExponential(3)} &mu;m</span>`;
+  }
+
+  // ln Lambda (user formula)
+  document.getElementById('resLnLambda').innerHTML = lnL.toFixed(2);
+
+  // Debye
+  document.getElementById('resDebye').innerHTML =
+    `${lambdaD.toExponential(3)} <span class="cgs">cm</span>`;
+
+  // N_D
+  document.getElementById('resND').innerHTML = ND.toExponential(3);
+
+  // --- Gauge ---
+  const gaugePos = gaugeMapping(Kn);
+  document.getElementById('gaugeMarker').style.left = gaugePos + '%';
+
+  // --- Verdict (incorporates flux-limited regime) ---
+  const verdictBox = document.getElementById('verdictBox');
+  verdictBox.className = 'verdict';
+  if (!isFinite(Kn)) {
+    verdictBox.classList.add('nonlocal');
+    verdictBox.innerHTML = '&#9888; INVALID &mdash; L<sub>T</sub> &rarr; 0 (check velocity)';
+  } else if (Kn < 0.001) {
+    verdictBox.classList.add('local');
+    verdictBox.innerHTML = '&#10003; LOCAL &mdash; Spitzer-H&auml;rm fully valid<br><small>Kn &lt; 10<sup>&minus;3</sup> &mdash; diffusive heat transport</small>';
+  } else if (Kn < 0.01) {
+    verdictBox.classList.add('local');
+    verdictBox.innerHTML = '&#10003; LOCAL &mdash; SH valid; flux limiter advised<br><small>10<sup>&minus;3</sup> &le; Kn &lt; 10<sup>&minus;2</sup></small>';
+  } else if (Kn < 0.1) {
+    verdictBox.classList.add('transition');
+    verdictBox.innerHTML = '&#9888; TRANSITION &mdash; Nonlocal effects emerging<br><small>10<sup>&minus;2</sup> &le; Kn &lt; 0.1 &mdash; consider nonlocal model</small>';
+  } else {
+    verdictBox.classList.add('nonlocal');
+    verdictBox.innerHTML = '&#10007; NONLOCAL REQUIRED<br><small>Kn &ge; 0.1 &mdash; use full nonlocal e<sup>&minus;</sup> heat conduction</small>';
+  }
+
+  // --- Auxiliary table ---
+  document.getElementById('auxVth').textContent = vth_std.toExponential(3) + ' cm/s';
+  document.getElementById('auxNuei').textContent = nu_ei.toExponential(3) + ' s\u207b\u00b9';
+  document.getElementById('auxLambda').textContent = Lambda_C.toExponential(3);
+  document.getElementById('auxKappa').textContent = D_kappa.toExponential(3) + ' erg/(s\u00b7cm\u00b7K)';
+  document.getElementById('auxQfs').textContent = q_fs.toExponential(3) + ' erg/(cm\u00b2\u00b7s)';
+  document.getElementById('auxQsh').textContent =
+    q_SH_uncapped.toExponential(3) + ' (uncapped)  |  q<sub>eff</sub>=' + q_eff.toExponential(3) + ' erg/(cm\u00b2\u00b7s)';
+  const fluxEl = document.getElementById('auxFluxF');
+  if (!isFinite(fluxF) || fluxF > 1e6) {
+    fluxEl.textContent = '\u221e (check inputs)';
+    fluxEl.style.color = '#dc2626';
+  } else {
+    const limitMsg = fluxLimited ? ('  [LIMITED: f &gt; &alpha;<sub>ele</sub>=' + params.alpha.toFixed(2) + ']') : '';
+    fluxEl.innerHTML = fluxF.toExponential(3) + limitMsg;
+    fluxEl.style.color = fluxLimited ? '#dc2626' : (fluxF > 0.03 ? '#ca8a04' : '#16a34a');
+  }
+
+  // --- Update derivation note warning ---
+  const noteEl = document.getElementById('ltDerivation');
+  if (noteEl && mode === 'derived') {
+    if (params.v < 5) {
+      noteEl.innerHTML = '<strong>&#9888; WARNING:</strong> v &lt; 5 &mu;m/ns &mdash; L<sub>T</sub> estimate unreliable!<br>' + noteEl.innerHTML.replace(/<strong>&#9432;.*?<\/strong><br>/, '');
+    } else {
+      noteEl.innerHTML = '<strong>&#9432; Derivation:</strong><br>' +
+        'L<sub>T</sub> = T<sub>e</sub> &middot; v / |dT<sub>e</sub>/dt|<br>' +
+        'Assumes <em>quasi-steady</em> (&part;/&part;t &asymp; 0), <em>1D flow</em>, and &nabla;T<sub>e</sub> aligned with v.';
+    }
+  }
+}
+
+// ============================================================================
+// GAUGE MAPPING: Kn -> gauge percentage
+// ============================================================================
+function gaugeMapping(Kn) {
+  if (!isFinite(Kn) || Kn <= 0) return 3; // pin at left edge
+  // Use piecewise mapping:
+  // Kn in [0, 0.001]   -> [3%, 18%]
+  // Kn in [0.001, 0.01] -> [18%, 35%]
+  // Kn in [0.01, 0.1]   -> [35%, 65%]
+  // Kn in [0.1, 1.0]    -> [65%, 92%]
+  // Kn > 1.0            -> 95%
+  if (Kn <= 0.001) {
+    return 3 + (Kn / 0.001) * 15;
+  } else if (Kn <= 0.01) {
+    return 18 + ((Kn - 0.001) / 0.009) * 17;
+  } else if (Kn <= 0.1) {
+    return 35 + ((Kn - 0.01) / 0.09) * 30;
+  } else if (Kn <= 1.0) {
+    return 65 + ((Kn - 0.1) / 0.9) * 27;
+  } else {
+    return 95;
+  }
+}
+
+// ============================================================================
+// SLIDER SYNC & EVENT HANDLERS
+// ============================================================================
+
+// Generic log slider + number input sync
+function setupLogSlider(sliderId, numId, valId, paramKey, expMin, expMax, formatFn, allowZero) {
+  const slider = document.getElementById(sliderId);
+  const numInput = document.getElementById(numId);
+  const valDisplay = document.getElementById(valId);
+
+  function sliderToNum() { return sliderToLog(parseFloat(slider.value), expMin, expMax); }
+  function numToSlider() {
+    const v = parseFloat(numInput.value);
+    if (isNaN(v) || v < 0) return 0;
+    if (allowZero && v === 0) return 0;
+    if (v <= 0) return 0;
+    return logToSlider(v, expMin, expMax);
+  }
+
+  slider.addEventListener('input', () => {
+    const val = sliderToNum();
+    params[paramKey] = val;
+    numInput.value = val < 1000 ? val.toPrecision(3) : val.toExponential(3);
+    if (formatFn) valDisplay.innerHTML = formatFn(val);
+    recalculate();
+  });
+
+  numInput.addEventListener('change', () => {
+    let val = parseFloat(numInput.value);
+    if (isNaN(val) || val < 0) val = Math.pow(10, expMin);
+    if (allowZero && val === 0) {
+      params[paramKey] = 0;
+      slider.value = 0;
+      numInput.value = '0';
+      if (formatFn) valDisplay.innerHTML = formatFn(0);
+      recalculate();
+      return;
+    }
+    val = Math.min(val, Math.pow(10, expMax));
+    val = Math.max(val, Math.pow(10, expMin));
+    params[paramKey] = val;
+    slider.value = numToSlider();
+    numInput.value = val < 1000 ? val.toPrecision(3) : val.toExponential(3);
+    if (formatFn) valDisplay.innerHTML = formatFn(val);
+    recalculate();
+  });
+
+  // Initial
+  slider.value = logToSlider(params[paramKey], expMin, expMax);
+  numInput.value = params[paramKey] < 1000 ? params[paramKey].toPrecision(3) : params[paramKey].toExponential(3);
+  if (formatFn) valDisplay.innerHTML = formatFn(params[paramKey]);
+}
+
+// Linear slider sync
+function setupLinSlider(sliderId, numId, valId, paramKey, min, max, formatFn) {
+  const slider = document.getElementById(sliderId);
+  const numInput = document.getElementById(numId);
+  const valDisplay = document.getElementById(valId);
+
+  slider.addEventListener('input', () => {
+    const val = parseFloat(slider.value);
+    params[paramKey] = val;
+    numInput.value = val;
+    if (formatFn) valDisplay.innerHTML = formatFn(val);
+    recalculate();
+  });
+
+  numInput.addEventListener('change', () => {
+    let val = parseFloat(numInput.value);
+    if (isNaN(val)) val = min;
+    val = Math.min(val, max);
+    val = Math.max(val, min);
+    params[paramKey] = val;
+    slider.value = val;
+    numInput.value = val;
+    if (formatFn) valDisplay.innerHTML = formatFn(val);
+    recalculate();
+  });
+
+  // Initial
+  slider.value = params[paramKey];
+  numInput.value = params[paramKey];
+  if (formatFn) valDisplay.innerHTML = formatFn(params[paramKey]);
+}
+
+// Format functions
+function fmtExp(val) {
+  return val < 1000 ? val.toPrecision(3) : val.toExponential(3);
+}
+
+// ============================================================================
+// INITIALIZE ALL SLIDERS
+// ============================================================================
+setupLogSlider('sliderTe', 'numTe', 'valTe', 'Te', TE_EXP_MIN, TE_EXP_MAX,
+  v => v < 1000 ? v.toFixed(0) : v.toExponential(3));
+setupLogSlider('sliderNe', 'numNe', 'valNe', 'ne', NE_EXP_MIN, NE_EXP_MAX,
+  v => v.toExponential(3));
+setupLinSlider('sliderZ', 'numZ', 'valZ', 'Z', 1, 50,
+  v => v.toFixed(2));
+setupLinSlider('sliderAlpha', 'numAlpha', 'valAlpha', 'alpha', 0.01, 1.0,
+  v => v.toFixed(2));
+setupLogSlider('sliderDT', 'numDT', 'valDT', 'dTdt', DT_EXP_MIN, DT_EXP_MAX,
+  v => fmtExp(v), true);  // allowZero
+setupLogSlider('sliderV', 'numV', 'valV', 'v', V_EXP_MIN, V_EXP_MAX,
+  v => fmtExp(v));
+setupLogSlider('sliderLTdirect', 'numLTdirect', 'valLTdirect', 'LTdirect', LT_EXP_MIN, LT_EXP_MAX,
+  v => fmtExp(v));
+
+// ============================================================================
+// MODE TOGGLE
+// ============================================================================
+document.getElementById('modeToggle').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('mode-btn')) return;
+  const buttons = document.querySelectorAll('#modeToggle .mode-btn');
+  buttons.forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  mode = e.target.dataset.mode;
+  document.getElementById('derivedMode').style.display = (mode === 'derived') ? '' : 'none';
+  document.getElementById('directMode').style.display = (mode === 'direct') ? '' : 'none';
+  recalculate();
+});
+
+// ============================================================================
+// PRESETS
+// ============================================================================
+const presetData = {
+  corona:    { Te: 2000, ne: 1e20, Z: 3.5, alpha: 0.06, dTdt: 60,  v: 300 },
+  critical:  { Te: 1000, ne: 1e21, Z: 3.5, alpha: 0.06, dTdt: 50,  v: 150 },
+  ablation:  { Te: 100,  ne: 5e22, Z: 3.5, alpha: 0.06, dTdt: 30,  v: 50  },
+  solid:     { Te: 10,   ne: 1e23, Z: 3.5, alpha: 0.06, dTdt: 5,   v: 10  },
+  hohlraum:  { Te: 300,  ne: 1e20, Z: 40,  alpha: 0.06, dTdt: 10,  v: 50  },
+  shock:     { Te: 500,  ne: 1e22, Z: 3.5, alpha: 0.06, dTdt: 200, v: 200 },
+};
+
+document.getElementById('presets').addEventListener('click', (e) => {
+  const btn = e.target.closest('.preset-btn');
+  if (!btn) return;
+  const key = btn.dataset.preset;
+  const p = presetData[key];
+  if (!p) return;
+
+  // Update params
+  Object.assign(params, p);
+
+  // Update all UI elements
+  document.getElementById('sliderTe').value = logToSlider(params.Te, TE_EXP_MIN, TE_EXP_MAX);
+  document.getElementById('numTe').value = params.Te < 1000 ? params.Te.toFixed(0) : params.Te.toExponential(3);
+  document.getElementById('valTe').innerHTML = params.Te < 1000 ? params.Te.toFixed(0) : params.Te.toExponential(3);
+
+  document.getElementById('sliderNe').value = logToSlider(params.ne, NE_EXP_MIN, NE_EXP_MAX);
+  document.getElementById('numNe').value = params.ne.toExponential(3);
+  document.getElementById('valNe').innerHTML = params.ne.toExponential(3);
+
+  document.getElementById('sliderZ').value = params.Z;
+  document.getElementById('numZ').value = params.Z;
+  document.getElementById('valZ').innerHTML = params.Z.toFixed(2);
+
+  document.getElementById('sliderAlpha').value = params.alpha;
+  document.getElementById('numAlpha').value = params.alpha.toFixed(2);
+  document.getElementById('valAlpha').innerHTML = params.alpha.toFixed(2);
+
+  document.getElementById('sliderDT').value = logToSlider(params.dTdt, DT_EXP_MIN, DT_EXP_MAX);
+  document.getElementById('numDT').value = fmtExp(params.dTdt);
+  document.getElementById('valDT').innerHTML = fmtExp(params.dTdt);
+
+  document.getElementById('sliderV').value = logToSlider(params.v, V_EXP_MIN, V_EXP_MAX);
+  document.getElementById('numV').value = fmtExp(params.v);
+  document.getElementById('valV').innerHTML = fmtExp(params.v);
+
+  recalculate();
+});
+
+// ============================================================================
+// INITIAL CALCULATION
+// ============================================================================
+recalculate();
+
+// ============================================================================
+// FORMULAS TOGGLE
+// ============================================================================
+document.getElementById('toggleFormulas').addEventListener('click', function() {
+  const content = document.getElementById('formulasContent');
+  if (content.classList.contains('collapsed')) {
+    content.classList.remove('collapsed');
+    this.innerHTML = '\u6536\u8d77 \u25b2';  // 收起 ▲
+  } else {
+    content.classList.add('collapsed');
+    this.innerHTML = '\u5c55\u5f00 \u25bc';  // 展开 ▼
+  }
+});
+
+// ============================================================================
+// KEYBOARD SHORTCUTS
+// ============================================================================
+document.addEventListener('keydown', (e) => {
+  const presets = ['corona','critical','ablation','solid','hohlraum','shock'];
+  const idx = parseInt(e.key) - 1;
+  if (e.ctrlKey && idx >= 0 && idx < presets.length) {
+    const key = presets[idx];
+    document.querySelector(`[data-preset="${key}"]`).click();
+  }
+});
+</script>
+</body>
+</html>

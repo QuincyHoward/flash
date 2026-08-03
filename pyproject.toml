@@ -1,0 +1,144 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flash-sim"
+version = "1.0.0"
+description = "FLASH plasma simulation Python interface - third-party wrapper and workflow toolkit for FLASH 4.8 radiation-hydrodynamics code. NOT affiliated with the Flash Center for Computational Science. FLASH must be obtained separately from flash.rochester.edu."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0 (Python code); FLASH License Agreement (FLASH engine - see NOTICE)"}
+authors = [
+    {name = "PhySimX Contributors"},
+]
+keywords = ["flash", "plasma", "simulation", "high-energy-density", "physics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Fortran",
+]
+
+# Dependencies (minimal for standalone mode)
+# physimx_core is optional (plugin mode)
+dependencies = [
+    "cryptography>=41.0",   # For credential encryption
+    "numpy>=1.24",           # For numerical operations
+    "pydantic>=2.0",        # For data validation (used by physimx_core if installed)
+]
+
+[project.optional-dependencies]
+# Full features (when used as part of PhySimX)
+full = [
+    "physimx-core>=0.1.0",
+    "h5py>=3.8",              # HDF5 file reading
+    "matplotlib>=3.7",        # Plotting
+    "yt>=4.1",               # FLASH HDF5 visualization
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+# CLI tools
+flash-cred = "flash._core.credentials:interactive_menu"
+flash-setup = "flash.config:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["flash"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "**/*.py",
+    "**/*.md",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "pyproject.toml",
+]
+exclude = [
+    # === FLASH CENTER compliance exclusions ===
+    "flash_src/**",
+    "FLASH4.8/**",
+    "input_gen/SimulationMain/**",
+    "input_gen/gen_eos_op/eos_op_data/FLASH_eos_op_data/**",
+    "scenarios/flash_demo/LaserSlab/**",
+    "scenarios/flash_demo/LaserSlabca1d/**",
+    "scenarios/flash_demo/LaserSlabpy/**",
+    "scenarios/flash_demo/LaserSlabPAR.xlsx",
+    "scenarios/flash_demo/ReDo042sp_CH042sp2umL8.00e-02/**",
+    "scenarios/flash_demo/ReDo042sp_CH042sp3umF8.00e-02/**",
+    "scenarios/flash_demo/demo_hpc/demo_task/**",
+    "scenarios/flash_demo/demo_local/demo_task/**",
+    "scenarios/flash_demo/demo_task/**",
+    "license_agreement_FLASH.txt",
+    "scenarios/flash_demo/new_struture/*/runs/**",
+    "test/scenarios/runs_*/**",
+    "scenarios/chsich_grad/run_tools/runs_*/**",
+    "scenarios/chsich/run_tools/runs_*/**",
+    "scenarios - 副本/**",
+    # === FLASH 版权材料与参考源码 (License §3) ===
+    "**/ref_f90s/**",
+    "**/refs/**",
+    "**/ionmix/**",
+    "**/MultiEOS/**",
+    "**/para_doc/**",
+    "**/abjt_03.f",
+    "docs/flash4_ug_4p8.md",
+    "docs/flash4_ug_4p8_temp.txt",
+    # === 旧副本 / 内部文件 ===
+    "output_processors_copy/**",
+    "input_gen/gen_eos_op_copy/**",
+    "flash_demo/new_struture/**",
+    "test/grid_rede_backup_v9/**",
+    "test/grid_rede_copy_main/**",
+    "test/newpara/flash_input/**",
+    "test/newpara/flash_profile/**",
+    "test/newpara/output/**",
+    "test/hdf5ploter_easy/output/**",
+    "**/demo_hpc/demo_task/**",
+    "**/demo_local/demo_task/**",
+    "**/demo_task/**",
+    "**/runs/**",
+    "**/outputfiles/**",
+    "**/output/**",
+    "**/inputfiles/**",
+    "**/temp/**",
+    # === Other exclusions ===
+    "output_processors/inputfiles/**",
+    "test/outputfiles/**",
+    "test/temp_delete/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/.workbuddy/**",
+    "*.h5",
+    "*.hdf5",
+    "*.pdf",
+    "*.cn4",
+    "*.cnr",
+    "*.imx",
+    "*.ses",
+    "*.png",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+norecursedirs = ["scenarios - 副本", "__pycache__", ".pytest_cache"]
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

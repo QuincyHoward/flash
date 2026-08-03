@@ -1,0 +1,213 @@
+
+# ==============================
+# flash-sim specific
+# ==============================
+temp_delete/
+
+# ==============================
+# Ignore all extensionless files
+# ==============================
+*
+!*.*
+!*/
+
+# Exception: allow no-extension source files
+!.gitignore
+!.env.example
+!Makefile
+!Dockerfile
+!LICENSE
+!README
+!NOTICE
+!scripts/git-hooks/*
+!scripts/*.sh
+# 场景自生成的 FLASH 配置 (ConfigGenerator 产物, 发布包必需)
+!**/sim_input*/Config
+
+# ==============================
+# 大文件/媒体排除 (必须在 !*.* 之后, 否则被反忽略覆盖)
+# ==============================
+*.pdf
+*.png
+*.pptx
+*.ppt
+*.avi
+*.mp4
+*.h5
+*.hdf5
+
+# ================================================================
+# My Projects (内部工作区, 不发布)
+# ================================================================
+.workbuddy/
+.codebuddy/
+
+
+# ================================================================
+# FLASH CENTER — 禁止再分发 (FLASH License Agreement §3)
+# ================================================================
+# 依据 FLASH License Agreement §3:
+# "Users of the FLASH Code are not free to re-distribute the FLASH
+#  Code, or any of its components, outside the Center."
+#
+# ⚠ 此区块必须放在 !*.* 之后，确保目录排除规则覆盖通用反排除。
+# ⚠ 以下所有文件/目录均为 FLASH 版权材料、运行产物或内部文件，
+#    严禁通过 Git 分发到 Gitee / GitHub 等公开平台。
+# ================================================================
+
+# --- FLASH 源码包 & 编译依赖 (任意层级) ---
+**/FLASH4.8/
+**/FLASH4.8.tar.gz
+**/hdf5-1.8.12.tar.gz
+**/hypre-2.9.0b.tar.gz
+**/mpich-3.2.tar.gz
+
+# --- FLASH SimulationMain 官方示例源码 ---
+**/SimulationMain/
+
+# --- FLASH 官方 LaserSlab 示例 (源码/表格/配置, 含根目录与 scenarios 下) ---
+**/flash_demo/LaserSlab/
+**/LaserSlabPAR.xlsx
+
+# --- FLASH 分发的 EOS/不透明度表 ---
+# IONMIX4 格式 .cn4/.cnr/.imx/.ses 表均来自 FLASH 分发, 禁止再分发。
+# 用户自研生成的 Z*.cn4 表由文件末尾例外保留。
+*.cn4
+*.cnr
+*.imx
+*.imx.gz
+*.ses
+*.epsi
+
+# --- FLASH 参考源码 (从 FLASH4.8 源码树复制的 refs/ref_f90s) ---
+**/ref_f90s/
+**/refs/
+**/abjt_03.f
+**/abjt_03
+
+# --- IONMIX 源码 / MultiEOS 数据 (FLASH 分发组件) ---
+#**/ionmix/
+**/MultiEOS/
+
+# --- FLASH 官方文档 (用户手册 4.8 等) ---
+docs/flash4_ug_4p8.md
+docs/flash4_ug_4p8_temp.txt
+**/para_doc/
+
+# --- FLASH 协议文件 (本地参考, 不随包分发; docs/ 下协议文本除外) ---
+license_agreement_FLASH.txt
+
+# --- HDF5 输出 (FLASH checkpoint/plot) ---
+*_hdf5_chk_*
+*_hdf5_plt_cnt_*
+
+# --- Demo / 场景运行产物 (含 FLASH 二进制与 HDF5) ---
+**/demo_hpc/demo_task/
+**/demo_local/demo_task/
+**/demo_task/
+**/runs/
+**/outputfiles/
+**/output/
+**/inputfiles/
+**/temp/
+flash_demo/new_struture/
+scenarios/flash_demo/new_struture/
+
+# --- 临时调试目录 (勿提交) ---
+**/wsl_tmp/
+runs_*/
+test/scenarios/runs_*/
+**/run_tools/runs_*/
+test/temp_delete/
+test/grid_rede/
+test/grid_rede_backup_v9/
+test/grid_rede_copy_main/
+test/newpara/flash_input/
+test/newpara/flash_profile/
+test/newpara/output/
+test/hdf5ploter_easy/output/
+
+# --- 旧副本 / 备份目录 ---
+scenarios - 副本/
+input_gen/gen_eos_op_copy/
+output_processors_copy/
+
+# --- 备份/副本文件 ---
+*.bak
+* (*).F90
+Makefile (*)
+Config (*)
+
+
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+
+# ==============================
+# IDEs
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+
+# ==============================
+# 自研 EOS 表保留 (Z*.cn4 = ionmix 自生成, 发布包必需)
+# ==============================
+# 全局排除 Z*.cn4 (默认不发布), 例外保留以下两类:
+#   - Gen_eos_op_data/  自生成表目录
+#   - sim_input*/       场景输入目录
+!**/Gen_eos_op_data/**/Z*.cn4
+!**/sim_input*/Z*.cn4
+
+# ==============================
+# Credentials (never commit)
+# ==============================
+credentials.enc
+.env
+
+# ==============================
+# OS files
+# ==============================
+.DS_Store
+Thumbs.db
+flash_work/
+
+# Physics docs (本地知识库, 不推送)
+physics/
+
+# ================================================================
+# PRIVATE — 用户自定义私有库 (不推送到 Gitee)
+# ================================================================
+# 以下为用户个人自定义的特殊场景/配置, 仅本地使用, 不随包分享。
+# 如需分享, 请移除对应条目并重新提交。
+# ================================================================
+
+# 私有场景: grad_dens_sandwich (HE-CH-Si-CH-HE 渐变密度 CH)
+scenarios/collision_compression/grad_dens_sandwich/
+
+# 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
+scenarios/collision_compression/thin_layer_sandwich/
