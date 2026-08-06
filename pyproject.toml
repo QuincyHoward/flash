@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flash-sim"
-version = "0.0.1"
+version = "0.0.2"
 description = "FLASH plasma simulation Python interface - third-party wrapper and workflow toolkit for FLASH 4.8 radiation-hydrodynamics code. NOT affiliated with the Flash Center for Computational Science. FLASH must be obtained separately from flash.rochester.edu."
 readme = "README.md"
 requires-python = ">=3.10"
