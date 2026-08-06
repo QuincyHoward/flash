@@ -141,18 +141,23 @@ def _planck_spectrum(temperature: float, n_bins: int = 32) -> list:
 
 
 def _default_work_dir() -> str:
-    """Return 'flash_work' directory relative to the entry-point script's location.
+    """Return 'flash_work' directory.
 
-    Uses ``__main__.__file__`` to find the calling script's directory,
-    then creates ``flash_work/`` as a subdirectory there.  Falls back
-    to the current working directory when the entry-point cannot be
-    determined (e.g. interactive interpreter).
+    优先级:
+      1. 入口脚本所在目录 (用户脚本/CLI 场景) — 前提是**不在** Python 安装目录内
+      2. 当前工作目录 (pytest / 交互式解释器等场景)
+
+    修复 (2026-08-06): 入口脚本为 pytest 等工具时 (位于 site-packages),
+    原逻辑会在 Python 安装目录下创建 flash_work/ → PermissionError。
     """
     try:
         import __main__ as main_mod
 
         if hasattr(main_mod, "__file__") and main_mod.__file__:
-            return str(Path(main_mod.__file__).resolve().parent / "flash_work")
+            main_dir = Path(main_mod.__file__).resolve().parent
+            # 排除 Python 自身安装目录 (Anaconda/venv 的 site-packages 等)
+            if not str(main_dir).lower().startswith(str(Path(sys.prefix).resolve()).lower()):
+                return str(main_dir / "flash_work")
     except Exception:
         pass
     return str(Path.cwd() / "flash_work")
