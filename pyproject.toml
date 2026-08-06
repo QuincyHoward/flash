@@ -35,15 +35,16 @@ Repository = "https://gitee.com/physimx/flash"
 Issues = "https://gitee.com/physimx/flash/issues"
 
 [project.optional-dependencies]
-# Full features (可视化与 HDF5 处理)
+# Full features (可视化与 HDF5 处理 + 远程部署)
 # 注: physimx-core (PhySimX 插件模式) 尚未发布到 PyPI, 需要时单独安装
 full = [
     "h5py>=3.8",              # HDF5 file reading
     "matplotlib>=3.7",        # Plotting
     "yt>=4.1",               # FLASH HDF5 visualization
+    "paramiko>=3.0",         # 远程部署 (SSH/SLURM)
 ]
 
-# Development dependencies
+# Development dependencies (含测试)
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -51,6 +52,8 @@ dev = [
     "ruff>=0.1.0",
     "build>=1.0",
     "twine>=5.0",
+    "pandas>=2.0",           # 测试 (amr_visualization 对比)
+    "scipy>=1.10",           # 测试 (插值/拟合)
 ]
 
 [project.scripts]

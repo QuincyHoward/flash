@@ -42,55 +42,15 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-def _ensure_flash_alias() -> None:
-    """确保 `import flash` 可用 (兼容目录名非 flash 的备份/独立包).
-
-    策略:
-      1. 若目录名已是 flash → 父目录入 sys.path 即可 (默认路径已处理)
-      2. 否则在包根同级创建 flash 目录别名 (junction/symlink),
-         使 pytest 子进程等通过 PYTHONPATH=父目录 也能 import flash
-    """
-    pkg_name = _ROOT.name
-    if pkg_name == "flash":
-        return
-    alias = _PARENT / "flash"
-    if alias.exists() or alias.is_symlink():
-        return
-    try:
-        if os.name == "nt":
-            import subprocess as _sp
-
-            _r = _sp.run(
-                ["cmd", "/c", "mklink", "/J", str(alias), str(_ROOT)], capture_output=True, text=True, errors="replace"
-            )
-            if _r.returncode != 0:
-                raise OSError(_r.stderr.strip() or "mklink failed")
-        else:
-            alias.symlink_to(_ROOT, target_is_directory=True)
-    except Exception as e:  # noqa: BLE001
-        # 失败不影响主进程运行 (sys.modules 别名已生效)
-        sys.stderr.write(f"  ⚠️ 无法创建 flash 目录别名: {e}\n")
-
-
 # ============================================================================
-#  Bootstrap: 直接运行时自动转为模块方式 (flash 独立包)
+#  Bootstrap: 直接运行时自动转为模块方式 (scripts 包, 2026-08-06 重组后)
+#  重组后: flash 包 = 项目根/flash/, scripts 包 = 项目根/scripts/
+#  旧"包名映射 flash 别名"兼容逻辑已废弃 (flash 子包目录名固定)
 # ============================================================================
 if __name__ == "__main__" and __package__ is None:
-    import importlib
     import runpy
 
-    # 兼容: 备份目录名可能不是 "flash" (如 flash_backup_gitee_xxx)
-    # 将实际包名映射为 flash 别名, 使 runpy.run_module("flash.scripts...") 可用
-    _PKG_NAME = _ROOT.name
-    if _PKG_NAME != "flash":
-        try:
-            _mod = importlib.import_module(_PKG_NAME)
-            sys.modules.setdefault("flash", _mod)
-        except Exception:  # noqa: BLE001
-            pass  # 父目录已在 sys.path, 直接 import flash 亦可
-        _ensure_flash_alias()
-
-    runpy.run_module("flash.scripts.run_global_tests", run_name="__main__")
+    runpy.run_module("scripts.run_global_tests", run_name="__main__")
     sys.exit(0)
 
 # ============================================================================
@@ -99,8 +59,8 @@ if __name__ == "__main__" and __package__ is None:
 
 SUITES = {
     "framework": ("Flash 框架测试", "test/", True),
-    "input": ("InputGen 测试", "input_gen/test/", True),
-    "output": ("OutputProcessors 测试", "output_processors/test/", False),
+    "input": ("InputGen 测试", "flash/input_gen/test/", True),
+    "output": ("OutputProcessors 测试", "flash/output_processors/test/", False),
 }
 
 SUITE_ORDER = ["framework", "input", "output"]
@@ -152,9 +112,12 @@ def find_project_root() -> Path:
 
 
 def build_test_env(project_root: Path) -> dict:
-    """构建环境变量: 设置 PYTHONPATH 让 import flash 可用。"""
+    """构建环境变量: 设置 PYTHONPATH 让 import flash 可用。
+
+    重组后 (2026-08-06): flash 包 = 项目根/flash/, 将**项目根**加入 PYTHONPATH。
+    """
     test_env = os.environ.copy()
-    parent_path = str(project_root.parent)
+    parent_path = str(project_root)
     existing = test_env.get("PYTHONPATH", "")
     paths = [p for p in existing.split(";") if p] if existing else []
     if parent_path not in paths:
@@ -337,8 +300,8 @@ def main():
 模式 (互斥, 默认全局):
   (无参数)         全局测试 (framework + input + output)
   --framework      仅 Flash 框架测试 (test/)
-  --input          仅 InputGen 测试 (input_gen/test/)
-  --output         仅 OutputProcessors 测试 (output_processors/test/)
+  --input          仅 InputGen 测试 (flash/input_gen/test/)
+  --output         仅 OutputProcessors 测试 (flash/output_processors/test/)
   --module PATH    运行指定测试文件或目录
 
 示例:
@@ -347,7 +310,7 @@ def main():
   python run_global_tests.py --framework -v           # 框架测试详细输出
   python run_global_tests.py --input --list           # 列出 input_gen 用例
   python run_global_tests.py --module test/test_gitee.py   # 单个文件
-  python run_global_tests.py --module input_gen/test       # 单个模块
+  python run_global_tests.py --module flash/input_gen/test      # 单个模块
         """,
     )
 

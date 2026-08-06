@@ -1,15 +1,15 @@
 ============================================================
   output_processors 并行模块测试报告
-  时间: 2026-08-03 10:46:11
+  时间: 2026-08-06 12:43:03
 ============================================================
 
 ── 1. 系统资源检测 ──
   CPU 核心: 8
-  可用内存: 0.7 GB
+  可用内存: 0.6 GB
   IO推荐并行数: 1
   CPU推荐并行数: 1
     cpu_cores: 8
-    mem_gb: 0.7
+    mem_gb: 0.6
     chk_mb: 5.0
     mem_limit_workers: 1
     cpu_limit_workers: 24
@@ -20,7 +20,7 @@
 
   场景: hdf5files_1d
   文件数: 41
-  耗时: 1.46s
+  耗时: 1.44s
   读取: 41/41
   首文件: time=0.0
   字段数: 44
@@ -30,7 +30,7 @@
 ── 3. 场内多场并行提取 ──
 
   文件: lasslab_hdf5_chk_0000
-  耗时: 1.795s
+  耗时: 6.623s
   dens: 256 pts
   tele: 256 pts
   pres: 256 pts
@@ -39,7 +39,7 @@
 ── 4. 并行插值 ──
 
   场景: hdf5files_1d (前 10 个)
-  并行耗时: 2.423s
+  并行耗时: 2.629s
   absr: shape=(31, 201), range=[0.0000e+00,1.5865e+02]
   cond: shape=(31, 201), range=[0.0000e+00,1.3965e+03]
 
@@ -56,5 +56,5 @@
 
 ============================================================
   并行模块测试完成
-  结果保存至: D:\PhySimX\PhySimX\sim\flash\output_processors\test\parallel\test_output.txt
+  结果保存至: D:\PhySimX\PhySimX\sim\flash\flash\output_processors\test\parallel\test_output.txt
 ============================================================

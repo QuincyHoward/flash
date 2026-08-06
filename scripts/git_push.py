@@ -52,31 +52,13 @@ if str(_PARENT) not in sys.path:
 #  Bootstrap: 直接运行时自动转为模块方式
 # ============================================================================
 if __name__ == "__main__" and __package__ is None:
-    import importlib
     import runpy
 
     # 不修改 sys.argv:
     # - 双击运行时 Python 已经将脚本路径设为 sys.argv[0], 插入会重复导致 argparse 报错
     # - `-m` 模块运行时 bootstrap 不执行, sys.argv 由 Python 管理
-    # 兼容: 备份目录名可能不是 "flash" (如 flash_backup_gitee_xxx)
-    _PKG_NAME = _ROOT.name
-    if _PKG_NAME != "flash":
-        try:
-            _mod = importlib.import_module(_PKG_NAME)
-            sys.modules.setdefault("flash", _mod)
-        except Exception:  # noqa: BLE001
-            pass
-        # 创建同级 flash 目录别名, 供子进程 import flash
-        try:
-            _alias = _ROOT.parent / "flash"
-            if not (_alias.exists() or _alias.is_symlink()):
-                if os.name == "nt":
-                    subprocess.run(["cmd", "/c", "mklink", "/J", str(_alias), str(_ROOT)], capture_output=True)
-                else:
-                    _alias.symlink_to(_ROOT, target_is_directory=True)
-        except Exception:  # noqa: BLE001
-            pass
-    runpy.run_module("flash.scripts.git_push", run_name="__main__")
+    # (2026-08-06 重组后: scripts 包位于项目根, 旧"备份目录包名映射"逻辑已废弃)
+    runpy.run_module("scripts.git_push", run_name="__main__")
     sys.exit(0)
 
 # ============================================================================

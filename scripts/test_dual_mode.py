@@ -3,8 +3,8 @@
 测试 flash 独立包模式下的导入功能。
 
 运行方法：
-   cd /path/to/flash/parent/
-   python -m flash.scripts.test_dual_mode
+   cd /path/to/flash/            # 项目根
+   python -m scripts.test_dual_mode
 """
 
 import sys
