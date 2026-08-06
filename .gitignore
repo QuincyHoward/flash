@@ -3,13 +3,13 @@
 # flash-sim specific
 # ==============================
 temp_delete/
-
 # ==============================
 # Ignore all extensionless files
 # ==============================
 *
 !*.*
 !*/
+tmp/
 
 # Exception: allow no-extension source files
 !.gitignore
