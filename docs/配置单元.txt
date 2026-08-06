@@ -1,0 +1,156 @@
+开始配置项目...
+Processing Shortcut file: /home/quincy123/FLASH/FLASH4.8/bin/setup_shortcuts.txt
+no flashPar.py found
+checking for needed files and directories
+    checking sites Aliases file
+    site directory for site quincy123-VMware-Virtual-Platform not found;
+    using prototype Linux
+generating default Units file
+    Driver/DriverMain/Unsplit
+    Driver/localAPI
+    Grid/GridAllocatableScratches
+    Grid/GridBoundaryConditions
+    Grid/GridMain/paramesh/interpolation/Paramesh4/prolong
+    Grid/GridMain/paramesh/interpolation/prolong
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/headers
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/mpi_source
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/source
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/utilities/multigrid
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/flash_avoid_orrery
+    Grid/GridParticles/GridParticlesMove/Sieve/BlockMatch
+    Grid/GridParticles/GridParticlesMove/paramesh
+    Grid/GridSolvers/HYPRE/MHD/paramesh
+    Grid/GridSolvers/HYPRE/Unified
+    Grid/GridSolvers/HYPRE/paramesh
+    Grid/localAPI
+    IO/IOMain/hdf5/parallel/PM_argonne
+    IO/IOTypes/hdf5
+    IO/localAPI
+    Multispecies/MultispeciesMain
+    PhysicalConstants/PhysicalConstantsMain
+    RuntimeParameters/RuntimeParametersMain
+    Simulation/SimulationMain/LS1D_1_CHexp
+    flashUtilities/contiguousConversion
+    flashUtilities/general
+    flashUtilities/interpolation/oneDim
+    flashUtilities/nameValueLL
+    flashUtilities/rng
+    flashUtilities/sorting/quicksort
+    flashUtilities/system/memoryUsage/legacy
+    monitors/Logfile/LogfileMain
+    monitors/Timers/TimersMain/MPINative
+    numericalTools/Roots/RootsMain
+    physics/Diffuse/DiffuseMain/Unsplit
+    physics/Diffuse/localAPI
+    physics/Eos/EosMain/Tabulated/Hdf5TableRead
+    physics/Eos/EosMain/multiTemp/Gamma/Ye
+    physics/Eos/EosMain/multiTemp/Multitype
+    physics/Eos/localAPI
+    physics/Hydro/HydroMain/unsplit/Hydro_Unsplit
+    physics/Hydro/HydroMain/unsplit/multiTemp
+    physics/Hydro/localAPI
+    physics/RadTrans/RadTransMain/MGD
+    physics/RadTrans/localAPI
+    physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ
+    physics/materialProperties/Conductivity/localAPI
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Constant
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Constcm2g
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Integrate
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/LowTemp
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Numerics
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Tabulated
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Zeldovich
+    physics/materialProperties/Opacity/localAPI
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserBeams
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserComm/Sync
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserIO
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserPulses
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserRayTrace/CellAverage
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserRaysCreate
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserUtilities
+    physics/sourceTerms/EnergyDeposition/localAPI
+    physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer
+    physics/utilities/PlasmaState/PlasmaStateMain
+    physics/utilities/PlasmaState/localAPI
+scanning
+/home/quincy123/FLASH/FLASH4.8/QCcases/LS1D_1_CHexp/LS1D_1_CHexp6801/Units file
+for included units
+    Driver/DriverMain/Unsplit
+    Driver/localAPI
+    Grid/GridAllocatableScratches
+    Grid/GridBoundaryConditions
+    Grid/GridMain/paramesh/interpolation/Paramesh4/prolong
+    Grid/GridMain/paramesh/interpolation/prolong
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/headers
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/mpi_source
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/source
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/PM4_package/utilities/multigrid
+    Grid/GridMain/paramesh/paramesh4/Paramesh4dev/flash_avoid_orrery
+    Grid/GridParticles/GridParticlesMove/Sieve/BlockMatch
+    Grid/GridParticles/GridParticlesMove/paramesh
+    Grid/GridSolvers/HYPRE/MHD/paramesh
+    Grid/GridSolvers/HYPRE/Unified
+    Grid/GridSolvers/HYPRE/paramesh
+    Grid/localAPI
+    IO/IOMain/hdf5/parallel/PM_argonne
+    IO/IOTypes/hdf5
+    IO/localAPI
+    Multispecies/MultispeciesMain
+    PhysicalConstants/PhysicalConstantsMain
+    RuntimeParameters/RuntimeParametersMain
+    Simulation/SimulationMain/LS1D_1_CHexp
+    flashUtilities/contiguousConversion
+    flashUtilities/general
+    flashUtilities/interpolation/oneDim
+    flashUtilities/nameValueLL
+    flashUtilities/rng
+    flashUtilities/sorting/quicksort
+    flashUtilities/system/memoryUsage/legacy
+    monitors/Logfile/LogfileMain
+    monitors/Timers/TimersMain/MPINative
+    numericalTools/Roots/RootsMain
+    physics/Diffuse/DiffuseMain/Unsplit
+    physics/Diffuse/localAPI
+    physics/Eos/EosMain/Tabulated/Hdf5TableRead
+    physics/Eos/EosMain/multiTemp/Gamma/Ye
+    physics/Eos/EosMain/multiTemp/Multitype
+    physics/Eos/localAPI
+    physics/Hydro/HydroMain/unsplit/Hydro_Unsplit
+    physics/Hydro/HydroMain/unsplit/multiTemp
+    physics/Hydro/localAPI
+    physics/RadTrans/RadTransMain/MGD
+    physics/RadTrans/localAPI
+    physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ
+    physics/materialProperties/Conductivity/localAPI
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Constant
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Constcm2g
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Integrate
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/LowTemp
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Numerics
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Tabulated
+    physics/materialProperties/Opacity/OpacityMain/Multispecies/method/Zeldovich
+    physics/materialProperties/Opacity/localAPI
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserBeams
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserComm/Sync
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserIO
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserPulses
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserRayTrace/CellAverage
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserRaysCreate
+    physics/sourceTerms/EnergyDeposition/EnergyDepositionMain/Laser/LaserUtilities
+    physics/sourceTerms/EnergyDeposition/localAPI
+    physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer
+    physics/utilities/PlasmaState/PlasmaStateMain
+    physics/utilities/PlasmaState/localAPI
+
+IGNORED SUGGESTIONS
+Grid/GridParticles/GridParticlesMove suggested one of the following units as
+well:
+    IO/IOParticles
+
+Computing default values for options not specified on command line
+Using Makefile.h: /home/quincy123/FLASH/FLASH4.8/Makefile.h
+generating Makefile
+Copying data files: 5 copied
+Copied par_files/par_file_6801.par as flash.par
+SUCCESS
+开始编译...

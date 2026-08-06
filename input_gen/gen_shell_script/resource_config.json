@@ -1,0 +1,66 @@
+{
+  "local": {
+    "wsl_ubuntu22": {
+      "node_mem_total_gb": 16,
+      "1d": {
+        "nprocs": 4,
+        "mem_gb": 4,
+        "walltime": "00:30:00"
+      },
+      "2d": {
+        "nprocs": 8,
+        "mem_gb": 8,
+        "walltime": "01:00:00"
+      },
+      "3d": {
+        "nprocs": 16,
+        "mem_gb": 16,
+        "walltime": "02:00:00"
+      }
+    }
+  },
+  "hpc": {
+    "scfa2696": {
+      "node_mem_total_gb": 64,
+      "1d": {
+        "nprocs": 16,
+        "mem_gb": 32,
+        "walltime": "00:30:00",
+        "partition": "normal"
+      },
+      "2d": {
+        "nprocs": 64,
+        "mem_gb": 64,
+        "walltime": "01:00:00",
+        "partition": "normal"
+      },
+      "3d": {
+        "nprocs": 128,
+        "mem_gb": 128,
+        "walltime": "02:00:00",
+        "partition": "big"
+      }
+    },
+    "sch0348": {
+      "node_mem_total_gb": 128,
+      "1d": {
+        "nprocs": 32,
+        "mem_gb": 64,
+        "walltime": "00:30:00",
+        "partition": "compute"
+      },
+      "2d": {
+        "nprocs": 128,
+        "mem_gb": 128,
+        "walltime": "01:00:00",
+        "partition": "compute"
+      },
+      "3d": {
+        "nprocs": 256,
+        "mem_gb": 256,
+        "walltime": "02:00:00",
+        "partition": "big"
+      }
+    }
+  }
+}

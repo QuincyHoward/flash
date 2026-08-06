@@ -1,0 +1,38 @@
+# Pre-commit 框架配置
+
+repos:
+  # 代码格式检查 (Black) - 在 commit 时运行
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: black
+        language: python
+        additional_dependencies: [black==23.12.1]
+        types: [python]
+        stages: [pre-commit]
+        args: [--line-length=120]
+
+  # Linting (Ruff) - 在 commit 时运行
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: ruff
+        language: python
+        additional_dependencies: [ruff==0.1.9]
+        types: [python]
+        stages: [pre-commit]
+        args: [check, --fix, --exit-on-zero-on-fix]
+
+  # Flash 框架测试 - 在 push 时运行
+  - repo: local
+    hooks:
+      - id: pytest-flash
+        name: pytest-flash-framework
+        entry: pytest
+        language: python
+        additional_dependencies: [pytest]
+        pass_filenames: false
+        stages: [pre-push]
+        args: [test/, -v]

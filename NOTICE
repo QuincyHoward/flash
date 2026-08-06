@@ -1,0 +1,138 @@
+flash-sim — Third-Party Notices
+================================
+
+This file contains attribution notices required by third-party software
+that flash-sim depends on, interfaces with, or is derived from.
+
+======================================================================
+Compliance Statement — FLASH License Agreement
+======================================================================
+
+This package complies with the FLASH License Agreement (reproduced in
+`docs/license_agreement.txt`, online at https://flash.rochester.edu).
+
+This package does NOT include, and does NOT re-distribute: the FLASH
+source code, binaries, tarballs, SimulationMain example problems
+(including LaserSlab), FLASH-distributed EOS/opacity tables (*.cn4 /
+*.cnr / *.imx), the FLASH user manual, the IONMIX source code, or the
+MultiEOS data files. Per Section 3 of the FLASH License Agreement,
+individual users may not re-distribute the FLASH Code or any of its
+components; all such materials must be obtained by each user directly
+from the Flash Center at https://flash.rochester.edu.
+
+Derivative Works Notice (FLASH Agreement §4)
+--------------------------------------------
+
+Some scenario input files in this package (e.g. `Simulation_data.F90`,
+`Simulation_init.F90`, `Simulation_initBlock.F90`,
+`Grid_markRefineDerefine.F90`) are modified versions of FLASH example
+problem files, created by PhySimX Contributors for new physics setups.
+Each such file retains its original FLASH header identifying the source
+file, and the modifications are declared in the file header and in this
+notice, as required by Section 4(a) of the FLASH License Agreement. The
+FLASH Code header sections have been preserved intact (§4(c)).
+
+FLASH Center for Computational Science
+--------------------------------------
+
+This product includes software developed by and/or derived from the
+Flash Center for Computational Science (https://flash.rochester.edu)
+to which the U.S. Government retains certain rights.
+
+The software used in this work was developed in part by the DOE NNSA-
+and DOE Office of Science-supported Flash Center for Computational
+Science at the University of Chicago and the University of Rochester.
+
+FLASH Code copyright: University of Chicago
+FLASH License operator: University of Rochester (Flash Center for
+Computational Science)
+
+The FLASH Code is governed by the FLASH License Agreement. All users
+must accept this agreement at https://flash.rochester.edu before using
+the FLASH Code. The FLASH Code, or any part thereof, may only be
+released and distributed by the Flash Center.
+
+Key FLASH reference papers are listed at:
+  https://flash.rochester.edu/site/publications/flash_pubs.shtml
+
+
+======================================================================
+flash-sim Package — PhySimX Team Attribution
+======================================================================
+
+flash-sim (the flash auxiliary Python package) is original work
+copyright (c) 2026 PhySimX Contributors, developed by the PhySimX team
+in Mianyang, China (绵阳市).
+
+Publications Acknowledgment
+---------------------------
+Any publication resulting from the use of flash-sim should acknowledge the
+PhySimX team (Mianyang, China) for developing this auxiliary
+Python package. Suggested text:
+
+  "We acknowledge the PhySimX team (Mianyang, China) for developing
+   the flash-sim auxiliary Python package used in this work."
+
+Commercial Use
+--------------
+The flash-sim Python code is released under Apache 2.0, but any commercial
+use must comply with all applicable licenses, including Section 5 of the
+FLASH License Agreement (commercial use of FLASH requires prior written
+approval from the Director of the Flash Center). flash-sim was originally
+developed by the PhySimX team (Mianyang, China); commercial licensing and
+liability are governed by the applicable license and any written agreement
+in force at the time. The Apache 2.0 license covers only the flash-sim
+Python code and does not grant any commercial rights to the FLASH
+simulation engine.
+
+
+PARAMESH
+--------
+
+PARAMESH was developed under NASA Contracts/Grants NAG5-2652 with George
+Mason University; NAS5-32350 with Raytheon/STX; NAG5-6029 and NAG5-10026
+with Drexel University; NAG5-9016 with the University of Chicago; and
+NCC5-494 with the GEST Institute.
+
+Main developers: Peter MacNeice (macneice@alfven.gsfc.nasa.gov) and
+Kevin Olson (olson@physics.drexel.edu)
+
+
+HDF5
+----
+
+HDF5 is developed by The HDF Group and is licensed under a BSD-style
+license. See https://www.hdfgroup.org/licenses/ for details.
+
+
+MPICH
+-----
+
+MPICH is developed by Argonne National Laboratory and is licensed under
+the MPICH License. See https://www.mpich.org/about/license/ for details.
+
+
+HYPRE
+-----
+
+HYPRE is developed by Lawrence Livermore National Laboratory and is
+licensed under LGPL 2.1 and Apache 2.0.
+See https://github.com/hypre-space/hypre for details.
+
+
+IONMIX EOS/Opacity Tables
+-------------------------
+
+IONMIX4 format equation-of-state and opacity tables (.cn4 files) are
+included in the FLASH distribution and are governed by the FLASH
+License Agreement.
+
+
+Disclaimer
+----------
+
+The inclusion of attribution notices in this file is for informational
+purposes only and does not modify the license terms of the flash-sim
+package or the respective third-party software. All trademarks and
+registered trademarks mentioned herein are the property of their
+respective owners.

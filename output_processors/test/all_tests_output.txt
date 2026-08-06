@@ -1,0 +1,507 @@
+
+############################################################
+# 运行所有测试
+############################################################
+
+工作目录: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\unit_conversion\test_unit_conversion.py
+============================================================
+
+############################################################
+# 单位转换功能测试
+############################################################
+
+============================================================
+测试 1: 1D 数据单位转换
+============================================================
+  ✓ tele: eV (factor=8.62e-05)
+    CGS: [3.1165e+01, 2.9011e+02]
+    Practice: [2.6856e-03, 2.5000e-02]
+  ✓ tion: eV (factor=8.62e-05)
+    CGS: [2.9011e+02, 3.3225e+02]
+    Practice: [2.5000e-02, 2.8631e-02]
+  ✓ pres: Mbar (factor=1.00e-12)
+    CGS: [6.5919e+03, 2.4493e+09]
+    Practice: [6.5919e-09, 2.4493e-03]
+  ✓ pele: Mbar (factor=1.00e-12)
+    CGS: [5.6610e+02, 3.5759e+07]
+    Practice: [5.6610e-10, 3.5759e-05]
+  ✓ velx: um/ns (factor=1.00e-05)
+    CGS: [-2.4374e+04, 1.0749e-14]
+    Practice: [-2.4374e-01, 1.0749e-19]
+  ✓ dens: g/cm^3 (factor=1.00e+00)
+    CGS: [1.0000e-06, 2.7000e+00]
+    Practice: [1.0000e-06, 2.7000e+00]
+
+  ✓ 所有测试通过！
+
+============================================================
+测试 2: 派生变量单位转换
+============================================================
+  ✓ nele: 1/cm^3
+    Practice: [1.4140e+16, 1.2053e+21]
+  ✓ ls_tele: um
+    Practice: [4.0141e-02, 1.0000e+34]
+
+  ✓ 所有测试通过！
+
+============================================================
+测试摘要
+============================================================
+  1D 数据单位转换: ✓ 通过
+  派生变量单位转换: ✓ 通过
+
+总结果: ✓ 所有测试通过
+
+  ✓ 测试通过
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\loader\test_loader_validation.py
+============================================================
+
+############################################################
+# Loader 验证测试
+############################################################
+
+============================================================
+测试 1: Loader vs h5py (1D)
+============================================================
+
+[方法 1] 纯 h5py 读取...
+  x range: [0.000000e+00, 1.600000e-02]
+  dens range: [1.000000e-06, 2.700000e+00]
+  npoints: 174
+
+[方法 2] FlashDataLoader 读取 (use_cell_centers=False)...
+  x range: [0.000000e+00, 1.600000e-02]
+  dens range: [1.000000e-06, 2.700000e+00]
+  npoints (去重后): 174
+
+[对比] 数值一致性检查...
+  ✓ x 坐标一致 (max|diff|=0.00e+00)
+  ✓ 密度一致 (max|diff|=0.00e+00, max|rel|=0.00e+00)
+
+  ✓ 所有检查通过！Loader 与 h5py 提取结果完全一致
+
+============================================================
+测试 2: 加载多个变量
+============================================================
+
+原始变量: 45 个
+  absr            shape=(16, 16)            
+  cond            shape=(16, 16)            
+  dbgs            shape=(16, 16)            
+  dens            shape=(16, 16)            
+  depo            shape=(16, 16)            
+
+派生变量: 5 个
+  dens_targ       shape=(16, 16)            
+  dens_cham       shape=(16, 16)            
+  nele            shape=(16, 16)            
+  nion            shape=(16, 16)            
+  ls_tele         shape=(16, 16)            
+
+  ✓ 多变量加载测试通过
+
+============================================================
+测试摘要
+============================================================
+  Loader vs h5py (1D): ✓ 通过
+  加载多个变量: ✓ 通过
+
+总结果: ✓ 所有测试通过
+
+  ✓ 测试通过
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\derived_variables\test_derived_variables.py
+============================================================
+
+############################################################
+# 派生变量功能测试
+############################################################
+
+============================================================
+测试 1: 预定义派生变量
+============================================================
+  ✓ nele: Electron number density = ye * dens * NA
+    shape=(16, 16), unit=1/cm^3
+    range=[1.4140e+16, 1.2053e+21]
+  ⚠ ls_nele: 派生变量不存在
+  ✓ ls_tele: Electron temp. gradient scale length = tele / |grad(tele)|
+    shape=(16, 16), unit=cm
+    range=[4.0141e-06, 1.0000e+30]
+
+  ⚠ 部分测试失败
+
+============================================================
+测试 2: register() 方法（公式字符串）
+============================================================
+  ✓ my_dens_squared 计算正确
+    shape=(16, 16)
+    range=[1.0000e-12, 7.2900e+00]
+
+============================================================
+测试 3: register_func() 方法（自定义函数）
+============================================================
+  ✓ my_tele_over_tion 计算正确
+    shape=(16, 16)
+    range=[9.3801e-02, 1.0000e+00]
+
+============================================================
+测试摘要
+============================================================
+  预定义派生变量: ⚠ 失败
+  register() 公式注册: ✓ 通过
+  register_func() 函数注册: ✓ 通过
+
+总结果: ⚠ 部分测试失败
+
+  ✓ 测试通过
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py
+============================================================
+
+############################################################
+# 激波位置计算测试
+############################################################
+
+============================================================
+测试 1: 1D 激波位置计算
+============================================================
+  激波存在: False
+  激波位置数: 0
+
+============================================================
+STDERR:
+============================================================
+Traceback (most recent call last):
+  File "E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py", line 119, in <module>
+    results.append(("1D 激波位置计算", test_shock_position_1d()))
+                                       ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py", line 60, in test_shock_position_1d
+    print(f"  激光方向: {shock_info['laser_direction']}")
+                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+KeyError: 'laser_direction'
+
+  ⚠ 测试失败 (returncode=1)
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\batch_loading\test_batch_loading.py
+============================================================
+
+############################################################
+# 批量加载功能测试
+############################################################
+
+============================================================
+测试 1: load_folder() 方法（单个文件夹）
+============================================================
+
+加载文件夹: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\batch_loading\../../inputfiles/hdf5files_1d
+  [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
+  [OK] lasslab_hdf5_chk_0001  t=5.7275e-14s
+  [OK] lasslab_hdf5_chk_0002  t=4.4259e-13s
+  [OK] lasslab_hdf5_chk_0003  t=3.0348e-12s
+  [OK] lasslab_hdf5_chk_0004  t=2.0474e-11s
+  [OK] lasslab_hdf5_chk_0005  t=1.3780e-10s
+  [OK] lasslab_hdf5_chk_0006  t=2.5726e-10s
+  [OK] lasslab_hdf5_chk_0007  t=3.0072e-10s
+  [OK] lasslab_hdf5_chk_0008  t=3.3500e-10s
+  [OK] lasslab_hdf5_chk_0009  t=3.6475e-10s
+  [OK] lasslab_hdf5_chk_0010  t=3.9154e-10s
+  [OK] lasslab_hdf5_chk_0011  t=4.1614e-10s
+  [OK] lasslab_hdf5_chk_0012  t=4.3927e-10s
+  [OK] lasslab_hdf5_chk_0013  t=4.6142e-10s
+  [OK] lasslab_hdf5_chk_0014  t=4.8298e-10s
+  [OK] lasslab_hdf5_chk_0015  t=5.0421e-10s
+  [OK] lasslab_hdf5_chk_0016  t=5.2492e-10s
+  [OK] lasslab_hdf5_chk_0017  t=5.4516e-10s
+  [OK] lasslab_hdf5_chk_0018  t=5.6513e-10s
+  [OK] lasslab_hdf5_chk_0019  t=5.8502e-10s
+  [OK] lasslab_hdf5_chk_0020  t=6.0492e-10s
+  [OK] lasslab_hdf5_chk_0021  t=6.2487e-10s
+  [OK] lasslab_hdf5_chk_0022  t=6.4486e-10s
+  [OK] lasslab_hdf5_chk_0023  t=6.6487e-10s
+  [OK] lasslab_hdf5_chk_0024  t=6.8491e-10s
+  [OK] lasslab_hdf5_chk_0025  t=7.0497e-10s
+  [OK] lasslab_hdf5_chk_0026  t=7.2507e-10s
+  [OK] lasslab_hdf5_chk_0027  t=7.4521e-10s
+  [OK] lasslab_hdf5_chk_0028  t=7.6541e-10s
+  [OK] lasslab_hdf5_chk_0029  t=7.8565e-10s
+  [OK] lasslab_hdf5_chk_0030  t=8.0594e-10s
+  [OK] lasslab_hdf5_chk_0031  t=8.2628e-10s
+  [OK] lasslab_hdf5_chk_0032  t=8.4668e-10s
+  [OK] lasslab_hdf5_chk_0033  t=8.6711e-10s
+  [OK] lasslab_hdf5_chk_0034  t=8.8756e-10s
+  [OK] lasslab_hdf5_chk_0035  t=9.0803e-10s
+  [OK] lasslab_hdf5_chk_0036  t=9.2853e-10s
+  [OK] lasslab_hdf5_chk_0037  t=9.4905e-10s
+  [OK] lasslab_hdf5_chk_0038  t=9.6959e-10s
+  [OK] lasslab_hdf5_chk_0039  t=9.9016e-10s
+  [OK] lasslab_hdf5_chk_0040  t=1.0005e-09s
+  共加载 41 个文件
+
+  加载了 41 个文件
+
+  按时间排序后的文件列表:
+    1. t=0.0000e+00s, step=1
+    2. t=5.7275e-14s, step=21
+    3. t=4.4259e-13s, step=41
+    4. t=3.0348e-12s, step=61
+    5. t=2.0474e-11s, step=81
+    ... (共 41 个)
+
+  ✓ 文件按时间正确排序
+
+  ✓ load_folder() 测试通过
+
+============================================================
+测试 2: load_folders() 方法（多个文件夹）
+============================================================
+
+加载多个文件夹:
+  C:\Users\ADMINI~1\AppData\Local\Temp\tmpr9o08wj8\sim1
+  C:\Users\ADMINI~1\AppData\Local\Temp\tmpr9o08wj8\sim2
+  [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
+  [OK] lasslab_hdf5_chk_0001  t=5.7275e-14s
+  共加载 2 个文件
+  [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
+  [OK] lasslab_hdf5_chk_0001  t=6.7477e-11s
+  [OK] lasslab_hdf5_chk_0002  t=1.5712e-10s
+  共加载 3 个文件
+  共加载 5 个文件 (来自 2 个文件夹)
+
+  共加载 5 个文件
+
+  按时间排序后的文件列表:
+    1. t=0.0000e+00s, step=1
+    2. t=0.0000e+00s, step=1
+    3. t=5.7275e-14s, step=21
+    4. t=6.7477e-11s, step=51
+    5. t=1.5712e-10s, step=101
+
+  ✓ load_folders() 测试通过
+
+============================================================
+测试摘要
+============================================================
+  load_folder() 单个文件夹: ✓ 通过
+  load_folders() 多个文件夹: ✓ 通过
+
+总结果: ✓ 所有测试通过
+
+  ✓ 测试通过
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\lazy_loading\test_lazy_loading.py
+============================================================
+
+############################################################
+# 懒加载功能测试
+############################################################
+
+============================================================
+测试 1: 基本懒加载功能
+============================================================
+
+创建懒加载容器...
+  元数据加载时间: 0.0030s
+
+  元数据:
+    时间: 5.7275e-14s
+    步数: 21
+    维度: 1D
+    变量数: 44
+
+触发数据加载...
+  数据加载时间: 0.0236s
+  密度形状: (16, 16)
+  容器状态: LazyFlashDataContainer(1D, 16 blocks, 45 vars, 5 derived, t=5.727e-14s, data shape: (16, 16)) (loaded)
+
+  ✓ 基本懒加载功能测试通过
+
+============================================================
+测试 2: 批量懒加载
+============================================================
+
+批量懒加载文件夹: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\lazy_loading\../../inputfiles/hdf5files_1d
+  共创建 41 个懒加载容器 (元数据已加载)
+  创建了 41 个懒加载容器
+  元数据加载总时间: 0.0767s
+  平均每个文件: 1.87ms
+
+  前 5 个文件的元数据:
+    1. t=0.0000e+00s, vars=44
+    2. t=5.7275e-14s, vars=44
+    3. t=4.4259e-13s, vars=44
+    4. t=3.0348e-12s, vars=44
+    5. t=2.0474e-11s, vars=44
+
+触发第一个文件的数据加载...
+  数据加载时间: 0.0235s
+  密度形状: (16, 16)
+
+  检查其他文件是否仍未加载...
+    文件 2: 未加载 ✓
+    文件 3: 未加载 ✓
+    文件 4: 未加载 ✓
+    文件 5: 未加载 ✓
+
+  ✓ 批量懒加载测试通过
+
+============================================================
+测试 3: 懒加载 vs 立即加载性能对比
+============================================================
+
+立即加载 (eager)...
+  [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
+  [OK] lasslab_hdf5_chk_0001  t=5.7275e-14s
+  [OK] lasslab_hdf5_chk_0002  t=4.4259e-13s
+  [OK] lasslab_hdf5_chk_0003  t=3.0348e-12s
+  [OK] lasslab_hdf5_chk_0004  t=2.0474e-11s
+  [OK] lasslab_hdf5_chk_0005  t=1.3780e-10s
+  [OK] lasslab_hdf5_chk_0006  t=2.5726e-10s
+  [OK] lasslab_hdf5_chk_0007  t=3.0072e-10s
+  [OK] lasslab_hdf5_chk_0008  t=3.3500e-10s
+  [OK] lasslab_hdf5_chk_0009  t=3.6475e-10s
+  [OK] lasslab_hdf5_chk_0010  t=3.9154e-10s
+  [OK] lasslab_hdf5_chk_0011  t=4.1614e-10s
+  [OK] lasslab_hdf5_chk_0012  t=4.3927e-10s
+  [OK] lasslab_hdf5_chk_0013  t=4.6142e-10s
+  [OK] lasslab_hdf5_chk_0014  t=4.8298e-10s
+  [OK] lasslab_hdf5_chk_0015  t=5.0421e-10s
+  [OK] lasslab_hdf5_chk_0016  t=5.2492e-10s
+  [OK] lasslab_hdf5_chk_0017  t=5.4516e-10s
+  [OK] lasslab_hdf5_chk_0018  t=5.6513e-10s
+  [OK] lasslab_hdf5_chk_0019  t=5.8502e-10s
+  [OK] lasslab_hdf5_chk_0020  t=6.0492e-10s
+  [OK] lasslab_hdf5_chk_0021  t=6.2487e-10s
+  [OK] lasslab_hdf5_chk_0022  t=6.4486e-10s
+  [OK] lasslab_hdf5_chk_0023  t=6.6487e-10s
+  [OK] lasslab_hdf5_chk_0024  t=6.8491e-10s
+  [OK] lasslab_hdf5_chk_0025  t=7.0497e-10s
+  [OK] lasslab_hdf5_chk_0026  t=7.2507e-10s
+  [OK] lasslab_hdf5_chk_0027  t=7.4521e-10s
+  [OK] lasslab_hdf5_chk_0028  t=7.6541e-10s
+  [OK] lasslab_hdf5_chk_0029  t=7.8565e-10s
+  [OK] lasslab_hdf5_chk_0030  t=8.0594e-10s
+  [OK] lasslab_hdf5_chk_0031  t=8.2628e-10s
+  [OK] lasslab_hdf5_chk_0032  t=8.4668e-10s
+  [OK] lasslab_hdf5_chk_0033  t=8.6711e-10s
+  [OK] lasslab_hdf5_chk_0034  t=8.8756e-10s
+  [OK] lasslab_hdf5_chk_0035  t=9.0803e-10s
+  [OK] lasslab_hdf5_chk_0036  t=9.2853e-10s
+  [OK] lasslab_hdf5_chk_0037  t=9.4905e-10s
+  [OK] lasslab_hdf5_chk_0038  t=9.6959e-10s
+  [OK] lasslab_hdf5_chk_0039  t=9.9016e-10s
+  [OK] lasslab_hdf5_chk_0040  t=1.0005e-09s
+  共加载 41 个文件
+  总时间: 0.9740s
+  平均每个文件: 23.76ms
+
+懒加载 (lazy)...
+  共创建 41 个懒加载容器 (元数据已加载)
+  元数据加载时间: 0.0739s
+  平均每个文件: 1.80ms
+
+触发所有文件的数据加载...
+  数据加载总时间: 1.0094s
+  平均每个文件: 24.62ms
+
+  立即加载总时间: 0.9740s
+  懒加载总时间: 1.0833s (元数据 0.0739s + 数据 1.0094s)
+
+验证数据一致性...
+  ✓ 数据一致
+
+  ✓ 懒加载 vs 立即加载对比测试通过
+
+============================================================
+测试摘要
+============================================================
+  基本懒加载功能: ✓ 通过
+  批量懒加载: ✓ 通过
+  懒加载 vs 立即加载: ✓ 通过
+
+总结果: ✓ 所有测试通过
+
+  ✓ 测试通过
+
+============================================================
+运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\dimension_test\test_dimension_loading.py
+============================================================
+
+############################################################
+# 1D/2D/3D 数据加载测试
+############################################################
+
+============================================================
+测试 1: 1D 数据加载
+============================================================
+  维度: 1D ✓
+  块数: 16
+  每块网格数: nx=16
+  x 坐标: shape=(256,)
+  x range: [0.000000e+00, 1.600000e-02]
+  dens shape: (16, 16)
+  tele (eV): range=[2.6856e-03, 2.5000e-02]
+
+  ✓ 1D 数据加载测试通过
+
+============================================================
+测试 2: 2D 数据加载
+============================================================
+  维度: 2D ✓
+  块数: 1
+  每块网格数: nx=16, ny=16
+  x 坐标: shape=(16,)
+  y 坐标: shape=(16,)
+  x range: [0.000000e+00, 4.000000e-03]
+  y range: [0.000000e+00, 8.000000e-03]
+  dens shape: (1, 16, 16)
+
+  ✓ 2D 数据加载测试通过
+
+============================================================
+测试 3: 3D 数据加载
+============================================================
+  维度: 3D ✓
+  块数: 4
+  每块网格数: nx=16, ny=16, nz=16
+  x 坐标: shape=(64,)
+  y 坐标: shape=(16,)
+  z 坐标: shape=(31,)
+  x range: [-4.000000e-03, 4.000000e-03]
+  y range: [0.000000e+00, 4.000000e-03]
+  z range: [-4.000000e-03, 4.000000e-03]
+  dens shape: (4, 16, 16, 16)
+
+  ✓ 3D 数据加载测试通过
+
+============================================================
+测试摘要
+============================================================
+  1D 数据加载: ✓ 通过
+  2D 数据加载: ✓ 通过
+  3D 数据加载: ✓ 通过
+
+总结果: ✓ 所有测试通过
+
+  ✓ 测试通过
+
+============================================================
+测试摘要
+============================================================
+  test_unit_conversion.py: ✓ 通过
+  test_loader_validation.py: ✓ 通过
+  test_derived_variables.py: ✓ 通过
+  test_shock_position.py: ⚠ 失败
+  test_batch_loading.py: ✓ 通过
+  test_lazy_loading.py: ✓ 通过
+  test_dimension_loading.py: ✓ 通过
+
+总结果: ⚠ 部分测试失败
