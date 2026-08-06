@@ -200,6 +200,11 @@ flash_work/
 # Physics docs (本地知识库, 不推送)
 /physics/
 
+# IONMIX 版权材料 (FLASH 生态工具与文档, 禁止再分发)
+flash/input_gen/gen_eos_op/ionmix/ionmix/docs/
+flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/
+**/macfarlane1989.md
+
 # ================================================================
 # PRIVATE — 用户自定义私有库 (不推送到 Gitee)
 # ================================================================
