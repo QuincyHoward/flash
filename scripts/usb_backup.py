@@ -64,9 +64,7 @@ def should_exclude(path: Path) -> bool:
     """检查路径是否应该被排除 (full 模式)"""
     # 检查目录
     for part in path.parts:
-        if part in EXCLUDE_DIRS or any(
-            part.endswith(ext[1:]) for ext in EXCLUDE_DIRS if ext.startswith("*")
-        ):
+        if part in EXCLUDE_DIRS or any(part.endswith(ext[1:]) for ext in EXCLUDE_DIRS if ext.startswith("*")):
             return True
 
     # 检查文件
@@ -120,10 +118,8 @@ def list_gitee_files() -> list:
       - 索引中的已跟踪文件
       - 未跟踪且未被 .gitignore 忽略的文件
     """
-    cmd = ["git", "-c", "core.quotepath=false",
-           "ls-files", "--cached", "--others", "--exclude-standard", "-z"]
-    r = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace")
+    cmd = ["git", "-c", "core.quotepath=false", "ls-files", "--cached", "--others", "--exclude-standard", "-z"]
+    r = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         print(f"❌ git ls-files 失败: {r.stderr.strip()}")
         sys.exit(1)
@@ -168,7 +164,7 @@ def backup_gitee(backup_dir: Path, dry_run: bool = False) -> dict:
     for i, rel in enumerate(files, 1):
         src = PROJECT_ROOT / rel
         if not src.is_file():
-            skipped += 1          # 工作区已删除 (待 commit 的删除)
+            skipped += 1  # 工作区已删除 (待 commit 的删除)
             continue
         dst = backup_dir / rel
         if dry_run:
@@ -182,8 +178,7 @@ def backup_gitee(backup_dir: Path, dry_run: bool = False) -> dict:
         if i % 1000 == 0:
             print(f"   ... 进度 {i}/{len(files)}")
 
-    return {"copied": copied, "lf": lf_converted, "skipped": skipped,
-            "bytes": total_bytes}
+    return {"copied": copied, "lf": lf_converted, "skipped": skipped, "bytes": total_bytes}
 
 
 # ============================================================================
@@ -220,8 +215,9 @@ def backup_full(backup_dir: Path, dry_run: bool = False) -> dict:
 # ============================================================================
 #  主流程
 # ============================================================================
-def backup_project(dest_path: Path | None = None, mode: str = "gitee",
-                   name: str | None = None, dry_run: bool = False) -> bool:
+def backup_project(
+    dest_path: Path | None = None, mode: str = "gitee", name: str | None = None, dry_run: bool = False
+) -> bool:
     """备份项目到目标路径
 
     Args:
@@ -291,12 +287,11 @@ def main():
   python usb_backup.py -n                    # dry-run 试运行
 """,
     )
-    parser.add_argument("dest", nargs="?", default=None,
-                        help="目标目录 (默认: flash 的同级目录)")
-    parser.add_argument("--mode", choices=["gitee", "full"], default="gitee",
-                        help="备份模式: gitee=仿Gitee仓库(默认), full=几乎全量")
-    parser.add_argument("--dest", dest="dest_opt", default=None,
-                        help="目标目录 (与位置参数二选一)")
+    parser.add_argument("dest", nargs="?", default=None, help="目标目录 (默认: flash 的同级目录)")
+    parser.add_argument(
+        "--mode", choices=["gitee", "full"], default="gitee", help="备份模式: gitee=仿Gitee仓库(默认), full=几乎全量"
+    )
+    parser.add_argument("--dest", dest="dest_opt", default=None, help="目标目录 (与位置参数二选一)")
     parser.add_argument("--name", default=None, help="备份目录名前缀")
     parser.add_argument("-n", "--dry-run", action="store_true", help="试运行 (不复制)")
 
@@ -304,7 +299,10 @@ def main():
 
     dest = args.dest_opt or args.dest
     success = backup_project(
-        dest_path=dest, mode=args.mode, name=args.name, dry_run=args.dry_run,
+        dest_path=dest,
+        mode=args.mode,
+        name=args.name,
+        dry_run=args.dry_run,
     )
     if not success:
         sys.exit(1)

@@ -6,6 +6,7 @@
   3. mpirun 运行仿真
   4. 检查 HDF5 输出并报告
 """
+
 import sys
 import time
 from pathlib import Path
@@ -84,8 +85,7 @@ def main():
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(host, port=port, username=user, password=pwd,
-                   timeout=30, banner_timeout=60, auth_timeout=60)
+    client.connect(host, port=port, username=user, password=pwd, timeout=30, banner_timeout=60, auth_timeout=60)
     print("SSH 连接成功\n")
 
     # 上传脚本到超算

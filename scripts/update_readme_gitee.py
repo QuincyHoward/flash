@@ -4,6 +4,7 @@
 - 开头: 在标题与徽章之后插入 Gitee 仓库访问信息
 - 结尾: 追加 English Overview 便于英文搜索
 """
+
 from pathlib import Path
 
 README = Path(__file__).resolve().parent.parent / "README.md"

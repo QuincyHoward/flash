@@ -37,8 +37,7 @@ PKG_ROOT = HERE.parent
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 SMALL_FONT_RE = re.compile(r"fontsize\s*=\s*(\d{1,2})\b")
 PLOT_TEXT_RE = re.compile(
-    r"(?:set_title|set_xlabel|set_ylabel|set_label|legend|annotate"
-    r"|text|suptitle|colorbar)\s*\(",
+    r"(?:set_title|set_xlabel|set_ylabel|set_label|legend|annotate" r"|text|suptitle|colorbar)\s*\(",
     re.IGNORECASE,
 )
 STRING_RE = re.compile(r"\"([^\"]*)\"|'([^']*)'")
@@ -47,9 +46,9 @@ STRING_RE = re.compile(r"\"([^\"]*)\"|'([^']*)'")
 SKIP_PATTERNS = (
     "__pycache__",
     ".workbuddy",
-    "plot_style.py",          # the spec module itself
+    "plot_style.py",  # the spec module itself
     "test/amr_visualization",  # low-level AMR tests
-    "compare_h5py_vs_yt.py",   # comparison harness
+    "compare_h5py_vs_yt.py",  # comparison harness
     "flash_run/remote/ssh_check.py",
     "scenarios/simulator.py",  # engine (does not produce figures directly)
 )
@@ -89,17 +88,16 @@ def scan_file(path: Path) -> list[str]:
     if not is_plotting_script(text):
         return violations
 
-    has_plot_style_import = (
-        "from output_processors.plotter.plot_style" in text
-        or "import plot_style" in text
-    )
+    has_plot_style_import = "from output_processors.plotter.plot_style" in text or "import plot_style" in text
     has_apply = "apply_plot_style(" in text
 
     # Rule 1: must call apply_plot_style
     if not has_apply:
-        violations.append("  [MISS] apply_plot_style() not called "
-                          "(add: from output_processors.plotter.plot_style "
-                          "import apply_plot_style; apply_plot_style())")
+        violations.append(
+            "  [MISS] apply_plot_style() not called "
+            "(add: from output_processors.plotter.plot_style "
+            "import apply_plot_style; apply_plot_style())"
+        )
 
     # Rule 2: no small fonts
     for m in SMALL_FONT_RE.finditer(text):
@@ -108,20 +106,21 @@ def scan_file(path: Path) -> list[str]:
             line_no = text[: m.start()].count("\n") + 1
             violations.append(
                 f"  [FONT] line {line_no}: fontsize={size} < 18 "
-                f"(remove hardcoded fontsize; rely on apply_plot_style)")
+                f"(remove hardcoded fontsize; rely on apply_plot_style)"
+            )
 
     # Rule 3: no CJK in plot-text context (best effort)
     for m in PLOT_TEXT_RE.finditer(text):
         start = m.end()
-        seg = text[start:start + 600]
+        seg = text[start : start + 600]
         # find string literals inside this call
         for sm in STRING_RE.finditer(seg[:200]):
             s = sm.group(1) or sm.group(2) or ""
             if CJK_RE.search(s):
                 line_no = text[: m.start() + sm.start()].count("\n") + 1
                 violations.append(
-                    f"  [CJK ] line {line_no}: CJK in plot text: {s!r} "
-                    f"(use english() from plot_style)")
+                    f"  [CJK ] line {line_no}: CJK in plot text: {s!r} " f"(use english() from plot_style)"
+                )
                 break
 
     # Rule 4: savefig dpi >= 200
@@ -129,19 +128,15 @@ def scan_file(path: Path) -> list[str]:
         dpi = int(m.group(1))
         if dpi < 200:
             line_no = text[: m.start()].count("\n") + 1
-            violations.append(
-                f"  [DPI ] line {line_no}: savefig dpi={dpi} < 200 "
-                f"(use save_figure() or dpi>=200)")
+            violations.append(f"  [DPI ] line {line_no}: savefig dpi={dpi} < 200 " f"(use save_figure() or dpi>=200)")
 
     return violations
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("targets", nargs="*", help="files/dirs to scan "
-                                              "(default: whole package)")
-    ap.add_argument("--strict", action="store_true",
-                    help="exit 1 when violations are found")
+    ap.add_argument("targets", nargs="*", help="files/dirs to scan " "(default: whole package)")
+    ap.add_argument("--strict", action="store_true", help="exit 1 when violations are found")
     args = ap.parse_args()
 
     if args.targets:
@@ -166,11 +161,8 @@ def main() -> int:
             print("\n".join(v))
             print()
 
-    total_scanned = sum(
-        1 for f in files if f.is_file() and f.name.endswith(".py")
-        and not is_skipped(f))
-    print(f"Scanned {total_scanned} Python files: "
-          f"{n_files} non-compliant, {n_violations} violations.")
+    total_scanned = sum(1 for f in files if f.is_file() and f.name.endswith(".py") and not is_skipped(f))
+    print(f"Scanned {total_scanned} Python files: " f"{n_files} non-compliant, {n_violations} violations.")
     if args.strict and n_violations:
         return 1
     return 0

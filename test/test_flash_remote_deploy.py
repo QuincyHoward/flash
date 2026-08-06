@@ -59,7 +59,13 @@ class TestFlashRemoteDeployMocked:
     def test_connect_success(self, mock_route, mock_load_creds, mock_ssh_class):
         """模拟 SSH 连接成功。"""
         # 设置 mock 路由 — 避免真实的 TCP 连接测试
-        mock_route.return_value = {"host": "mock.host", "port": 22, "username": "test_user", "label": "mock", "latency_ms": 5.0}
+        mock_route.return_value = {
+            "host": "mock.host",
+            "port": 22,
+            "username": "test_user",
+            "label": "mock",
+            "latency_ms": 5.0,
+        }
         # 设置 mock 凭据
         mock_load_creds.return_value = {
             "ssh_username": "test_user",
@@ -87,7 +93,13 @@ class TestFlashRemoteDeployMocked:
     def test_connect_failure(self, mock_route, mock_load_creds, mock_ssh_class):
         """模拟 SSH 连接失败 → 抛 SSHConnectionError。"""
         # 设置 mock 路由
-        mock_route.return_value = {"host": "mock.host", "port": 22, "username": "test_user", "label": "mock", "latency_ms": 5.0}
+        mock_route.return_value = {
+            "host": "mock.host",
+            "port": 22,
+            "username": "test_user",
+            "label": "mock",
+            "latency_ms": 5.0,
+        }
         # 设置 mock 凭据
         mock_load_creds.return_value = {
             "ssh_username": "test_user",

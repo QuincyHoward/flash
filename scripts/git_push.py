@@ -39,12 +39,12 @@ from pathlib import Path
 # ============================================================================
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
-    if (_ROOT / "__init__.py").exists() and (_ROOT / "pyproject.toml").exists():
+    if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
     raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT.parent
+_PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
@@ -54,6 +54,7 @@ if str(_PARENT) not in sys.path:
 if __name__ == "__main__" and __package__ is None:
     import importlib
     import runpy
+
     # 不修改 sys.argv:
     # - 双击运行时 Python 已经将脚本路径设为 sys.argv[0], 插入会重复导致 argparse 报错
     # - `-m` 模块运行时 bootstrap 不执行, sys.argv 由 Python 管理
@@ -70,8 +71,7 @@ if __name__ == "__main__" and __package__ is None:
             _alias = _ROOT.parent / "flash"
             if not (_alias.exists() or _alias.is_symlink()):
                 if os.name == "nt":
-                    subprocess.run(["cmd", "/c", "mklink", "/J", str(_alias), str(_ROOT)],
-                                   capture_output=True)
+                    subprocess.run(["cmd", "/c", "mklink", "/J", str(_alias), str(_ROOT)], capture_output=True)
                 else:
                     _alias.symlink_to(_ROOT, target_is_directory=True)
         except Exception:  # noqa: BLE001
@@ -82,8 +82,7 @@ if __name__ == "__main__" and __package__ is None:
 # ============================================================================
 #  从 _core/credentials 读取凭据 (使用模块化 API)
 # ============================================================================
-from .._core.credentials import get_credential_manager, interactive_menu
-
+from flash._core.credentials import get_credential_manager, interactive_menu
 
 # ============================================================================
 #  辅助函数
@@ -118,16 +117,19 @@ def fail(msg: str):
     eprint(f"  {RED}❌{RESET} {msg}")
 
 
-def run_git(cmd: str, cwd: Path | None = None, check: bool = True,
-            capture: bool = True) -> subprocess.CompletedProcess:
+def run_git(cmd: str, cwd: Path | None = None, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
     """执行 git 命令。返回 CompletedProcess 对象。
 
     显式指定 utf-8 编码避免 Windows 上 GBK 解码 UTF-8 输出时报错。
     """
     result = subprocess.run(
-        cmd, shell=True, cwd=cwd,
-        capture_output=capture, text=True,
-        encoding="utf-8", errors="replace",
+        cmd,
+        shell=True,
+        cwd=cwd,
+        capture_output=capture,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if check and result.returncode != 0:
         err_msg = result.stderr.strip() if result.stderr else "(no stderr)"
@@ -206,6 +208,7 @@ def auto_commit_message(cwd: Path) -> str:
 #  核心推送逻辑
 # ============================================================================
 
+
 def push_to_gitee(
     branch: str | None = None,
     force: bool = False,
@@ -239,6 +242,7 @@ def push_to_gitee(
         try:
             import urllib.request
             import json as _json
+
             _api_req = urllib.request.Request(
                 f"https://gitee.com/api/v5/user?access_token={token}",
                 headers={"User-Agent": "flash-git-push"},
@@ -331,8 +335,10 @@ def push_to_gitee(
 
             r = subprocess.run(
                 [sys.executable, str(test_script)],
-                cwd=project_root, capture_output=False,
-                encoding="utf-8", errors="replace",
+                cwd=project_root,
+                capture_output=False,
+                encoding="utf-8",
+                errors="replace",
                 env=test_env,
             )
             if r.returncode != 0:
@@ -414,8 +420,7 @@ def show_status(project_root: Path | None = None):
         ok("工作区干净, 无未提交变更")
 
     # 远程同步状态
-    r = run_git("git rev-list --count --left-right origin/HEAD...HEAD",
-                cwd=project_root, check=False)
+    r = run_git("git rev-list --count --left-right origin/HEAD...HEAD", cwd=project_root, check=False)
     if r.returncode == 0 and r.stdout.strip():
         parts = r.stdout.strip().split()
         ahead = parts[0] if len(parts) >= 1 else "?"
@@ -429,6 +434,7 @@ def show_status(project_root: Path | None = None):
 # ============================================================================
 #  CLI 入口
 # ============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(

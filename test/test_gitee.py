@@ -9,12 +9,12 @@ from pathlib import Path
 # Bootstrap: find flash project root
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
-    if (_ROOT / "__init__.py").exists() and (_ROOT / "pyproject.toml").exists():
+    if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
     raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT.parent
+_PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
@@ -82,7 +82,7 @@ def test_git_push_import():
     print("  测试 4: 测试统一 git_push 导入")
     print("=" * 60)
 
-    from flash.scripts.git_push import push_to_gitee, show_status, find_git_root
+    from scripts.git_push import push_to_gitee, show_status, find_git_root
 
     print("\n[成功] 成功导入 git_push 核心函数:")
     print("  - push_to_gitee: 统一推送函数")

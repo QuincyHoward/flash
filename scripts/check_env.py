@@ -72,44 +72,43 @@ def info(msg: str):
 
 
 # ============================================================================
-#  包根检测 (兼容目录名非 flash 的情况)
+#  项目根检测 (标准 flash/ 子包布局, 2026-08-06 起)
 # ============================================================================
 
+
 def find_package_root() -> Path:
-    """向上查找含 __init__.py + pyproject.toml 的包根目录 (任意目录名)."""
+    """向上查找含 pyproject.toml 的项目根目录 (flash 包位于其 flash/ 子目录)."""
     root = Path(__file__).resolve().parent
     for _ in range(12):
-        if (root / "__init__.py").exists() and (root / "pyproject.toml").exists():
+        if (root / "pyproject.toml").exists():
             return root
         root = root.parent
     raise RuntimeError("Cannot locate flash package root")
 
 
 def ensure_flash_importable(package_root: Path) -> None:
-    """将包根加入 sys.path, 使 `import flash` 可用 (不依赖目录名).
+    """将项目根加入 sys.path, 使 `import flash` 可用 (flash/ 子包, 目录名固定).
 
     兼容场景:
-      - 开发目录: 目录名为 flash → 父目录入 sys.path 即可
-      - 备份目录: 目录名为 flash_backup_gitee_xxx → 需包名别名映射
+      - 开发目录: 项目根入 sys.path, flash 包位于 项目根/flash/
+      - 备份目录: 目录名为 flash_backup_gitee_xxx → 同上 (子目录名固定为 flash)
     """
-    parent = package_root.parent
-    if str(parent) not in sys.path:
-        sys.path.insert(0, str(parent))
+    if str(package_root) not in sys.path:
+        sys.path.insert(0, str(package_root))
 
     pkg_name = package_root.name
     if pkg_name != "flash":
-        # 备份/独立目录: 将实际包名映射为 flash 别名
+        # 备份/独立目录: flash 子包名固定, 无需别名映射 (旧逻辑已废弃)
         try:
-            mod = importlib.import_module(pkg_name)
-            sys.modules.setdefault("flash", mod)
-            info(f"包名兼容: {pkg_name} → flash (别名)")
+            import flash  # noqa: F401
         except Exception as e:  # noqa: BLE001
-            warn(f"包名别名失败: {e} (尝试直接 import flash)")
+            warn(f"flash 子包导入失败: {e}")
 
 
 # ============================================================================
 #  依赖检测与安装
 # ============================================================================
+
 
 def check_dep(module_name: str) -> bool:
     """检查模块是否可导入, 返回 (是否已安装)."""
@@ -176,8 +175,7 @@ def run_env_check(python: str | None = None, auto_install: bool = True) -> dict:
                 failed.append(pip_name)
         print()
         # 二次验证
-        recheck = [pip_name for m, pip_name in REQUIRED_DEPS
-                   if not check_dep(m)[0]]
+        recheck = [pip_name for m, pip_name in REQUIRED_DEPS if not check_dep(m)[0]]
         if recheck:
             fail(f"仍有缺失: {recheck}")
         else:
@@ -189,6 +187,7 @@ def run_env_check(python: str | None = None, auto_install: bool = True) -> dict:
 # ============================================================================
 #  主入口
 # ============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -202,8 +201,9 @@ def main():
     )
     parser.add_argument("--check-only", action="store_true", help="仅检测, 不安装")
     parser.add_argument("--test", action="store_true", help="检测/安装后运行全局测试")
-    parser.add_argument("--install", action="append", default=[], metavar="PKG",
-                        help="仅安装指定包 (可多次, 如 --install pytest)")
+    parser.add_argument(
+        "--install", action="append", default=[], metavar="PKG", help="仅安装指定包 (可多次, 如 --install pytest)"
+    )
 
     args = parser.parse_args()
 

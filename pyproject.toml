@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flash-sim"
-version = "1.0.0"
+version = "0.0.1"
 description = "FLASH plasma simulation Python interface - third-party wrapper and workflow toolkit for FLASH 4.8 radiation-hydrodynamics code. NOT affiliated with the Flash Center for Computational Science. FLASH must be obtained separately from flash.rochester.edu."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Apache-2.0 (Python code); FLASH License Agreement (FLASH engine - see NOTICE)"}
+license = "Apache-2.0"
 authors = [
     {name = "PhySimX Contributors"},
 ]
@@ -19,7 +19,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Fortran",
 ]
 
 # Dependencies (minimal for standalone mode)
@@ -30,10 +29,15 @@ dependencies = [
     "pydantic>=2.0",        # For data validation (used by physimx_core if installed)
 ]
 
+[project.urls]
+Homepage = "https://gitee.com/physimx/flash"
+Repository = "https://gitee.com/physimx/flash"
+Issues = "https://gitee.com/physimx/flash/issues"
+
 [project.optional-dependencies]
-# Full features (when used as part of PhySimX)
+# Full features (可视化与 HDF5 处理)
+# 注: physimx-core (PhySimX 插件模式) 尚未发布到 PyPI, 需要时单独安装
 full = [
-    "physimx-core>=0.1.0",
     "h5py>=3.8",              # HDF5 file reading
     "matplotlib>=3.7",        # Plotting
     "yt>=4.1",               # FLASH HDF5 visualization
@@ -54,6 +58,42 @@ flash-setup = "flash.config:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["flash"]
+exclude = [
+    # === FLASH 版权材料与引擎相关 (License §3) ===
+    "flash/flash_src/**",
+    "flash/**/ref_f90s/**",
+    "flash/**/refs/**",
+    "flash/**/ionmix/**",
+    "flash/**/MultiEOS/**",
+    "flash/**/para_doc/**",
+    "flash/**/abjt_03.f",
+    "flash/**/SimulationMain/**",
+    "flash/input_gen/gen_eos_op/eos_op_data/FLASH_eos_op_data/**",
+    "flash/scenarios/flash_demo/LaserSlab*/**",
+    "flash/scenarios/flash_demo/LaserSlabPAR.xlsx",
+    "flash/scenarios/flash_demo/ReDo042sp_*/**",
+    "flash/scenarios/flash_demo/new_struture/**",
+    # === FLASH 场景源文件与运行脚本 (需在 FLASH 中单独获取) ===
+    "*.F90", "*.f90", "*.F", "*.f",
+    "Config", "Makefile", "*.par", "*.sh",
+    # === 私有场景 (用户本地, 不入包) ===
+    "flash/scenarios/collision_compression/thin_layer_sandwich/**",
+    "flash/scenarios/collision_compression/grad_dens_sandwich/**",
+    # === 运行产物 / 测试 / 缓存 ===
+    "flash/**/runs_*/**",
+    "flash/**/runs/**",
+    "flash/**/outputfiles/**",
+    "flash/**/output/**",
+    "flash/**/inputfiles/**",
+    "flash/**/temp/**",
+    "flash/**/demo_task/**",
+    "flash/input_gen/test/**",
+    "flash/output_processors/test/**",
+    "flash/**/__pycache__/**",
+    "flash/**/.pytest_cache/**",
+    # === 二进制/数据文件 ===
+    "*.h5", "*.hdf5", "*.pdf", "*.cn4", "*.cnr", "*.imx", "*.ses", "*.png", "*.xlsx",
+]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -66,24 +106,23 @@ include = [
 ]
 exclude = [
     # === FLASH CENTER compliance exclusions ===
-    "flash_src/**",
+    "flash/flash_src/**",
     "FLASH4.8/**",
-    "input_gen/SimulationMain/**",
-    "input_gen/gen_eos_op/eos_op_data/FLASH_eos_op_data/**",
-    "scenarios/flash_demo/LaserSlab/**",
-    "scenarios/flash_demo/LaserSlabca1d/**",
-    "scenarios/flash_demo/LaserSlabpy/**",
-    "scenarios/flash_demo/LaserSlabPAR.xlsx",
-    "scenarios/flash_demo/ReDo042sp_CH042sp2umL8.00e-02/**",
-    "scenarios/flash_demo/ReDo042sp_CH042sp3umF8.00e-02/**",
-    "scenarios/flash_demo/demo_hpc/demo_task/**",
-    "scenarios/flash_demo/demo_local/demo_task/**",
-    "scenarios/flash_demo/demo_task/**",
+    "flash/input_gen/SimulationMain/**",
+    "flash/input_gen/gen_eos_op/eos_op_data/FLASH_eos_op_data/**",
+    "flash/scenarios/flash_demo/LaserSlab*/**",
+    "flash/scenarios/flash_demo/LaserSlabPAR.xlsx",
+    "flash/scenarios/flash_demo/ReDo042sp_*/**",
+    "flash/scenarios/flash_demo/demo_hpc/demo_task/**",
+    "flash/scenarios/flash_demo/demo_local/demo_task/**",
+    "flash/scenarios/flash_demo/demo_task/**",
+    "docs/license_agreement.txt",
     "license_agreement_FLASH.txt",
-    "scenarios/flash_demo/new_struture/*/runs/**",
+    "flash/scenarios/flash_demo/new_struture/*/runs/**",
+    "flash/scenarios/flash_demo/new_struture/**",
     "test/scenarios/runs_*/**",
-    "scenarios/chsich_grad/run_tools/runs_*/**",
-    "scenarios/chsich/run_tools/runs_*/**",
+    "flash/scenarios/chsich_grad/run_tools/runs_*/**",
+    "flash/scenarios/chsich/run_tools/runs_*/**",
     "scenarios - 副本/**",
     # === FLASH 版权材料与参考源码 (License §3) ===
     "**/ref_f90s/**",
@@ -94,10 +133,21 @@ exclude = [
     "**/abjt_03.f",
     "docs/flash4_ug_4p8.md",
     "docs/flash4_ug_4p8_temp.txt",
+    # === 私有场景 (用户本地, 不入包) ===
+    "flash/scenarios/collision_compression/thin_layer_sandwich/**",
+    "flash/scenarios/collision_compression/grad_dens_sandwich/**",
+    # === 根目录历史残留 (旧布局未跟踪文件, 仅本地) ===
+    "/scenarios/**",
+    "/physics/**",
+    "/备份核对报告.md",
+    "/quick_test_1d.h5",
+    # === 内部开发文档/工具/测试 (不随包发布) ===
+    "/docs/**",
+    "/scripts/**",
+    "/test/**",
     # === 旧副本 / 内部文件 ===
     "output_processors_copy/**",
     "input_gen/gen_eos_op_copy/**",
-    "flash_demo/new_struture/**",
     "test/grid_rede_backup_v9/**",
     "test/grid_rede_copy_main/**",
     "test/newpara/flash_input/**",
@@ -113,7 +163,7 @@ exclude = [
     "**/inputfiles/**",
     "**/temp/**",
     # === Other exclusions ===
-    "output_processors/inputfiles/**",
+    "flash/output_processors/inputfiles/**",
     "test/outputfiles/**",
     "test/temp_delete/**",
     "**/__pycache__/**",

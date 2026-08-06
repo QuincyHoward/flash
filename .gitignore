@@ -111,7 +111,7 @@ license_agreement_FLASH.txt
 **/inputfiles/
 **/temp/
 flash_demo/new_struture/
-scenarios/flash_demo/new_struture/
+flash/scenarios/flash_demo/new_struture/
 
 # --- 临时调试目录 (勿提交) ---
 **/wsl_tmp/
@@ -129,6 +129,7 @@ test/hdf5ploter_easy/output/
 
 # --- 旧副本 / 备份目录 ---
 scenarios - 副本/
+flash/input_gen/gen_eos_op_copy/
 input_gen/gen_eos_op_copy/
 output_processors_copy/
 
@@ -197,7 +198,7 @@ Thumbs.db
 flash_work/
 
 # Physics docs (本地知识库, 不推送)
-physics/
+/physics/
 
 # ================================================================
 # PRIVATE — 用户自定义私有库 (不推送到 Gitee)
@@ -208,6 +209,8 @@ physics/
 
 # 私有场景: grad_dens_sandwich (HE-CH-Si-CH-HE 渐变密度 CH)
 scenarios/collision_compression/grad_dens_sandwich/
+flash/scenarios/collision_compression/grad_dens_sandwich/
 
 # 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
 scenarios/collision_compression/thin_layer_sandwich/
+flash/scenarios/collision_compression/thin_layer_sandwich/

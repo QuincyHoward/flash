@@ -1,4 +1,5 @@
 """上传并执行超算运行脚本"""
+
 import sys
 from pathlib import Path
 
@@ -14,9 +15,15 @@ def main():
     cred = load_ssh_credentials("flash_ssh")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(cred["host"], port=int(cred["port"]),
-                   username=cred["username"], password=cred["password"],
-                   timeout=30, banner_timeout=60, auth_timeout=60)
+    client.connect(
+        cred["host"],
+        port=int(cred["port"]),
+        username=cred["username"],
+        password=cred["password"],
+        timeout=30,
+        banner_timeout=60,
+        auth_timeout=60,
+    )
     print("SSH 连接成功")
 
     sftp = client.open_sftp()

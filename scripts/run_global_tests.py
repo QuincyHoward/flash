@@ -32,12 +32,12 @@ from pathlib import Path
 # ============================================================================
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
-    if (_ROOT / "__init__.py").exists() and (_ROOT / "pyproject.toml").exists():
+    if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
     raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT.parent
+_PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
@@ -59,8 +59,10 @@ def _ensure_flash_alias() -> None:
     try:
         if os.name == "nt":
             import subprocess as _sp
-            _r = _sp.run(["cmd", "/c", "mklink", "/J", str(alias), str(_ROOT)],
-                         capture_output=True, text=True, errors="replace")
+
+            _r = _sp.run(
+                ["cmd", "/c", "mklink", "/J", str(alias), str(_ROOT)], capture_output=True, text=True, errors="replace"
+            )
             if _r.returncode != 0:
                 raise OSError(_r.stderr.strip() or "mklink failed")
         else:
@@ -96,9 +98,9 @@ if __name__ == "__main__" and __package__ is None:
 # ============================================================================
 
 SUITES = {
-    "framework": ("Flash 框架测试",   "test/",                   True),
-    "input":     ("InputGen 测试",    "input_gen/test/",          True),
-    "output":    ("OutputProcessors 测试", "output_processors/test/", False),
+    "framework": ("Flash 框架测试", "test/", True),
+    "input": ("InputGen 测试", "input_gen/test/", True),
+    "output": ("OutputProcessors 测试", "output_processors/test/", False),
 }
 
 SUITE_ORDER = ["framework", "input", "output"]
@@ -135,6 +137,7 @@ def fail(msg: str):
 # ============================================================================
 #  核心
 # ============================================================================
+
 
 def find_project_root() -> Path:
     """向上查找包含 .git 的目录作为项目根。"""
@@ -190,12 +193,16 @@ def run_one_suite(
         cmd.append("--collect-only")
 
     r = subprocess.run(
-        cmd, cwd=project_root, capture_output=False,
-        encoding="utf-8", errors="replace", env=test_env,
+        cmd,
+        cwd=project_root,
+        capture_output=False,
+        encoding="utf-8",
+        errors="replace",
+        env=test_env,
     )
     elapsed = time.time() - t0
 
-    passed = (r.returncode == 0)
+    passed = r.returncode == 0
     if not passed and not critical:
         warn(f"{label} 测试失败 (非关键, 继续执行)")
         passed = True
@@ -231,6 +238,7 @@ def print_footer(results: list, total_elapsed: float, all_passed: bool):
 #  模式: 运行预定义套件
 # ============================================================================
 
+
 def run_suites(suite_keys: list[str], verbose: bool, collect_only: bool) -> int:
     """运行指定套件列表, 返回退出码。"""
     project_root = find_project_root()
@@ -249,8 +257,13 @@ def run_suites(suite_keys: list[str], verbose: bool, collect_only: bool) -> int:
             continue
         label, rel_dir, critical = SUITES[key]
         passed, elapsed = run_one_suite(
-            label, rel_dir, project_root, test_env,
-            verbose=verbose, critical=critical, collect_only=collect_only,
+            label,
+            rel_dir,
+            project_root,
+            test_env,
+            verbose=verbose,
+            critical=critical,
+            collect_only=collect_only,
         )
         results.append((label, passed))
         total_elapsed += elapsed
@@ -267,6 +280,7 @@ def run_suites(suite_keys: list[str], verbose: bool, collect_only: bool) -> int:
 # ============================================================================
 #  模式: 运行指定模块
 # ============================================================================
+
 
 def run_module(
     module_path: str,
@@ -294,11 +308,15 @@ def run_module(
         cmd.append("--collect-only")
 
     r = subprocess.run(
-        cmd, cwd=project_root, capture_output=False,
-        encoding="utf-8", errors="replace", env=test_env,
+        cmd,
+        cwd=project_root,
+        capture_output=False,
+        encoding="utf-8",
+        errors="replace",
+        env=test_env,
     )
     elapsed = time.time() - t0
-    passed = (r.returncode == 0)
+    passed = r.returncode == 0
 
     print_footer([(module_path, passed)], elapsed, passed)
     return 0 if passed else 1
@@ -307,6 +325,7 @@ def run_module(
 # ============================================================================
 #  CLI 入口
 # ============================================================================
+
 
 def main():
     import argparse

@@ -8,9 +8,9 @@ test_real_flash_run.py — 真实 FLASH 仿真端到端测试
   - 支持 Si 和 ch_center 场景参数化
 
 用法:
-    python test_real_flash_run.py                    # 默认 thin_layer_sandwich_si
+    python test_real_flash_run.py                    # 默认 ch_center (包内场景)
     python test_real_flash_run.py --scenario ch_center
-    python test_real_flash_run.py --scenario thin_layer_sandwich_si
+    python test_real_flash_run.py --scenario thin_layer_sandwich_si  # 私有场景需本地安装
 """
 
 import sys, json, argparse
@@ -19,12 +19,12 @@ from pathlib import Path
 # Bootstrap: find flash project root by searching upward for marker
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
-    if (_ROOT / "__init__.py").exists() and (_ROOT / "pyproject.toml").exists():
+    if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
     raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT.parent
+_PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
@@ -90,7 +90,7 @@ def _get_h5_result_paths(scenario_name, scene_dir):
     return h5_files[-1] if h5_files else None
 
 
-def test_real_run(scenario_name="thin_layer_sandwich_si", flash_timeout=300, dry_run=True):
+def test_real_run(scenario_name="ch_center", flash_timeout=300, dry_run=True):
     """运行 FLASH 仿真管线并验证完整输出
 
     默认 dry_run=True: 不依赖外部 FLASH 安装, 引擎自动合成结构化输出

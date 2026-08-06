@@ -84,15 +84,21 @@ except Exception as _e:  # pragma: no cover — 仅兜底
 
 # ── 装置默认配置 (与 resource_config.py 保持一致, 兜底用) ──
 _FALLBACK_DEVICES = {
-    "laptop": {"1d": {"max_cpu_percent": 80, "max_parallel": 1},
-               "2d": {"max_cpu_percent": 80, "max_parallel": 1},
-               "3d": {"max_cpu_percent": 80, "max_parallel": 1}},
-    "desktop": {"1d": {"max_cpu_percent": 80, "max_parallel": 2},
-                "2d": {"max_cpu_percent": 80, "max_parallel": 1},
-                "3d": {"max_cpu_percent": 80, "max_parallel": 1}},
-    "hpc": {"1d": {"max_cpu_percent": 80, "max_parallel": 3},
-            "2d": {"max_cpu_percent": 80, "max_parallel": 2},
-            "3d": {"max_cpu_percent": 80, "max_parallel": 1}},
+    "laptop": {
+        "1d": {"max_cpu_percent": 80, "max_parallel": 1},
+        "2d": {"max_cpu_percent": 80, "max_parallel": 1},
+        "3d": {"max_cpu_percent": 80, "max_parallel": 1},
+    },
+    "desktop": {
+        "1d": {"max_cpu_percent": 80, "max_parallel": 2},
+        "2d": {"max_cpu_percent": 80, "max_parallel": 1},
+        "3d": {"max_cpu_percent": 80, "max_parallel": 1},
+    },
+    "hpc": {
+        "1d": {"max_cpu_percent": 80, "max_parallel": 3},
+        "2d": {"max_cpu_percent": 80, "max_parallel": 2},
+        "3d": {"max_cpu_percent": 80, "max_parallel": 1},
+    },
 }
 _FALLBACK_THRESHOLDS = {"laptop": 10, "desktop": 30}
 
@@ -109,7 +115,9 @@ def detect_total_cpus() -> int:
     try:
         r = subprocess.run(
             ["wsl", "nproc"],
-            capture_output=True, text=True, timeout=8,
+            capture_output=True,
+            text=True,
+            timeout=8,
         )
         if r.returncode == 0 and r.stdout.strip().isdigit():
             return max(1, int(r.stdout.strip()))
@@ -146,7 +154,8 @@ def build_control_file(
                 "formula": "nproc = max(1, int(total_cpus * max_cpu_percent / 100) // max_parallel)",
             },
             "devices": _FALLBACK_DEVICES,
-            "local": {}, "hpc": {},
+            "local": {},
+            "hpc": {},
         }
         if cpu_percent != DEFAULT_CPU_PERCENT:
             for _dev in data["devices"].values():
@@ -180,8 +189,10 @@ def print_summary(data: dict, total_cpus: int, device: str) -> None:
     print(line)
     print("FLASH 资源配置控制文件已生成")
     print(line)
-    print(f"  装置分类阈值: 总核数 < {th.get('laptop', 10)} → 笔记本; "
-          f"< {th.get('desktop', 30)} → 台式机; ≥ {th.get('desktop', 30)} → 超算")
+    print(
+        f"  装置分类阈值: 总核数 < {th.get('laptop', 10)} → 笔记本; "
+        f"< {th.get('desktop', 30)} → 台式机; ≥ {th.get('desktop', 30)} → 超算"
+    )
     print(f"  探测总核数: {total_cpus}  →  装置类型: {device}")
     print(f"  控制文件: {DEFAULT_OUTPUT}")
     print()
@@ -202,18 +213,19 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="生成 FLASH 资源配置控制文件 (~/.physimx/flash_resource/resource_config.json)",
     )
-    ap.add_argument("--total-cpus", type=int, default=None,
-                    help="指定装置总核数 (默认自动探测, 优先 wsl nproc)")
-    ap.add_argument("--device", choices=list(VALID_DEVICES), default=None,
-                    help="强制指定装置类型 (默认按总核数自动分类)")
-    ap.add_argument("--cpu-percent", type=int, default=DEFAULT_CPU_PERCENT,
-                    help=f"覆盖所有装置的 CPU 占用百分比 (默认 {DEFAULT_CPU_PERCENT})")
-    ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
-                    help=f"控制文件输出路径 (默认 {DEFAULT_OUTPUT})")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="只打印控制文件内容, 不写入磁盘")
-    ap.add_argument("--show", action="store_true",
-                    help="写入后显示配置摘要")
+    ap.add_argument("--total-cpus", type=int, default=None, help="指定装置总核数 (默认自动探测, 优先 wsl nproc)")
+    ap.add_argument(
+        "--device", choices=list(VALID_DEVICES), default=None, help="强制指定装置类型 (默认按总核数自动分类)"
+    )
+    ap.add_argument(
+        "--cpu-percent",
+        type=int,
+        default=DEFAULT_CPU_PERCENT,
+        help=f"覆盖所有装置的 CPU 占用百分比 (默认 {DEFAULT_CPU_PERCENT})",
+    )
+    ap.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help=f"控制文件输出路径 (默认 {DEFAULT_OUTPUT})")
+    ap.add_argument("--dry-run", action="store_true", help="只打印控制文件内容, 不写入磁盘")
+    ap.add_argument("--show", action="store_true", help="写入后显示配置摘要")
     args = ap.parse_args()
 
     if not _HAS_MODULE:

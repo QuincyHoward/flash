@@ -19,12 +19,14 @@ def test_imports():
 
     try:
         from flash.input_gen.gen_par.generator import ParGeneratorExtended
+
         print("  ✅ Import ParGeneratorExtended (standalone mode)")
     except ImportError as e:
         print(f"  ❌ Import failed: {e}")
 
     try:
         from flash.input_gen.gen_shell_script.generator import ShellScriptGenerator
+
         print("  ✅ Import ShellScriptGenerator (standalone mode)")
     except ImportError as e:
         print(f"  ❌ Import failed: {e}")
@@ -38,9 +40,7 @@ def test_pytest():
 
     import subprocess
 
-    cmd = [sys.executable, "-m", "pytest",
-            "flash/input_gen/test/test_gen_par.py",
-            "-v", "--tb=no"]
+    cmd = [sys.executable, "-m", "pytest", "flash/input_gen/test/test_gen_par.py", "-v", "--tb=no"]
 
     print(f"  - Running: {' '.join(cmd)}")
     print()

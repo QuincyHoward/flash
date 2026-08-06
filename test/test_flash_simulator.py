@@ -11,10 +11,12 @@ import pytest
 
 try:
     from physimx_core.schema import SimulationRequest, SimulatorType, SimulationStatus, CapabilityCard
+
     _HAS_PHYSIMX_CORE = True
 except ImportError:
     try:
         from flash._core.schema import SimulationRequest, SimulatorType, SimulationStatus, CapabilityCard
+
         _HAS_PHYSIMX_CORE = True
     except ImportError:
         _HAS_PHYSIMX_CORE = False

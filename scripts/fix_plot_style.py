@@ -9,6 +9,7 @@ For every matplotlib plotting script found by check_plot_style.py:
 
 Run:  python scripts/fix_plot_style.py
 """
+
 from __future__ import annotations
 
 import re
@@ -18,16 +19,15 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PKG_ROOT = HERE.parent
 
-BOOTSTRAP = '''\
+BOOTSTRAP = """\
 # ── PPT-friendly plot style (fonts >= 18, English only) ──
 try:
     from output_processors.plotter.plot_style import apply_plot_style
     apply_plot_style()
 except ImportError:
-    pass'''
+    pass"""
 
-PLT_IMPORT_RE = re.compile(
-    r"^(\s*import matplotlib\.pyplot as plt.*)$", re.MULTILINE)
+PLT_IMPORT_RE = re.compile(r"^(\s*import matplotlib\.pyplot as plt.*)$", re.MULTILINE)
 
 SKIP = ("plot_style.py", "__pycache__", ".workbuddy")
 
@@ -40,7 +40,7 @@ def fix_file(path: Path) -> list[str]:
     if "apply_plot_style(" not in text:
         m = PLT_IMPORT_RE.search(text)
         if m:
-            text = text[:m.end()] + "\n" + BOOTSTRAP + text[m.end():]
+            text = text[: m.end()] + "\n" + BOOTSTRAP + text[m.end() :]
             msgs.append("injected apply_plot_style()")
         else:
             msgs.append("no plt import found, skipped injection")
@@ -55,8 +55,7 @@ def fix_file(path: Path) -> list[str]:
         msgs.append(f"stripped {n_small + n_small2} small fontsize args")
 
     # 3) savefig dpi 150 -> 200
-    text, n_dpi = re.subn(r"savefig\(([^)]*)dpi\s*=\s*150",
-                          r"savefig(\1dpi=200", text)
+    text, n_dpi = re.subn(r"savefig\(([^)]*)dpi\s*=\s*150", r"savefig(\1dpi=200", text)
     if n_dpi:
         msgs.append(f"bumped {n_dpi} savefig dpi to 200")
 
@@ -71,8 +70,7 @@ def main() -> None:
         rel = f.as_posix()
         if any(s in rel for s in SKIP):
             continue
-        if "matplotlib" not in f.read_text(encoding="utf-8",
-                                           errors="replace"):
+        if "matplotlib" not in f.read_text(encoding="utf-8", errors="replace"):
             continue
         msgs = fix_file(f)
         if msgs:

@@ -3,7 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![FLASH: Separate License](https://img.shields.io/badge/FLASH-Separate_License-orange.svg)](https://flash.rochester.edu)
-[![Version](https://img.shields.io/badge/version-0.0.000-green.svg)]()
+[![Version](https://img.shields.io/badge/version-0.0.1-green.svg)](https://pypi.org/project/flash-sim/)
 
 **flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
 
@@ -282,14 +282,30 @@ flash/
 
 ## 安装
 
-### 从源码安装
+### 从 PyPI 安装（推荐）
+
+```bash
+# 核心功能（独立模式）
+pip install flash-sim
+
+# 完整功能（含 h5py / matplotlib / yt 可视化）
+pip install "flash-sim[full]"
+
+# 开发工具
+pip install "flash-sim[dev]"
+```
+
+> `flash-sim` 已在 PyPI 发布, 安装后 `import flash` 即可使用。
+> FLASH 仿真引擎需单独获取: https://flash.rochester.edu
+
+### 从源码安装（开发模式）
 
 ```bash
 # 克隆仓库
-git clone <your-repo-url>
+git clone https://gitee.com/physimx/flash.git
 cd flash
 
-# 安装核心依赖
+# 安装核心依赖（可编辑模式）
 pip install -e .
 
 # 安装完整功能（含 h5py / matplotlib / yt）
@@ -298,7 +314,7 @@ pip install -e ".[full]"
 # 安装开发工具
 pip install -e ".[dev]"
 
-# 建议安装好后运行flash\scripts\run_global_tests.py进行全局测试
+# 建议安装好后运行 flash\scripts\run_global_tests.py 进行全局测试
 ```
 
 ### 最小依赖（独立模式）
@@ -528,10 +544,10 @@ flash-sim 支持三平台部署：
 | 平台 | 访问方式 | MPI | HDF5 | HYPRE | 典型核数 |
 |------|----------|-----|------|-------|----------|
 | 本地 WSL (Ubuntu) | 本地 | 源码编译 → `/usr/local/mpich/` | 源码编译 → `/usr/local/hdf5/` | 源码编译 → `/usr/local/hypre/` | 1 |
-| ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
-| ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
+| ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/<user_name>/FLASH/local/hypre/` | 4 |
+| ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/<user_name>/FLASH/local/hypre/` | 4 |
 
-> **关键提示**: FLASH的默认安装路径为"~/QC/FLASH/FLASH4.8"，其中"QC"是专属用户名，可在"flash\\_core\credentials\manage.py"设置。
+> **关键提示**: FLASH 的默认安装路径为 `~/{user_name}/FLASH/FLASH4.8`，其中 `user_name` 为你的专属用户名（默认 `hello`），可通过 `flash-cred` 命令或 `flash/_core/credentials/manage.py` 设置。
 > **HPC 关键提示**: 超算上 HYPRE_PATH 可能因符号链接 `/public1/home → /publicfs01/fs1-e/home` 导致编译失败。必须使用 `readlink -f` 解析真实路径后写入 `Makefile.h`。
 ---
 

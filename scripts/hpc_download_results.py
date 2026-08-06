@@ -1,4 +1,5 @@
 """从超算下载 HDF5 结果到本地"""
+
 import sys
 from pathlib import Path
 
@@ -7,16 +8,24 @@ import paramiko
 
 from flash._core.credentials._core import load_ssh_credentials
 
-OUT_DIR = Path(r"D:\PhySimX\PhySimX\sim\flash\scenarios\flash_demo\hello_flash\outputfiles\hdf5filesfrom_ssh1\laserslab1d")
+OUT_DIR = Path(
+    r"D:\PhySimX\PhySimX\sim\flash\scenarios\flash_demo\hello_flash\outputfiles\hdf5filesfrom_ssh1\laserslab1d"
+)
 
 
 def main():
     cred = load_ssh_credentials("flash_ssh")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(cred["host"], port=int(cred["port"]),
-                   username=cred["username"], password=cred["password"],
-                   timeout=30, banner_timeout=60, auth_timeout=60)
+    client.connect(
+        cred["host"],
+        port=int(cred["port"]),
+        username=cred["username"],
+        password=cred["password"],
+        timeout=30,
+        banner_timeout=60,
+        auth_timeout=60,
+    )
     print("SSH 连接成功")
 
     # 用户名: 优先 SSH 凭据 username, 回退 credentials/默认 (勿硬编码用户名)
@@ -26,7 +35,8 @@ def main():
     stdin, stdout, stderr = client.exec_command(
         f'export FLASH_SIM_USER_DIR="{_sim_user}"; '
         "cd ~/$FLASH_SIM_USER_DIR/FLASH/run_laserslab_hpc_test && tar czf /tmp/laserslab_hpc.tar.gz lasslab_hdf5_chk_0001 lasslab_hdf5_chk_0005 lasslab_hdf5_chk_0010 lasslab_hdf5_chk_0020 lasslab_hdf5_chk_0030 lasslab_hdf5_chk_0039 && ls -lh /tmp/laserslab_hpc.tar.gz",
-        timeout=120)
+        timeout=120,
+    )
     print(stdout.read().decode())
     err = stderr.read().decode()
     if err.strip():
@@ -43,6 +53,7 @@ def main():
 
     # 解压到目标目录
     import tarfile
+
     with tarfile.open(local_tar) as tf:
         for member in tf.getmembers():
             member.name = Path(member.name).name  # 去除路径
