@@ -806,29 +806,44 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str, output_dir: 
 
     remote_files = [l.strip() for l in out.strip().splitlines() if l.strip()]
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # 每次运行 FLASH 的 chk 内容不同 → 下载到按时间戳区分的子目录,
+    # 避免覆盖旧数据 / 跳过同名文件导致"下载 0 个"。
+    run_sub = OUTPUT_DIR / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    run_sub.mkdir(parents=True, exist_ok=True)
     n = 0
     for rf in remote_files[:10]:
-        local_path = str(OUTPUT_DIR / Path(rf).name)
-        if os.path.exists(local_path):
-            continue  # 已下载过, 跳过 (避免重复 SCP 覆盖计数误差)
+        local_path = str(run_sub / Path(rf).name)
         ok = session.download(rf, local_path)
         if ok:
             n += 1
-    log(f"  下载 {n} 个 HDF5 文件到 {OUTPUT_DIR}", "OK")
-
+    log(f"  下载 {n} 个 HDF5 文件到 {run_sub}", "OK")
     if n > 0:
+        latest_sub = OUTPUT_DIR / "latest"
+        latest_sub.mkdir(parents=True, exist_ok=True)
+        # 同步最新一份到 latest/ 供本地分析使用 (始终指向最新运行)
+        for f in run_sub.iterdir():
+            dst = latest_sub / f.name
+            try:
+                import shutil
+                shutil.copy2(str(f), str(dst))
+            except Exception:
+                pass
+        # 本地分析优先使用 latest/ (最新运行数据)
+        h5_files = sorted(latest_sub.glob("*chk*")) or sorted(latest_sub.glob("*plt*"))
+    else:
+        h5_files = sorted(OUTPUT_DIR.glob("*chk*")) or sorted(OUTPUT_DIR.glob("*plt*"))
+
+    if h5_files:
         try:
             from flash.output_processors.loader import FlashDataLoader
             from flash.output_processors.plotter import FlashPlotter
-            h5_files = sorted(OUTPUT_DIR.glob("*chk*")) or sorted(OUTPUT_DIR.glob("*plt*"))
-            if h5_files:
-                PLOTS_DIR.mkdir(parents=True, exist_ok=True)
-                container = FlashDataLoader(str(h5_files[0])).load(compute_derived=True)
-                FlashPlotter(container).plot(
-                    "dens", save_path=str(PLOTS_DIR / "dens_local.png"),
-                    title="Density (Local Analysis)",
-                )
-                log(f"    dens_local.png ✓")
+            PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+            container = FlashDataLoader(str(h5_files[0])).load(compute_derived=True)
+            FlashPlotter(container).plot(
+                "dens", save_path=str(PLOTS_DIR / "dens_local.png"),
+                title="Density (Local Analysis)",
+            )
+            log(f"    dens_local.png ✓")
         except Exception as e:
             log(f"    本地分析失败: {e}", "WARN")
 
