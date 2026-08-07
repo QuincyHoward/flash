@@ -569,16 +569,34 @@ def _run_flash_wsl(
 
 
 def _collect_hdf5_from_wsl(run_tmp: str, local_tmp: Path) -> int:
-    ls_r = _wsl_sh(f"ls {run_tmp}/lasslab_hdf5_chk_* 2>/dev/null || echo 'NONE'", timeout=30)
-    files = [f.strip() for f in ls_r.stdout.strip().split("\n") if f.strip() and f != "NONE"]
-    if not files:
+    """从 WSL 临时目录批量复制 FLASH HDF5 文件到本地。
+
+    使用**单次** WSL 调用完成复制 (cp 通配符), 避免对每个文件单独
+    启动 wsl 进程 (数百个文件时逐个启动会导致分钟级延迟/超时)。
+    """
+    ls_r = _wsl_sh(f"ls {run_tmp}/lasslab_hdf5_chk_* 2>/dev/null | wc -l", timeout=30)
+    n = ls_r.stdout.strip()
+    try:
+        n_files = int(n)
+    except ValueError:
+        n_files = 0
+    if n_files == 0:
         return 0
-    for f in files:
-        fname = os.path.basename(f)
-        local_path = local_tmp / fname
-        wsl_local = _win_to_wsl(str(local_path))
-        subprocess.run(["wsl", "cp", f, wsl_local], capture_output=True, timeout=30)
-    return len(files)
+
+    wsl_local_dir = _win_to_wsl(str(local_tmp))
+    # 单次调用: mkdir + cp 通配符批量复制 (chk + 可选 plt)
+    cp_cmd = (
+        f"mkdir -p {wsl_local_dir} && "
+        f"cp {run_tmp}/lasslab_hdf5_chk_* {wsl_local_dir}/ 2>/dev/null; "
+        f"cp {run_tmp}/*hdf5_plt_cnt_* {wsl_local_dir}/ 2>/dev/null; "
+        f"ls {wsl_local_dir}/lasslab_hdf5_chk_* 2>/dev/null | wc -l"
+    )
+    r = _wsl_sh(cp_cmd, timeout=300)
+    try:
+        copied = int(r.stdout.strip())
+    except ValueError:
+        copied = 0
+    return copied
 
 
 # ===========================================================================

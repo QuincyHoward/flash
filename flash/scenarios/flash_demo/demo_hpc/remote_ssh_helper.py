@@ -73,6 +73,26 @@ def _find_scp() -> str:
     return _SCP_PATH
 
 
+def get_hpc_platform(credential_name: Optional[str] = None) -> str:
+    """动态获取超算 platform 标识 (如 "hpc/scfa2696"), 不硬编码账号名。
+
+    从凭据的 route_key 字段推导 (对应 resource_config.json 中 hpc 组下的环境键);
+    读取不到时回退为 "hpc" (由 ShellScriptGenerator 取 hpc 组第一个环境)。
+
+    Returns:
+        "hpc/<route_key>" 或 "hpc"
+    """
+    try:
+        from flash._core.credentials import load_ssh_credentials
+        cred = load_ssh_credentials(credential_name) or {}
+        rk = cred.get("route_key", "")
+        if rk:
+            return f"hpc/{rk}"
+    except Exception:
+        pass
+    return "hpc"
+
+
 def _resolve_route_and_credential(credential_name: Optional[str] = None) -> Dict[str, Any]:
     """解析凭据 + 动态选择最佳路由 (或使用手动指定)。
 

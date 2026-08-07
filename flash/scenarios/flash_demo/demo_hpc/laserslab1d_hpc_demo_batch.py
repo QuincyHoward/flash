@@ -138,6 +138,7 @@ def create_power_variants() -> Dict[float, Path]:
     """
     from flash.input_gen import create_input_files
     from flash.input_gen.gen_shell_script import ShellScriptGenerator
+    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import get_hpc_platform
 
     sim_path = f"{SIM_USER_DIR}/LaserSlab_batch"
     objdir = f"{SIM_USER_DIR}/LaserSlab_batch"
@@ -166,7 +167,7 @@ def create_power_variants() -> Dict[float, Path]:
         copy_eos_files=True,
         setup_cmd=setup_cmd,
         sim_user_dir=SIM_USER_DIR,
-        platform="hpc/scfa2696",
+        platform=get_hpc_platform(),
     )
 
     par_base_path = base_result.get("par")
@@ -666,7 +667,8 @@ def run_flash_remotely(
                 flash_cmd = (
                     f"cd {remote_dir} && "
                     f"{MODULES_LOAD} && "
-                    f"bash run_flash.sh 2>&1 | tail -50"
+                    f"bash run_flash.sh > flash_run_console.log 2>&1; "
+                    f"rc=$?; tail -50 flash_run_console.log; exit $rc"
                 )
                 out, err, code = session.run(flash_cmd, timeout=600)
 

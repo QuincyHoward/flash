@@ -62,6 +62,22 @@ def _get_sim_user_dir() -> str:
 
 SIM_USER_DIR = _get_sim_user_dir()
 
+
+def _resolve_hpc_platform() -> str:
+    """动态解析超算 platform 标识 (如 'hpc/scfa2696'), 不硬编码账号名。
+
+    优先从凭据 route_key 推导; 读取不到时回退 'hpc' (取 resource_config 第一个 hpc 环境)。
+    """
+    try:
+        from flash._core.credentials import load_ssh_credentials
+        cred = load_ssh_credentials() or {}
+        rk = cred.get("route_key", "")
+        if rk:
+            return f"hpc/{rk}"
+    except Exception:
+        pass
+    return "hpc"
+
 # 路径计算: 脚本位于 flash/flash_demo/demo_hpc/
 _SCRIPT_DIR = Path(__file__).resolve().parent            # .../flash/flash_demo/demo_hpc/
 _FLASH_DIR = _SCRIPT_DIR.parent.parent                   # .../flash/ (flash 包目录)
@@ -266,7 +282,8 @@ def run_remote_plotting(cred: Dict[str, Any], remote_run_dir: str, remote_plot_d
         f"python {remote_run_dir}/remote_plot_script.py "
         f"--input_dir {remote_output_dir} "
         f"--output_dir {remote_plot_dir} "
-        f"' 2>&1"
+        f"' > {remote_run_dir}/plot_console.log 2>&1; "
+        f"rc=$?; tail -40 {remote_run_dir}/plot_console.log; exit $rc"
     )
     
     log("正在超算端运行绘图脚本（可能需要1-2分钟）...", "INFO")
@@ -643,6 +660,7 @@ def main():
         copy_eos_files=True,
         setup_cmd=setup_cmd,
         sim_user_dir=SIM_USER_DIR,
+        platform=_resolve_hpc_platform(),
     )
     log(f"已生成 {len(result)} 个文件到 {DEMO_RUN_DIR}/")
     
@@ -665,12 +683,12 @@ def main():
     print("-" * 50)
     
     remote_run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    remote_run_dir_rel = f"~/AI/AItemp/flash_sc_{remote_run_id}"
+    remote_run_dir_rel = f"~/{SIM_USER_DIR}/AI/AItemp/flash_sc_{remote_run_id}"
     
     r = ssh_cmd(cred, f"mkdir -p {remote_run_dir_rel} && cd {remote_run_dir_rel} && pwd", timeout=10)
     remote_run_dir = r["stdout"].strip()
     if not remote_run_dir:
-        remote_run_dir = f"/home/{cred.get('username', '').split('@')[0]}/AI/AItemp/flash_sc_{remote_run_id}"
+        remote_run_dir = f"/home/{cred.get('username', '').split('@')[0]}/{SIM_USER_DIR}/AI/AItemp/flash_sc_{remote_run_id}"
         log(f"使用 fallback 路径: {remote_run_dir}")
     else:
         log(f"远程临时目录: {remote_run_dir}")
@@ -703,7 +721,8 @@ def main():
     flash_run_cmd = (
         f"cd {remote_run_dir} && "
         f"{MODULES_LOAD} && "
-        f"bash run_flash.sh 2>&1 | tail -100"
+        f"bash run_flash.sh > flash_run_console.log 2>&1; "
+        f"rc=$?; tail -100 flash_run_console.log; exit $rc"
     )
     r = ssh_cmd(cred, flash_run_cmd, timeout=600)
     

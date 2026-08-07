@@ -49,6 +49,21 @@ _PARENT = _ROOT
 if _PARENT is not None and str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
+PROJECT_ROOT = _ROOT  # 项目根 (pyproject.toml 所在目录); 已安装环境时为 None
+
+# WSL 盘符映射: 从项目根所在盘符动态推导 (E: → /mnt/e), 避免硬编码
+_DRIVE_LETTER = Path(__file__).drive.upper().rstrip(":\\")
+_WSL_DRIVE_PREFIX = f"/mnt/{_DRIVE_LETTER.lower()}" if _DRIVE_LETTER else ""
+
+
+def _to_wsl_path(p: Path) -> str:
+    """Windows 绝对路径 → WSL /mnt/<drive>/... 路径 (盘符动态推导)。"""
+    s = str(p).replace("\\", "/")
+    if _WSL_DRIVE_PREFIX:
+        drive = s[:2]  # 形如 "D:"
+        s = s.replace(drive, _WSL_DRIVE_PREFIX, 1)
+    return s
+
 
 # ── 用户信息（优先从 credentials 获取，再回落环境变量）──
 def _get_sim_user_dir() -> str:
@@ -62,18 +77,6 @@ def _get_sim_user_dir() -> str:
 
 SIM_USER_DIR = _get_sim_user_dir()
 WSL_DISTRO = os.environ.get("WSL_DISTRO", "Ubuntu-22.04")
-
-# Bootstrap: find flash project root by searching upward for marker
-_ROOT = Path(__file__).resolve().parent
-for _ in range(12):
-    if (_ROOT / "pyproject.toml").exists():
-        break
-    _ROOT = _ROOT.parent
-else:
-    _ROOT = None  # 已安装环境 (site-packages): 静默跳过
-_PARENT = _ROOT
-if _PARENT is not None and str(_PARENT) not in sys.path:
-    sys.path.insert(0, str(_PARENT))
 
 print(f"  [Demo] PROJECT_ROOT = {PROJECT_ROOT}")
 print(f"  [Demo] SIM_USER_DIR = {SIM_USER_DIR}")
@@ -89,6 +92,7 @@ def wsl_cmd(cmd: str, timeout: int = 120) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["wsl", "-d", WSL_DISTRO, "--", "bash", "-c", cmd],
         capture_output=True, text=True, timeout=timeout,
+        encoding="utf-8", errors="replace",
     )
 
 
@@ -188,7 +192,7 @@ def main():
     n_copied = 0
     for f in DEMO_RUN_DIR.iterdir():
         if f.is_file():
-            f_wsl = str(f).replace("\\", "/").replace("E:/", "/mnt/e/")
+            f_wsl = _to_wsl_path(f)
             r = wsl_cmd(f"cp '{f_wsl}' {run_dir_wsl}/", timeout=10)
             if r.returncode == 0:
                 n_copied += 1
@@ -243,7 +247,7 @@ def main():
 
         # 直接通过 WSL 的 /mnt/e/ 挂载复制到 Windows
         DEMO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        out_win = str(DEMO_OUTPUT_DIR).replace("\\", "/").replace("E:", "/mnt/e")
+        out_win = _to_wsl_path(DEMO_OUTPUT_DIR)
 
         # 复制所有 chk 和 plt 文件
         r_cp = wsl_cmd(

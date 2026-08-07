@@ -50,7 +50,7 @@ if _PARENT is not None and str(_PARENT) not in sys.path:
 
 
 # ── RemoteSession 导入 ───────────────────────────────
-from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession, get_hpc_platform
 
 # ── 用户信息（优先从 flash 凭证中心读取，再回落环境变量）──
 def _get_sim_user_dir() -> str:
@@ -339,7 +339,8 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # ── 7. EOS/Opacity 文件 ────────────────────────
     log("  [7/8] 复制 EOS 文件...", "STEP")
     eos_gen = EOSOpacityGenerator()
-    ps_copy = eos_gen.copy_eos_file("polystyrene", str(INPUT_DIR))
+    # .par/Config 中引用的是 polystyrene-imx-008.cn4 (CH 高分辨表, canonical=polystyrene_hi)
+    ps_copy = eos_gen.copy_eos_file("polystyrene_hi", str(INPUT_DIR))
     he_copy = eos_gen.copy_eos_file("helium", str(INPUT_DIR))
     if ps_copy:
         result["eos_polystyrene"] = str(ps_copy)
@@ -360,7 +361,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     )
     script_config = {
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
-        "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
+        "platform": get_hpc_platform(), "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
     }
     script_gen = ShellScriptGenerator(config=script_config)
@@ -475,7 +476,7 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
                 break
             elif state in ("FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL"):
                 log(f"    作业 {job_id} 失败: {state}", "ERROR")
-                return False
+                return False, ""
             time.sleep(15)
         else:
             log(f"    等待超时 (>1h)", "WARN")
@@ -717,12 +718,12 @@ def main(credential_name: Optional[str] = None):
             print("-" * 50)
             analysis_script = SCRIPT_DIR / "hpc_analyze_ch_center.py"
             if not analysis_script.exists():
-                log(f"分析脚本不存在: {analysis_script}", "ERROR")
-                return False
-
-            analysis_ok = upload_and_run_analysis(
-                session, remote_dir, actual_output, analysis_script, cfg,
-            )
+                log(f"分析脚本不存在: {analysis_script} → 降级为下载 HDF5 本地分析", "WARN")
+                analysis_ok = False
+            else:
+                analysis_ok = upload_and_run_analysis(
+                    session, remote_dir, actual_output, analysis_script, cfg,
+                )
 
             # ── 步骤 5: 下载分析结果 ────────────
             print("\n[步骤 5/5] 下载分析结果")
@@ -735,16 +736,25 @@ def main(credential_name: Optional[str] = None):
                 else:
                     # 回退: 下载 HDF5 到本地分析
                     log("未下载到 PNG, 尝试下载 HDF5...", "INFO")
-                    download_hdf5_to_local(session, remote_dir)
+                    download_hdf5_to_local(session, remote_dir, actual_output)
             else:
                 log("HPC 分析失败, 下载 HDF5 到本地分析...", "WARN")
-                download_hdf5_to_local(session, remote_dir)
+                download_hdf5_to_local(session, remote_dir, actual_output)
 
     except RuntimeError as e:
         log(f"SSH 连接失败: {e}", "ERROR")
         log("请确保已配置凭据: python -m flash._core.credentials.manage", "INFO")
-        log("或者手动上传文件到超算并运行:", "INFO")
-        log(f"  scp -r {INPUT_DIR}/* scfa2696@ssh.cn-zhongwei-1.paracloud.com:{remote_dir}/", "INFO")
+        # 手动上传提示: 账号/主机从凭据动态获取, 不硬编码
+        _hint_host, _hint_user = "", ""
+        try:
+            from flash._core.credentials import load_ssh_credentials
+            _cred = load_ssh_credentials() or {}
+            _hint_user = _cred.get("username") or _cred.get("ssh_username", "")
+            _hint_host = _cred.get("host", "")
+        except Exception:
+            pass
+        if _hint_user and _hint_host:
+            log(f"  scp -r {INPUT_DIR}/* {_hint_user}@{_hint_host}:{remote_dir}/", "INFO")
         return False
 
     # ── 完成 ──
@@ -757,14 +767,39 @@ def main(credential_name: Optional[str] = None):
     return True
 
 
-def download_hdf5_to_local(session: RemoteSession, remote_dir: str):
-    """下载 HDF5 文件到本地供 output_processors 分析。"""
+def download_hdf5_to_local(session: RemoteSession, remote_dir: str, output_dir: str = ""):
+    """下载 HDF5 文件到本地供 output_processors 分析。
+
+    Args:
+        session: RemoteSession 实例
+        remote_dir: 远程运行根目录
+        output_dir: 实际输出目录 (如 {remote_dir}/outputfiles_<ts>),
+                    为空时自动查找 (outputfiles/ 或 outputfiles_* 时间戳目录)。
+    """
+    # 优先使用已知输出目录; 否则自动查找 (兼容 outputfiles/ 与 outputfiles_<ts>)
+    if output_dir:
+        candidates = [output_dir]
+    else:
+        out, _, _ = session.run(
+            f"ls -d {remote_dir}/outputfiles_* 2>/dev/null | head -1 || echo NONE",
+            timeout=10,
+        )
+        ts_dir = out.strip()
+        candidates = [ts_dir] if ts_dir and ts_dir != "NONE" else [f"{remote_dir}/outputfiles"]
+
+    chk_cmd = " ".join(
+        f"ls {c}/*chk* 2>/dev/null" for c in candidates
+    )
     out, _, _ = session.run(
-        f"ls {remote_dir}/outputfiles/*chk* {remote_dir}/outputfiles/*plt* 2>/dev/null | head -50 || "
-        f"find {remote_dir} -name '*chk*' -o -name '*plt*' 2>/dev/null | head -50 || "
-        f"echo NO_H5",
+        f"{chk_cmd} | head -50 || echo NO_H5",
         timeout=10,
     )
+    if "NO_H5" in out or not out.strip():
+        # 最后兜底: 递归 find
+        out, _, _ = session.run(
+            f"find {remote_dir} \\( -name '*chk*' -o -name '*plt*' \\) 2>/dev/null | head -50 || echo NO_H5",
+            timeout=15,
+        )
     if "NO_H5" in out or not out.strip():
         log("    未找到 HDF5 文件", "WARN")
         return
@@ -785,6 +820,7 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str):
             from flash.output_processors.plotter import FlashPlotter
             h5_files = sorted(OUTPUT_DIR.glob("*chk*")) or sorted(OUTPUT_DIR.glob("*plt*"))
             if h5_files:
+                PLOTS_DIR.mkdir(parents=True, exist_ok=True)
                 container = FlashDataLoader(str(h5_files[0])).load(compute_derived=True)
                 FlashPlotter(container).plot(
                     "dens", save_path=str(PLOTS_DIR / "dens_local.png"),

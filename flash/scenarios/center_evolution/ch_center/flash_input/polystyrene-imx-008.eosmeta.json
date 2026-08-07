@@ -1,0 +1,35 @@
+{
+  "canonical": "polystyrene_hi",
+  "filename": "FLASH_eos_op_data/polystyrene-imx-008.cn4",
+  "aliases": [
+    "polystyrene-imx-008",
+    "polystyrene_imx_008",
+    "polystyrene-008",
+    "ch-hi",
+    "ps-hi",
+    "ch_hi"
+  ],
+  "description": "聚苯乙烯 / CH 靶早期高分辨表 (ntemp=51)，FLASH 原始表",
+  "grupbd": [
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0
+  ],
+  "spec": {
+    "ntemp": 61,
+    "dlgtmp": 0.105,
+    "tplsma": {
+      "1": 0.01
+    },
+    "ndens": 71,
+    "dlgden": 0.14,
+    "densnn": 1e+16,
+    "trad": 200.0
+  },
+  "registered": true,
+  "available": true
+}
