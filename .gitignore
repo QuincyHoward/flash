@@ -218,5 +218,12 @@ scenarios/collision_compression/grad_dens_sandwich/
 flash/scenarios/collision_compression/grad_dens_sandwich/
 
 # 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
-scenarios/collision_compression/thin_layer_sandwich/
-flash/scenarios/collision_compression/thin_layer_sandwich/
+# 仅忽略 FLASH 版权材料 (sim_input_* 源文件/EOS 表/运行脚本) 与运行产物;
+# 自研 Python 模块 (analysis/io/viz/defaults 等) 需随包发布, 不被忽略。
+scenarios/collision_compression/thin_layer_sandwich/sim_input_*/
+scenarios/collision_compression/thin_layer_sandwich/sim_input_al/**
+scenarios/collision_compression/thin_layer_sandwich/sim_input_si/**
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_*/
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_al/**
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_si/**
+flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4

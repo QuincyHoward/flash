@@ -81,8 +81,9 @@ exclude = [
     # === FLASH 场景源文件与运行脚本 (需在 FLASH 中单独获取) ===
     "*.F90", "*.f90", "*.F", "*.f",
     "Config", "Makefile", "*.par", "*.sh",
-    # === 私有场景 (用户本地, 不入包) ===
-    "flash/scenarios/collision_compression/thin_layer_sandwich/**",
+    # === 私有场景: 仅排除 FLASH 版权材料 (sim_input_*), 自研 Python 模块入包 ===
+    "flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_*/**",
+    "flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4",
     "flash/scenarios/collision_compression/grad_dens_sandwich/**",
     # === 运行产物 / 测试 / 缓存 ===
     "flash/**/runs_*/**",
@@ -138,8 +139,9 @@ exclude = [
     "**/abjt_03.f",
     "docs/flash4_ug_4p8.md",
     "docs/flash4_ug_4p8_temp.txt",
-    # === 私有场景 (用户本地, 不入包) ===
-    "flash/scenarios/collision_compression/thin_layer_sandwich/**",
+    # === 私有场景: 仅排除 FLASH 版权材料 (sim_input_*), 自研 Python 模块入包 ===
+    "flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_*/**",
+    "flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4",
     "flash/scenarios/collision_compression/grad_dens_sandwich/**",
     # === 根目录历史残留 (旧布局未跟踪文件, 仅本地) ===
     "/scenarios/**",

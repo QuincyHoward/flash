@@ -42,6 +42,13 @@ from pulse_helpers import resolve_pulse_data
 
 import numpy as np
 
+# Windows 控制台 (GBK) 下强制 UTF-8 输出, 避免 emoji/上标字符 UnicodeEncodeError
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 # ============================================================
 #  主运行函数
@@ -267,18 +274,23 @@ if __name__ == "__main__":
 
     if args.simulate:
         import subprocess
-        # 快速检查 WSL flash4 是否存在
+        # 快速检查 WSL flash4 是否存在 (动态用户名, 不硬编码 hello)
+        try:
+            from flash._core.credentials import get_user_name
+            _user = get_user_name()
+        except Exception:
+            _user = "hello"
         try:
             r = subprocess.run(
                 ["wsl", "bash", "-lc",
-                 "ls ~/FLASH/FLASH4.8/hello/object_grid_rede_si_*/flash4 2>/dev/null | head -1"],
-                capture_output=True, text=True, timeout=5)
+                 f"ls ~/{_user}/FLASH/FLASH4.8/QC/object_grid_rede_*/flash4 2>/dev/null | head -1"],
+                capture_output=True, text=True, timeout=30)
             if r.stdout.strip():
-                print("✅ WSL 已有编译的 flash4")
+                print("[OK] WSL 已有编译的 flash4")
             else:
-                print("ℹ FLASH 引擎将自动编译 (如需要)")
+                print("[i] FLASH 引擎将自动编译 (如需要)")
         except Exception:
-            print("ℹ FLASH 引擎将自动编译 (如需要)")
+            print("[i] FLASH 引擎将自动编译 (如需要)")
 
     result = run_si(
         sim_rhoPoly=args.ch_density,

@@ -31,6 +31,13 @@ _SCENARIOS_ROOT = _ROOT / "test" / "scenarios"
 if _SCENARIOS_ROOT.exists() and str(_SCENARIOS_ROOT) not in sys.path:
     sys.path.insert(0, str(_SCENARIOS_ROOT))
 
+# Windows 控制台 (GBK) 下强制 UTF-8 输出, 避免 emoji 字符 UnicodeEncodeError
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 from chsich.plot_tools.par_reader import find_latest_par, find_latest_result_h5
 from chsich.plot_tools.plot_initial_density import plot_initial_density_from_par
 from chsich.plot_tools.plot_laser_pulse import plot_laser_pulse_from_par

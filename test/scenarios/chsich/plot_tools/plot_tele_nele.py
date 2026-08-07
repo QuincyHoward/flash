@@ -33,6 +33,13 @@ _SCENARIOS_ROOT = _ROOT / "test" / "scenarios"
 if _SCENARIOS_ROOT.exists() and str(_SCENARIOS_ROOT) not in sys.path:
     sys.path.insert(0, str(_SCENARIOS_ROOT))
 
+# Windows 控制台 (GBK) 下强制 UTF-8 输出, 避免上标字符 UnicodeEncodeError
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def plot_tele_nele_from_h5(
     h5_path: str | Path,
