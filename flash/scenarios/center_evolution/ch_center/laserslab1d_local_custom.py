@@ -809,6 +809,8 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str, output_dir: 
     n = 0
     for rf in remote_files[:10]:
         local_path = str(OUTPUT_DIR / Path(rf).name)
+        if os.path.exists(local_path):
+            continue  # 已下载过, 跳过 (避免重复 SCP 覆盖计数误差)
         ok = session.download(rf, local_path)
         if ok:
             n += 1

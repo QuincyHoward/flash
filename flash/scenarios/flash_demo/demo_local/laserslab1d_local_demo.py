@@ -76,7 +76,32 @@ def _get_sim_user_dir() -> str:
     return os.environ.get("FLASH_SIM_USER_DIR", "hello")
 
 SIM_USER_DIR = _get_sim_user_dir()
-WSL_DISTRO = os.environ.get("WSL_DISTRO", "Ubuntu-22.04")
+
+
+def _detect_wsl_distro() -> str:
+    """自动检测 WSL 分发版名 (如 "Ubuntu"), 不硬编码版本号。
+
+    优先级: 环境变量 WSL_DISTRO → 常用候选名探测 → "Ubuntu" (通用默认)。
+    避免硬编码 "Ubuntu-22.04" 导致本机实际分发版不匹配而报 "WSL 不可用"。
+    """
+    env_distro = os.environ.get("WSL_DISTRO", "").strip()
+    if env_distro:
+        return env_distro
+    for cand in ("Ubuntu-22.04", "Ubuntu-24.04", "Ubuntu-20.04", "Ubuntu", "Debian"):
+        try:
+            r = subprocess.run(
+                ["wsl", "-d", cand, "--", "echo", "DISTRO_OK"],
+                capture_output=True, text=True, timeout=10,
+                encoding="utf-8", errors="replace",
+            )
+            if "DISTRO_OK" in r.stdout:
+                return cand
+        except Exception:
+            continue
+    return "Ubuntu"  # 通用回退
+
+
+WSL_DISTRO = _detect_wsl_distro()
 
 print(f"  [Demo] PROJECT_ROOT = {PROJECT_ROOT}")
 print(f"  [Demo] SIM_USER_DIR = {SIM_USER_DIR}")
@@ -165,8 +190,10 @@ def main():
         return None
     log("WSL 环境正常 ✓")
 
-    # 检查 FLASH_HOME 是否存在
-    flash_home_wsl = flash_home.replace("~", "/root")
+    # 检查 FLASH_HOME 是否存在 (~ → 实际 WSL 用户 HOME, 不硬编码 /root)
+    r = wsl_cmd("echo $HOME", timeout=10)
+    wsl_home = r.stdout.strip() or "/root"
+    flash_home_wsl = flash_home.replace("~", wsl_home)
     r = wsl_cmd(f"test -d '{flash_home_wsl}' && echo 'HOME_OK' || echo 'HOME_MISSING'", timeout=10)
     if "HOME_OK" not in r.stdout:
         log(f"FLASH 源码目录不存在: {flash_home_wsl}", "WARN")
@@ -205,7 +232,7 @@ def main():
     log(f"  脚本位置: {run_dir_wsl}/run_flash.sh")
     log(f"  SimulationMain 目标: {flash_home}/source/Simulation/SimulationMain/{sim_path}/")
 
-    r = wsl_cmd(f"cd {run_dir_wsl} && bash run_flash.sh 2>&1 | tail -100", timeout=360)
+    r = wsl_cmd(f"cd {run_dir_wsl} && bash run_flash.sh > flash_run_console.log 2>&1; rc=$?; tail -100 flash_run_console.log; exit $rc", timeout=360)
 
     log(f"FLASH 返回码: {r.returncode}")
     if r.stdout.strip():
@@ -232,8 +259,8 @@ def main():
         h5_files_wsl = [l.strip() for l in r.stdout.strip().splitlines() if l.strip()]
 
     if not h5_files_wsl:
-        # 再试试 run_dir_wsl 本身
-        r = wsl_cmd(f"find {run_dir_wsl} -name '*chk*' -o -name '*plt*' 2>/dev/null | head -30", timeout=10)
+        # 再试试 run_dir_wsl 本身 (find 用括号保证 -o 优先级)
+        r = wsl_cmd(f"find {run_dir_wsl} \\( -name '*chk*' -o -name '*plt*' \\) 2>/dev/null | head -30", timeout=10)
         h5_files_wsl = [l.strip() for l in r.stdout.strip().splitlines() if l.strip()]
 
     if not h5_files_wsl:
