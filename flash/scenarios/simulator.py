@@ -31,6 +31,14 @@ from typing import Any, Dict, List, Optional, Tuple
 from flash.scenarios.base import SimulationScenario
 from flash._core.credentials import get_user_name
 
+# Windows 控制台 (GBK) 下强制 UTF-8 输出, 避免引擎内 emoji/上标字符 UnicodeEncodeError
+# (用户 Anaconda 直接运行或管道重定向到 GBK 编码时必崩)
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FLASH 安装路径检测 — 唯一位置 ~/{user_name}/FLASH/FLASH4.8
