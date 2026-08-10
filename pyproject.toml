@@ -31,12 +31,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Full features (when used as part of PhySimX)
+# Full features (standalone mode — does NOT require PhySimX)
+# NOTE: physimx-core is a PhySimX-internal package and is NOT published on PyPI.
+# It must be installed from the PhySimX source repo (physimx_sim); standalone
+# mode works fully without it via the vendored flash/_core/ fallback.
 full = [
-    "physimx-core>=0.1.0",
     "h5py>=3.8",              # HDF5 file reading
     "matplotlib>=3.7",        # Plotting
     "yt>=4.1",               # FLASH HDF5 visualization
+]
+# PhySimX plugin mode (optional): physimx-core is source-installed from PhySimX,
+# not resolvable from PyPI — do NOT request this extra via pip alone.
+physimx = [
+    "physimx-core>=0.1.0",
 ]
 
 # Development dependencies
