@@ -5,7 +5,7 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
 ========================================================
 
 用途（对应发布验证流程）：
-  1. 检查项目专属虚拟环境 flash_venv：不存在则全新创建（master 不含此目录，
+  1. 检查项目专属虚拟环境 .venv：不存在则全新创建（master 不含此目录，
      因 .gitignore 排除）；已存在则默认复用，设置 FLASH_FORCE_CLEAN=1 才清理
   2. 修复 base 内置的损坏 setuptools
   3. pip 从零安装 flash 包:  pip install -e ".[full,dev]" scipy paramiko
@@ -13,8 +13,10 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
   5. 生成纯文本测试报告 INSTALL_TEST_REPORT.txt 并在终端完整显示
 
 注意：
-  - 使用项目专属虚拟环境 <项目根目录>/flash_venv，与其他项目完全隔离，
-    绝不触碰共享环境（如 C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default）
+  - 使用项目专属虚拟环境 <项目根目录>/.venv（IDE 默认识别的标准命名），
+    确保脚本安装的环境 = IDE/用户实际执行脚本的解释器，避免"装了却 import 不到"。
+    与其他项目完全隔离，绝不触碰共享环境
+    （如 C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default）
 
 用法：
   python start_flash.py
@@ -28,7 +30,7 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
 
 可覆盖的环境变量：
   FLASH_BASE_PY    base 解释器绝对路径（默认自动探测）
-  FLASH_VENV_DIR   虚拟环境绝对路径（默认 <项目根目录>/flash_venv）
+  FLASH_VENV_DIR   虚拟环境绝对路径（默认 <项目根目录>/.venv）
 """
 
 import datetime
@@ -44,8 +46,10 @@ import sys
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # 项目专属虚拟环境：位于项目根目录下，与其他项目完全隔离。
+# 使用 .venv（IDE 默认识别的标准命名），确保 start_flash.py 安装的环境
+# 与 IDE/用户实际执行脚本所用的解释器一致，避免"装了却 import 不到"。
 # 绝不使用/删除共享环境（如 C:\Users\Administrator\.workbuddy\binaries\python\envs\default）。
-DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, "flash_venv")
+DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, ".venv")
 DEFAULT_BASE_PY = [
     r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe",
 ]
@@ -201,14 +205,14 @@ def main() -> int:
             log(f"[warn] 测试套件目录缺失，将跳过: {rel}")
 
     # ---- Step 1: 检查/准备虚拟环境 -----------------------------------------
-    # flash_venv 位于 .gitignore 中，Gitee master 上不含它：从 master 拉取后
+    # flash_venv / .venv 位于 .gitignore 中，Gitee master 上不含它：从 master 拉取后
     # 必然不存在，直接新建即可，默认无需删除。仅当本地残留且显式设置
     # FLASH_FORCE_CLEAN=1 时才清理（本环境批量删除较慢，请谨慎使用）。
-    log("\n[step 1/5] 检查虚拟环境 flash_venv ...")
+    log("\n[step 1/5] 检查虚拟环境 .venv ...")
     need_create = False
     if os.path.isdir(VENV_DIR):
         if os.environ.get("FLASH_FORCE_CLEAN") == "1":
-            log("[info] FLASH_FORCE_CLEAN=1：并行删除旧 flash_venv（预计 5~15 分钟）...")
+            log("[info] FLASH_FORCE_CLEAN=1：并行删除旧 .venv（预计 5~15 分钟）...")
             code = r'''
 import os, time
 from concurrent.futures import ThreadPoolExecutor
@@ -245,20 +249,20 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
                 )
             except subprocess.TimeoutExpired:
                 raise SystemExit(
-                    "[FATAL] 删除旧 flash_venv 超时（30 分钟）。目录可能被其他进程占用，"
+                    "[FATAL] 删除旧 .venv 超时（30 分钟）。目录可能被其他进程占用，"
                     "请关闭占用后重新运行。"
                 )
             if r.returncode != 0 and os.path.isdir(VENV_DIR):
                 raise SystemExit(
-                    f"[FATAL] 删除旧 flash_venv 失败（可能被其他进程占用，请关闭占用后重试）:\n"
+                    f"[FATAL] 删除旧 .venv 失败（可能被其他进程占用，请关闭占用后重试）:\n"
                     f"{r.stderr[-400:]}"
                 )
-            log("[ok] 已删除旧 flash_venv（并行删除）")
+            log("[ok] 已删除旧 .venv（并行删除）")
             need_create = True
         else:
-            log("[info] flash_venv 已存在，复用（如需从零重装请设置 FLASH_FORCE_CLEAN=1）")
+            log("[info] .venv 已存在，复用（如需从零重装请设置 FLASH_FORCE_CLEAN=1）")
     else:
-        log("[info] flash_venv 不存在（master 不含此目录），将全新创建")
+        log("[info] .venv 不存在（master 不含此目录），将全新创建")
         need_create = True
 
     # ---- Step 2: 创建 venv（仅当不存在时） ----------------------------------
@@ -272,11 +276,11 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
         if r.returncode != 0 or not os.path.isfile(VENV_PY):
             raise SystemExit(f"[FATAL] 创建 venv 失败:\n{r.stderr[-400:]}")
         log(f"[ok] venv 已创建: {VENV_PY}")
-        install_mode = "全新创建（flash_venv 在 .gitignore 中，master 不含此目录）"
+        install_mode = "全新创建（.venv 在 .gitignore 中，master 不含此目录）"
     else:
         log("\n[step 2/5] 复用已有虚拟环境 ...")
         log(f"[ok] 使用现有 venv: {VENV_PY}")
-        install_mode = "复用已有 flash_venv（如需从零请设置 FLASH_FORCE_CLEAN=1）"
+        install_mode = "复用已有 .venv（如需从零请设置 FLASH_FORCE_CLEAN=1）"
     ver = subprocess.run(
         [VENV_PY, "-c", "import sys; print(sys.version.split()[0])"],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -459,7 +463,7 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     lines.append("- output_processors 套件的失败源于 HDF5 测试数据缺失"
                  "（**/inputfiles/ 被 .gitignore 排除，克隆中不含数据），属预期、非关键。")
     lines.append("- 完整测试日志见 pytest_framework.log / pytest_input_gen.log / pytest_output_processors.log。")
-    lines.append("- 虚拟环境为项目专属 flash_venv（项目根目录），与共享环境 envs/default 完全隔离。")
+    lines.append("- 虚拟环境为项目专属 .venv（项目根目录），与共享环境 envs/default 完全隔离。")
     lines.append("")
 
     report = "\n".join(lines)
