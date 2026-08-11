@@ -339,7 +339,11 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # ── 7. EOS/Opacity 文件 ────────────────────────
     log("  [7/8] 复制 EOS 文件...", "STEP")
     eos_gen = EOSOpacityGenerator()
-    ps_copy = eos_gen.copy_eos_file("polystyrene", str(INPUT_DIR))
+    # 注意: .par 中 eos_targTableFile / op_targFileName 引用的是
+    # polystyrene-imx-008.cn4（CH 高分辨 ntemp=51 变体），故此处必须按文件名
+    # 显式复制 008，而不是用规范名 "polystyrene"（后者映射到 002 低分辨表，
+    # 会导致 flash_input 中表名与 .par 引用不一致，远程 FLASH 加载 EOS 失败）。
+    ps_copy = eos_gen.copy_eos_file("polystyrene-imx-008", str(INPUT_DIR))
     he_copy = eos_gen.copy_eos_file("helium", str(INPUT_DIR))
     if ps_copy:
         result["eos_polystyrene"] = str(ps_copy)
@@ -475,7 +479,7 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
                 break
             elif state in ("FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL"):
                 log(f"    作业 {job_id} 失败: {state}", "ERROR")
-                return False
+                return False, ""
             time.sleep(15)
         else:
             log(f"    等待超时 (>1h)", "WARN")
