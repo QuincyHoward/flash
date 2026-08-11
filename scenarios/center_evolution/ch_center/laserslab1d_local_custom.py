@@ -31,6 +31,7 @@ CH 靶居中 (Z06_0.50-Z01_0.50-20260708_0850.cn4, ch_mix)，两侧真空
 import sys
 import os
 import time
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
