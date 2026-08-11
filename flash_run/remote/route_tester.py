@@ -138,7 +138,8 @@ class RouteTester:
             start = time.time()
             r = subprocess.run(
                 ["ping", param, "1", "-W", str(timeout), host],
-                capture_output=True, text=True, timeout=timeout + 1,
+                capture_output=True, text=True, errors="replace",
+                timeout=timeout + 1,
             )
             elapsed = (time.time() - start) * 1000
             return elapsed if r.returncode == 0 else -1.0

@@ -755,7 +755,7 @@ def _direct_scp_download(route: Dict[str, Any], remote_path: str, local_path: st
             scp_exe, "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=30",
             "-P", str(port),
             f"{username}@{host}:{remote_path}", local_path,
-        ], capture_output=True, text=True, timeout=timeout, env=env)
+        ], capture_output=True, text=True, errors="replace", timeout=timeout, env=env)
         return r.returncode == 0
     except Exception:
         return False
