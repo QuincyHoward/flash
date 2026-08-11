@@ -3,8 +3,9 @@ FLASH LaserSlab1D Custom Simulation v1.1
 ═══════════════════════════════════════════
 
 可配置参数的一维对称域 LaserSlab 仿真。
-CH 靶居中 (polystyrene-imx-008.cn4)，两侧真空 (he-imx-005.cn4)，
-两束 351nm 激光相向入射。
+CH 靶居中 (Z06_0.50-Z01_0.50-20260708_0850.cn4, ch_mix)，两侧真空
+(Z02_1.00-20260708_0851.cn4, helium_hires)，两束 351nm 激光相向入射。
+（EOS 表均来自 Gen_eos_op_data，随 Gitee 分发，不依赖 FLASH 分发原始表。）
 
 配置文件生成 → 上传超算 → FLASH 运行 → 上传分析脚本 → 下载结果
 
@@ -210,25 +211,25 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tionCham", 290.11375)
     par_gen.set("sim_tradCham", 290.11375)
 
-    # EOS 文件 (polystyrene + helium)
+    # EOS 文件 (ch_mix CH靶 + helium_hires 氦; 均来自 Gen_eos_op_data, 随 Gitee 分发)
     par_gen.set("eos_targEosType", "eos_tab")
     par_gen.set("eos_targSubType", "ionmix4")
-    par_gen.set("eos_targTableFile", "polystyrene-imx-008.cn4")
+    par_gen.set("eos_targTableFile", "Z06_0.50-Z01_0.50-20260708_0850.cn4")
     par_gen.set("eos_chamEosType", "eos_tab")
     par_gen.set("eos_chamSubType", "ionmix4")
-    par_gen.set("eos_chamTableFile", "he-imx-005.cn4")
+    par_gen.set("eos_chamTableFile", "Z02_1.00-20260708_0851.cn4")
 
     # Opacity 文件
     par_gen.set("op_targAbsorb", "op_tabpa")
     par_gen.set("op_targEmiss", "op_tabpe")
     par_gen.set("op_targTrans", "op_tabro")
     par_gen.set("op_targFileType", "ionmix4")
-    par_gen.set("op_targFileName", "polystyrene-imx-008.cn4")
+    par_gen.set("op_targFileName", "Z06_0.50-Z01_0.50-20260708_0850.cn4")
     par_gen.set("op_chamAbsorb", "op_tabpa")
     par_gen.set("op_chamEmiss", "op_tabpe")
     par_gen.set("op_chamTrans", "op_tabro")
     par_gen.set("op_chamFileType", "ionmix4")
-    par_gen.set("op_chamFileName", "he-imx-005.cn4")
+    par_gen.set("op_chamFileName", "Z02_1.00-20260708_0851.cn4")
 
     # 边界条件
     par_gen.set("xl_boundary_type", cfg["xl_boundary"])
@@ -293,11 +294,11 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # ── 2. ConfigGenerator ──────────────────────────
     log("  [2/8] 生成 Config 文件...", "STEP")
     target_mat = Material(
-        name="Polystyrene", file="polystyrene-imx-008.cn4",
+        name="Polystyrene", file="Z06_0.50-Z01_0.50-20260708_0850.cn4",
         rho=cfg["sim_rhoTarg"], A=cfg["ms_targA"], Z=cfg["ms_targZ"],
     )
     chamber_mat = Material(
-        name="Helium", file="he-imx-005.cn4",
+        name="Helium", file="Z02_1.00-20260708_0851.cn4",
         rho=1e-6, A=4.002602, Z=2.0,
     )
     config_gen = ConfigGenerator()
@@ -339,22 +340,24 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # ── 7. EOS/Opacity 文件 ────────────────────────
     log("  [7/8] 复制 EOS 文件...", "STEP")
     eos_gen = EOSOpacityGenerator()
-    # 注意: .par 中 eos_targTableFile / op_targFileName 引用的是
-    # polystyrene-imx-008.cn4（CH 高分辨 ntemp=51 变体），故此处必须按文件名
-    # 显式复制 008，而不是用规范名 "polystyrene"（后者映射到 002 低分辨表，
-    # 会导致 flash_input 中表名与 .par 引用不一致，远程 FLASH 加载 EOS 失败）。
-    ps_copy = eos_gen.copy_eos_file("polystyrene-imx-008", str(INPUT_DIR))
-    he_copy = eos_gen.copy_eos_file("helium", str(INPUT_DIR))
+    # 使用随 Gitee 分发的自研 ionmix 表（Gen_eos_op_data/，任何克隆均有）：
+    #   ch_mix        → Z06_0.50-Z01_0.50-...cn4 (C0.5-H0.5 CH 靶, ntemp=51)
+    #   helium_hires  → Z02_1.00-...cn4 (纯氦, ntemp=51)
+    # 不再依赖 FLASH 分发原始表（polystyrene-imx-008 / he-imx-005，*.cn4 被
+    # .gitignore 排除，仓库不含，新克隆会缺失）。
+    # 注意: .par 中 eos_targTableFile / op_targFileName 引用与下方文件名必须一致。
+    ps_copy = eos_gen.copy_eos_file("ch_mix", str(INPUT_DIR))
+    he_copy = eos_gen.copy_eos_file("helium_hires", str(INPUT_DIR))
     if ps_copy:
         result["eos_polystyrene"] = str(ps_copy)
-        log(f"    polystyrene-imx-008.cn4 ✓")
+        log(f"    {ps_copy.name} ✓")
     else:
-        log("    polystyrene-imx-008.cn4 复制失败!", "ERROR")
+        log("    Z06_0.50-Z01_0.50-20260708_0850.cn4 复制失败!", "ERROR")
     if he_copy:
         result["eos_helium"] = str(he_copy)
-        log(f"    he-imx-005.cn4 ✓")
+        log(f"    {he_copy.name} ✓")
     else:
-        log("    he-imx-005.cn4 复制失败!", "ERROR")
+        log("    Z02_1.00-20260708_0851.cn4 复制失败!", "ERROR")
 
     # ── 8. 运行脚本 ────────────────────────────────
     log("  [8/8] 生成运行脚本...", "STEP")
