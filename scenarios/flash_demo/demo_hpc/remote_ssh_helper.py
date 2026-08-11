@@ -233,7 +233,8 @@ def ssh_cmd(
 
     try:
         r = subprocess.run(
-            args, capture_output=True, text=True, timeout=timeout, env=env,
+            args, capture_output=True, text=True, errors="replace",
+            timeout=timeout, env=env,
         )
         return r.stdout, r.stderr, r.returncode
     except subprocess.TimeoutExpired:
@@ -283,7 +284,7 @@ def scp_upload(
         print(f"  [SCP] {Path(local_path).name} -> {remote_path}")
 
     try:
-        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=env)
+        r = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=timeout, env=env)
         return r.returncode == 0
     except Exception:
         return False
@@ -329,7 +330,7 @@ def scp_download(
         print(f"  [SCP] {remote_path} -> {local_path}")
 
     try:
-        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout, env=env)
+        r = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=timeout, env=env)
         return r.returncode == 0
     except Exception:
         return False
