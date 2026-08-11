@@ -431,6 +431,10 @@ def upload_to_hpc(session: RemoteSession, remote_dir: str) -> bool:
     """
     log("  [deploy] 上传文件到超算...", "STEP")
     files = [f for f in INPUT_DIR.iterdir() if f.is_file()]
+    # 附加上传分析脚本（与输入文件同机制上传，确保步骤 4 可用）
+    analysis_script = SCRIPT_DIR / "hpc_analyze_ch_center.py"
+    if analysis_script.exists():
+        files.append(analysis_script)
     success = 0
     for f in files:
         ok = session.upload(str(f), f"{remote_dir}/")
@@ -547,12 +551,8 @@ def upload_and_run_analysis(
     Returns:
         True 如果分析成功
     """
-    log("  [analyze] 上传分析脚本...", "STEP")
-    ok = session.upload(str(analysis_script_path), f"{remote_dir}/")
-    if not ok:
-        log("    分析脚本上传失败!", "ERROR")
-        return False
-    log(f"    hpc_analyze_ch_center.py 已上传")
+    log("  [analyze] 运行分析脚本 (已由 upload_to_hpc 一并上传)...", "STEP")
+    log(f"    hpc_analyze_ch_center.py 已在远端")
 
     analysis_hw = cfg["analysis_half_width_um"] * 1e-4
     L0_cm = cfg["L0_um"] * 1e-4
@@ -859,10 +859,10 @@ def main(credential_name: Optional[str] = None):
                 else:
                     # 回退: 下载 HDF5 到本地分析
                     log("未下载到 PNG, 尝试下载 HDF5...", "INFO")
-                    download_hdf5_to_local(session, remote_dir)
+                    download_hdf5_to_local(session, remote_dir, actual_output)
             else:
                 log("HPC 分析失败, 下载 HDF5 到本地分析...", "WARN")
-                download_hdf5_to_local(session, remote_dir)
+                download_hdf5_to_local(session, remote_dir, actual_output)
 
     except RuntimeError as e:
         log(f"SSH 连接失败: {e}", "ERROR")
@@ -881,14 +881,27 @@ def main(credential_name: Optional[str] = None):
     return True
 
 
-def download_hdf5_to_local(session: RemoteSession, remote_dir: str):
-    """下载 HDF5 文件到本地供 output_processors 分析。"""
-    out, _, _ = session.run(
-        f"ls {remote_dir}/outputfiles/*chk* {remote_dir}/outputfiles/*plt* 2>/dev/null | head -50 || "
-        f"find {remote_dir} -name '*chk*' -o -name '*plt*' 2>/dev/null | head -50 || "
-        f"echo NO_H5",
-        timeout=10,
-    )
+def download_hdf5_to_local(session: RemoteSession, remote_dir: str, actual_output_dir: str = ""):
+    """下载 HDF5 文件到本地供 output_processors 分析。
+
+    Args:
+        session: RemoteSession 实例
+        remote_dir: 远程任务目录（回退查找用）
+        actual_output_dir: FLASH 实际输出目录（run_flash_on_hpc 返回，
+            形如 .../outputfiles_20260811_192104）
+    """
+    # 优先使用实际输出目录；否则在 remote_dir 下扫描 outputfiles*
+    search_dirs = []
+    if actual_output_dir:
+        search_dirs.append(actual_output_dir)
+    search_dirs.append(f"{remote_dir}/outputfiles")
+    search_dirs.append(f"{remote_dir}/outputfiles_*")
+
+    ls_cmd = " || ".join(
+        f"ls {d}/*chk* {d}/*plt* 2>/dev/null | head -50"
+        for d in search_dirs
+    ) + " || echo NO_H5"
+    out, _, _ = session.run(ls_cmd, timeout=15)
     if "NO_H5" in out or not out.strip():
         log("    未找到 HDF5 文件", "WARN")
         return
