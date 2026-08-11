@@ -657,6 +657,113 @@ def download_analysis_results(session: RemoteSession, remote_dir: str) -> int:
 # 主编排函数
 # =====================================================================
 
+# ── 运行模式 ─────────────────────────────────────────
+# "wsl": 本地 WSL 运行 FLASH（默认；无需 SSH/超算，快速测试）
+# "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
+RUN_MODE = "wsl"
+
+
+def _to_wsl_path(win_path: Path) -> str:
+    """Windows 路径 → WSL (/mnt/<drive>/...) 路径。
+
+    例: E:\\PhySimX\\...\\flash_input → /mnt/e/PhySimX/.../flash_input
+    """
+    s = str(win_path)
+    drive, rest = s.split(":", 1)
+    return "/mnt/" + drive.lower() + rest.replace("\\", "/")
+
+
+def main_wsl(cfg: Dict[str, Any]) -> bool:
+    """本地 WSL 运行 FLASH（替代超算 RemoteSession 流程）。
+
+    步骤 2（部署）: 无需上传，run_flash.sh 与输入文件已在本地 flash_input/。
+    步骤 3（运行）: wsl bash run_flash.sh（完整流水线: setup→编译→运行→收集）。
+    步骤 4/5（分析）: 本地 output_processors 分析 flash_input/outputfiles/ 的 HDF5。
+    """
+    # ── 步骤 2: WSL 本地部署 ─────────────────────
+    print("\n[步骤 2/5] 本地 WSL 部署（无需上传）")
+    print("-" * 50)
+    wsl_dir = _to_wsl_path(INPUT_DIR)
+    log(f"WSL 工作目录: {wsl_dir}")
+    run_sh = INPUT_DIR / "run_flash.sh"
+    if not run_sh.exists():
+        log(f"run_flash.sh 不存在: {run_sh}", "ERROR")
+        return False
+    log("输入文件已就绪（run_flash.sh / Config / Makefile / *.F90 / *.cn4 / *.par）")
+
+    # ── 步骤 3: WSL 运行 FLASH ───────────────────
+    print("\n[步骤 3/5] WSL 运行 FLASH 仿真 (setup→编译→运行→收集)")
+    print("-" * 50)
+    cmd = f"cd {wsl_dir} && bash run_flash.sh 2>&1"
+    log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
+    log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")
+    try:
+        r = subprocess.run(
+            ["wsl", "bash", "-c", cmd],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=7200,
+        )
+    except FileNotFoundError:
+        log("未找到 wsl 命令。请确认已安装 WSL (wsl --install) 并设置默认发行版。", "ERROR")
+        return False
+    except subprocess.TimeoutExpired:
+        log("WSL 运行超时 (2 小时)", "ERROR")
+        return False
+
+    out = r.stdout + "\n" + r.stderr
+    log(out[-3000:] if len(out) > 3000 else out)
+    wsl_log = INPUT_DIR / "wsl_run.log"
+    wsl_log.write_text(out, encoding="utf-8", errors="replace")
+    if r.returncode != 0:
+        log(f"FLASH 运行失败 (exit={r.returncode})，完整日志: {wsl_log}", "ERROR")
+        return False
+    log(f"FLASH 运行成功 ✓ (完整日志: {wsl_log})")
+
+    # 检查输出
+    outdir = INPUT_DIR / "outputfiles"
+    h5s = (
+        sorted(outdir.glob("*chk*"))
+        or sorted(outdir.glob("*plt*"))
+        or sorted(outdir.glob("*.h5"))
+    )
+    if not h5s:
+        log(f"未找到 HDF5 输出文件: {outdir}", "ERROR")
+        return False
+    log(f"找到 {len(h5s)} 个 HDF5 输出: {outdir}")
+
+    # ── 步骤 4/5: 本地分析输出 ──────────────────
+    print("\n[步骤 4/5] 本地分析输出 (output_processors)")
+    print("-" * 50)
+    PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        from flash.output_processors.loader import FlashDataLoader
+        from flash.output_processors.plotter import FlashPlotter
+
+        container = FlashDataLoader(str(h5s[0])).load(compute_derived=True)
+        for var, fname in [
+            ("dens", "dens_wsl.png"),
+            ("tele", "tele_wsl.png"),
+            ("trad", "trad_wsl.png"),
+        ]:
+            try:
+                FlashPlotter(container).plot(
+                    var, save_path=str(PLOTS_DIR / fname),
+                    title=f"{var} (WSL Local)",
+                )
+                log(f"    {fname} ✓")
+            except Exception as e:
+                log(f"    绘制 {var} 失败: {e}", "WARN")
+    except Exception as e:
+        log(f"本地分析失败: {e}", "WARN")
+
+    print("\n" + "=" * 65)
+    print(" WSL 全流程完成!")
+    print(f"  输入文件目录: {INPUT_DIR}")
+    print(f"  输出结果目录: {INPUT_DIR / 'outputfiles'}")
+    print(f"  分析图像目录: {PLOTS_DIR}")
+    print("=" * 65)
+    return True
+
 
 def main(credential_name: Optional[str] = None):
     print("\n" + "=" * 65)
@@ -689,6 +796,11 @@ def main(credential_name: Optional[str] = None):
         import traceback
         traceback.print_exc()
         return False
+
+    # ── 运行模式分支 ────────────────────────────
+    if RUN_MODE == "wsl":
+        log("运行模式: 本地 WSL（RUN_MODE=wsl）", "INFO")
+        return main_wsl(cfg)
 
     # ── 步骤 2-5: 通过 RemoteSession 连接超算 ────
     print("\n[步骤 2/5] 连接超算并部署 (RemoteSession)")
