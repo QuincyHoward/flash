@@ -5,11 +5,15 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
 ========================================================
 
 用途（对应发布验证流程）：
-  1. 完全删除旧虚拟环境（彻底清空，避免残留损坏包导致 pip 误判"已满足"）
-  2. 重建 venv 并修复 base 内置的损坏 setuptools
-  3. pip 从零安装 flash 包:  pip install -e ".[full,dev]" scipy
+  1. 完全删除项目专属虚拟环境 flash_venv（彻底清空，避免残留损坏包）
+  2. 重建 flash_venv 并修复 base 内置的损坏 setuptools
+  3. pip 从零安装 flash 包:  pip install -e ".[full,dev]" scipy paramiko
   4. 运行全局三套测试:  framework / input_gen / output_processors
-  5. 生成测试报告 INSTALL_TEST_REPORT.md 并在终端完整显示
+  5. 生成纯文本测试报告 INSTALL_TEST_REPORT.txt 并在终端完整显示
+
+注意：
+  - 使用项目专属虚拟环境 <项目根目录>/flash_venv，与其他项目完全隔离，
+    绝不触碰共享环境（如 C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default）
 
 用法：
   python start_flash.py
@@ -23,7 +27,7 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
 
 可覆盖的环境变量：
   FLASH_BASE_PY    base 解释器绝对路径（默认自动探测）
-  FLASH_VENV_DIR   虚拟环境绝对路径（默认 .../binaries/python/envs/default）
+  FLASH_VENV_DIR   虚拟环境绝对路径（默认 <项目根目录>/flash_venv）
 """
 
 import datetime
@@ -38,12 +42,14 @@ import sys
 # ---------------------------------------------------------------------------
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DEFAULT_VENV_DIR = r"C:\Users\Administrator\.workbuddy\binaries\python\envs\default"
+# 项目专属虚拟环境：位于项目根目录下，与其他项目完全隔离。
+# 绝不使用/删除共享环境（如 C:\Users\Administrator\.workbuddy\binaries\python\envs\default）。
+DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, "flash_venv")
 DEFAULT_BASE_PY = [
     r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe",
 ]
 
-REPORT_FILE = os.path.join(PROJECT_DIR, "INSTALL_TEST_REPORT.md")
+REPORT_FILE = os.path.join(PROJECT_DIR, "INSTALL_TEST_REPORT.txt")
 
 # 三套测试: (套件名, 相对测试目录)
 TEST_SUITES = [
@@ -383,55 +389,65 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
         capture_output=True, text=True).stdout.strip()
 
     lines = []
-    lines.append("# FLASH 全局测试报告")
+    lines.append("=" * 72)
+    lines.append("FLASH 全局测试报告")
+    lines.append("=" * 72)
     lines.append("")
-    lines.append(f"- 生成时间: {start.strftime('%Y-%m-%d %H:%M:%S')}")
-    lines.append(f"- 项目目录: `{PROJECT_DIR}`")
-    lines.append(f"- Git commit: `{git_sha}`")
-    lines.append(f"- Python (venv): `{py_ver}`")
-    lines.append(f"- 安装命令: `pip install -e \".[full,dev]\" scipy paramiko`")
-    lines.append(f"- 安装方式: 从零（完全删除 venv 后重建）")
+    lines.append(f"生成时间 : {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append(f"项目目录 : {PROJECT_DIR}")
+    lines.append(f"Git commit: {git_sha}")
+    lines.append(f"Python(venv): {py_ver}")
+    lines.append(f"虚拟环境 : {VENV_DIR}")
+    lines.append(f"安装命令 : pip install -e \".[full,dev]\" scipy paramiko")
+    lines.append("安装方式 : 从零（完全删除项目专属 flash_venv 后重建，不触碰共享环境）")
     lines.append("")
-    lines.append("## 安装验证")
+    lines.append("-" * 72)
+    lines.append("安装验证")
+    lines.append("-" * 72)
     lines.append("")
-    lines.append("```")
     lines.append(flash_verify.strip() or "(验证输出为空)")
-    lines.append("```")
     lines.append("")
-    lines.append("## 测试结果")
+    lines.append("-" * 72)
+    lines.append("测试结果")
+    lines.append("-" * 72)
     lines.append("")
-    lines.append("| 套件 | passed | failed | skipped | error | 结论 |")
-    lines.append("|------|-------:|-------:|--------:|------:|------|")
+    lines.append("套件              passed  failed  skipped  error  结论")
+    lines.append("-" * 72)
     for name, res in results.items():
         if res is None:
-            lines.append(f"| {name} | - | - | - | - | 未运行（目录缺失） |")
+            lines.append(f"{name:20s}   -       -       -        -     未运行（目录缺失）")
         else:
             lines.append(
-                f"| {name} | {res['passed']} | {res['failed']} | "
-                f"{res['skipped']} | {res['errors']} | {verdict(name, res)} |"
+                f"{name:20s}   {res['passed']:<6d} {res['failed']:<6d} "
+                f"{res['skipped']:<6d} {res['errors']:<5d} {verdict(name, res)}"
             )
+    lines.append("-" * 72)
+    lines.append(f"整体结论: {'安装验证通过' if core_ok else '核心测试未通过（详见上方失败项）'}")
     lines.append("")
-    lines.append(f"**整体结论: {'安装验证通过 ✓' if core_ok else '核心测试未通过 ✗（详见上方失败项）'}**")
-    lines.append("")
-    lines.append("## 失败 / 错误明细")
+    lines.append("-" * 72)
+    lines.append("失败 / 错误明细")
+    lines.append("-" * 72)
     lines.append("")
     any_detail = False
     for name, res in results.items():
         if res and res["failed_lines"]:
             any_detail = True
-            lines.append(f"### {name}")
+            lines.append(f"[{name}]")
             lines.append("")
             for fl in res["failed_lines"]:
-                lines.append(f"- `{fl}`")
+                lines.append(f"  - {fl}")
             lines.append("")
     if not any_detail:
         lines.append("（无）")
         lines.append("")
-    lines.append("## 环境备注")
+    lines.append("-" * 72)
+    lines.append("环境备注")
+    lines.append("-" * 72)
     lines.append("")
     lines.append("- output_processors 套件的失败源于 HDF5 测试数据缺失"
-                 "（`**/inputfiles/` 被 .gitignore 排除，克隆中不含数据），属预期、非关键。")
-    lines.append("- 完整测试日志见 `pytest_framework.log` / `pytest_input_gen.log` / `pytest_output_processors.log`。")
+                 "（**/inputfiles/ 被 .gitignore 排除，克隆中不含数据），属预期、非关键。")
+    lines.append("- 完整测试日志见 pytest_framework.log / pytest_input_gen.log / pytest_output_processors.log。")
+    lines.append("- 虚拟环境为项目专属 flash_venv（项目根目录），与共享环境 envs/default 完全隔离。")
     lines.append("")
 
     report = "\n".join(lines)

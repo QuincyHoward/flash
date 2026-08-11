@@ -3,6 +3,8 @@
 # flash-sim specific
 # ==============================
 temp_delete/
+# 项目专属虚拟环境（start_flash.py 使用，从零安装/重建）
+flash_venv/
 
 # ==============================
 # Ignore all extensionless files
