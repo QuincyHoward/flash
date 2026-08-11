@@ -341,7 +341,8 @@ pydantic>=2.0        # 数据校验
 python start_flash.py   # 用系统 Python 运行（自动创建 .venv，约 3-4 分钟）
 ```
 
-- 虚拟环境：项目根目录 `.venv`（被 .gitignore 排除、不随仓库分发；不存在时自动全新创建，存在则复用，设 `FLASH_FORCE_CLEAN=1` 强制重建）
+- 虚拟环境：项目根目录 `.venv`（被 .gitignore 排除、不随仓库分发；不存在时自动全新创建，存在则复用，设 `FLASH_FORCE_CLEAN=1` 强制重建）；
+  首次运行需要手动设置一下 *Python解释器*
 - 报告内容：安装验证、三套件统计（framework / input_gen / output_processors）、失败明细
 - 环境隔离：绝不触碰共享环境（如 `envs/default`）
 
