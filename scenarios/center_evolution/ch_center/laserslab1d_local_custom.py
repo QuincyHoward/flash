@@ -370,6 +370,8 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
         "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
+        # FLASH_HOME = ~/{SIM_USER_DIR}/FLASH/FLASH4.8（WSL 用户名目录，如 ~/QC/FLASH/FLASH4.8）
+        "flash_home": FLASH_HOME,
     }
     script_gen = ShellScriptGenerator(config=script_config)
     script_gen.save(str(INPUT_DIR / "run_flash.sh"), "wsl", par_file=par_filename)
