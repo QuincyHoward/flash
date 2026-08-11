@@ -233,8 +233,8 @@ def ssh_cmd(
 
     try:
         r = subprocess.run(
-            args, capture_output=True, text=True, errors="replace",
-            timeout=timeout, env=env,
+            args, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=timeout, env=env,
         )
         return r.stdout, r.stderr, r.returncode
     except subprocess.TimeoutExpired:
@@ -284,8 +284,12 @@ def scp_upload(
         print(f"  [SCP] {Path(local_path).name} -> {remote_path}")
 
     try:
-        r = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=timeout, env=env)
-        return r.returncode == 0
+        for attempt in range(3):
+            r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=env)
+            if r.returncode == 0:
+                return True
+            time.sleep(3 * (attempt + 1))
+        return False
     except Exception:
         return False
     finally:
@@ -330,8 +334,12 @@ def scp_download(
         print(f"  [SCP] {remote_path} -> {local_path}")
 
     try:
-        r = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=timeout, env=env)
-        return r.returncode == 0
+        for attempt in range(3):
+            r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=env)
+            if r.returncode == 0:
+                return True
+            time.sleep(3 * (attempt + 1))
+        return False
     except Exception:
         return False
     finally:

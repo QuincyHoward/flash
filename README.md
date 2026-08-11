@@ -329,6 +329,37 @@ pydantic>=2.0        # 数据校验
 ./setup -auto ...  # (按 FLASH 安装文档)
 ```
 
+### 0.5 两个常用脚本入口（推荐）
+
+仓库根目录提供两个开箱即用的脚本，覆盖「安装验证」与「场景仿真」两类日常操作。
+
+**① `start_flash.py` — 一键安装 + 全局测试 + 报告**
+
+自动完成：检查/创建项目专属虚拟环境 `.venv` → 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `INSTALL_TEST_REPORT.txt`。
+
+```bash
+python start_flash.py   # 用系统 Python 运行（自动创建 .venv，约 3-4 分钟）
+```
+
+- 虚拟环境：项目根目录 `.venv`（被 .gitignore 排除、不随仓库分发；不存在时自动全新创建，存在则复用，设 `FLASH_FORCE_CLEAN=1` 强制重建）
+- 报告内容：安装验证、三套件统计（framework / input_gen / output_processors）、失败明细
+- 环境隔离：绝不触碰共享环境（如 `envs/default`）
+
+**② `laserslab1d_local_custom.py` — LaserSlab 1D 场景仿真（超算 / 本地 WSL 双模式）**
+
+`scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
+
+```bash
+# 超算模式（默认，需 SSH 凭据 flash_ssh）
+.venv\Scripts\python.exe scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+
+# 本地 WSL 模式：将脚本顶部 RUN_MODE 改为 "wsl" 后运行
+```
+
+- 运行模式：脚本顶部 `RUN_MODE = "hpc"`（超算）/ `"wsl"`（本地 WSL），一行切换
+- EOS 表：使用随仓库分发的自研 ionmix 表（`Gen_eos_op_data/`：`ch_mix` / `helium_hires`），克隆即自带，无需额外获取 FLASH 分发原始表
+- 输出：`scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地）
+
 ### 1. 场景系统 — 即插即用（推荐）
 
 ```python
