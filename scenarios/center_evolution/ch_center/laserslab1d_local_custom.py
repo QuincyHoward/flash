@@ -370,8 +370,10 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
         "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
-        # FLASH_HOME = ~/{SIM_USER_DIR}/FLASH/FLASH4.8（WSL 用户名目录，如 ~/QC/FLASH/FLASH4.8）
-        "flash_home": FLASH_HOME,
+        # FLASH_HOME 用 $HOME/{SIM_USER_DIR} 形式（生成器输出为
+        # FLASH_HOME="$HOME/QC/FLASH/FLASH4.8"，双引号内 $HOME 可展开；
+        # 若用 ~ 会被双引号包裹而无法展开，导致目录检查失败）
+        "flash_home": f"$HOME/{SIM_USER_DIR}/FLASH/FLASH4.8",
     }
     script_gen = ShellScriptGenerator(config=script_config)
     script_gen.save(str(INPUT_DIR / "run_flash.sh"), "wsl", par_file=par_filename)
