@@ -51,6 +51,9 @@ flash_venv/
 # start_flash.py 生成的测试报告与日志
 INSTALL_TEST_REPORT.txt
 pytest_*.log
+# laserslab1d 场景运行产物（EOS 元数据 / WSL 运行日志）
+*.eosmeta.json
+wsl_run.log
 
 # ================================================================
 # My Projects (内部工作区, 不发布)
