@@ -61,7 +61,7 @@ class FlashEnvironment:
         hypre_path: HYPRE 安装路径
 
         # SSH/SLURM 配置
-        ssh_credential: physimx_core 凭据名称 (如 "flash_ssh")
+        ssh_credential: 凭据名称 (如 "flash_ssh")
         remote_flash_home: 超算上 FLASH 安装路径
                            默认: ~/{user_name}/FLASH/FLASH4.8 (user_name 构造)
         remote_work_dir: 超算上工作目录
@@ -461,7 +461,7 @@ class FlashEnvManager:
         return True
 
     def auto_create_from_credentials(self) -> List[str]:
-        """从 physimx_core 凭据自动创建环境。
+        """从本地凭据库自动创建环境。
 
         扫描所有 flash_ssh 开头的凭据，为每个创建一个环境。
         返回新创建的环境名列表。

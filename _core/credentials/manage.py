@@ -42,7 +42,7 @@ if __name__ == "__main__" and __package__ is None:
 # =======================================================================
 # 所有导入使用相对导入 (flash 独立包模式)
 # =======================================================================
-from ._core import get_credential_manager, get_user_name, get_user_name_source, set_user_name
+from ._core import get_credential_manager, get_user_name, set_user_name
 from ._config import DEFAULT_USER_NAME
 
 
@@ -62,9 +62,7 @@ def _print_header():
 
     print(f"\n  {'=' * 55}")
     print(f"  Flash 凭据管理中心")
-    source = get_user_name_source()
-    source_note = f" (继承 {source})" if source == "physimx_core" else " (独立)"
-    print(f"  当前用户: {user_name}{source_note}")
+    print(f"  当前用户: {user_name}")
     if real_keys:
         print(f"  已保存凭据: {', '.join(real_keys)}")
     else:

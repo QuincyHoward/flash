@@ -47,35 +47,20 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 # ===========================================================================
-# Smart Import Layer (standalone + plugin dual mode)
+# Core base classes and schema (vendored)
 # ===========================================================================
-# Try physimx_core first (plugin mode, full pydantic validation)
-# Fall back to vendored _core/ (standalone mode, dataclass-based)
 
-try:
-    from physimx_core.interface import BaseSimulator
-    from physimx_core.schema import (
-        CapabilityCard,
-        InputVar,
-        OutputVar,
-        PhysicsDomain,
-        SimulationRequest,
-        SimulationResult,
-        SimulationStatus,
-        SimulatorType,
-    )
-except ImportError:
-    from ._core.interface import BaseSimulator
-    from ._core.schema import (
-        CapabilityCard,
-        InputVar,
-        OutputVar,
-        PhysicsDomain,
-        SimulationRequest,
-        SimulationResult,
-        SimulationStatus,
-        SimulatorType,
-    )
+from ._core.interface import BaseSimulator
+from ._core.schema import (
+    CapabilityCard,
+    InputVar,
+    OutputVar,
+    PhysicsDomain,
+    SimulationRequest,
+    SimulationResult,
+    SimulationStatus,
+    SimulatorType,
+)
 
 
 # ===========================================================================

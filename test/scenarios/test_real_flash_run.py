@@ -8,9 +8,9 @@ test_real_flash_run.py — 真实 FLASH 仿真端到端测试
   - 支持 Si 和 ch_center 场景参数化
 
 用法:
-    python test_real_flash_run.py                    # 默认 thin_layer_sandwich_si
+    python test_real_flash_run.py                    # 默认 ch_center (公开场景)
     python test_real_flash_run.py --scenario ch_center
-    python test_real_flash_run.py --scenario thin_layer_sandwich_si
+    python test_real_flash_run.py --scenario thin_layer_sandwich_si   # 需本地私有场景
 """
 
 import sys, json, argparse
@@ -90,8 +90,12 @@ def _get_h5_result_paths(scenario_name, scene_dir):
     return h5_files[-1] if h5_files else None
 
 
-def test_real_run(scenario_name="thin_layer_sandwich_si", flash_timeout=300, dry_run=True):
+def test_real_run(scenario_name="ch_center", flash_timeout=300, dry_run=True):
     """运行 FLASH 仿真管线并验证完整输出
+
+    默认场景为 ch_center — 唯一随包分发的公开场景。指定私有场景
+    (thin_layer_sandwich_*, grad_dens_sandwich) 时, 若其未注册则跳过,
+    以免发布/克隆环境下因缺少私有场景而失败。
 
     默认 dry_run=True: 不依赖外部 FLASH 安装, 引擎自动合成结构化输出
     (result.h5 + chk 占位 + run.log), 验证完整目录结构与数据完整性, 保证
@@ -104,6 +108,15 @@ def test_real_run(scenario_name="thin_layer_sandwich_si", flash_timeout=300, dry
     需在本机已安装 FLASH 时验证真实仿真, 请显式 dry_run=False
     (或 `python test_real_flash_run.py --real`)。
     """
+    import pytest
+    from flash.scenarios.registry import list_scenarios
+
+    available = [s[0] for s in list_scenarios()]
+    if scenario_name not in available:
+        pytest.skip(
+            f"场景 '{scenario_name}' 未注册 (私有场景不随包分发)。已注册: {available}"
+        )
+
     sc = get_scenario(scenario_name)
     engine = FlashSimulatorEngine(sc, verbose=True)
 
@@ -217,9 +230,9 @@ def test_real_run(scenario_name="thin_layer_sandwich_si", flash_timeout=300, dry
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="真实 FLASH 仿真端到端测试")
-    parser.add_argument("--scenario", default="thin_layer_sandwich_si",
-                        choices=["thin_layer_sandwich_si", "ch_center"],
-                        help="要测试的场景")
+    parser.add_argument("--scenario", default="ch_center",
+                        choices=["ch_center", "thin_layer_sandwich_si"],
+                        help="要测试的场景 (默认 ch_center, 唯一随包分发的公开场景)")
     parser.add_argument("--timeout", type=int, default=300,
                         help="FLASH 超时秒数")
     parser.add_argument("--real", action="store_true",

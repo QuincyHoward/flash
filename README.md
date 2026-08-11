@@ -141,7 +141,7 @@ output = engine.run()  # 自动编译→运行→插值→输出
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ 接口/适配层   interface.py (FlashSimulator: mock/real) · __init__.py       │
-│               └─ 智能导入：优先 physimx_core，回退 _core（双模式）          │
+│               └─ 契约来源：内置 _core/（dataclass schema，自包含）         │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 输入生成层   input_gen/   gen_par · gen_config · gen_makefile ·            │
 │               gen_sim_data · gen_sim_init · gen_sim_initblock ·           │
@@ -169,20 +169,20 @@ output = engine.run()  # 自动编译→运行→插值→输出
 | 仿真执行 | `scenarios/simulator.py::FlashSimulatorEngine`, `flash_run/env`, `flash_run/remote` | 编排"编译 → 运行 → 采集 → 插值 → 保存"；管理本地 WSL 与超算 SSH/SLURM 环境 |
 | 输出处理 | `output_processors/{hdf5processor,loader,plotter,parallel}` | 纯 h5py 解析 FLASH AMR HDF5，结构化加载，自适应 1D/2D/3D 绘图 |
 
-### 双模式运行机制（独立 / 插件）
+### 自包含运行机制
 
-`flash` 同时可在**独立模式**（无 PhySimX）与**插件模式**（作为 `physimx_sim` 子模块）下运行，两者对外的 API 完全一致，差异仅在底层依赖：
+`flash` 是**完全自包含**的独立包：基础契约（`BaseSimulator`、`SimulationRequest`、
+`SimulationResult` 等 schema）全部定义在内置的 `_core/` 子包中，不依赖任何
+PhySimX 内部包，所有运行时依赖均可从 PyPI 解析。
 
 ```python
-# 智能导入层（flash/__init__.py 与 interface.py 中）
-try:
-    from physimx_core.interface import BaseSimulator   # 插件模式：pydantic 校验
-except ImportError:
-    from ._core.interface import BaseSimulator         # 独立模式：dataclass 校验
+# flash/__init__.py 与 interface.py 中
+from ._core.interface import BaseSimulator      # dataclass 版契约
+from ._core.schema import SimulationRequest     # 无 pydantic 依赖
 ```
 
-- **独立模式**：使用 vendored `_core/`（dataclass 版 schema），零外部耦合，可单独 `pip install -e .` 使用。
-- **插件模式**：检测到 `physimx_core` 时自动切换到其 pydantic 版 schema，接入 PhySimX 调度框架。
+- 安装即用：`pip install -e ".[full,dev]"` 之后 `import flash` 立即可用，无需任何额外私有源。
+- `flash.__standalone__` 常量恒为 `True`，保留该常量仅为向后兼容。
 
 ### 端到端数据流
 

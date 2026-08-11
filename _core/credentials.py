@@ -1,9 +1,8 @@
 """
 FLASH Sim standalone 凭据管理器 (自动加密版 + SSH 账户管理)
 
-This is a vendored copy of physimx_core.credentials for standalone mode.
-When physimx_core is installed, flash/__init__.py will import from
-physimx_core.credentials instead.
+Legacy single-file credential helpers (superseded by the
+_core/credentials/ package, which shadows this module on import).
 
 设计原则:
   1. 凭据存储于项目外部 (~/.physimx/), 绝不进入项目目录
@@ -957,11 +956,7 @@ def _route_test_menu(cm, accounts):
         from flash.flash_run.remote.route_tester import (
             RouteTester, test_and_select_best_route
         )
-        # Try to import save_best_route (from physimx_core or flash._core)
-        try:
-            from physimx_core.credentials import save_best_route
-        except ImportError:
-            from flash._core.credentials import save_best_route
+        from flash._core.credentials import save_best_route
     except ImportError:
         print("\n  [WARN] 无法导入 route_tester 模块")
         return

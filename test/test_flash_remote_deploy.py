@@ -50,7 +50,7 @@ class TestFlashRemoteDeployInit:
 class TestFlashRemoteDeployMocked:
     """
     使用 mock 模拟 SSHClient，测试部署逻辑。
-    使用 MinimalCredentialManager 避免 physimx_core 依赖。
+    使用 MinimalCredentialManager（内置凭据后端）。
     """
 
     @patch("paramiko.SSHClient")

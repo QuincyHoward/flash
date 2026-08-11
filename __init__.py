@@ -1,21 +1,13 @@
 """FLASH plasma simulation package.
 
 This package provides a Python interface for the FLASH high-energy-density
-physics simulation code. It supports both standalone mode (without PhySimX)
-and plugin mode (as part of PhySimX).
+physics simulation code. It is fully self-contained: the base classes and
+schema live in the vendored ``_core/`` subpackage, so the only requirements
+are the ones declared in ``pyproject.toml``.
 
-Standalone mode (without PhySimX installed):
     >>> from flash import FlashSimulator
     >>> sim = FlashSimulator(mock=True)
     >>> result = sim.simulate(request)
-
-Plugin mode (with PhySimX installed):
-    >>> from flash import FlashSimulator  # Same API
-    >>> sim = FlashSimulator(mock=True)
-
-The package automatically detects whether physimx_core is installed:
-- If yes: uses physimx_core (plugin mode, full pydantic validation)
-- If no: uses vendored _core/ (standalone mode, dataclass-based)
 
 AI Agent Notes:
     This package includes CLAUDE.md, _MODULE_DESCRIPTIONS, and .workbuddy/
@@ -23,43 +15,23 @@ AI Agent Notes:
 """
 
 # =======================================================================
-# Smart Import Layer
+# Core base classes and schema (vendored, no external simulation framework)
 # =======================================================================
-# Priority 1: physimx_core installed (plugin mode, full features)
-# Priority 2: standalone (fallback to vendored _core/)
 
-_STANDALONE = False
+from ._core.interface import BaseSimulator
+from ._core.schema import (
+    CapabilityCard,
+    InputVar,
+    OutputVar,
+    PhysicsDomain,
+    SimulationRequest,
+    SimulationResult,
+    SimulationStatus,
+    SimulatorType,
+)
 
-try:
-    # Plugin mode: use physimx_core (full features, pydantic validation)
-    from physimx_core.interface import BaseSimulator
-    from physimx_core.schema import (
-        CapabilityCard,
-        InputVar,
-        OutputVar,
-        PhysicsDomain,
-        SimulationRequest,
-        SimulationResult,
-        SimulationStatus,
-        SimulatorType,
-    )
-
-    _STANDALONE = False
-except ImportError:
-    # Standalone mode: use vendored _core/ (dataclass-based)
-    from ._core.interface import BaseSimulator
-    from ._core.schema import (
-        CapabilityCard,
-        InputVar,
-        OutputVar,
-        PhysicsDomain,
-        SimulationRequest,
-        SimulationResult,
-        SimulationStatus,
-        SimulatorType,
-    )
-
-    _STANDALONE = True
+#: Retained for backwards compatibility: this package is always standalone.
+_STANDALONE = True
 
 
 # =======================================================================

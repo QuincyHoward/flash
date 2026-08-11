@@ -40,8 +40,6 @@ REQUIRED_DEPS = [
 # 可选依赖 (缺失仅提示, 不安装)
 OPTIONAL_DEPS = [
     ("yt", "yt>=4.1"),
-    ("pydantic", "pydantic>=2.0"),
-    ("physimx_core", "physimx-core"),
 ]
 
 MIN_PYTHON = (3, 10)

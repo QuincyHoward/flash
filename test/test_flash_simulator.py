@@ -10,20 +10,16 @@ import numpy as np
 import pytest
 
 try:
-    from physimx_core.schema import SimulationRequest, SimulatorType, SimulationStatus, CapabilityCard
-    _HAS_PHYSIMX_CORE = True
+    from flash._core.schema import SimulationRequest, SimulatorType, SimulationStatus, CapabilityCard
+    _HAS_SCHEMA = True
 except ImportError:
-    try:
-        from flash._core.schema import SimulationRequest, SimulatorType, SimulationStatus, CapabilityCard
-        _HAS_PHYSIMX_CORE = True
-    except ImportError:
-        _HAS_PHYSIMX_CORE = False
+    _HAS_SCHEMA = False
 
 # ────────────────────────────────────────────
 # FlashSimulator 测试
 # ────────────────────────────────────────────
 
-if not _HAS_PHYSIMX_CORE:
+if not _HAS_SCHEMA:
     pytest.skip("SimulationRequest/SimulatorType not available", allow_module_level=True)
 
 

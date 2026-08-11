@@ -1,7 +1,7 @@
-"""MinimalCredentialManager — 最小化凭据管理器 (physimx_core 不可用时的回退)
+"""MinimalCredentialManager — 内置的最小化凭据管理器
 
-- 存储位置: ~/.physimx/flash/credentials.json (与 physimx_core 的 subdir="flash" 对齐)
-- 简单 JSON 持久化，无加密 (仅作为 physimx_core 缺失时的回退)
+- 存储位置: ~/.physimx/flash/credentials.json
+- 简单 JSON 持久化，无加密
 """
 
 import json

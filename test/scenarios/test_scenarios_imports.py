@@ -25,6 +25,8 @@ _PARENT = _ROOT.parent
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
+
+def test_scenarios_package_import():
     """测试 scenarios 顶级包导入"""
     from flash.scenarios import (
         base, registry,

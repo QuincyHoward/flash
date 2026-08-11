@@ -1,6 +1,6 @@
-"""Standalone simulator registry (minimal, no physimx_core dependency).
+"""Simulator registry (minimal, dependency-free).
 
-When physimx_core is not installed, this module provides a basic registry
+This module provides a basic registry
 for FlashSimulator so that registry-dependent tests can pass.
 """
 

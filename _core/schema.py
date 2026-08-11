@@ -1,10 +1,9 @@
-"""Standalone schema — dataclass versions of physimx_core.schema.
+"""Schema — dataclass definitions of the simulation contract.
 
 This module provides dataclass-based versions of the schema classes
-for use when physimx_core is not installed (standalone mode).
+used by every simulator in this package.
 
-When physimx_core IS installed, flash/__init__.py will import from
-physimx_core.schema instead (which uses pydantic for validation).
+Dataclasses keep the package dependency-free (no pydantic needed).
 """
 
 from __future__ import annotations

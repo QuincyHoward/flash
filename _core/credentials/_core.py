@@ -29,65 +29,45 @@ def get_default_password() -> str:
 def get_credential_manager():
     """获取 CredentialManager 实例 (Flash 专属存储)，会话内缓存。
 
-    优先使用 physimx_core（加密存储），回退到内存最小实现。
+    使用内置的 MinimalCredentialManager，存储于 ~/.physimx/flash/。
     使用模块级缓存确保同一会话内返回同一实例。
     """
     global _CREDENTIAL_MANAGER_CACHE
     if _CREDENTIAL_MANAGER_CACHE is not None:
         return _CREDENTIAL_MANAGER_CACHE
 
-    try:
-        from physimx_core.credentials import CredentialManager
-        # 使用 Flash 专属子目录: ~/.physimx/flash/
-        _CREDENTIAL_MANAGER_CACHE = CredentialManager(subdir="flash")
-    except ImportError:
-        # physimx_core 未安装时，使用内存最小实现
-        from ._minimal import MinimalCredentialManager
-        _CREDENTIAL_MANAGER_CACHE = MinimalCredentialManager(subdir="flash")
+    from ._minimal import MinimalCredentialManager
+    # 使用 Flash 专属子目录: ~/.physimx/flash/
+    _CREDENTIAL_MANAGER_CACHE = MinimalCredentialManager(subdir="flash")
     return _CREDENTIAL_MANAGER_CACHE
 
 
 # ── 用户名字段 ──────────────────────────────────────────
 
 def get_user_name() -> str:
-    """获取用户名 (优先继承 physimx_core, fallback Flash 自己的 __meta__)。"""
+    """获取用户名 (读取 Flash 自己的 __meta__)。"""
     try:
-        from physimx_core.credentials import get_user_name as _gun
-        return _gun()
-    except ImportError:
-        # fallback: 从 __meta__ 读取
-        try:
-            cm = get_credential_manager()
-            meta = cm.get("__meta__") or {}
-            return meta.get("default_user_name", DEFAULT_USER_NAME)
-        except Exception:
-            return DEFAULT_USER_NAME
+        cm = get_credential_manager()
+        meta = cm.get("__meta__") or {}
+        return meta.get("default_user_name", DEFAULT_USER_NAME)
+    except Exception:
+        return DEFAULT_USER_NAME
 
 
 def get_user_name_source() -> str:
-    """返回用户名来源: 'physimx_core' 或 'flash'。"""
-    try:
-        from physimx_core.credentials import get_user_name as _gun
-        _gun()
-        return "physimx_core"
-    except ImportError:
-        return "flash"
+    """返回用户名来源 (始终为 'flash')。"""
+    return "flash"
 
 
 def set_user_name(name: str) -> None:
-    """设置用户名。"""
+    """设置用户名 (写入 __meta__)。"""
     try:
-        from physimx_core.credentials import set_user_name as _sun
-        _sun(name)
-    except ImportError:
-        # fallback: 写入 __meta__
-        try:
-            cm = get_credential_manager()
-            meta = cm.get("__meta__") or {}
-            meta["default_user_name"] = name
-            cm.set("__meta__", meta)
-        except Exception:
-            pass
+        cm = get_credential_manager()
+        meta = cm.get("__meta__") or {}
+        meta["default_user_name"] = name
+        cm.set("__meta__", meta)
+    except Exception:
+        pass
 
 
 def ask_one(label: str, default) -> str:

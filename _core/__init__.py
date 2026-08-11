@@ -1,10 +1,8 @@
-"""Vendored mini-core for standalone operation.
+"""Built-in mini-core.
 
-These are local copies of physimx_core base classes.
-They are ONLY used when physimx_core is not installed.
-
-When physimx_core IS installed, flash/__init__.py will import from
-physimx_core instead (see the smart import layer in flash/__init__.py).
+Defines the base simulator interface, the dataclass schema and the credential
+store used throughout this package. It has no external framework dependency —
+the package is fully self-contained.
 """
 
 from .interface import BaseSimulator

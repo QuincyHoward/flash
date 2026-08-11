@@ -9,8 +9,7 @@ import numpy as np
 from pathlib import Path
 
 # ── 路径设置：将 flash/ 的父目录加入 sys.path ─────
-# flash/ 的父目录含有 __init__.py，该文件已通过 try-except
-# 安全处理了 physimx_core 缺失的情况。
+# 使包在未安装（源码树直接运行 pytest）时也能以 `flash.` 前缀导入。
 
 # Bootstrap: find flash project root by searching upward for marker
 _ROOT = Path(__file__).resolve().parent

@@ -1,10 +1,9 @@
 """Standalone interface — BaseSimulator for standalone mode.
 
 This module provides the BaseSimulator abstract class for use when
-physimx_core is not installed (standalone mode).
+no external framework is required.
 
-When physimx_core IS installed, flash/__init__.py will import from
-physimx_core.interface instead.
+It is the single source of truth for the simulator contract.
 """
 
 from __future__ import annotations
