@@ -198,7 +198,7 @@ mpirun -np N ./flash4
 ### MPI 进程数 N 的来源
 
 N 由**装置 × 维度**自动计算（详见 `flash_run/env/resource_config.py` 与
-`scripts/gen_resource_config.py`）：
+`scripts/01_env_diagnose/gen_resource_config.py`）：
 
 ```
 nproc = max(1, int(总核数 × CPU% / 100) ÷ 并行数)     # 取整
@@ -213,7 +213,7 @@ nproc = max(1, int(总核数 × CPU% / 100) ÷ 并行数)     # 取整
 生成/查看控制文件：
 
 ```bash
-python scripts/gen_resource_config.py --show          # 自动探测本机并生成控制文件
+python scripts/01_env_diagnose/gen_resource_config.py --show          # 自动探测本机并生成控制文件
 python -m flash.flash_run.env.resource_config show    # 查看当前配置
 ```
 
@@ -579,7 +579,7 @@ print(f".par 长度: {len(par)} bytes")
 ### Q: FLASH 编译失败？
 
 检查:
-1. WSL 中 `~/QC/FLASH/FLASH4.8/` 是否存在
+1. WSL 中 `~/hello/FLASH/FLASH4.8/` 是否存在
 2. `sim_input/Config` 中 `DATAFILES` 指向的 `.cn4` 文件是否齐全
 3. 场景 `flash_setup_args` 中的 FLASH 单位是否已安装 (`+laser`, `+uhd3t`, `+mgd`)
 

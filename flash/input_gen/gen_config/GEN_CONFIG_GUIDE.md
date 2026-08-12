@@ -252,7 +252,7 @@ generator = ConfigGenerator()
 ```python
 def generate(
     self,
-    simulation_path: str = "QC/LaserSlab1d_new",
+    simulation_path: str = "hello/LaserSlab1d_new",
     target_material: Any = None,
     chamber_gas: Any = None,
     extra_datafiles: Optional[List[str]] = None,
@@ -278,7 +278,7 @@ def generate(
 def save(
     self,
     output_path: Union[str, Path],
-    simulation_path: str = "QC/LaserSlab1d_new",
+    simulation_path: str = "hello/LaserSlab1d_new",
     target_material: Any = None,
     chamber_gas: Any = None,
     extra_datafiles: Optional[List[str]] = None,
@@ -318,7 +318,7 @@ generator = ConfigGenerator()
 
 # 包含Thomson散射诊断变量
 content = generator.generate(
-    simulation_path="QC/LaserSlab1d_diag",
+    simulation_path="hello/LaserSlab1d_diag",
     include_thomson=True,
 )
 
@@ -355,7 +355,7 @@ content = generator.generate()
 
 # 修改内容（例如，更改仿真类型从LaserSlab到Sod）
 content = content.replace(
-    "Configuration file for QC/LaserSlab1d_new simulation",
+    "Configuration file for hello/LaserSlab1d_new simulation",
     "Configuration file for Sod shock-tube simulation"
 )
 content = content.replace(

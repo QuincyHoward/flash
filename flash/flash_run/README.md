@@ -199,7 +199,7 @@ with deploy:
     # 下载结果
     if final_state == "COMPLETED":
         deploy.download_results(
-            remote_output_dir="~/QC/FLASH/FLASH4.8/object",
+            remote_output_dir="~/hello/FLASH/FLASH4.8/object",
             local_output_dir="./outputs",
             pattern="*.h5",
         )

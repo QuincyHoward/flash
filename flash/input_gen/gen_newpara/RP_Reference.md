@@ -36,7 +36,7 @@ call RuntimeParameters_get("lrefine_max", lrefine_max)   ← ❌ (这些由模�
 |------|---------------------|---------|
 | 注册位置 | 仿真 `Config` (`PARAMETER ...`) | FLASH 源码自带 `Config` |
 | 读取方式 | `Simulation_init.F90` 中手动 `RuntimeParameters_get` | 各模块初始化代码自动读取 |
-| 文件位置 | 仿真目录 (`QC/MySim/Config`) | FLASH 源码各模块目录 |
+| 文件位置 | 仿真目录 (`hello/MySim/Config`) | FLASH 源码各模块目录 |
 | 命名惯例 | `sim_*` 前缀 | 无统一前缀 (按功能命名) |
 | 修改需要 | 全部 5 步流程 | 仅改 `.par` 文件 |
 

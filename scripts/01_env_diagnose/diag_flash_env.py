@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """诊断 WSL 中 FLASH 安装位置与检测逻辑
 
-运行: python scripts/diag_flash_env.py
+运行: python scripts/01_env_diagnose/diag_flash_env.py
 """
 import subprocess
 import sys

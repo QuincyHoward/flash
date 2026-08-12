@@ -50,7 +50,7 @@
 - `save_figure(fig, path)`: 保存 (dpi=200, tight)
 - `setup_colorbar(cbar, label)` / `setup_legend(ax)`: 统一英文+大字号
 
-**合规检查**: 运行 `python scripts/check_plot_style.py` 扫描全包,
+**合规检查**: 运行 `python scripts/01_env_diagnose/check_plot_style.py` 扫描全包,
 自动列出未调用 `apply_plot_style()` 或图中文本含中文字符的脚本。
 
 ## 2. 行尾格式规范
@@ -133,7 +133,7 @@ flash/
 mkdir -p /tmp/flash_run_$(date +%Y%m%d_%H%M%S) && cd $_
 
 # 2. 准备文件
-cp ~/QC/FLASH/FLASH4.8/object_1d/flash4 ./
+cp ~/hello/FLASH/FLASH4.8/object_1d/flash4 ./
 cp /path/to/*.par flash.par
 cp /path/to/*.cn4 ./
 
@@ -157,7 +157,7 @@ module load hdf5/1.8.18
 module load mpich/3.2-gcc9.3  # 或可用版本
 
 # 3. 创建运行目录
-mkdir -p ~/QC/AI/flash_run_$(date +%Y%m%d_%H%M%S) && cd $_
+mkdir -p ~/hello/AI/flash_run_$(date +%Y%m%d_%H%M%S) && cd $_
 
 # 4. 给 .par 和 .cn4 文件
 cp /path/to/*.par flash.par
@@ -176,7 +176,7 @@ source /public1/soft/modules/module.sh
 module load hdf5/1.8.18
 module load mpich/3.2-gcc9.3
 cd $PWD
-mpirun -np 4 ~/QC/FLASH/FLASH4.8/object/flash4
+mpirun -np 4 ~/hello/FLASH/FLASH4.8/object/flash4
 EOF
 ```
 
@@ -190,7 +190,7 @@ python -m physimx_sim.flash.scenarios.flash_demo.demo_hpc.laserslab1d_hpc_demo_b
 # 先检测可用分区:
 python -m physimx_sim.flash.test.remote_connect.test_sbatch
 # 为每个功率因子生成独立运行文件夹
-# 上传到超算: ~/QC/AI/AItemp/flash_batch_<ts>_p<pf>/
+# 上传到超算: ~/hello/AI/AItemp/flash_batch_<ts>_p<pf>/
 # 提交 sbatch submit_flash.sh
 # 用 sacct -j <jobid> 监控状态
 # 手动上传并运行远程分析: python remote_analysis.py --dirs ... --powers ...

@@ -2,7 +2,7 @@
 # install-git-hooks.sh — 安装 Git 钩子
 #
 # 用法：
-#   ./scripts/install-git-hooks.sh
+#   ./scripts/03_git_publish/install-git-hooks.sh
 #
 # 此脚本会：
 # 1. 创建符号链接从 .git/hooks/ 到 scripts/git-hooks/
@@ -11,11 +11,17 @@
 
 echo "📦 Installing Git hooks..."
 
-# 获取脚本所在目录（即 scripts/）
+# 获取脚本所在目录（即 scripts/03_git_publish/）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 获取项目根目录（scripts/ 的父目录）
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# 钩子源目录: scripts/git-hooks/
+HOOKS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/git-hooks"
+
+# 获取项目根目录（向上查找含 .git 的目录, 兼容任意子目录布局）
+PROJECT_ROOT="$SCRIPT_DIR"
+while [ ! -d "$PROJECT_ROOT/.git" ] && [ "$PROJECT_ROOT" != "/" ]; do
+    PROJECT_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
+done
 
 # 检查是否在 Git 仓库中
 if [ ! -d "$PROJECT_ROOT/.git" ]; then
@@ -26,7 +32,7 @@ fi
 
 echo "  - Project root: $PROJECT_ROOT"
 echo "  - Git hooks dir: $PROJECT_ROOT/.git/hooks"
-echo "  - Source hooks dir: $SCRIPT_DIR/git-hooks"
+echo "  - Source hooks dir: $HOOKS_DIR"
 echo ""
 
 # 创建符号链接
@@ -38,7 +44,7 @@ if [ -e "$PROJECT_ROOT/.git/hooks/pre-commit" ]; then
     mv "$PROJECT_ROOT/.git/hooks/pre-commit" "$PROJECT_ROOT/.git/hooks/pre-commit.backup"
 fi
 
-ln -s "../../scripts/git-hooks/pre-commit" "$PROJECT_ROOT/.git/hooks/pre-commit"
+ln -s "$HOOKS_DIR/pre-commit" "$PROJECT_ROOT/.git/hooks/pre-commit"
 if [ $? -eq 0 ]; then
     echo "  ✅ pre-commit hook installed"
 else
@@ -52,7 +58,7 @@ if [ -e "$PROJECT_ROOT/.git/hooks/pre-push" ]; then
     mv "$PROJECT_ROOT/.git/hooks/pre-push" "$PROJECT_ROOT/.git/hooks/pre-push.backup"
 fi
 
-ln -s "../../scripts/git-hooks/pre-push" "$PROJECT_ROOT/.git/hooks/pre-push"
+ln -s "$HOOKS_DIR/pre-push" "$PROJECT_ROOT/.git/hooks/pre-push"
 if [ $? -eq 0 ]; then
     echo "  ✅ pre-push hook installed"
 else
@@ -64,8 +70,8 @@ echo ""
 
 # 设置执行权限
 echo "🔑 Setting execute permissions..."
-chmod +x "$SCRIPT_DIR/git-hooks/pre-commit"
-chmod +x "$SCRIPT_DIR/git-hooks/pre-push"
+chmod +x "$HOOKS_DIR/pre-commit"
+chmod +x "$HOOKS_DIR/pre-push"
 chmod +x "$SCRIPT_DIR/git-tag-with-test.sh"
 echo "  ✅ Permissions set"
 echo ""
@@ -88,13 +94,13 @@ else
 fi
 
 # 检查执行权限
-if [ -x "$SCRIPT_DIR/git-hooks/pre-commit" ]; then
+if [ -x "$HOOKS_DIR/pre-commit" ]; then
     echo "  ✅ pre-commit hook: execute permission set"
 else
     echo "  ❌ pre-commit hook: missing execute permission"
 fi
 
-if [ -x "$SCRIPT_DIR/git-hooks/pre-push" ]; then
+if [ -x "$HOOKS_DIR/pre-push" ]; then
     echo "  ✅ pre-push hook: execute permission set"
 else
     echo "  ❌ pre-push hook: missing execute permission"
@@ -108,7 +114,7 @@ echo ""
 
 # 测试 pre-commit hook
 echo "  - Testing pre-commit hook..."
-"$SCRIPT_DIR/git-hooks/pre-commit" >/dev/null 2>&1
+"$HOOKS_DIR/pre-commit" >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     echo "    ✅ pre-commit hook: test passed"
 else
@@ -128,7 +134,7 @@ echo ""
 echo "📖 Usage:"
 echo "  1. git commit (triggers pre-commit hook)"
 echo "  2. git push (triggers pre-push hook)"
-echo "  3. ./scripts/git-tag-with-test.sh <tag_name> (custom tag script)"
+echo "  3. ./scripts/03_git_publish/git-tag-with-test.sh <tag_name> (custom tag script)"
 echo ""
 echo "📝 Note:"
 echo "  - To skip hooks, use 'git commit --no-verify' or 'git push --no-verify'"

@@ -775,7 +775,14 @@ class FlashHDF5File:
         f = self._f
         if "unknown names" in f:
             unames = f["unknown names"][:]
-            names = [str(x[0].decode("utf-8", errors="replace").strip()) for x in unames]
+            if unames.dtype.names:
+                # 复合结构: (name, flag)
+                names = [str(x["name"].decode("utf-8", errors="replace").strip())
+                         for x in unames]
+            else:
+                # 简单字符串数组 (yt 风格): (n,) S80
+                names = [str(x.decode("utf-8", errors="replace").strip())
+                         for x in np.atleast_1d(unames)]
         else:
             names = []
             for k in f.keys():

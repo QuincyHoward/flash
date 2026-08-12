@@ -30,26 +30,26 @@ MPI 进程数公式 (每仿真作业):
 
 存放位置说明
 ============
-本脚本位于仓库 `scripts/gen_resource_config.py` (与 check_env.py 等同级,
+本脚本位于仓库 `scripts/01_env_diagnose/gen_resource_config.py` (与 check_env.py 等同级,
 属环境工具脚本)。生成的控制文件写入用户级路径
 `~/.physimx/flash_resource/resource_config.json`, 不进入版本库。
 
 用法
 ====
     # 1) 探测本机并生成控制文件 (默认写入 ~/.physimx/...)
-    python scripts/gen_resource_config.py
+    python scripts/01_env_diagnose/gen_resource_config.py
 
     # 2) 指定核数 / 强制装置类型
-    python scripts/gen_resource_config.py --total-cpus 64 --device hpc
+    python scripts/01_env_diagnose/gen_resource_config.py --total-cpus 64 --device hpc
 
     # 3) 自定义 CPU 百分比 (覆盖所有装置, 默认 80)
-    python scripts/gen_resource_config.py --cpu-percent 85
+    python scripts/01_env_diagnose/gen_resource_config.py --cpu-percent 85
 
     # 4) 只预览不写入
-    python scripts/gen_resource_config.py --dry-run
+    python scripts/01_env_diagnose/gen_resource_config.py --dry-run
 
     # 5) 写入后显示摘要
-    python scripts/gen_resource_config.py --show
+    python scripts/01_env_diagnose/gen_resource_config.py --show
 """
 
 import argparse
@@ -62,7 +62,7 @@ from pathlib import Path
 
 # 确保 flash 包可导入 (flash_run/env/resource_config 为唯一配置来源)
 # flash 包根为 .../sim/flash, 其父目录 .../sim 才是 sys.path 入口
-_HERE = Path(__file__).resolve()  # .../sim/flash/scripts/gen_resource_config.py
+_HERE = Path(__file__).resolve()  # .../sim/flash/scripts/01_env_diagnose/gen_resource_config.py
 for _cand in (_HERE.parents[2], _HERE.parents[1]):
     if str(_cand) not in sys.path:
         sys.path.insert(0, str(_cand))
@@ -157,7 +157,7 @@ def build_control_file(
     data["detected"] = {
         "total_cores": total_cpus,
         "device": device,
-        "generated_by": "scripts/gen_resource_config.py",
+        "generated_by": "scripts/01_env_diagnose/gen_resource_config.py",
         "generated_at": datetime.now().isoformat(timespec="seconds"),
     }
 

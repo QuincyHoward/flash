@@ -60,7 +60,9 @@ wsl_run.log
 # ================================================================
 .workbuddy/
 .codebuddy/
-
+**/collision_compression/
+**/plasma_preparation/
+**/SNBtest/
 
 # ================================================================
 # FLASH CENTER — 禁止再分发 (FLASH License Agreement §3)

@@ -215,10 +215,10 @@ sim_zone5Height sim_zone5Profile sim_zone5P1 sim_zone5P2
 ### setup 命令
 
 ```bash
-./setup -auto QC/LaserSlab_multizone_profile -1d +cartesian -nxb=16 \
+./setup -auto hello/LaserSlab_multizone_profile -1d +cartesian -nxb=16 \
   +hdf5typeio species=cham,targ \
   +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 \
-  -objdir=QC/LaserSlab_multizone_profile
+  -objdir=hello/LaserSlab_multizone_profile
 ```
 
 ---

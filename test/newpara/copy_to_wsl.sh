@@ -1,7 +1,7 @@
 #!/bin/bash
 # copy_to_wsl.sh — 将所有 flash_input 文件复制到 WSL
-FLASH_HOME="$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8"
-SIM_SRC_DIR="$FLASH_HOME/source/Simulation/SimulationMain/QC/LaserSlab_newpara_test"
+FLASH_HOME="$HOME/${FLASH_SIM_USER_DIR:-hello}/FLASH/FLASH4.8"
+SIM_SRC_DIR="$FLASH_HOME/source/Simulation/SimulationMain/hello/LaserSlab_newpara_test"
 SRC="/mnt/e/ProgramsPATH/AI/WorkBuddy/WorkBuddyFiles/AItest/Plan_for_py/PhySimX/physimx_sim/src/physimx_sim/flash/test/newpara/flash_input"
 
 mkdir -p "$SIM_SRC_DIR"

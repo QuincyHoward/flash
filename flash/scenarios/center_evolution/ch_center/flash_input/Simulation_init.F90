@@ -22,20 +22,6 @@
 !! PARAMETERS
 !!
 !!***
-!!
-!!  ═══════════════════════════════════════════════════════════════
-!!  MODIFIED VERSION — This file is a modified version of the FLASH
-!!  Center's source/Simulation/SimulationMain/LaserSlab/Simulation_init,
-!!  adapted for a new physics setup. Per FLASH License Agreement §4(a),
-!!  this notice declares that this file has been changed from the
-!!  original FLASH Code; the original FLASH header is preserved intact
-!!  per §4(c).
-!!  This product includes software developed by and/or derived from the
-!!  Flash Center for Computational Science (https://flash.rochester.edu)
-!!  to which the U.S. Government retains certain rights. (FLASH §4(b))
-!!  FLASH: https://flash.rochester.edu
-!!  ═══════════════════════════════════════════════════════════════
-!!
 
 subroutine Simulation_init()
   use Simulation_data

@@ -252,7 +252,7 @@ def main():
             print(f"     - {f}: {e}")
     if dry_run:
         print(f"  ⚠ 干运行模式. 去掉 --dry-run 应用修改")
-        print(f"  运行: python scripts/migrate_imports.py")
+        print(f"  运行: python scripts/06_migration/migrate_imports.py")
     print(f"{'='*60}")
 
 

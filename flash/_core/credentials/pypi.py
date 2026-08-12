@@ -11,8 +11,8 @@ Flash 凭据管理 -- PyPI 发布令牌
     python -m flash._core.credentials.pypi write-pypirc # 生成 ~/.pypirc (twine 用)
 
 发布:
-    python scripts/publish_pypi.py --test               # 试发 TestPyPI
-    python scripts/publish_pypi.py                      # 正式发布 PyPI
+    python scripts/03_git_publish/publish_pypi.py --test               # 试发 TestPyPI
+    python scripts/03_git_publish/publish_pypi.py                      # 正式发布 PyPI
 """
 
 from __future__ import annotations

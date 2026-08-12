@@ -4,7 +4,7 @@
 # ================================================================
 # 用途: 从Git索引中移除FLASH Center版权文件，但保留本地副本
 # 安全: 使用 --cached 仅从索引移除，不删除本地文件
-# 执行: bash scripts/remove_flash_copyrighted.sh
+# 执行: bash scripts/06_migration/remove_flash_copyrighted.sh
 # ================================================================
 set -e
 
@@ -79,7 +79,7 @@ echo " 清除完成!"
 echo "============================================"
 echo ""
 echo "下一步:"
-echo "  1. git add .gitignore scripts/remove_flash_copyrighted.sh"
+echo "  1. git add .gitignore scripts/06_migration/remove_flash_copyrighted.sh"
 echo "  2. git commit -m 'Compliance: remove FLASH Center copyrighted files from tracking'"
 echo "  3. git push (到 Gitee)"
 echo ""

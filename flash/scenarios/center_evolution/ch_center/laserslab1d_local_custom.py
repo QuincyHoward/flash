@@ -36,6 +36,14 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 
+
+
+# ── 运行模式 ─────────────────────────────────────────
+# "wsl": 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
+# "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
+RUN_MODE = "hpc"
+
+
 # ── 路径设置 ──────────────────────────────────────────
 
 # Bootstrap: find flash project root by searching upward for marker
@@ -371,7 +379,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
         # FLASH_HOME 用 $HOME/{SIM_USER_DIR} 形式（生成器输出为
-        # FLASH_HOME="$HOME/QC/FLASH/FLASH4.8"，双引号内 $HOME 可展开；
+        # FLASH_HOME="$HOME/hello/FLASH/FLASH4.8"，双引号内 $HOME 可展开；
         # 若用 ~ 会被双引号包裹而无法展开，导致目录检查失败）
         "flash_home": f"$HOME/{SIM_USER_DIR}/FLASH/FLASH4.8",
     }
@@ -662,10 +670,6 @@ def download_analysis_results(session: RemoteSession, remote_dir: str) -> int:
 # 主编排函数
 # =====================================================================
 
-# ── 运行模式 ─────────────────────────────────────────
-# "wsl": 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
-# "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
-RUN_MODE = "wsl"
 
 
 def _to_wsl_path(win_path: Path) -> str:

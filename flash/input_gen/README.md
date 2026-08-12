@@ -119,7 +119,7 @@ result = create_input_files(
     generate_scripts=True,
     copy_eos_files=True,
     setup_cmd=None,
-    sim_user_dir="QC",
+    sim_user_dir="hello",
     platform="local",
 )
 

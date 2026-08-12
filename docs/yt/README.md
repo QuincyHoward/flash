@@ -28,7 +28,7 @@
 
 所有文件安装在用户空间：
 ```
-~/QC/FLASH/local/yt/
+~/hello/FLASH/local/yt/
 ├── lib/python3.9/site-packages/    # yt 及依赖
 ├── bin/                             # 命令行工具
 └── modulefiles/yt/4.0.2            # modulefile
@@ -52,7 +52,7 @@ scp yt_wheels.tar.gz scfa2696@ssh.cn-zhongwei-1.paracloud.com:~/AI/AItemp/
 # 3. 超算端安装
 module load python/3.9.6
 cd ~/AI/AItemp/yt_wheels && tar xzf ../yt_wheels.tar.gz
-pip install --no-index --find-links . --prefix ~/QC/FLASH/local/yt \
+pip install --no-index --find-links . --prefix ~/hello/FLASH/local/yt \
   yt unyt cmyt toml more-itertools ewah-bool-utils
 ```
 
@@ -64,7 +64,7 @@ pip install --no-index --find-links . --prefix ~/QC/FLASH/local/yt \
 ### 2.3 Module 加载
 
 ```bash
-module use ~/QC/FLASH/local/yt/modulefiles
+module use ~/hello/FLASH/local/yt/modulefiles
 module load yt/4.0.2
 ```
 

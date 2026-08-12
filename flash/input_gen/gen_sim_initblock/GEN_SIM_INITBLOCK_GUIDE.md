@@ -133,7 +133,7 @@ builder.add_region(region)
 def generate_initblock_f90(
     grid_builder: GridBuilder,
     output_path: Union[str, Path],
-    sim_path: str = "QC/LaserSlab1d_new",
+    sim_path: str = "hello/LaserSlab1d_new",
 ) -> Path:
 ```
 
@@ -187,7 +187,7 @@ builder.add_region(chamber_region)
 output_path = generate_initblock_f90(
     builder,
     "path/to/Simulation/Simulation_initBlock.F90",
-    sim_path="QC/LaserSlab1d_new",
+    sim_path="hello/LaserSlab1d_new",
 )
 print(f"Saved to: {output_path}")
 ```

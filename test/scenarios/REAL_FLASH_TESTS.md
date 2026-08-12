@@ -21,7 +21,7 @@ python test_si_05ns_run.py
 
 ### Dependencies
 - Python 3.10+ with `h5py`, `numpy`
-- FLASH 4.8 installed in WSL at `~/QC/FLASH/FLASH4.8/`
+- FLASH 4.8 installed in WSL at `~/hello/FLASH/FLASH4.8/`
 - `flash` package on `sys.path`
 
 ## What Each Test Validates

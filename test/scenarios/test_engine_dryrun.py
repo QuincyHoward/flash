@@ -28,20 +28,19 @@ if str(_PARENT) not in sys.path:
 from flash.scenarios.registry import get_scenario, list_scenarios
 from flash.scenarios.simulator import FlashSimulatorEngine
 
-# 私有场景 (仅本地): 缺失时跳过整个模块 (发布环境无 thin_layer/grad_dens)
-_PRIVATE_REQUIRED = ["thin_layer_sandwich_si", "thin_layer_sandwich_al"]
-_available = [s[0] for s in list_scenarios()]
-if not all(n in _available for n in _PRIVATE_REQUIRED):
-    import pytest
-    pytest.skip(
-        "私有场景未注册 (发布环境, 仅本地包含 thin_layer_sandwich)",
-        allow_module_level=True,
-    )
+
+def _primary_scenario() -> str:
+    """优先私有场景 thin_layer_sandwich_si (本地), 发布环境降级为公开场景 ch_center。"""
+    available = [s[0] for s in list_scenarios()]
+    if "thin_layer_sandwich_si" in available:
+        return "thin_layer_sandwich_si"
+    print("ℹ 私有场景未注册 (发布环境), 使用公开场景 ch_center 验证引擎 dry-run")
+    return "ch_center"
 
 
 def test_engine_dry_run():
     """测试引擎 dry-run (不执行 FLASH)"""
-    sc = get_scenario("thin_layer_sandwich_si")
+    sc = get_scenario(_primary_scenario())
     engine = FlashSimulatorEngine(sc, verbose=False)
 
     with tempfile.TemporaryDirectory() as td:
@@ -76,7 +75,7 @@ def test_engine_dry_run():
         with open(params_path) as f:
             params = json.load(f)
         assert "scenario" in params
-        assert params["scenario"] == "thin_layer_sandwich_si"
+        assert params["scenario"] == sc.name
         assert "laser_powers" in params
         print(f"  ✔ input_params.json: 场景={params['scenario']}")
 
@@ -91,9 +90,12 @@ def test_engine_with_al_scenario():
     """测试 Al 场景的引擎 dry-run
 
     注意: al-imx-003.cn4 是 FLASH 分发的 EOS 表 (License §3 禁止再分发),
-    发布包不包含。若缺失 (用户需从 FLASH Center 自备) 则跳过, 仅验证 .par 参数。
+    发布包不包含。私有场景未注册或 EOS 表缺失时跳过。
     """
     import pytest
+    available = [s[0] for s in list_scenarios()]
+    if "thin_layer_sandwich_al" not in available:
+        pytest.skip("私有场景 thin_layer_sandwich_al 未注册 (发布环境)")
     sc = get_scenario("thin_layer_sandwich_al")
     engine = FlashSimulatorEngine(sc, verbose=False)
 
@@ -121,11 +123,10 @@ def test_engine_with_al_scenario():
 
 
 def test_engine_plot():
-    """测试引擎 plot 方法 (读取 Si 场景已有 result.h5)"""
-    from flash.scenarios.registry import get_scenario
+    """测试引擎 plot 方法 (读取已有 result.h5)"""
     from flash.scenarios.simulator import FlashSimulatorEngine
 
-    sc = get_scenario("thin_layer_sandwich_si")
+    sc = get_scenario(_primary_scenario())
     engine = FlashSimulatorEngine(sc, verbose=False)
 
     # 查找已有 result.h5

@@ -2,7 +2,7 @@
 # git-tag-with-test.sh — 打标签之前运行全局测试
 #
 # 用法：
-#   ./scripts/git-tag-with-test.sh v0.0.1 "Version 0.0.1 release"
+#   ./scripts/03_git_publish/git-tag-with-test.sh v0.0.1 "Version 0.0.1 release"
 #
 # 此脚本执行以下操作：
 # 1. 运行全局测试（flash/test/ + input_gen/test/ + 其他模块测试）
@@ -25,11 +25,14 @@ echo "🏷️  Preparing to tag: $TAG_NAME"
 echo "📝 Message: $TAG_MESSAGE"
 echo ""
 
-# 获取脚本所在目录（即 scripts/）
+# 获取脚本所在目录（即 scripts/03_git_publish/）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 获取项目根目录（scripts/ 的父目录的父目录 = flash/ 的父目录）
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# 获取项目根目录（向上查找含 pyproject.toml 的目录, 兼容任意子目录布局）
+PROJECT_ROOT="$SCRIPT_DIR"
+while [ ! -f "$PROJECT_ROOT/pyproject.toml" ] && [ "$PROJECT_ROOT" != "/" ]; do
+    PROJECT_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
+done
 
 # 如果在 Windows Git Bash 中运行，将路径转为 Windows 格式
 if command -v cygpath &> /dev/null; then
@@ -72,8 +75,8 @@ echo ""
 
 # 运行全局测试
 # 测试路径相对于 PROJECT_ROOT，使用 flash/test/ 指向 flash 子包下的测试
-echo "  - Running Flash framework tests (flash/test/)..."
-"$PYTHON" -m pytest flash/test/ -v --tb=short
+echo "  - Running Flash framework tests (test/)..."
+"$PYTHON" -m pytest test/ -q --tb=short
 if [ $? -ne 0 ]; then
     echo ""
     echo "❌ Flash framework tests failed! Tag aborted."

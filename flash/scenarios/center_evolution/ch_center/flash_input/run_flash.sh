@@ -6,15 +6,15 @@
 
 set -e
 
-FLASH_HOME="$HOME/QC/FLASH/FLASH4.8"
+FLASH_HOME="$HOME/hello/FLASH/FLASH4.8"
 PAR_FILE="laserslab_custom.par"
 NPROCS=4
-OBJ_DIR="QC/LaserSlab_custom"
+OBJ_DIR="hello/LaserSlab_custom"
 FLASH_BIN="$FLASH_HOME/$OBJ_DIR/flash4"
-SETUP_CMD="./setup -auto QC/LaserSlab_custom -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/LaserSlab_custom -parfile=laserslab_custom.par"
+SETUP_CMD="./setup -auto hello/LaserSlab_custom -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=hello/LaserSlab_custom -parfile=laserslab_custom.par"
 BUILD_CORES=4
-SIM_USER_DIR="QC"
-SIM_PATH="QC/LaserSlab_custom"
+SIM_USER_DIR="hello"
+SIM_PATH="hello/LaserSlab_custom"
 
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

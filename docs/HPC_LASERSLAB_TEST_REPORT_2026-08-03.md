@@ -31,10 +31,10 @@
 | MPI | `/public1/soft/oneAPI/2022.1/mpi/latest/bin/mpif90` (Intel MPI) |
 | Fortran | **ifort 2021.5.0** (切换后) / 原 gfortran 4.8.5 (太老, 编译崩溃) |
 | C | gcc 4.8.5 |
-| FLASH 安装 | `~/QC/FLASH/FLASH4.8/` |
+| FLASH 安装 | `~/hello/FLASH/FLASH4.8/` |
 | MPICH | `/public1/soft/mpich/3.2` |
 | HDF5 | `/public1/soft/hdf5/1.8.18` |
-| HYPRE | `~/QC/FLASH/local/hypre/libHYPRE.a` (静态库, gcc 编译) |
+| HYPRE | `~/hello/FLASH/local/hypre/libHYPRE.a` (静态库, gcc 编译) |
 
 ---
 
@@ -128,14 +128,14 @@ gfortran 4.8.5 内部编译器崩溃 (ICEs)。
 
 | 文件 | 用途 |
 |------|------|
-| `scripts/hpc_laserslab_test.py` | 一键编译 + 运行 + 报告 |
-| `scripts/hpc_run_laserslab.sh` | 上传到超算的运行脚本 |
-| `scripts/hpc_run_uploader.py` | 脚本上传 + 执行器 |
-| `scripts/hpc_download_results.py` | SFTP 打包下载 HDF5 |
+| `scripts/02_hpc/hpc_laserslab_test.py` | 一键编译 + 运行 + 报告 |
+| `scripts/02_hpc/hpc_run_laserslab.sh` | 上传到超算的运行脚本 |
+| `scripts/02_hpc/hpc_run_uploader.py` | 脚本上传 + 执行器 |
+| `scripts/02_hpc/hpc_download_results.py` | SFTP 打包下载 HDF5 |
 
 ### 远程改动
 
-- 超算 `~/QC/FLASH/FLASH4.8/Makefile.h` 切换至 ifort (`Makefile.h.gfortran.bak` 已备份)
+- 超算 `~/hello/FLASH/FLASH4.8/Makefile.h` 切换至 ifort (`Makefile.h.gfortran.bak` 已备份)
 
 ### 输出文件
 
@@ -143,7 +143,7 @@ gfortran 4.8.5 内部编译器崩溃 (ICEs)。
 |------|------|
 | `scenarios/flash_demo/hello_flash/outputfiles/hdf5filesfrom_ssh1/laserslab1d/` | 6 个 chk (本地副本) |
 | `scenarios/flash_demo/hello_flash/outputfiles/plotsfrom_ssh1/` | 3 张密度分析图 |
-| 超算 `~/QC/FLASH/run_laserslab_hpc_test/` | 完整仿真产物 (41 chk + 81 plt) |
+| 超算 `~/hello/FLASH/run_laserslab_hpc_test/` | 完整仿真产物 (41 chk + 81 plt) |
 
 ---
 
@@ -151,12 +151,12 @@ gfortran 4.8.5 内部编译器崩溃 (ICEs)。
 
 ```bash
 # 1. 编译 + 运行 (ifort)
-python scripts/hpc_laserslab_test.py
+python scripts/02_hpc/hpc_laserslab_test.py
 # 或分步:
-python scripts/hpc_run_uploader.py    # 需先确保 ifort 配置
+python scripts/02_hpc/hpc_run_uploader.py    # 需先确保 ifort 配置
 
 # 2. 下载结果
-python scripts/hpc_download_results.py
+python scripts/02_hpc/hpc_download_results.py
 
 # 3. 绘图分析
 cd scenarios/flash_demo/hello_flash

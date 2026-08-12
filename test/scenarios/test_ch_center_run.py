@@ -55,7 +55,7 @@ def _check_previous_run_binary(runs_dir: Path = Path("runs_ch_center")) -> bool:
     obj_dir = None
     for line in text.splitlines():
         s = line.strip()
-        if s.startswith("cd ") and "QC/FLASH" in s and not s.startswith("#"):
+        if s.startswith("cd ") and "/FLASH/FLASH4.8" in s and not s.startswith("#"):
             parts = s.split()
             if len(parts) >= 2:
                 flash_home = parts[1]
@@ -112,8 +112,8 @@ def test_ch_center_run(run_real_flash: bool = False):
         par_content = sc.build_par(dict(sc.default_params, **FAST_PARAMS))
         assert "tmax" in par_content, "par 应包含 tmax"
         assert "eos_tab" in par_content, "cham 应为 eos_tab"
-        assert "he-imx-005.cn4" in par_content, "应使用旧 He EOS"
-        assert "polystyrene-imx-008.cn4" in par_content, "应使用旧 CH EOS"
+        assert "Z02_1.00-20260708_0851.cn4" in par_content, "应使用自研 He EOS (helium_hires)"
+        assert "Z06_0.50-Z01_0.50-20260708_0850.cn4" in par_content, "应使用自研 CH EOS (ch_mix)"
         assert str(FAST_PARAMS["tmax"])[:6] in par_content or "1.3e-10" in par_content \
             or "1.300000e-10" in par_content, "tmax 应写入加速值"
         print("  ✅ .par 生成正确 (tmax/dtmax/EOS 验证通过)")
@@ -147,11 +147,11 @@ def test_ch_center_run(run_real_flash: bool = False):
     # 3. EOS 文件验证
     print(f"\n── 3. EOS 验证 ──")
     par = (run_dir / "sim_input" / sc.sim_name).with_suffix(".par").read_text()
-    assert "he-imx-005.cn4" in par, "应使用旧 He EOS"
-    assert "polystyrene-imx-008.cn4" in par, "应使用旧 CH EOS"
+    assert "Z02_1.00-20260708_0851.cn4" in par, "应使用自研 He EOS"
+    assert "Z06_0.50-Z01_0.50-20260708_0850.cn4" in par, "应使用自研 CH EOS"
     assert "eos_tab" in par, "cham 应为 eos_tab"
-    print(f"  ✅ cham: he-imx-005.cn4 (eos_tab)")
-    print(f"  ✅ targ: polystyrene-imx-008.cn4")
+    print(f"  ✅ cham: Z02_1.00-20260708_0851.cn4 (eos_tab)")
+    print(f"  ✅ targ: Z06_0.50-Z01_0.50-20260708_0850.cn4")
     assert "sim_teleCham = 290.11375" in par or "2.901137e+02" in par
     print(f"  ✅ 初始温度: 290.11375K")
 

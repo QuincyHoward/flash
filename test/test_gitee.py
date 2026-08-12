@@ -82,7 +82,19 @@ def test_git_push_import():
     print("  测试 4: 测试统一 git_push 导入")
     print("=" * 60)
 
-    from scripts.git_push import push_to_gitee, show_status, find_git_root
+    # scripts/ 按功能分类后 git_push.py 位于 scripts/03_git_publish/ 下,
+    # 目录名以数字开头无法作为模块导入, 改用 importlib 从文件路径加载。
+    import importlib.util
+    _gp = (Path(__file__).resolve().parent.parent
+           / "scripts" / "03_git_publish" / "git_push.py")
+    assert _gp.exists(), f"git_push.py 不存在: {_gp}"
+    _spec = importlib.util.spec_from_file_location("git_push", _gp)
+    _mod = importlib.util.module_from_spec(_spec)
+    sys.modules["git_push"] = _mod
+    _spec.loader.exec_module(_mod)
+    push_to_gitee = _mod.push_to_gitee
+    show_status = _mod.show_status
+    find_git_root = _mod.find_git_root
 
     print("\n[成功] 成功导入 git_push 核心函数:")
     print("  - push_to_gitee: 统一推送函数")

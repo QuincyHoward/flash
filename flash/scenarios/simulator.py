@@ -34,7 +34,7 @@ from flash._core.credentials import get_user_name
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FLASH 安装路径检测 — 唯一位置 ~/{user_name}/FLASH/FLASH4.8
-# user_name 由 credentials 专门函数 get_user_name() 动态提取 (如 QC)
+# user_name 由 credentials 专门函数 get_user_name() 动态提取 (默认 hello)
 # ══════════════════════════════════════════════════════════════════════════════
 
 

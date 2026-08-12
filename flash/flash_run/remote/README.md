@@ -126,7 +126,7 @@ with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
     # 下载结果
     if final_state == "COMPLETED":
         downloaded = deploy.download_results(
-            remote_output_dir="~/QC/FLASH/FLASH4.8/object",
+            remote_output_dir="~/hello/FLASH/FLASH4.8/object",
             local_output_dir="./outputs",
             pattern="*.h5",
         )
@@ -143,7 +143,7 @@ deploy.connect()
 
 # 执行远程命令
 stdout, stderr, exit_code = deploy.execute(
-    command="ls -la ~/QC/FLASH/FLASH4.8/object/",
+    command="ls -la ~/hello/FLASH/FLASH4.8/object/",
     work_dir=None,
     timeout=60,
 )
@@ -152,12 +152,12 @@ print(stdout)
 # 上传文件
 deploy.upload(
     local_path="./flash_2d.par",
-    remote_path="~/QC/FLASH/FLASH4.8/object/flash_2d.par",
+    remote_path="~/hello/FLASH/FLASH4.8/object/flash_2d.par",
 )
 
 # 下载文件
 deploy.download(
-    remote_path="~/QC/FLASH/FLASH4.8/object/flash.log",
+    remote_path="~/hello/FLASH/FLASH4.8/object/flash.log",
     local_path="./outputs/flash.log",
 )
 
@@ -256,11 +256,11 @@ module load hdf5/1.8.18
 module load mpich/3.2-gcc9.3
 
 # 设置环境变量
-export HYPRE_HOME=~/QC/FLASH/local/hypre
+export HYPRE_HOME=~/hello/FLASH/local/hypre
 export LD_LIBRARY_PATH=$HYPRE_HOME/lib:$LD_LIBRARY_PATH
 
 # 运行 FLASH
-cd ~/QC/FLASH/FLASH4.8/object
+cd ~/hello/FLASH/FLASH4.8/object
 mpirun -np 90 ./flash4 -par_file laser_slab_2d.par
 ```
 

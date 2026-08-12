@@ -564,10 +564,10 @@ flash-sim 支持三平台部署：
 | 平台 | 访问方式 | MPI | HDF5 | HYPRE | 典型核数 |
 |------|----------|-----|------|-------|----------|
 | 本地 WSL (Ubuntu) | 本地 | 源码编译 → `/usr/local/mpich/` | 源码编译 → `/usr/local/hdf5/` | 源码编译 → `/usr/local/hypre/` | 1 |
-| ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
-| ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
+| ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/hello/FLASH/local/hypre/` | 4 |
+| ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/hello/FLASH/local/hypre/` | 4 |
 
-> **关键提示**: FLASH的默认安装路径为"~/QC/FLASH/FLASH4.8"，其中"QC"是专属用户名，可在"flash/_core/credentials/manage.py"设置。
+> **关键提示**: FLASH的默认安装路径为"~/hello/FLASH/FLASH4.8"，其中"hello"为**默认用户名**（通过 `flash/_core/credentials` 的 `get_user_name()` 动态获取，可用 `manage.py` 交互式修改）。
 > **HPC 关键提示**: 超算上 HYPRE_PATH 可能因符号链接 `/public1/home → /publicfs01/fs1-e/home` 导致编译失败。必须使用 `readlink -f` 解析真实路径后写入 `Makefile.h`。
 ---
 
@@ -600,15 +600,15 @@ make format
 
 ```bash
 # 安装 Git 钩子（pre-commit + pre-push）
-bash scripts/install-git-hooks.sh
+bash scripts/03_git_publish/install-git-hooks.sh
 
 # 提交触发 ≈ 代码风格检查
 # 推送触发 ≈ 框架测试
 # 打标签前运行全局测试:
-bash scripts/git-tag-with-test.sh v<版本号>
+bash scripts/03_git_publish/git-tag-with-test.sh v<版本号>
 
 # 完整发布流程（格式检查 + 测试 + 构建 + 打标签）
-bash scripts/tag-release.sh v<版本号>
+bash scripts/03_git_publish/tag-release.sh v<版本号>
 ```
 
 ### 发布
@@ -755,7 +755,7 @@ See [README.md] (Chinese) for the full documentation, or run the global test
 suite:
 
 ```bash
-python scripts/run_global_tests.py     # framework + input + output suites
+python scripts/05_test/run_global_tests.py     # framework + input + output suites
 ```
 
 ## License

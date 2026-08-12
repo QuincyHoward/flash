@@ -108,7 +108,7 @@ pytest test -v
 make test-all
 
 # 或直接运行脚本
-./scripts/tag-release.sh v0.2.0
+./scripts/03_git_publish/tag-release.sh v0.2.0
 ```
 
 **测试范围**: 
@@ -168,7 +168,7 @@ ruff check --fix .
 2. 所有测试通过
 3. 构建检查通过
 
-`scripts/tag-release.sh` 脚本会自动执行这些检查。
+`scripts/03_git_publish/tag-release.sh` 脚本会自动执行这些检查。
 
 ### 使用方式
 
@@ -178,8 +178,8 @@ git checkout main
 git pull origin main
 
 # 2. 运行标签发布脚本
-chmod +x scripts/tag-release.sh  # 首次需要
-./scripts/tag-release.sh v0.2.0
+chmod +x scripts/03_git_publish/tag-release.sh  # 首次需要
+./scripts/03_git_publish/tag-release.sh v0.2.0
 
 # 3. 脚本会运行：
 #    - 代码格式检查

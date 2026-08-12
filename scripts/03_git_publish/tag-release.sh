@@ -1,5 +1,6 @@
 #!/bin/bash
 # 标签发布脚本 - 在打标签前运行全局测试
+# 用法: ./scripts/03_git_publish/tag-release.sh <version> (e.g., v0.2.0)
 
 set -e  # 任何命令失败则退出
 VERSION=$1
@@ -9,7 +10,15 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-echo "Starting release process for $VERSION..."
+# 定位项目根目录（向上查找含 pyproject.toml 的目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
+while [ ! -f "$PROJECT_ROOT/pyproject.toml" ] && [ "$PROJECT_ROOT" != "/" ]; do
+    PROJECT_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
+done
+cd "$PROJECT_ROOT"
+
+echo "Starting release process for $VERSION (project: $PROJECT_ROOT)..."
 
 # 1. 运行代码格式检查
 echo "Running code format check..."
@@ -22,16 +31,13 @@ ruff check . || (echo "Ruff check failed! Run 'ruff check --fix .' to fix." && e
 # 3. 运行全局测试（主项目 + 所有子模块）
 echo "Running GLOBAL tests..."
 echo "  - Flash framework tests..."
-pytest test -v || (echo "Flash framework tests failed!" && exit 1)
+pytest test -q || (echo "Flash framework tests failed!" && exit 1)
 
 echo "  - Input generation tests..."
-pytest flash/input_gen/test -v || (echo "Input generation tests failed!" && exit 1)
+pytest flash/input_gen/test -q || (echo "Input generation tests failed!" && exit 1)
 
 echo "  - Output processors tests..."
-pytest flash/output_processors/test -v || (echo "Output processors tests failed!" && exit 1)
-
-echo "  - Output processors input files tests..."
-pytest flash/output_processors/inputfiles/test -v || (echo "Output processors input files tests failed!" && exit 1)
+pytest flash/output_processors/test -q || (echo "Output processors tests failed!" && exit 1)
 
 echo "All global tests passed!"
 

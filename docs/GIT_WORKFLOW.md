@@ -12,8 +12,8 @@
 |----------|------------|----------|
 | `git commit` | 快速测试（代码风格检查） | `scripts/git-hooks/pre-commit` |
 | `git push` | Flash 框架测试（`flash/test/`） | `scripts/git-hooks/pre-push` |
-| `git tag`（自定义脚本） | 全局测试（`flash/test/` + `input_gen/test/` + 其他模块） | `scripts/git-tag-with-test.sh` |
-| `tag-release.sh`（自定义脚本） | 格式检查 + linting + 全局测试 + 构建 | `scripts/tag-release.sh` |
+| `git tag`（自定义脚本） | 全局测试（`flash/test/` + `input_gen/test/` + 其他模块） | `scripts/03_git_publish/git-tag-with-test.sh` |
+| `tag-release.sh`（自定义脚本） | 格式检查 + linting + 全局测试 + 构建 | `scripts/03_git_publish/tag-release.sh` |
 
 ## 安装 Git 钩子
 
@@ -82,10 +82,10 @@ git push --no-verify origin main
 
 ```bash
 # 用法
-./scripts/git-tag-with-test.sh <tag_name> [tag_message]
+./scripts/03_git_publish/git-tag-with-test.sh <tag_name> [tag_message]
 
 # 示例
-./scripts/git-tag-with-test.sh v0.0.1 "Version 0.0.1 release"
+./scripts/03_git_publish/git-tag-with-test.sh v0.0.1 "Version 0.0.1 release"
 ```
 
 **触发的测试：**
@@ -109,10 +109,10 @@ git push origin v0.0.1
 
 ```bash
 # 用法
-bash scripts/tag-release.sh <version>
+bash scripts/03_git_publish/tag-release.sh <version>
 
 # 示例
-bash scripts/tag-release.sh v0.2.0
+bash scripts/03_git_publish/tag-release.sh v0.2.0
 ```
 
 **执行步骤：**
@@ -250,7 +250,7 @@ chmod +x .git/hooks/pre-commit .git/hooks/pre-push
 **解决方法：**
 1. 查看测试输出，定位失败原因
 2. 修复代码或测试
-3. 重新运行 `git commit` / `git push` / `./scripts/git-tag-with-test.sh`
+3. 重新运行 `git commit` / `git push` / `./scripts/03_git_publish/git-tag-with-test.sh`
 
 ## 行尾格式规范
 
@@ -296,7 +296,7 @@ git checkout main
 git merge feat/new-feature
 
 # 7. 打标签（触发全局测试）
-./scripts/git-tag-with-test.sh v0.1.0 "Version 0.1.0 release"
+./scripts/03_git_publish/git-tag-with-test.sh v0.1.0 "Version 0.1.0 release"
 ```
 
 ## Python 路径配置
@@ -309,7 +309,7 @@ git merge feat/new-feature
 
 # 自定义 Python 路径
 export PYTHON=/usr/bin/python3
-bash scripts/git-tag-with-test.sh v0.1.0
+bash scripts/03_git_publish/git-tag-with-test.sh v0.1.0
 
 # 或使用系统默认 python3
 export PYTHON=python3

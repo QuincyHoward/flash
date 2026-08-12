@@ -100,7 +100,7 @@ See [README.md] (Chinese) for the full documentation, or run the global test
 suite:
 
 ```bash
-python scripts/run_global_tests.py     # framework + input + output suites
+python scripts/05_test/run_global_tests.py     # framework + input + output suites
 ```
 
 ## License

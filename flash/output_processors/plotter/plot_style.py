@@ -38,7 +38,7 @@ Or use the convenience helpers::
 
 Compliance
 ==========
-Run `python scripts/check_plot_style.py` to scan the package for scripts that
+Run `python scripts/01_env_diagnose/check_plot_style.py` to scan the package for scripts that
 miss `apply_plot_style()` or still contain CJK characters in plot text.
 """
 

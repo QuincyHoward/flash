@@ -184,7 +184,7 @@ with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
     # 上传 .par 文件
     deploy.upload(
         local_path="./run/flash_2d.par",
-        remote_path="~/QC/FLASH/FLASH4.8/object/flash_2d.par",
+        remote_path="~/hello/FLASH/FLASH4.8/object/flash_2d.par",
     )
 
     # 提交作业
@@ -239,7 +239,7 @@ with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
 ```python
 with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
     downloaded = deploy.download_results(
-        remote_output_dir="~/QC/FLASH/FLASH4.8/object",
+        remote_output_dir="~/hello/FLASH/FLASH4.8/object",
         local_output_dir="./outputs",
         pattern="*.h5",  # 下载所有 HDF5 文件
     )
@@ -378,7 +378,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=hpc_1d.max_parallel) as e
 2. 检查远程输出目录是否正确
 3. 手动列出远程文件:
    ```python
-   stdout, stderr, exit_code = deploy.execute("ls -la ~/QC/FLASH/FLASH4.8/object/*.h5")
+   stdout, stderr, exit_code = deploy.execute("ls -la ~/hello/FLASH/FLASH4.8/object/*.h5")
    print(stdout)
    ```
 

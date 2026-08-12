@@ -27,14 +27,14 @@ generator = ShellScriptGenerator()
 
 # 生成本地运行脚本
 script = generator.generate(
-    sim_path="QC/LaserSlab1d_new",
+    sim_path="hello/LaserSlab1d_new",
     dimension=1,
     platform="local",
 )
 
 # 生成HPC提交脚本
 script = generator.generate(
-    sim_path="QC/LaserSlab1d_new",
+    sim_path="hello/LaserSlab1d_new",
     dimension=2,
     platform="hpc/scfa2696",  # 中卫HPC
 )
@@ -47,7 +47,7 @@ script = generator.generate(
 ```python
 output_path = generator.save(
     "path/to/run_flash.sh",
-    sim_path="QC/LaserSlab1d_new",
+    sim_path="hello/LaserSlab1d_new",
     dimension=1,
     platform="local",
 )
@@ -85,7 +85,7 @@ from gen_shell_script import ShellScriptGenerator
 generator = ShellScriptGenerator()
 generator.save(
     "run_flash.sh",
-    sim_path="QC/LaserSlab1d_new",
+    sim_path="hello/LaserSlab1d_new",
     dimension=1,
     platform="local",
 )
@@ -96,7 +96,7 @@ generator.save(
 ```python
 generator.save(
     "submit_flash.slurm",
-    sim_path="QC/LaserSlab2d_new",
+    sim_path="hello/LaserSlab2d_new",
     dimension=2,
     platform="hpc/scfa2696",
 )

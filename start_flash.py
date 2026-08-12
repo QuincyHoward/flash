@@ -376,15 +376,13 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
                 f"skipped={res['skipped']}  errors={res['errors']}  rc={res['rc']}")
     log("")
 
-    # 判定: framework/input_gen 必须全过; output_processors 的失败属预期
+    # 判定: 三套件均须全过 (output_processors 测试数据由 gen_test_data.py 自动生成)
     def verdict(name: str, res: dict) -> str:
         if res is None:
             return "未运行"
         if res["errors"] > 0 or res["rc"] == -1:
             return "ERROR"
         if res["failed"] > 0:
-            if name == "output_processors":
-                return "FAIL（预期: HDF5 测试数据缺失，.gitignore 排除 inputfiles/）"
             return "FAIL"
         return "PASS"
 
@@ -460,8 +458,9 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     lines.append("环境备注")
     lines.append("-" * 72)
     lines.append("")
-    lines.append("- output_processors 套件的失败源于 HDF5 测试数据缺失"
-                 "（**/inputfiles/ 被 .gitignore 排除，克隆中不含数据），属预期、非关键。")
+    lines.append("- output_processors 套件测试数据（inputfiles/，.gitignore 排除）"
+                 "由 flash/output_processors/test/gen_test_data.py 在测试会话中自动生成，"
+                 "克隆/发布环境无需手动准备。")
     lines.append("- 完整测试日志见 pytest_framework.log / pytest_input_gen.log / pytest_output_processors.log。")
     lines.append("- 虚拟环境为项目专属 .venv（项目根目录），与共享环境 envs/default 完全隔离。")
     lines.append("")

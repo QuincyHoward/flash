@@ -13,9 +13,9 @@ violations of the PPT-friendly plotting standard (see
   4. MUST save with dpi >= 200.
 
 Usage:
-  python scripts/check_plot_style.py                 # scan whole package
-  python scripts/check_plot_style.py path/to/file.py # scan one file
-  python scripts/check_plot_style.py --strict        # exit 1 on violations
+  python scripts/01_env_diagnose/check_plot_style.py                 # scan whole package
+  python scripts/01_env_diagnose/check_plot_style.py path/to/file.py # scan one file
+  python scripts/01_env_diagnose/check_plot_style.py --strict        # exit 1 on violations
 
 Exit codes:
   0  all compliant (or only warnings)

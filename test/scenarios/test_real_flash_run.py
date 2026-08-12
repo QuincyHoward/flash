@@ -57,7 +57,7 @@ def _check_previous_run_binary(runs_dir: Path) -> bool:
     flash_home = obj_dir = None
     for line in text.splitlines():
         s = line.strip()
-        if s.startswith("cd ") and "QC/FLASH" in s and not s.startswith("#"):
+        if s.startswith("cd ") and "/FLASH/FLASH4.8" in s and not s.startswith("#"):
             parts = s.split()
             if len(parts) >= 2:
                 flash_home = parts[1]; break

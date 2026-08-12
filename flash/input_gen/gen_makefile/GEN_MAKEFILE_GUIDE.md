@@ -29,7 +29,7 @@ from gen_makefile import MakefileGenerator
 generator = MakefileGenerator()
 
 # 生成 Makefile 内容
-content = generator.generate(sim_path="QC/LaserSlab1d_new")
+content = generator.generate(sim_path="hello/LaserSlab1d_new")
 
 # 保存
 output_path = generator.save("path/to/Simulation/Makefile")

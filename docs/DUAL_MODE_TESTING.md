@@ -52,13 +52,13 @@ ParGeneratorExtended = import_from_flash("input_gen.gen_par.generator", "ParGene
    - 运行 `pytest flash/test/ -v`
    - 如果失败，阻止推送
 
-3. **`scripts/git-tag-with-test.sh`** — 全局测试（打标签前运行）
+3. **`scripts/03_git_publish/git-tag-with-test.sh`** — 全局测试（打标签前运行）
    - 运行 `pytest flash/ -v`（完整测试）
    - 如果失败，阻止打标签
 
-4. **`scripts/install-git-hooks.sh`** — 安装钩子的便捷脚本
+4. **`scripts/03_git_publish/install-git-hooks.sh`** — 安装钩子的便捷脚本
    ```bash
-   bash scripts/install-git-hooks.sh
+   bash scripts/03_git_publish/install-git-hooks.sh
    ```
 
 5. **`docs/GIT_WORKFLOW.md`** — 使用说明文档
@@ -164,7 +164,7 @@ python -m pytest physimx_sim/flash/input_gen/test/ -v
 
 ```bash
 # 安装 Git 钩子
-bash flash/scripts/install-git-hooks.sh
+bash flash/scripts/03_git_publish/install-git-hooks.sh
 
 # 正常开发流程
 git add .
@@ -172,7 +172,7 @@ git commit -m "消息"  # 触发 pre-commit 钩子（快速测试）
 git push              # 触发 pre-push 钩子（框架测试）
 
 # 打标签（需要运行全局测试）
-bash flash/scripts/git-tag-with-test.sh v0.0.1
+bash flash/scripts/03_git_publish/git-tag-with-test.sh v0.0.1
 ```
 
 ---

@@ -7,7 +7,7 @@ For every matplotlib plotting script found by check_plot_style.py:
   2. strip hardcoded fontsize < 18 arguments,
   3. bump savefig dpi 150 -> 200.
 
-Run:  python scripts/fix_plot_style.py
+Run:  python scripts/01_env_diagnose/fix_plot_style.py
 """
 from __future__ import annotations
 

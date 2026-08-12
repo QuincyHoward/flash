@@ -4,9 +4,9 @@
 set -e
 set -o pipefail
 
-FLASH_HOME="$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8"
-OBJ_DIR="QC/LaserSlab_newpara_test"
-SIM_PATH="QC/LaserSlab_newpara_test"
+FLASH_HOME="$HOME/${FLASH_SIM_USER_DIR:-hello}/FLASH/FLASH4.8"
+OBJ_DIR="hello/LaserSlab_newpara_test"
+SIM_PATH="hello/LaserSlab_newpara_test"
 SIM_SRC_DIR="$FLASH_HOME/source/Simulation/SimulationMain/$SIM_PATH"
 FLASH_BIN="$FLASH_HOME/$OBJ_DIR/flash4"
 PAR_FILE="laserslab_newpara.par"

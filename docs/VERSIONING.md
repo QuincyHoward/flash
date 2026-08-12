@@ -101,7 +101,7 @@ MAJOR.MINOR.PATCH-{alpha|beta|rc}.N
 python -m pytest test/ input_gen/test/ output_processors/test/
 
 # 3. 使用发布脚本打标签（自动运行全部测试）
-bash scripts/tag-release.sh vX.Y.Z
+bash scripts/03_git_publish/tag-release.sh vX.Y.Z
 
 # 4. 推送标签到远程
 git push origin vX.Y.Z
@@ -123,7 +123,7 @@ git checkout -b hotfix/critical-bug vX.Y.Z
 git commit -m "fix: 修复关键问题"
 
 # 3. 打 PATCH 标签
-bash scripts/tag-release.sh vX.Y.Z+1
+bash scripts/03_git_publish/tag-release.sh vX.Y.Z+1
 
 # 4. 合并回主分支
 git checkout main

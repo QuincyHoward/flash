@@ -199,8 +199,8 @@ ed_laserIOMaxNumberOfPositions = 100
 |------|-----|
 | 测试环境 | WSL Ubuntu-22.04, mpirun -np 1 |
 | 运行文件夹 | `scenarios/flash_demo/demo_task/laserslab1d_local_demo/run/` (11 文件自包含) |
-| SETUP_CMD | `./setup -auto QC/LaserSlab_local -1d ... -objdir=QC/LaserSlab_local -par_file=laserslab1d_demo.par` |
-| FLASH 二进制 | `~/QC/FLASH/FLASH4.8/QC/LaserSlab_local/flash4` |
+| SETUP_CMD | `./setup -auto hello/LaserSlab_local -1d ... -objdir=hello/LaserSlab_local -par_file=laserslab1d_demo.par` |
+| FLASH 二进制 | `~/hello/FLASH/FLASH4.8/hello/LaserSlab_local/flash4` |
 | 输出 | 41 checkpoint + 80 plot 文件 |
 | 成功标志 | `exiting: reached max SimTime` |
 | 一键执行 | `cd run/ && bash run_flash.sh` |
@@ -212,7 +212,7 @@ ed_laserIOMaxNumberOfPositions = 100
 | 测试环境 | ParaCloud NC-E (SSH1: scfa2696) |
 | 作业系统 | SLURM, partition=v5_192, 4 cores, 1 node |
 | 文件模式 (v2.1) | `demo_task/laserslab1d_supercomputer_demo/run/` 独立运行文件夹 |
-| SETUP_CMD (v2.1) | `./setup -auto QC/LaserSlab_hpc -1d ... -objdir=QC/LaserSlab_hpc -par_file=laserslab1d_sc_demo.par` |
+| SETUP_CMD (v2.1) | `./setup -auto hello/LaserSlab_hpc -1d ... -objdir=hello/LaserSlab_hpc -par_file=laserslab1d_sc_demo.par` |
 | 模块 | `mpich/3.2-gcc9.3`, `hdf5/1.8.18` |
 | 编译耗时 | ~2 分钟 (make -j4) |
 | 仿真耗时 | ~30 秒 (mpirun -np 4) |

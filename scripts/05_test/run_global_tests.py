@@ -41,17 +41,8 @@ _PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
-
-# ============================================================================
-#  Bootstrap: 直接运行时自动转为模块方式 (scripts 包, 标准布局)
-#  重组后: flash 包 = 项目根/flash/, scripts 包 = 项目根/scripts/
-#  旧"包名映射 flash 别名 + 目录 junction"兼容逻辑已废弃
-# ============================================================================
-if __name__ == "__main__" and __package__ is None:
-    import runpy
-
-    runpy.run_module("scripts.run_global_tests", run_name="__main__")
-    sys.exit(0)
+# 注: 旧版 "runpy 转模块方式" 引导已废弃 (scripts/ 按功能分类后不存在
+# scripts.run_global_tests 模块路径)。直接脚本运行即可, 尾部 __main__ 调用 main()。
 
 # ============================================================================
 #  预定义测试套件

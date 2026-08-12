@@ -3,7 +3,7 @@
 - **测试日期**: 2026-08-02 23:50 ~ 2026-08-03 00:59 (GMT+8)
 - **测试环境**: Windows 11 (win32) + Python 3.13.14 (pytest 9.1.1)
 - **项目根目录**: `D:\PhySimX\PhySimX\sim\flash`
-- **测试命令**: `python scripts/run_global_tests.py` (等价于三套 pytest 全量运行)
+- **测试命令**: `python scripts/05_test/run_global_tests.py` (等价于三套 pytest 全量运行)
 
 ---
 
@@ -165,12 +165,12 @@ OutputProcessors 测试需要真实 FLASH HDF5 输出 (被 `.gitignore` 排除, 
 ```bash
 # 一键运行全局测试 (三套件)
 cd D:/PhySimX/PhySimX/sim/flash
-PYTHONPATH="D:/PhySimX/PhySimX/sim" python scripts/run_global_tests.py
+PYTHONPATH="D:/PhySimX/PhySimX/sim" python scripts/05_test/run_global_tests.py
 
 # 或单套件
-python scripts/run_global_tests.py --framework   # Flash 框架
-python scripts/run_global_tests.py --input       # InputGen
-python scripts/run_global_tests.py --output      # OutputProcessors
+python scripts/05_test/run_global_tests.py --framework   # Flash 框架
+python scripts/05_test/run_global_tests.py --input       # InputGen
+python scripts/05_test/run_global_tests.py --output      # OutputProcessors
 ```
 
 ---

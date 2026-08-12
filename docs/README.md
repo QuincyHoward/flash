@@ -32,7 +32,7 @@ PhySimX 的 FLASH 模块提供完整的仿真工作流：一键安装 → 参数
 ```python
 from flash.input_gen.first_run import FlashFirstRun
 
-runner = FlashFirstRun(install_dir="~/QC/FLASH", setup_name="LaserSlab")
+runner = FlashFirstRun(install_dir="~/hello/FLASH", setup_name="LaserSlab")
 runner.generate_install_script("install_flash.sh")
 # Windows WSL:
 # runner.run_local_wsl()
@@ -70,7 +70,7 @@ peak = ParCalculator.calculate_peak_power(
 from flash.input_gen.flash_setup import FLASHSetupGenerator
 
 gen = FLASHSetupGenerator(config={
-    "flash_home": "~/QC/FLASH",
+    "flash_home": "~/hello/FLASH",
     "slurm_partition": "cpu",
     "slurm_nodes": 1,
 })
@@ -87,11 +87,11 @@ from flash import FlashEnvManager, get_env_manager
 mgr = get_env_manager()
 mgr.add_environment("local_wsl", FlashEnvironment(
     name="local_wsl", env_type="local_wsl",
-    flash_home="/home/user/QC/FLASH",
+    flash_home="/home/user/hello/FLASH",
 ))
 mgr.add_environment("paracloud", FlashEnvironment(
     name="paracloud", env_type="remote_sbatch",
-    flash_home="~/QC/FLASH",
+    flash_home="~/hello/FLASH",
     ssh_credential="flash_ssh",
     slurm_partition="cpu",
 ))
@@ -145,7 +145,7 @@ python -m physimx_sim.flash.scenarios.flash_demo.demo_hpc.laserslab1d_hpc_demo_b
 python -m physimx_sim.flash.scenarios.flash_demo.new_struture.ch_center.laserslab1d_local_custom
 ```
 
-**控制仿真用户目录**: 通过环境变量 `FLASH_SIM_USER_DIR` 控制，默认 `QC`:
+**控制仿真用户目录**: 通过环境变量 `FLASH_SIM_USER_DIR` 控制，默认 `hello`:
 ```bash
 # 使用自定义用户目录
 FLASH_SIM_USER_DIR=myuser python -m physimx_sim.flash.scenarios.flash_demo.demo_local.laserslab1d_local_demo
@@ -264,8 +264,8 @@ python -m physimx_sim.flash.scenarios.flash_demo.demo_hpc.laserslab1d_hpc_demo_b
 | 指标 | 值 |
 |------|-----|
 | 运行文件夹 | `scenarios/flash_demo/demo_task/laserslab1d_local_demo/run/` (11 个独立文件) |
-| FLASH 二进制 | `~/QC/FLASH/FLASH4.8/QC/LaserSlab_local/flash4` (自定义路径) |
-| SETUP_CMD | `./setup -auto QC/LaserSlab_local -1d +cartesian ... -objdir=QC/LaserSlab_local -par_file=laserslab1d_demo.par` |
+| FLASH 二进制 | `~/hello/FLASH/FLASH4.8/hello/LaserSlab_local/flash4` (自定义路径) |
+| SETUP_CMD | `./setup -auto hello/LaserSlab_local -1d +cartesian ... -objdir=hello/LaserSlab_local -par_file=laserslab1d_demo.par` |
 | 运行环境 | WSL Ubuntu-22.04, mpirun -np 1 |
 | 输出 | 41 个 checkpoint + 80 个 plot 文件 |
 | 成功标志 | `exiting: reached max SimTime`, `*** Wrote checkpoint file` |
@@ -279,11 +279,11 @@ python -m physimx_sim.flash.scenarios.flash_demo.demo_hpc.laserslab1d_hpc_demo_b
 | 指标 | 值 |
 |------|-----|
 | 超算节点 | ia0213 (v5_192 分区), 4 cores |
-| 编译 | `./setup -auto QC/LaserSlab_hpc -1d ... -objdir=QC/LaserSlab_hpc -par_file=laserslab1d_sc_demo.par` + `make -j4` (~2 min) |
+| 编译 | `./setup -auto hello/LaserSlab_hpc -1d ... -objdir=hello/LaserSlab_hpc -par_file=laserslab1d_sc_demo.par` + `make -j4` (~2 min) |
 | 仿真 | `mpirun -np 4 ./flash4` (~30 秒) |
 | 输出 | 41 checkpoint + 80 plot 文件 |
 | 作业ID | 4723585 |
-| 工作目录 | `~/QC/AI/flash_demo_20260618_172906/` |
+| 工作目录 | `~/hello/AI/flash_demo_20260618_172906/` |
 | 输出目录 | `demo_task/laserslab1d_supercomputer_demo/output/` |
 | 生成图像 | 初始/最终密度、电子温度、多时间步演化 (全英文标注) |
 
@@ -294,7 +294,7 @@ python -m physimx_sim.flash.scenarios.flash_demo.demo_hpc.laserslab1d_supercompu
 
 # 方式 2: 手动 SSH + sbatch
 ssh cn-zhongwei-1.paracloud.com
-cd ~/QC/FLASH/FLASH4.8/
+cd ~/hello/FLASH/FLASH4.8/
 module load hdf5/1.8.18 mpich/3.2-gcc9.3
 ./setup -auto LaserSlab -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=object_new
 cd object_new && make -j4
@@ -341,7 +341,7 @@ cd scenarios/flash_demo/hello_flash/
 bash run_hello_flash.sh
 
 # 或分步执行:
-bash install_flash_wsl.sh      # Step 1: 安装 FLASH → ~/QC/FLASH/
+bash install_flash_wsl.sh      # Step 1: 安装 FLASH → ~/hello/FLASH/
 bash run_and_collect.sh        # Step 2: 仿真 + 收集 HDF5
 python3 analyze_density.py     # Step 3: 密度时空演化图
 ```
@@ -371,7 +371,7 @@ python -c "from flash.input_gen.first_run import quick_install; quick_install()"
 
 ```bash
 # 进入FLASH源码目录
-cd ~/QC/FLASH/FLASH4.8/
+cd ~/hello/FLASH/FLASH4.8/
 
 # LaserSlab 1D 配置
 ./setup -auto LaserSlab -1d +cartesian -nxb=16 \
@@ -459,11 +459,11 @@ ed_laserIOMaxNumberOfPositions = 100
 
 ```bash
 # WSL/本地运行
-cd ~/QC/FLASH/FLASH4.8/object/
+cd ~/hello/FLASH/FLASH4.8/object/
 mpirun -np 1 ./flash4
 
 # 超算并行运行 (Paracloud)
-cd ~/QC/FLASH/FLASH4.8/object/
+cd ~/hello/FLASH/FLASH4.8/object/
 mpirun -np 4 ./flash4
 
 # 或使用SLURM提交作业
@@ -574,7 +574,7 @@ physimx_sim/flash/
 | 差异项 | WSL (本地) | SSH1 (NC-E) | SSH2 (BSCC-T6) |
 |--------|-----------|-------------|-----------------|
 | MPI/HDF5 | 从源码编译 → `/usr/local/` | `module load` | `module load` |
-| HYPRE | `/usr/local/hypre/` | `~/QC/FLASH/local/hypre/` | `~/QC/FLASH/local/hypre/` |
+| HYPRE | `/usr/local/hypre/` | `~/hello/FLASH/local/hypre/` | `~/hello/FLASH/local/hypre/` |
 | sudo 权限 | 有 | **无** | **无** |
 | 运行方式 | `mpirun -np 1` | `mpirun -np 4` 或 sbatch | `mpirun -np 4` 或 sbatch |
 | 编译方式 | 本地编译 | 登录节点编译 | 登录节点编译 |
@@ -591,7 +591,7 @@ module load hdf5/1.8.18
 module load mpich/3.2-gcc9.3
 
 # HYPRE 用户空间编译 (无 sudo)
-./configure --prefix=$(readlink -f ~/QC/FLASH/local/hypre) CC=mpicc CXX=mpicxx FC=gfortran F77=gfortran
+./configure --prefix=$(readlink -f ~/hello/FLASH/local/hypre) CC=mpicc CXX=mpicxx FC=gfortran F77=gfortran
 ```
 
 > **重要**: ParaCloud 上 `$HOME` 是符号链接（`/public1/home/USER` → `/publicfs01/fs1-e/home/USER`），Makefile.h 中 HYPRE_PATH 必须使用 `readlink -f` 解析真实路径，否则编译会报 `HYPREf.h: No such file or directory`。
@@ -652,7 +652,7 @@ python deploy_flash.py
 # 选择 [2] SSH1 或 [3] SSH2
 
 # 方式二：手动步骤
-# 1. 创建 AI 工作目录 (~/QC/AI/AItemp/)
+# 1. 创建 AI 工作目录 (~/hello/AI/AItemp/)
 # 2. 上传源码包到超算
 # 3. 解压 FLASH + 配置 Makefile.h + 编译
 # 4. 运行 LaserSlab 1D 仿真
@@ -678,7 +678,7 @@ python deploy_flash.py
 7. **al-imx-003.cn4** — 铝（靶材）的状态参数表
 8. **he-imx-005.cn4** — 氦（腔室）的状态参数表
 
-这些文件需要放入 `FLASH4.8/source/Simulation/SimulationMain/QC/<sim_name>/` 目录。
+这些文件需要放入 `FLASH4.8/source/Simulation/SimulationMain/hello/<sim_name>/` 目录。
 
 #### 11.1 使用 ParGenerator 生成 .par 文件
 
@@ -725,7 +725,7 @@ builder.add_region("target", species="targ",
 
 # 生成 F90 文件
 gen = BlockGenerator(simulation_name="LaserSlab1d_new", 
-                     sim_path="QC/LaserSlab1d_new")
+                     sim_path="hello/LaserSlab1d_new")
 gen.build(builder)
 gen.save("Simulation_initBlock.F90")
 
@@ -738,17 +738,17 @@ print(viz.summary())
 #### 11.3 编译和运行
 
 ```bash
-# 假设文件已放入 FLASH4.8/source/Simulation/SimulationMain/QC/LaserSlab1d_new/
+# 假设文件已放入 FLASH4.8/source/Simulation/SimulationMain/hello/LaserSlab1d_new/
 
-cd ~/QC/FLASH/FLASH4.8/
+cd ~/hello/FLASH/FLASH4.8/
 
 # Setup
-./setup -auto QC/LaserSlab1d_new -1d +cartesian -nxb=16 -maxblocks=2048 \
+./setup -auto hello/LaserSlab1d_new -1d +cartesian -nxb=16 -maxblocks=2048 \
   +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd \
-  mgd_meshgroups=10 -objdir=QC/object -parfile=example1d_new.par
+  mgd_meshgroups=10 -objdir=hello/object -parfile=example1d_new.par
 
 # 编译
-cd QC/object/
+cd hello/object/
 make
 
 # 运行
@@ -959,11 +959,11 @@ gen.save_config("Config")
 
 **Setup/编译/运行** (WSL):
 ```bash
-cd ~/QC/FLASH/FLASH4.8/
-./setup -auto QC/LaserSlab1d_3beams -1d +cartesian -nxb=16 \
+cd ~/hello/FLASH/FLASH4.8/
+./setup -auto hello/LaserSlab1d_3beams -1d +cartesian -nxb=16 \
   -maxblocks=2048 +hdf5typeio species=cham,targ \
-  +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_3beams
-cd QC/object_3beams/ && make
+  +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=hello/object_3beams
+cd hello/object_3beams/ && make
 cd outputfiles && mpirun -np 1 ../flash4
 ```
 

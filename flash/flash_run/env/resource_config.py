@@ -546,7 +546,7 @@ class FlashResourceConfig:
         dev = classify_device(tc)
         lines.append(f"  本机探测: 总核数 {tc} → {dev}")
         lines.append("  控制文件: " + str(CONFIG_FILE))
-        lines.append("  生成脚本: scripts/gen_resource_config.py")
+        lines.append("  生成脚本: scripts/01_env_diagnose/gen_resource_config.py")
         return "\n".join(lines)
 
     def reset_to_defaults(self) -> None:

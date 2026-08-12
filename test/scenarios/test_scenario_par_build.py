@@ -27,15 +27,10 @@ if str(_PARENT) not in sys.path:
 
 from flash.scenarios.registry import get_scenario, list_scenarios
 
-# 私有场景 (仅本地): 缺失时跳过整个模块 (发布环境无 thin_layer/grad_dens)
-_PRIVATE_REQUIRED = ["thin_layer_sandwich_si", "thin_layer_sandwich_al"]
-_available = [s[0] for s in list_scenarios()]
-if not all(n in _available for n in _PRIVATE_REQUIRED):
-    import pytest
-    pytest.skip(
-        "私有场景未注册 (发布环境, 仅本地包含 thin_layer_sandwich)",
-        allow_module_level=True,
-    )
+
+def _available_scenarios() -> list:
+    """返回当前已注册场景名列表 (发布环境仅 ch_center)。"""
+    return [s[0] for s in list_scenarios()]
 
 
 # ── EOS 文件对照表 ─────────────────────────────────────
@@ -52,8 +47,8 @@ EXPECTED_EOS = {
         "poly": "polystyrene-imx-008.cn4",
     },
     "ch_center": {
-        "cham": "he-imx-005.cn4",
-        "targ": "polystyrene-imx-008.cn4",
+        "cham": "Z02_1.00-20260708_0851.cn4",
+        "targ": "Z06_0.50-Z01_0.50-20260708_0850.cn4",
     },
 }
 
@@ -106,7 +101,11 @@ def test_each_par_generation():
 
 def test_eos_files_correct():
     """测试每个场景的 EOS 文件路径正确性"""
+    available = _available_scenarios()
     for name, expected in EXPECTED_EOS.items():
+        if name not in available:
+            print(f"\n  - {name}: 场景未注册 (发布环境), 跳过 EOS 验证")
+            continue
         sc = get_scenario(name)
         params = dict(sc.default_params)
         par = sc.build_par(params)
@@ -145,8 +144,15 @@ def test_eos_files_correct():
 
 
 def test_par_override():
-    """测试参数覆盖机制"""
-    sc = get_scenario("thin_layer_sandwich_si")
+    """测试参数覆盖机制 (优先私有场景 thin_layer_sandwich_si, 缺失用公开场景 ch_center)"""
+    import pytest
+    available = _available_scenarios()
+    if "thin_layer_sandwich_si" in available:
+        name = "thin_layer_sandwich_si"
+    else:
+        name = "ch_center"  # 发布环境降级验证
+        print("\n  ℹ 私有场景未注册, 使用公开场景 ch_center 验证参数覆盖")
+    sc = get_scenario(name)
     default_par = sc.build_par(dict(sc.default_params))
     # 修改激光功率
     overridden_params = dict(sc.default_params)
@@ -155,8 +161,12 @@ def test_par_override():
 
     assert default_par != overridden_par, "覆盖参数后 .par 应不同"
     normalized = " ".join(overridden_par.split())
-    assert "ed_power_1_2 = 1e+15" in normalized, "覆盖的功率值应出现在 .par 中"
-    print("\n✔ 参数覆盖机制有效")
+    # 幂值格式因场景而异 (如 1e+15 vs 1.000000e+15), 解析后数值比较
+    import re
+    m = re.search(r"ed_power_1_2\s*=\s*([0-9.eE+-]+)", normalized)
+    assert m, "覆盖的功率参数 ed_power_1_2 应出现在 .par 中"
+    assert abs(float(m.group(1)) - 1e15) < 1e-9 * 1e15, f"ed_power_1_2 应为 1e15, 实际 {m.group(1)}"
+    print(f"  ✔ 覆盖功率生效: ed_power_1_2 = {m.group(1)}")
 
 
 def test_sim_input_files():

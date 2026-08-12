@@ -52,12 +52,12 @@ def test_registry_list():
     assert len(scenarios) >= 1, f"至少应注册 1 个公开场景, 实际 {len(scenarios)}"
     assert "ch_center" in names
 
-    # 私有场景 (仅本地): 存在则校验, 缺失 (发布环境) 则跳过
+    # 私有场景 (仅本地): 存在则校验, 缺失 (发布环境) 则提示后继续校验公开场景
     private_names = ["thin_layer_sandwich_si", "thin_layer_sandwich_al", "grad_dens_sandwich"]
     present_private = [n for n in private_names if n in names]
     missing_private = [n for n in private_names if n not in names]
     if missing_private:
-        pytest.skip(f"私有场景未注册 (发布环境): {missing_private}")
+        print(f"ℹ 私有场景未注册 (发布环境), 仅校验公开场景: {missing_private}")
 
     for name, desc in scenarios:
         print(f"  {name}: {desc}")

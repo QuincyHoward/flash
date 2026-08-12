@@ -1,31 +1,60 @@
 ============================================================
   output_processors 并行模块测试报告
-  时间: 2026-08-12 13:50:49
+  时间: 2026-08-12 23:17:39
 ============================================================
 
 ── 1. 系统资源检测 ──
   CPU 核心: 28
-  可用内存: 15.0 GB
-  IO推荐并行数: 21
-  CPU推荐并行数: 21
+  可用内存: 10.7 GB
+  IO推荐并行数: 15
+  CPU推荐并行数: 15
     cpu_cores: 28
-    mem_gb: 15.0
+    mem_gb: 10.7
     chk_mb: 5.0
-    mem_limit_workers: 21
+    mem_limit_workers: 15
     cpu_limit_workers: 84
-    selected: 21
+    selected: 15
   ✅ 系统资源检测通过
 
 ── 2. 并行加载 ──
+
+  场景: hdf5files_1d
+  文件数: 5
+  耗时: 0.02s
+  读取: 5/5
+  首文件: time=0.0
+  字段数: 16
+  空间点: 32
+  ✅ 并行加载通过
+
 ── 3. 场内多场并行提取 ──
-  ⚠ inputfiles_1d 目录不存在, 跳过
+
+  文件: lasslab_hdf5_chk_0001
+  耗时: 1.831s
+  dens: 32 pts
+  tele: 32 pts
+  pres: 32 pts
+  ✅ 场内多场并行提取通过
 
 ── 4. 并行插值 ──
+
+  场景: hdf5files_1d (前 5 个)
+  并行耗时: 2.346s
+  dens: shape=(31, 201), range=[2.7000e+00,2.7000e+00]
+  tele: shape=(31, 201), range=[2.5412e+02,3.4588e+02]
+
+  串行对比 (同一数据, use_parallel=False):
+  串行耗时: 0.001s
+  最大差异: 0.0000e+00
+  ✅ 并行/串行结果一致
+
 ── 5. ParallelProcessor 统一接口 ──
   创建: ParallelProcessor OK
+  pp.load_folder: 5 个文件
+  pp.interpolate: True
   ✅ ParallelProcessor 接口测试通过
 
 ============================================================
   并行模块测试完成
-  结果保存至: E:\PhySimX\PhySimX\simulation\flash_pypi\flash\output_processors\test\parallel\test_output.txt
+  结果保存至: E:\PhySimX\PhySimX\simulation\flash_test\flash_master\flash\output_processors\test\parallel\test_output.txt
 ============================================================

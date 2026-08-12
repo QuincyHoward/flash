@@ -7,11 +7,11 @@ publish_pypi.py — flash-sim PyPI 发布脚本
 上传 dist/ 产物, 并验证安装。
 
 用法:
-    python scripts/publish_pypi.py --build        # 构建 sdist + wheel (默认含)
-    python scripts/publish_pypi.py --test         # 试发到 TestPyPI (不覆盖正式)
-    python scripts/publish_pypi.py --test --no-verify   # 试发但不验证安装
-    python scripts/publish_pypi.py                # 正式发布到 pypi.org
-    python scripts/publish_pypi.py --check        # 仅 twine check + 产物审计
+    python scripts/03_git_publish/publish_pypi.py --build        # 构建 sdist + wheel (默认含)
+    python scripts/03_git_publish/publish_pypi.py --test         # 试发到 TestPyPI (不覆盖正式)
+    python scripts/03_git_publish/publish_pypi.py --test --no-verify   # 试发但不验证安装
+    python scripts/03_git_publish/publish_pypi.py                # 正式发布到 pypi.org
+    python scripts/03_git_publish/publish_pypi.py --check        # 仅 twine check + 产物审计
 
 前置:
     - dist/ 已构建 (或 --build 自动构建)
