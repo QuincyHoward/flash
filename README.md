@@ -3,7 +3,11 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![FLASH: Separate License](https://img.shields.io/badge/FLASH-Separate_License-orange.svg)](https://flash.rochester.edu)
-[![Version](https://img.shields.io/badge/version-0.1.1-green.svg)](https://pypi.org/project/flash-sim/)
+[![PyPI: flash-sim](https://img.shields.io/badge/PyPI-flash--sim-blue.svg)](https://pypi.org/project/flash-sim/)
+
+> **版本维护策略**: 本仓库以 Gitee 分支为开发主阵地 (release_pypi 为发布分支),
+> PyPI 按阶段发布更新。文档中**不标注具体版本号** (避免与频繁更新脱节),
+> 当前版本以 `pyproject.toml` 为准, 历史版本见 `git tag -l` 与 PyPI Releases。
 
 **flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
 
@@ -20,7 +24,7 @@ https://gitee.com/physimx/flash
 |------|------|
 | **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
 | **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | `0.1.1` (PyPI 首次发布) — `git tag -l` 查看全部 |
+| **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
@@ -601,10 +605,10 @@ bash scripts/install-git-hooks.sh
 # 提交触发 ≈ 代码风格检查
 # 推送触发 ≈ 框架测试
 # 打标签前运行全局测试:
-bash scripts/git-tag-with-test.sh v0.1.1
+bash scripts/git-tag-with-test.sh v<版本号>
 
 # 完整发布流程（格式检查 + 测试 + 构建 + 打标签）
-bash scripts/tag-release.sh v0.1.1
+bash scripts/tag-release.sh v<版本号>
 ```
 
 ### 发布
@@ -615,8 +619,8 @@ make build
 # 或
 python -m build
 
-# 产物在 dist/
-# flash-sim-0.1.1.tar.gz, flash_sim-0.1.1-py3-none-any.whl
+# 产物在 dist/ (以 pyproject.toml 版本号命名)
+# flash-sim-<版本号>.tar.gz, flash_sim-<版本号>-py3-none-any.whl
 ```
 
 ---
@@ -694,7 +698,7 @@ flash-sim 的 Python 代码以 Apache 2.0 许可，但其商用须遵守所有�
 
 ---
 
-> **flash-sim v0.1.1** — Build FLASH simulations smarter, not harder. ⚡
+> **flash-sim** — Build FLASH simulations smarter, not harder. ⚡
 
 
 ---

@@ -18,9 +18,24 @@ MAJOR.MINOR.PATCH
 |------|------|------|
 | `pyproject.toml` | `X.Y.Z` (PEP 440) | `1.0.0` |
 | Git tag | `vX.Y.Z` (前缀 `v`) | `v1.0.0` |
-| README badge | `version-X.Y.Z` | `version-1.0.0-green` |
 
 > **注意**: pyproject.toml 中不带 `v` 前缀（PEP 440 规范要求）；Git tag 带 `v` 前缀（社区惯例）。
+>
+> **文档不标注版本号**: 用户文档 (README / 场景指南 / 子模块文档) **不写具体版本号**,
+> 以避免频繁维护时文档与版本脱节。需要版本号时统一以 `pyproject.toml` 为准,
+> 历史版本见 `git tag -l` 与 PyPI Releases。
+
+---
+
+## 2. 版本维护策略 (Gitee 分支为主, PyPI 阶段性更新)
+
+- **开发主阵地**: Gitee 仓库 (`gitee.com/physimx/flash`) 的各分支
+  (`master` 开发主线, `release_pypi` 发布分支, `release/*` 阶段性分支)。
+- **PyPI 按阶段发布**: 不随每个 commit 发布 PyPI; 仅在功能达到阶段里程碑
+  (bug 修复集 / 新特性集) 时, 按 SemVer 递增版本并发布。
+- **版本号唯一权威**: `pyproject.toml` 的 `version` 字段是唯一权威;
+  Git tag 与 PyPI 版本必须与之保持一致。
+- **TestPyPI 先行**: 新版本先发 TestPyPI 验证 (安装 + 全局测试), 通过后再发正式 PyPI。
 
 ---
 

@@ -19,7 +19,7 @@ https://gitee.com/physimx/flash
 |------|------|
 | **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
 | **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | `0.1.1` (PyPI 首次发布) — `git tag -l` 查看全部 |
+| **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。

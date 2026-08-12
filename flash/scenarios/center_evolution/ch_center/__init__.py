@@ -295,6 +295,217 @@ def _interpolate_fn(flash_files, t_grid, x_grid, var_names):
     )
 
 
+# ── sim_input 完整性检查与编写指引 ──────────────────────
+#
+# 按 FLASH License Agreement §3, FLASH 分发的源文件 (F90/Config/Makefile)
+# 不随 flash-sim 发布包分发, 用户需自行获取 FLASH 后按下列指引编写/对照。
+# 自研 IONMIX 生成的 EOS/不透明度表 (Z*.cn4) 随包分发, 无版权障碍。
+
+# 每个必需文件: (文件名, 是否随包分发, 用途说明)
+_REQUIRED_SIM_INPUT = {
+    "Config": (
+        False,
+        "FLASH 编译配置: REQUIRES/REQUESTS 声明所需物理模块 (Hydro/Diffuse/"
+        "Heatexchange/Conductivity), PARAMETER 声明所有 sim_* 运行时参数, "
+        "DATAFILES 声明随包分发的自研 EOS 表 (*.cn4)",
+    ),
+    "Makefile": (
+        False,
+        "FLASH 编译清单: 列出需要编译的额外源文件 (如 `Simulation += Simulation_data.o`)",
+    ),
+    "Simulation_data.F90": (
+        False,
+        "模块 Simulation_data: 声明所有 sim_* 运行时参数变量 (靶/腔体材料密度、"
+        "温度、几何参数) 的 Fortran `save` 变量",
+    ),
+    "Simulation_init.F90": (
+        False,
+        "子程序 Simulation_init(): 通过 RuntimeParameters_get 从 .par 读取所有 "
+        "sim_* 参数并存入 Simulation_data 模块变量",
+    ),
+    "Simulation_initBlock.F90": (
+        False,
+        "子程序 Simulation_initBlock(blockId): 按空间位置 (xcent) 为每个网格单元"
+        "设置初始密度/温度/物种丰度 (靶区 vs 腔体区), 写入 Grid",
+    ),
+}
+
+
+def _print_file_pseudocode(fname: str, reason: str) -> None:
+    """缺失文件时打印主要内容总结与编写伪代码。"""
+    bar = "=" * 72
+    print(f"\n{bar}")
+    print(f"  [缺失] {fname} — {reason}")
+    print(f"{bar}")
+    if fname == "Config":
+        print("""
+  ## Config 编写伪代码 (FLASH 编译配置)
+  # REQUIRES 声明基础模块:
+  REQUIRES Driver
+  REQUIRES physics/Hydro
+  # 3T (双温+辐射) 需要额外模块:
+  USESETUPVARS ThreeT
+  IF ThreeT
+     REQUESTS physics/Diffuse/DiffuseMain/Unsplit
+     REQUESTS physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer
+     REQUESTS physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ
+  ENDIF
+  # 声明运行时参数 (与 Simulation_data.F90 变量一一对应):
+  PARAMETER sim_rhoTarg  REAL 2.7          ! 靶密度 (g/cm³)
+  PARAMETER sim_rhoCham  REAL 2.655e-07    ! 腔体密度 (g/cm³)
+  PARAMETER sim_teleTarg REAL 290.11375    ! 靶电子温度 (K)
+  ...  (其余 sim_* 参数类推)
+  # 声明 EOS/不透明度表 (自研表随包分发):
+  DATAFILES Z02_1.00-20260708_0851.cn4
+  DATAFILES Z06_0.50-Z01_0.50-20260708_0850.cn4
+""")
+    elif fname == "Makefile":
+        print("""
+  ## Makefile 编写伪代码
+  # 将自定义源文件追加到编译清单 (FLASH 自动编译 SimulationMain 下的标准文件):
+  Simulation += Simulation_data.o
+  # 注: Simulation_init.F90 / Simulation_initBlock.F90 由 FLASH 默认规则编译,
+  #     无需在此列出; 仅额外自定义源文件需要。
+""")
+    elif fname == "Simulation_data.F90":
+        print("""
+  ## Simulation_data.F90 编写伪代码 (模块: 声明 sim_* 变量)
+  module Simulation_data
+    implicit none
+  #include "constants.h"
+    ! 几何参数
+    real, save :: sim_targetRadius, sim_targetHeight, sim_vacuumHeight
+    ! 靶材料 (targ)
+    real,    save :: sim_rhoTarg, sim_teleTarg, sim_tionTarg, sim_tradTarg
+    real,    save :: sim_zminTarg
+    integer, save :: sim_eosTarg
+    ! 腔体材料 (cham)
+    real,    save :: sim_rhoCham, sim_teleCham, sim_tionCham, sim_tradCham
+    integer, save :: sim_eosCham
+    ! 其他
+    logical, save :: sim_killdivb = .FALSE.
+    real, save :: sim_smallX
+    character(len=MAX_STRING_LENGTH), save :: sim_initGeom
+  end module Simulation_data
+  # 注: 变量名必须与 Config 中 PARAMETER 及 .par 中键名完全一致。
+""")
+    elif fname == "Simulation_init.F90":
+        print("""
+  ## Simulation_init.F90 编写伪代码 (子程序: 读取 .par 参数)
+  subroutine Simulation_init()
+    use Simulation_data
+    use RuntimeParameters_interface, ONLY : RuntimeParameters_get
+    implicit none
+  #include "constants.h"
+  #include "Flash.h"
+    ! 逐参数读取 (与 Simulation_data 变量一一对应):
+    call RuntimeParameters_get('sim_targetRadius', sim_targetRadius)
+    call RuntimeParameters_get('sim_rhoTarg',      sim_rhoTarg)
+    call RuntimeParameters_get('sim_teleTarg',     sim_teleTarg)
+    call RuntimeParameters_get('sim_rhoCham',      sim_rhoCham)
+    call RuntimeParameters_get('sim_teleCham',     sim_teleCham)
+    ...  (其余 sim_* 参数类推)
+  end subroutine Simulation_init
+  # 注: 所有 RuntimeParameters_get 的键必须与 .par 中键名一致。
+""")
+    elif fname == "Simulation_initBlock.F90":
+        print("""
+  ## Simulation_initBlock.F90 编写伪代码 (子程序: 初始化网格单元状态)
+  subroutine Simulation_initBlock(blockId)
+    use Simulation_data
+    use Grid_interface, ONLY : Grid_getBlkIndexLimits, Grid_getCellCoords, &
+         Grid_putPointData
+    use RadTrans_interface, ONLY : RadTrans_mgdEFromT
+    implicit none
+  #include "constants.h"
+  #include "Flash.h"
+    integer, intent(in) :: blockId
+    integer :: i, j, k, n
+    integer :: blkLimits(2, MDIM), blkLimitsGC(2, MDIM)
+    integer :: axis(MDIM)
+    real, allocatable :: xcent(:), ycent(:), zcent(:)
+    real :: rho, tele, trad, tion, tradActual
+    integer :: species
+    ! 物种编号 (由 setup 的 species=cham,targ 定义):
+    integer :: CHAM_SPEC = 1, TARG_SPEC = 2
+
+    call Grid_getBlkIndexLimits(blockId, blkLimits, blkLimitsGC)
+    allocate(xcent(blkLimitsGC(HIGH, IAXIS)))
+    call Grid_getCellCoords(IAXIS, blockId, CENTER, .true., xcent, blkLimitsGC(HIGH, IAXIS))
+
+    do k = blkLimits(LOW,KAXIS), blkLimits(HIGH,KAXIS)
+      do j = blkLimits(LOW,JAXIS), blkLimits(HIGH,JAXIS)
+        do i = blkLimits(LOW,IAXIS), blkLimits(HIGH,IAXIS)
+          axis(IAXIS) = i; axis(JAXIS) = j; axis(KAXIS) = k
+          ! 按 x 位置判定靶区/腔体区 (阈值 = 靶半径, 与 .par sim_targetRadius 对应):
+          species = CHAM_SPEC
+          if (abs(xcent(i)) <= sim_targetRadius) species = TARG_SPEC
+          if (species == TARG_SPEC) then
+             rho = sim_rhoTarg; tele = sim_teleTarg
+             tion = sim_tionTarg; trad = sim_tradTarg
+          else
+             rho = sim_rhoCham; tele = sim_teleCham
+             tion = sim_tionCham; trad = sim_tradCham
+          end if
+          call Grid_putPointData(blockId, CENTER, DENS_VAR, EXTERIOR, axis, rho)
+          call Grid_putPointData(blockId, CENTER, TEMP_VAR, EXTERIOR, axis, tele)
+  #ifdef FLASH_3T
+          call Grid_putPointData(blockId, CENTER, TION_VAR, EXTERIOR, axis, tion)
+          call Grid_putPointData(blockId, CENTER, TELE_VAR, EXTERIOR, axis, tele)
+          call RadTrans_mgdEFromT(blockId, axis, trad, tradActual)
+          call Grid_putPointData(blockId, CENTER, TRAD_VAR, EXTERIOR, axis, tradActual)
+  #endif
+          ! 物种丰度 (唯一占优物种=1, 其余=sim_smallX):
+          if (NSPECIES > 0) then
+            do n = SPECIES_BEGIN, SPECIES_END
+              if (n == species) then
+                call Grid_putPointData(blockID, CENTER, n, EXTERIOR, axis, 1.0e0-(NSPECIES-1)*sim_smallX)
+              else
+                call Grid_putPointData(blockID, CENTER, n, EXTERIOR, axis, sim_smallX)
+              end if
+            end do
+          end if
+        end do
+      end do
+    end do
+    deallocate(xcent)
+  end subroutine Simulation_initBlock
+  # 注: 靶半径阈值 (sim_targetRadius) 需与 .par 中设置一致, 才能正确定位靶区。
+""")
+    else:
+        print(f"  [未知文件] {fname}: 请参考 FLASH 文档 https://flash.rochester.edu\n")
+
+
+def _check_sim_input() -> None:
+    """检查场景必需 FLASH 源文件, 缺失时打印主要内容总结与编写伪代码。
+
+    在源码工作区 (仓库内) 运行时不触发; 仅当 sim_input 目录中缺少
+    F90/Config/Makefile 时给出编写指引 (wheel 安装模式常见)。
+    """
+    missing = []
+    for fname, (ships, _desc) in _REQUIRED_SIM_INPUT.items():
+        if not (_HERE / "flash_input" / fname).exists():
+            missing.append((fname, ships))
+    if not missing:
+        return
+    print("\n" + "=" * 72)
+    print("  ⚠️  ch_center 场景缺少以下 FLASH 源文件 (不随发布包分发):")
+    print("  " + "=" * 68)
+    for fname, ships in missing:
+        print(f"    - {fname}" + ("  (自研表随包分发, 无需编写)" if ships else ""))
+    print("\n  说明: 按 FLASH License Agreement §3, FLASH 分发的源文件不可再分发,")
+    print("  请从 https://flash.rochester.edu 获取 FLASH 后, 参照 FLASH 自带")
+    print("  SimulationMain/LaserSlab 示例文件修改, 或按下方伪代码自行编写。")
+    print("  完整参考实现见源码仓库 scenarios/center_evolution/ch_center/flash_input/。")
+    for fname, _ships in missing:
+        if not _ships:
+            _print_file_pseudocode(fname, _REQUIRED_SIM_INPUT[fname][1])
+
+
+# 场景实例化后立即执行完整性检查 (导入时打印一次)
+_check_sim_input()
+
+
 # ── 场景实例 ──────────────────────────────────────────
 
 scenario = SimulationScenario(

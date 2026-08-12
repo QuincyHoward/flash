@@ -106,7 +106,12 @@ exclude = [
     "flash/**/__pycache__/**",
     "flash/**/.pytest_cache/**",
     # === 二进制/数据文件 ===
-    "*.h5", "*.hdf5", "*.pdf", "*.cn4", "*.cnr", "*.imx", "*.ses", "*.png", "*.xlsx",
+    # 注: cn4 仅排除 FLASH 分发自带表 (he-imx-*, polystyrene-imx-* 等),
+    #     保留 IONMIX 自研生成表 (Z*.cn4, 见 scenarios/*/flash_input/).
+    #     自研表无版权障碍, 可随包分发 (场景运行必需, Config DATAFILES 引用).
+    "*.h5", "*.hdf5", "*.pdf",
+    "*-imx-*.cn4", "*-imx-*.cnr", "*-imx-*.imx",
+    "*.cnr", "*.imx", "*.ses", "*.png", "*.xlsx",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -186,7 +191,8 @@ exclude = [
     "*.h5",
     "*.hdf5",
     "*.pdf",
-    "*.cn4",
+    # FLASH 分发自带 EOS/不透明度表 (版权, 排除); 自研 Z*.cn4 保留随包分发
+    "*-imx-*.cn4",
     "*.cnr",
     "*.imx",
     "*.ses",
