@@ -596,6 +596,22 @@ make lint
 make format
 ```
 
+**私有场景测试说明**:
+- **全局测试不测私有场景**（`thin_layer_sandwich_si/al`、`grad_dens_sandwich` 为本地私有,
+  发布环境未注册时自动跳过; 全局只测公开场景 `ch_center`）。
+- 本地手动执行私有场景完整测试（需私有场景代码在仓库中）:
+  ```bash
+  pytest test/scenarios/test_engine_dryrun.py -v
+  pytest test/scenarios/test_scenario_par_build.py -v
+  ```
+
+**output_processors 测试数据说明**:
+- 测试所需 HDF5 数据（`flash/output_processors/inputfiles/`, .gitignore 排除,
+  **不随包/仓库发布**）由 `flash/output_processors/test/gen_test_data.py`
+  **并行快速生成 → 测试 → 全部通过即自动删除**;
+  测试有失败则**保留数据文件**供调试
+  （调试完成后 `python flash/output_processors/test/gen_test_data.py --cleanup` 手动清理）。
+
 ### Git 工作流
 
 ```bash

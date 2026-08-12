@@ -7,6 +7,13 @@ test_scenario_par_build.py — 测试场景 .par 文件生成
   - 各场景 EOS 文件路径正确
   - chk 提取模式正确
   - .par 关键参数检查
+
+私有场景说明 (重要):
+  - EXPECTED_EOS 含私有场景 (thin_layer_sandwich_si/al) 条目。
+  - **全局测试不测私有场景**: 发布环境私有场景未注册时, 相关验证自动跳过,
+    仅校验公开场景 (ch_center)。
+  - 本地完整验证私有场景 (需私有场景代码):
+      pytest test/scenarios/test_scenario_par_build.py -v
 """
 
 import sys

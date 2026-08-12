@@ -119,44 +119,51 @@ class FlashDataLoader:
             compute_derived: 是否自动计算派生变量
             use_cell_centers: (API 兼容) 是否使用单元中心坐标
             return_global_coords: (API 兼容) 是否返回全局坐标
+
+        说明:
+            所有数据读取完成后底层 h5py 文件句柄立即关闭
+            (数据已拷贝为 numpy 数组, 容器不依赖句柄),
+            避免文件被进程锁住 (Windows 上测试/批处理会因此无法删除文件)。
         """
         container = FlashDataContainer(self.filepath)
         ff = self._flash_file
+        try:
+            # 元信息
+            container.ndim = ff.ndim
+            container.nblocks = ff.nblocks
+            container.nx = ff.nx
+            container.ny = ff.ny
+            container.nz = ff.nz
+            container.file_type = ff.file_type
+            container.sim_info = ff.sim_info
+            container.varnames = ff.varnames
+            container.simulation_time = ff.simulation_time
+            container.simulation_step = ff.simulation_step
+            container.laser_groups = ff.laser_groups
 
-        # 元信息
-        container.ndim = ff.ndim
-        container.nblocks = ff.nblocks
-        container.nx = ff.nx
-        container.ny = ff.ny
-        container.nz = ff.nz
-        container.file_type = ff.file_type
-        container.sim_info = ff.sim_info
-        container.varnames = ff.varnames
-        container.simulation_time = ff.simulation_time
-        container.simulation_step = ff.simulation_step
-        container.laser_groups = ff.laser_groups
+            # 读取所有物理量
+            for vname in ff.varnames:
+                try:
+                    container.data[vname] = ff.read_var(vname)
+                except KeyError:
+                    pass
 
-        # 读取所有物理量
-        for vname in ff.varnames:
-            try:
-                container.data[vname] = ff.read_var(vname)
-            except KeyError:
-                pass
+            # AMR 元信息（兼容 yt 风格访问）
+            container.refine_level = ff._f["refine level"][()]
+            container.bbox = ff._f["bounding box"][()]
 
-        # AMR 元信息（兼容 yt 风格访问）
-        container.refine_level = ff._f["refine level"][()]
-        container.bbox = ff._f["bounding box"][()]
+            # 读取网格信息
+            container.grid = ff.read_grid()
+            self._build_global_coords(container)
 
-        # 读取网格信息
-        container.grid = ff.read_grid()
-        self._build_global_coords(container)
-
-        # 计算派生变量
-        if compute_derived and container.data:
-            calc = DataCalculator(container.data)
-            # 传入网格信息以便梯度计算
-            calc._data["_grid_info"] = container.grid
-            container.derived = calc.compute_all()
+            # 计算派生变量
+            if compute_derived and container.data:
+                calc = DataCalculator(container.data)
+                # 传入网格信息以便梯度计算
+                calc._data["_grid_info"] = container.grid
+                container.derived = calc.compute_all()
+        finally:
+            ff.close()
 
         return container
 
@@ -166,36 +173,38 @@ class FlashDataLoader:
         """仅加载指定变量，速度更快"""
         container = FlashDataContainer(self.filepath)
         ff = self._flash_file
+        try:
+            container.ndim = ff.ndim
+            container.nblocks = ff.nblocks
+            container.nx = ff.nx
+            container.ny = ff.ny
+            container.nz = ff.nz
+            container.file_type = ff.file_type
+            container.sim_info = ff.sim_info
+            container.simulation_time = ff.simulation_time
+            container.simulation_step = ff.simulation_step
+            container.laser_groups = ff.laser_groups
 
-        container.ndim = ff.ndim
-        container.nblocks = ff.nblocks
-        container.nx = ff.nx
-        container.ny = ff.ny
-        container.nz = ff.nz
-        container.file_type = ff.file_type
-        container.sim_info = ff.sim_info
-        container.simulation_time = ff.simulation_time
-        container.simulation_step = ff.simulation_step
-        container.laser_groups = ff.laser_groups
+            for vname in var_names:
+                try:
+                    container.data[vname] = ff.read_var(vname)
+                    container.varnames.append(vname)
+                except KeyError:
+                    print(f"  [警告] 变量 '{vname}' 不在文件中")
 
-        for vname in var_names:
-            try:
-                container.data[vname] = ff.read_var(vname)
-                container.varnames.append(vname)
-            except KeyError:
-                print(f"  [警告] 变量 '{vname}' 不在文件中")
+            # AMR 元信息
+            container.refine_level = ff._f["refine level"][()]
+            container.bbox = ff._f["bounding box"][()]
 
-        # AMR 元信息
-        container.refine_level = ff._f["refine level"][()]
-        container.bbox = ff._f["bounding box"][()]
+            container.grid = ff.read_grid()
+            self._build_global_coords(container)
 
-        container.grid = ff.read_grid()
-        self._build_global_coords(container)
-
-        if compute_derived and container.data:
-            calc = DataCalculator(container.data)
-            calc._data["_grid_info"] = container.grid
-            container.derived = calc.compute_all()
+            if compute_derived and container.data:
+                calc = DataCalculator(container.data)
+                calc._data["_grid_info"] = container.grid
+                container.derived = calc.compute_all()
+        finally:
+            ff.close()
 
         return container
 

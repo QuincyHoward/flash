@@ -7,6 +7,13 @@ test_engine_dryrun.py — 测试 FlashSimulatorEngine dry-run
   - .par 文件复制到运行目录
   - sim_input/ 完整复制
   - run() 失败模式正确处理
+
+私有场景说明 (重要):
+  - 本文件含私有场景 (thin_layer_sandwich_si/al) 测试。
+  - **全局测试不测私有场景**: 发布环境私有场景未注册时, 私有场景用例自动跳过,
+    公开场景 (ch_center) 用例正常运行。
+  - 本地完整测试私有场景 (需私有场景代码):
+      pytest test/scenarios/test_engine_dryrun.py -v
 """
 
 import sys, tempfile, json
@@ -95,7 +102,8 @@ def test_engine_with_al_scenario():
     import pytest
     available = [s[0] for s in list_scenarios()]
     if "thin_layer_sandwich_al" not in available:
-        pytest.skip("私有场景 thin_layer_sandwich_al 未注册 (发布环境)")
+        pytest.skip("私有场景 thin_layer_sandwich_al 未注册 (发布环境)。"
+                    "手动执行: pytest test/scenarios/test_engine_dryrun.py -v")
     sc = get_scenario("thin_layer_sandwich_al")
     engine = FlashSimulatorEngine(sc, verbose=False)
 
