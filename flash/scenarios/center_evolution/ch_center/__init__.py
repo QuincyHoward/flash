@@ -10,15 +10,17 @@ import sys
 from pathlib import Path
 
 # Bootstrap: find flash project root by searching upward for marker
+# (源码工作区模式: 注入仓库根到 sys.path; wheel 安装模式: flash 包已在
+#  site-packages, 找不到 pyproject.toml 时静默跳过, 不抛错)
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
     if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
-    raise RuntimeError("Cannot locate flash package root")
+    _ROOT = None  # 安装模式: 无仓库根, 跳过 sys.path 注入
 _PARENT = _ROOT
-if str(_PARENT) not in sys.path:
+if _PARENT is not None and str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 # 本地场景目录

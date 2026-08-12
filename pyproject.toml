@@ -99,6 +99,10 @@ exclude = [
     "flash/**/demo_task/**",
     "flash/input_gen/test/**",
     "flash/output_processors/test/**",
+    # === 用户临时调试脚本 (非通用发布代码, 含硬编码路径) ===
+    "flash/flash_run/remote/remote_check.py",
+    "flash/flash_run/remote/remote_workflow.py",
+    "flash/flash_run/remote/ssh_check.py",
     "flash/**/__pycache__/**",
     "flash/**/.pytest_cache/**",
     # === 二进制/数据文件 ===
@@ -151,6 +155,10 @@ exclude = [
     "/docs/**",
     "/scripts/**",
     "/test/**",
+    # === 用户临时调试脚本 (非通用发布代码, 含硬编码路径) ===
+    "flash/flash_run/remote/remote_check.py",
+    "flash/flash_run/remote/remote_workflow.py",
+    "flash/flash_run/remote/ssh_check.py",
     # === 旧副本 / 内部文件 ===
     "output_processors_copy/**",
     "input_gen/gen_eos_op_copy/**",
