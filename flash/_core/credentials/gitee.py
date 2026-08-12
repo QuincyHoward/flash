@@ -43,8 +43,40 @@ def setup_gitee() -> bool:
         data[key] = ask_one(label, default)
 
     cm.set("gitee", data)
+
+    # 自动补存 login (登录名): git 无交互直连认证必须用 login, 显示名会 403
+    login = _query_gitee_login(data.get("token", ""))
+    if login:
+        data["login"] = login
+        cm.set("gitee", data)
+        print(f"  ✅ 已自动获取登录名: {login}")
+    else:
+        print(f"  ⚠ 未能获取登录名 (token 可能无效或网络问题), "
+              f"无交互直连需手动补充 login 字段")
+
     print(f"\n  ✅ Gitee 凭据已保存。")
     return True
+
+
+def _query_gitee_login(token: str) -> str:
+    """通过 Gitee API 查询 token 对应的登录名 (login)。
+
+    用于 git 无交互直连: https://login:token@gitee.com/...
+    返回空串表示查询失败。
+    """
+    if not token:
+        return ""
+    import json
+    import urllib.error
+    import urllib.request
+    try:
+        url = f"https://gitee.com/api/v5/user?access_token={token}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            user_info = json.loads(resp.read().decode("utf-8"))
+        return str(user_info.get("login", ""))
+    except Exception:
+        return ""
 
 
 def show_gitee(raw: bool = False) -> None:

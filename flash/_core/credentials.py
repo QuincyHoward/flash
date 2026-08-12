@@ -565,17 +565,23 @@ def get_gitee_credentials() -> Optional[Dict[str, Any]]:
 
 
 def get_gitee_auth_url() -> str:
-    """生成带认证的 Gitee URL。
+    """生成带认证的 Gitee URL (无交互直连)。
 
     返回:
-        如果凭据存在: https://username:token@gitee.com/user/repo.git
+        如果凭据存在: https://login:token@gitee.com/user/repo.git
         如果凭据不存在: 默认 URL (需要用户先设置凭据)
+
+    注意:
+        认证用户名必须用 Gitee **登录名** (login, 如 quincyhoward),
+        不能用显示名 (name, 如 QuincyHoward) — 显示名认证会 403
+        "The token username invalid" → git 回退弹窗。
     """
     cred = get_gitee_credentials()
     if not cred:
         return "https://gitee.com/physimx/flash.git"
 
-    username = cred.get("username", "")
+    # 优先登录名 (无交互直连), 缺失时回退显示名
+    username = cred.get("login") or cred.get("username", "")
     token = cred.get("token", "")
     repo_url = cred.get("repo_url", "")
 

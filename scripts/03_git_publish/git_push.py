@@ -95,7 +95,15 @@ def run_git(cmd: str, cwd: Path | None = None, check: bool = True,
     """执行 git 命令。返回 CompletedProcess 对象。
 
     显式指定 utf-8 编码避免 Windows 上 GBK 解码 UTF-8 输出时报错。
+
+    无交互直连 (统一):
+      所有 git 命令注入 `-c credential.helper=` 与 `-c core.askPass=`,
+      命令行级禁用任何 credential helper (含 WorkBuddy PortableGit 的
+      helper-selector 弹窗来源), 认证完全依赖 remote URL 中嵌入的
+      login:token (由 push_to_gitee 统一设置)。任何环境都不会弹窗。
     """
+    if cmd.startswith("git "):
+        cmd = "git -c credential.helper= -c core.askPass= " + cmd[4:]
     result = subprocess.run(
         cmd, shell=True, cwd=cwd,
         capture_output=capture, text=True,
