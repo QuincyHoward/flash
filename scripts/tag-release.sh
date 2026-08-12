@@ -25,13 +25,13 @@ echo "  - Flash framework tests..."
 pytest test -v || (echo "Flash framework tests failed!" && exit 1)
 
 echo "  - Input generation tests..."
-pytest input_gen/test -v || (echo "Input generation tests failed!" && exit 1)
+pytest flash/input_gen/test -v || (echo "Input generation tests failed!" && exit 1)
 
 echo "  - Output processors tests..."
-pytest output_processors/test -v || (echo "Output processors tests failed!" && exit 1)
+pytest flash/output_processors/test -v || (echo "Output processors tests failed!" && exit 1)
 
 echo "  - Output processors input files tests..."
-pytest output_processors/inputfiles/test -v || (echo "Output processors input files tests failed!" && exit 1)
+pytest flash/output_processors/inputfiles/test -v || (echo "Output processors input files tests failed!" && exit 1)
 
 echo "All global tests passed!"
 
