@@ -32,63 +32,25 @@ from pathlib import Path
 # ============================================================================
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
-    if (_ROOT / "__init__.py").exists() and (_ROOT / "pyproject.toml").exists():
+    if (_ROOT / "pyproject.toml").exists():
         break
     _ROOT = _ROOT.parent
 else:
     raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT.parent
+_PARENT = _ROOT
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-def _ensure_flash_alias() -> None:
-    """确保 `import flash` 可用 (兼容目录名非 flash 的备份/独立包).
-
-    策略:
-      1. 若目录名已是 flash → 父目录入 sys.path 即可 (默认路径已处理)
-      2. 否则在包根同级创建 flash 目录别名 (junction/symlink),
-         使 pytest 子进程等通过 PYTHONPATH=父目录 也能 import flash
-    """
-    pkg_name = _ROOT.name
-    if pkg_name == "flash":
-        return
-    alias = _PARENT / "flash"
-    if alias.exists() or alias.is_symlink():
-        return
-    try:
-        if os.name == "nt":
-            import subprocess as _sp
-            _r = _sp.run(["cmd", "/c", "mklink", "/J", str(alias), str(_ROOT)],
-                         capture_output=True, text=True, errors="replace")
-            if _r.returncode != 0:
-                raise OSError(_r.stderr.strip() or "mklink failed")
-        else:
-            alias.symlink_to(_ROOT, target_is_directory=True)
-    except Exception as e:  # noqa: BLE001
-        # 失败不影响主进程运行 (sys.modules 别名已生效)
-        sys.stderr.write(f"  ⚠️ 无法创建 flash 目录别名: {e}\n")
-
-
 # ============================================================================
-#  Bootstrap: 直接运行时自动转为模块方式 (flash 独立包)
+#  Bootstrap: 直接运行时自动转为模块方式 (scripts 包, 标准布局)
+#  重组后: flash 包 = 项目根/flash/, scripts 包 = 项目根/scripts/
+#  旧"包名映射 flash 别名 + 目录 junction"兼容逻辑已废弃
 # ============================================================================
 if __name__ == "__main__" and __package__ is None:
-    import importlib
     import runpy
 
-    # 兼容: 备份目录名可能不是 "flash" (如 flash_backup_gitee_xxx)
-    # 将实际包名映射为 flash 别名, 使 runpy.run_module("flash.scripts...") 可用
-    _PKG_NAME = _ROOT.name
-    if _PKG_NAME != "flash":
-        try:
-            _mod = importlib.import_module(_PKG_NAME)
-            sys.modules.setdefault("flash", _mod)
-        except Exception:  # noqa: BLE001
-            pass  # 父目录已在 sys.path, 直接 import flash 亦可
-        _ensure_flash_alias()
-
-    runpy.run_module("flash.scripts.run_global_tests", run_name="__main__")
+    runpy.run_module("scripts.run_global_tests", run_name="__main__")
     sys.exit(0)
 
 # ============================================================================
@@ -97,8 +59,8 @@ if __name__ == "__main__" and __package__ is None:
 
 SUITES = {
     "framework": ("Flash 框架测试",   "test/",                   True),
-    "input":     ("InputGen 测试",    "input_gen/test/",          True),
-    "output":    ("OutputProcessors 测试", "output_processors/test/", False),
+    "input":     ("InputGen 测试",    "flash/input_gen/test/",   True),
+    "output":    ("OutputProcessors 测试", "flash/output_processors/test/", False),
 }
 
 SUITE_ORDER = ["framework", "input", "output"]

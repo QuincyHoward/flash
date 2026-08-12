@@ -56,11 +56,11 @@ DEFAULT_BASE_PY = [
 
 REPORT_FILE = os.path.join(PROJECT_DIR, "INSTALL_TEST_REPORT.txt")
 
-# 三套测试: (套件名, 相对测试目录)
+# 三套测试: (套件名, 相对测试目录)  — 标准布局: 包代码在 flash/ 下
 TEST_SUITES = [
     ("framework",          "test"),
-    ("input_gen",          os.path.join("input_gen", "test")),
-    ("output_processors",  os.path.join("output_processors", "test")),
+    ("input_gen",          os.path.join("flash", "input_gen", "test")),
+    ("output_processors",  os.path.join("flash", "output_processors", "test")),
 ]
 
 

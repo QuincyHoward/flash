@@ -15,7 +15,7 @@ FLASH_ROOT = Path(__file__).resolve().parent.parent
 OLD_MARKER = "_bootstrap.py"
 NEW_MARKER = "__init__.py"
 OLD_INSERT = 'if str(_ROOT) not in sys.path:\n    sys.path.insert(0, str(_ROOT))'
-NEW_INSERT = '_PARENT = _ROOT.parent\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))'
+NEW_INSERT = '_PARENT = _ROOT\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))'
 
 OLD_ERR = 'raise RuntimeError("Cannot locate flash project root (_bootstrap.py not found)")'
 NEW_ERR = 'raise RuntimeError("Cannot locate flash package root")'
@@ -33,7 +33,7 @@ def process_file(filepath: Path) -> bool:
         return False
     
     # Check if already fixed
-    if "_PARENT = _ROOT.parent" in content:
+    if "_PARENT = _ROOT" in content:
         return False
     
     # Replace marker check
@@ -64,10 +64,10 @@ def _replace_insert(content: str) -> str:
     """Replace the sys.path.insert logic."""
     # Pattern: the block after the for-else loop
     # Old: if str(_ROOT) not in sys.path:\n    sys.path.insert(0, str(_ROOT))
-    # New: _PARENT = _ROOT.parent\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))
+    # New: _PARENT = _ROOT\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))
     
     old_pattern = 'if str(_ROOT) not in sys.path:\n    sys.path.insert(0, str(_ROOT))'
-    new_pattern = '_PARENT = _ROOT.parent\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))'
+    new_pattern = '_PARENT = _ROOT\nif str(_PARENT) not in sys.path:\n    sys.path.insert(0, str(_PARENT))'
     
     return content.replace(old_pattern, new_pattern)
 

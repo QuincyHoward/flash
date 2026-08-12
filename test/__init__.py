@@ -1,6 +1,1 @@
-"""FLASH simulator unit tests.
-
-This module contains unit tests for FLASH simulator components.
-"""
-
-__all__ = []
+"""pytest 测试包标记（根 test/ 目录）。"""
