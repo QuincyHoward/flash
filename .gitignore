@@ -199,9 +199,11 @@ wheels/
 # ==============================
 # 全局排除 Z*.cn4 (默认不发布), 例外保留以下两类:
 #   - Gen_eos_op_data/  自生成表目录
-#   - sim_input*/       场景输入目录
+#   - sim_input*/       场景输入目录 (thin_layer 等)
+#   - flash_input/      ch_center 等场景输入目录 (flash_input/Z*.cn4)
 !**/Gen_eos_op_data/**/Z*.cn4
 !**/sim_input*/Z*.cn4
+!**/flash_input/Z*.cn4
 
 # ==============================
 # Credentials (never commit)
