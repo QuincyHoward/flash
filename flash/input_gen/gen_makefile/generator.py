@@ -15,14 +15,14 @@ DEFAULT_MAKEFILE_CONTENT = "Simulation += Simulation_data.o\n"
 class MakefileGenerator:
     """FLASH Makefile 生成器 (自包含)。"""
 
-    def generate(self, sim_path: str = "QC/LaserSlab1d_new") -> str:
+    def generate(self, sim_path: str = "hello/LaserSlab1d_new") -> str:
         """生成 Makefile 内容。"""
         return DEFAULT_MAKEFILE_CONTENT
 
     def save(
         self,
         output_path: Union[str, Path],
-        sim_path: str = "QC/LaserSlab1d_new",
+        sim_path: str = "hello/LaserSlab1d_new",
     ) -> Path:
         """生成并保存 Makefile。"""
         content = self.generate(sim_path=sim_path)

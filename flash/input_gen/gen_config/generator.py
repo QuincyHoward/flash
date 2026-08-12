@@ -104,7 +104,7 @@ class ConfigGenerator:
 
     def generate(
         self,
-        simulation_path: str = "QC/LaserSlab1d_new",
+        simulation_path: str = "hello/LaserSlab1d_new",
         target_material: Any = None,
         chamber_gas: Any = None,
         extra_datafiles: Optional[List[str]] = None,
@@ -185,7 +185,7 @@ ENDIF
     def save(
         self,
         output_path: Union[str, Path],
-        simulation_path: str = "QC/LaserSlab1d_new",
+        simulation_path: str = "hello/LaserSlab1d_new",
         target_material: Any = None,
         chamber_gas: Any = None,
         extra_datafiles: Optional[List[str]] = None,

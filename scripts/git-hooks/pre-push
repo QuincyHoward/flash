@@ -38,10 +38,10 @@ echo "  - Project root: $PROJECT_ROOT"
 
 # 使用正确的 Python 解释器 (支持环境变量覆盖)
 # 默认: WSL 路径; 自定义: export PYTHON=/path/to/python
-PYTHON="${PYTHON:-/c/Users/15735/.workbuddy/binaries/python/versions/3.13.12/python.exe}"
+PYTHON="${PYTHON:-}"
 
 # 检查 Python 是否可用
-if [ ! -f "$PYTHON" ]; then
+if [ -z "$PYTHON" ] || [ ! -f "$PYTHON" ]; then
     # 尝试从 PATH 查找 python
     if command -v python3 &> /dev/null; then
         PYTHON="python3"

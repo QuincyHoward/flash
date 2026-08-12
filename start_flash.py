@@ -50,9 +50,9 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 # 与 IDE/用户实际执行脚本所用的解释器一致，避免"装了却 import 不到"。
 # 绝不使用/删除共享环境（如 C:\Users\Administrator\.workbuddy\binaries\python\envs\default）。
 DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, ".venv")
-DEFAULT_BASE_PY = [
-    r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe",
-]
+# base 解释器探测顺序: FLASH_BASE_PY 环境变量 → 当前解释器(非 venv) → 下方硬编码兜底。
+# 不在此硬编码本机用户路径（start_flash.py 会随 sdist 发布，避免隐私泄漏）。
+DEFAULT_BASE_PY: list = []
 
 REPORT_FILE = os.path.join(PROJECT_DIR, "INSTALL_TEST_REPORT.txt")
 

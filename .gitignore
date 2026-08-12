@@ -230,3 +230,22 @@ scenarios/collision_compression/grad_dens_sandwich/
 
 # 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
 scenarios/collision_compression/thin_layer_sandwich/
+
+# ==============================
+# FLASH 版权材料 — IONMIX 文档/源 (重组后 flash/ 前缀路径)
+# ==============================
+flash/input_gen/gen_eos_op/ionmix/ionmix/docs/
+flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/
+**/macfarlane1989.md
+
+# ==============================
+# 重组后 flash/ 前缀路径 (标准布局)
+# ==============================
+flash/input_gen/gen_eos_op_copy/
+flash/output_processors_copy/
+flash/scenarios/collision_compression/grad_dens_sandwich/
+flash/scenarios/collision_compression/thin_layer_sandwich/
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_*/
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_al/**
+flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_si/**
+flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4

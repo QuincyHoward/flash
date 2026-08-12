@@ -168,7 +168,7 @@ class BlockGenerator:
     def __init__(
         self,
         simulation_name: str = "LaserSlab",
-        sim_path: str = "QC/LaserSlab1d_new",
+        sim_path: str = "hello/LaserSlab1d_new",
         use_radtrans: bool = True,
         use_3t: bool = True,
         use_face_vars: bool = False,
