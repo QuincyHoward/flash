@@ -125,7 +125,15 @@ IONMIX EOS/Opacity Tables
 
 IONMIX4 format equation-of-state and opacity tables (.cn4 files) are
 included in the FLASH distribution and are governed by the FLASH
-License Agreement.
+License Agreement. This package therefore does **not** redistribute
+FLASH-distributed tables (e.g. `*-imx-*.cn4`, such as `he-imx-005.cn4`
+or `polystyrene-imx-008.cn4`).
+
+The package **does** redistribute user-generated IONMIX tables
+(`Z*.cn4`, produced by the PhySimX `gen_eos_op` / IONMIX workflow from
+publicly available IONMIX data), which carry no FLASH-license
+restriction. These are required by the shipped scenarios (referenced
+via `DATAFILES` in their `Config` files).
 
 
 Disclaimer

@@ -118,6 +118,7 @@ exclude = [
 include = [
     "**/*.py",
     "**/*.md",
+    "**/Z*.cn4",
     "README.md",
     "LICENSE",
     "NOTICE",

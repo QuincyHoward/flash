@@ -259,10 +259,10 @@ python -m flash.flash_run.env.resource_config show    # 查看当前配置
 | **激光** | 5e14 W/cm² |
 | **CH 靶** | ρ=1.0 g/cm³ |
 | **He** | ρ=1e-6 g/cm³ (eos_tab) |
-| **EOS 表** | 原始 FLASH EOS (he-imx-005.cn4, polystyrene-imx-008.cn4) |
+| **EOS 表** | 自研 IONMIX 表 (Z02, Z06-Z01, 随包分发, 无版权障碍) |
 | **tmax** | 1.2e-9 s |
 | **输出字段** | 7 个 (dens, tele, tion, trad, ye, sumy, pres) |
-| **备注** | 原始 FLASH LaserSlab 配置, 使用旧 EOS 表 + 旧 MGD 组设置 |
+| **备注** | 基于原始 FLASH LaserSlab 配置, EOS 表已替换为自研高分辨表 |
 
 ---
 
@@ -642,7 +642,7 @@ for factor in [1.0, 1.5, 2.0]:
 - **旧 EOS 表**（`he-imx-*`, `polystyrene-imx-008*`）起始温度 **2.0 eV**（≈23209 K），室温 0.025 eV 低于下界。FLASH 会做**外推 (extrapolation)**，简单场景（CH 靶、低功率 Al）可正常使用。
 - **新 EOS 表**（`Z02_*`, `Z06_*`, `Z14_*`）起始温度 **0.01 eV**（≈116 K），室温 0.025 eV **在有效范围内**。
 - 各场景初始温度:
-  - `ch_center` — **290.11375 K**（旧 EOS 表，外推适用）
+  - `ch_center` — **290.11375 K**（自研新 EOS 表，室温在有效范围内）
   - `thin_layer_sandwich_al` — **290.11375 K**（旧 EOS 表，低功率 5e11 稳定）
   - `thin_layer_sandwich_si` — **3500.00 K**（新 EOS 表，高功率 5e14 下扩散求解器在低温时不稳定，详见场景表脚注）
 - 如需自定义，在 `params_override` 中传入 `sim_teleCham=290.11375` 等参数。
