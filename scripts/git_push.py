@@ -82,7 +82,7 @@ if __name__ == "__main__" and __package__ is None:
 # ============================================================================
 #  从 _core/credentials 读取凭据 (使用模块化 API)
 # ============================================================================
-from .._core.credentials import get_credential_manager, interactive_menu
+from flash._core.credentials import get_credential_manager, interactive_menu
 
 
 # ============================================================================

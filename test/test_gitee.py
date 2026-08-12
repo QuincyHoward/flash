@@ -82,7 +82,7 @@ def test_git_push_import():
     print("  测试 4: 测试统一 git_push 导入")
     print("=" * 60)
 
-    from flash.scripts.git_push import push_to_gitee, show_status, find_git_root
+    from scripts.git_push import push_to_gitee, show_status, find_git_root
 
     print("\n[成功] 成功导入 git_push 核心函数:")
     print("  - push_to_gitee: 统一推送函数")
