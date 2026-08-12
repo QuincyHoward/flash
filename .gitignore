@@ -170,6 +170,8 @@ build/
 develop-eggs/
 dist/
 dist_new/
+dist_new2/
+dist_wheel_only/
 downloads/
 eggs/
 .eggs/
