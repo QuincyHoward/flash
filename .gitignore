@@ -233,8 +233,11 @@ scenarios/collision_compression/thin_layer_sandwich/
 
 # ==============================
 # FLASH 版权材料 — IONMIX 文档/源 (重组后 flash/ 前缀路径)
+# 注: IONMIX用户指南.md 为 PhySimX 自研中文文档, 需纳入版本控制, 故反选保留;
+#     abjt_03 二进制/源码与 macfarlane1989.md 属第三方版权材料, 保持忽略。
 # ==============================
-flash/input_gen/gen_eos_op/ionmix/ionmix/docs/
+flash/input_gen/gen_eos_op/ionmix/ionmix/docs/*
+!flash/input_gen/gen_eos_op/ionmix/ionmix/docs/IONMIX用户指南.md
 flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/
 **/macfarlane1989.md
 

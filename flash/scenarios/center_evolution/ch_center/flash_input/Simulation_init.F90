@@ -1,11 +1,5 @@
 !!****if* source/Simulation/SimulationMain/LaserSlab/Simulation_init
 !!
-!!  MODIFIED BY: PhySimX Contributors — derivative of the FLASH Center's
-!!  source/Simulation/SimulationMain/LaserSlab/Simulation_init
-!!  (modified for a new physics setup; original FLASH header preserved
-!!  intact per FLASH License Agreement §4(c); modification declared per §4(a)).
-!!  FLASH: https://flash.rochester.edu
-!!
 !! NAME
 !!
 !!  Simulation_init

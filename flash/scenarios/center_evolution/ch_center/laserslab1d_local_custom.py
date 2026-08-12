@@ -665,7 +665,7 @@ def download_analysis_results(session: RemoteSession, remote_dir: str) -> int:
 # ── 运行模式 ─────────────────────────────────────────
 # "wsl": 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
 # "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
-RUN_MODE = "hpc"
+RUN_MODE = "wsl"
 
 
 def _to_wsl_path(win_path: Path) -> str:

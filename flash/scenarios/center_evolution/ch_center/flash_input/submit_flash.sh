@@ -16,26 +16,14 @@ module purge
 module load mpich/3.2-gcc9.3
 module load hdf5/1.8.18
 
-# ── 用户名解析: FLASH_SIM_USER_DIR 环境变量 → flash._core.credentials → 默认 hello
-# 用户名必须通过 flash._core.credentials 设置, 请勿硬编码用户名
-if [ -z "${FLASH_SIM_USER_DIR:-}" ] && command -v python3 >/dev/null 2>&1; then
-    _d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    while [ "$_d" != "/" ] && [ ! -f "$_d/flash_run/env/resource_config.py" ]; do _d="$(dirname "$_d")"; done
-    if [ -f "$_d/flash_run/env/resource_config.py" ]; then
-        FLASH_SIM_USER_DIR="$(PYTHONPATH="$(dirname "$_d")${PYTHONPATH:+:$PYTHONPATH}" python3 -c \
-            'from flash._core.credentials import get_user_name; print(get_user_name())' \
-            2>/dev/null | tr -d '\r\n')" || true
-    fi
-fi
-SIM_USER_DIR="${FLASH_SIM_USER_DIR:-hello}"
-
-FLASH_HOME="$HOME/$SIM_USER_DIR/FLASH/FLASH4.8"
+FLASH_HOME="$HOME/QC/FLASH/FLASH4.8"
 PAR_FILE="laserslab_custom.par"
-OBJ_DIR="$SIM_USER_DIR/LaserSlab_custom"
+OBJ_DIR="QC/LaserSlab_custom"
 FLASH_BIN="$FLASH_HOME/$OBJ_DIR/flash4"
-SETUP_CMD="./setup -auto $SIM_USER_DIR/LaserSlab_custom -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=$SIM_USER_DIR/LaserSlab_custom -parfile=laserslab_custom.par"
+SETUP_CMD="./setup -auto QC/LaserSlab_custom -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/LaserSlab_custom -parfile=laserslab_custom.par"
 BUILD_CORES=4
-SIM_PATH="$SIM_USER_DIR/LaserSlab_custom"
+SIM_USER_DIR="QC"
+SIM_PATH="QC/LaserSlab_custom"
 
 # Get script directory (uses SLURM_SUBMIT_DIR when submitted via sbatch, PWD as fallback)
 SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$PWD}"

@@ -18,7 +18,7 @@ https://gitee.com/physimx/flash
 |------|------|
 | **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
 | **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | `0.0.000` (首次发布) — `git tag -l` 查看全部 |
+| **版本标签** | `0.1.0` (PyPI 首次发布) — `git tag -l` 查看全部 |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
@@ -44,7 +44,7 @@ https://gitee.com/physimx/flash
 
 ```python
 from flash.scenarios.registry import get_scenario
-from flash.simulator import FlashSimulatorEngine
+from flash.scenarios.simulator import FlashSimulatorEngine
 
 engine = FlashSimulatorEngine(get_scenario("thin_layer_sandwich_si"))
 output = engine.run()
@@ -68,7 +68,7 @@ import sys
 sys.path.insert(0, "/path/to/physimx_sim/src/physimx_sim")
 
 from flash.scenarios.registry import get_scenario, list_scenarios
-from flash.simulator import FlashSimulatorEngine
+from flash.scenarios.simulator import FlashSimulatorEngine
 ```
 
 > 无需安装 flash-sim 包——`sys.path` 指向 `physimx_sim` 根目录即可。
@@ -321,7 +321,7 @@ import sys
 sys.path.insert(0, "/path/to/physimx_sim/src/physimx_sim")
 
 from flash.scenarios.registry import get_scenario
-from flash.simulator import FlashSimulatorEngine
+from flash.scenarios.simulator import FlashSimulatorEngine
 
 # 1. 加载场景
 scenario = get_scenario("thin_layer_sandwich_si")
@@ -406,8 +406,8 @@ laser_powers = [0,        5e14,     5e14,    0       ]  # (W/cm²)
 
 ```
 flash/
-├── simulator.py                  ← FlashSimulatorEngine (统一引擎)
 ├── scenarios/
+│   ├── simulator.py              ← FlashSimulatorEngine (统一引擎)
 │   ├── base.py                   ← SimulationScenario 数据类
 │   ├── registry.py               ← 场景注册表 (get/list/register)
 │   ├── README.md                 ← 本文档
@@ -560,7 +560,7 @@ from . import my_scenario_name  # noqa: F401 — 触发 __init__.py 中的 regis
 
 ```python
 from flash.scenarios.registry import list_scenarios, get_scenario
-from flash.simulator import FlashSimulatorEngine
+from flash.scenarios.simulator import FlashSimulatorEngine
 
 # 能看到新场景
 for name, desc in list_scenarios():
@@ -657,6 +657,7 @@ python run_all_scenario_tests.py
 # 运行真实 FLASH 端到端测试 (需要 5-10 分钟)
 python test_real_flash_run.py --scenario thin_layer_sandwich_si
 python test_real_flash_run.py --scenario ch_center
+```
 
 ---
 
@@ -666,4 +667,3 @@ flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节]
 
 - **出版物致谢**：使用本场景系统（flash-sim）产生的任何出版物，请感谢**绵阳市的 PhySimX 团队**开发了该仿真辅助 Python 包。建议文案：*"We acknowledge the PhySimX team (Mianyang, China) for developing the flash-sim auxiliary Python package used in this work."*
 - **商用说明**：flash-sim 的 Python 代码以 Apache 2.0 许可，其商用须遵守所有适用许可（含 FLASH 仿真引擎的 FLASH License Agreement §5）；商用场景下的授权与责任以届时适用的许可及书面约定为准。
-```

@@ -20,7 +20,7 @@ https://gitee.com/physimx/flash
 |------|------|
 | **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
 | **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | `0.1.0` (首个 PyPI 发布) — `git tag -l` 查看全部 |
+| **版本标签** | `0.1.0` (PyPI 首次发布) — `git tag -l` 查看全部 |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
@@ -298,7 +298,7 @@ pip install -e ".[full]"
 # 安装开发工具
 pip install -e ".[dev]"
 
-# 建议安装好后运行flash\scripts\run_global_tests.py进行全局测试
+# 建议安装好后运行 scripts\run_global_tests.py 进行全局测试
 ```
 
 ### 最小依赖（独立模式）
@@ -563,7 +563,7 @@ flash-sim 支持三平台部署：
 | ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
 | ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/QC/FLASH/local/hypre/` | 4 |
 
-> **关键提示**: FLASH的默认安装路径为"~/QC/FLASH/FLASH4.8"，其中"QC"是专属用户名，可在"flash\\_core\credentials\manage.py"设置。
+> **关键提示**: FLASH的默认安装路径为"~/QC/FLASH/FLASH4.8"，其中"QC"是专属用户名，可在"flash/_core/credentials/manage.py"设置。
 > **HPC 关键提示**: 超算上 HYPRE_PATH 可能因符号链接 `/public1/home → /publicfs01/fs1-e/home` 导致编译失败。必须使用 `readlink -f` 解析真实路径后写入 `Makefile.h`。
 ---
 

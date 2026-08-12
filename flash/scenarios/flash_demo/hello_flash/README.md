@@ -20,7 +20,7 @@ https://gitee.com/physimx/flash
 |------|------|
 | **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
 | **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | `0.0.000` (首次发布) — `git tag -l` 查看全部 |
+| **版本标签** | `0.1.0` (PyPI 首次发布) — `git tag -l` 查看全部 |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
@@ -80,7 +80,7 @@ ls -la flash_src/*.tar.gz
 - **来源**：<https://elsevier.digitalcommonsdata.com/datasets/8n4r3rh8kr/1> （DOI `10.17632/8n4r3rh8kr.1`）
 - **文件**：`abjt_v1_0.gz` → 解压到 `input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/`
 
-### d. 点击执行 flash\\_core\credentials\manage.py 设置凭证文件的用户名（默认为hello）
+### d. 点击执行 flash/_core/credentials/manage.py 设置凭证文件的用户名（默认为hello）
 
 > ⚠️ **不要直接执行脚本！** 完成以上准备后，把本 README 与脚本交给 **Agent AI 助手**执行（它会自动微调适配你的装置状态），操作要点见后续「推荐方法」章节。
 
@@ -97,10 +97,12 @@ ls -la flash_src/*.tar.gz
 ```
 AgentAI:
 
-![Agent 对话与任务截图](screenshots/hello_flash_task_talk.png)
-![密度 x-t 热图与统计](outputfiles/plots/density_heatmap_and_stats.png)
-![密度快照对比](outputfiles/plots/density_snapshots.png)
-![密度演化曲线](outputfiles/plots/density_vs_x_evolution.png)
+> 📌 截图说明：以下 Agent 使用记录截图（`screenshots/`）与分析图（`outputfiles/plots/`）为**本地运行产物，不随发布包分发**，请在本地运行后查看生成的分析图。
+>
+> - `screenshots/hello_flash_task_talk.png` — Agent 对话与任务截图（本地开发记录）
+> - `outputfiles/plots/density_heatmap_and_stats.png` — 密度 x-t 热图与统计（本地运行生成）
+> - `outputfiles/plots/density_snapshots.png` — 密度快照对比（本地运行生成）
+> - `outputfiles/plots/density_vs_x_evolution.png` — 密度演化曲线（本地运行生成）
 
 ---
 ---
@@ -142,7 +144,7 @@ scenarios/flash_demo/hello_flash/
 > 源码包目录 `flash_src/` 中的 `.tar.gz` 文件需**用户自行下载**，具体下载地址与说明请参见：
 >
 > - 本 README「前期准备工作 → b. FLASH 相关软件包的获取与下载」（完整下载地址表）
-> - `input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/README.txt`（IONMIX EOS/不透明度表生成源码，来自 Elsevier Digital Commons Data）
+> - `input_gen/gen_eos_op/ionmix/ionmix/docs/IONMIX用户指南.md`（IONMIX EOS/不透明度表生成源码，来自 Elsevier Digital Commons Data）
 >
 > 下载完成后放入 `flash_src/` 目录，安装脚本会自动检测；缺失时脚本会明确报错并列出所需文件。
 
@@ -430,7 +432,7 @@ Makefile.h 模板包含 `ifeq ($(FLASHBINARY),true)` 块，可能引起编译错
 完成 Hello FLASH 后，可以探索完整工作流：
 
 ```
-flash/scripts/
+scripts/
 └── run_global_tests.py  ← 全局测试
 
 flash/scenarios/             ← 即插即用场景系统
