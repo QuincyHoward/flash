@@ -270,6 +270,13 @@ def main():
             from .api_keys import interactive_menu
             interactive_menu()
             return
+        elif args[0] in ("pypi", "py"):
+            from .pypi import setup_pypi, show_pypi
+            if "--show" in args:
+                show_pypi()
+            else:
+                setup_pypi(args[1] if len(args) > 1 and not args[1].startswith("-") else None)
+            return
 
     # 交互模式
     try:
@@ -283,11 +290,12 @@ def main():
         print("  [2] FLASH SSH 账户管理     (增/删/改)")
         print("  [3] Gitee 访问令牌管理   (设置/查看/删除)")
         print("  [4] API 密钥管理          (AI API)")
-        print("  [5] 查看所有已保存凭据")
-        print("  [6] 设置默认用户名        (当前: {}, 默认: {})".format(get_user_name(), DEFAULT_USER_NAME))
+        print("  [5] PyPI 发布令牌管理     (pypi.org / test.pypi.org)")
+        print("  [6] 查看所有已保存凭据")
+        print("  [7] 设置默认用户名        (当前: {}, 默认: {})".format(get_user_name(), DEFAULT_USER_NAME))
         print("  [0] 退出")
 
-        choice = input("\n  请选择 [0-6]: ").strip()
+        choice = input("\n  请选择 [0-7]: ").strip()
 
         if choice == "1":
             _setup_all()
@@ -302,6 +310,15 @@ def main():
             from .api_keys import interactive_menu
             interactive_menu()
         elif choice == "5":
+            from .pypi import setup_pypi, show_pypi
+            print("\n  [P] 设置令牌")
+            print("  [V] 查看状态")
+            sub = input("  请选择 [P/V]: ").strip().lower()
+            if sub in ("v", "view"):
+                show_pypi()
+            else:
+                setup_pypi()
+        elif choice == "6":
             cm = get_credential_manager()
             existing = cm.list_all()
             real_keys = [k for k in existing if k != "__meta__"]
@@ -327,7 +344,7 @@ def main():
                     storage_dir = Path.home() / ".physimx" / "flash"
                 print(f"  存储位置: {storage_dir}/")
             input("\n  按回车返回...")
-        elif choice == "6":
+        elif choice == "7":
             _set_user_name()
         elif choice == "0":
             print("\n  再见!\n")

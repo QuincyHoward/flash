@@ -75,6 +75,24 @@ ENTRIES: List[EntryDef] = [
         ],
     },
 
+    # PyPI 发布令牌 (pypi.org / test.pypi.org)
+    {
+        "name": "pypi",
+        "title": "PyPI 发布令牌 (pypi.org)",
+        "fields": [
+            ("token",    "PyPI API Token (pypi-xxx)", ""),
+            ("username", "用户名",                      "__token__"),
+        ],
+    },
+    {
+        "name": "testpypi",
+        "title": "TestPyPI 发布令牌 (test.pypi.org)",
+        "fields": [
+            ("token",    "TestPyPI API Token (pypi-xxx)", ""),
+            ("username", "用户名",                          "__token__"),
+        ],
+    },
+
     # API 密钥 -- AI 服务 (可扩展)
     {
         "name": "deepseek_api",
