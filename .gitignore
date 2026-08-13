@@ -274,3 +274,6 @@ scripts/_gitee_link_test/
 # 测试运行产物（不入库，由测试自动生成）
 **/test_output.txt
 flash/output_processors/test/test_output/
+
+# 场景生成文件备份/遗留目录（不入库）
+**/flash_input_old/
