@@ -477,10 +477,12 @@ def _print_file_pseudocode(fname: str, reason: str) -> None:
 
 
 def _check_sim_input() -> None:
-    """检查场景必需 FLASH 源文件, 缺失时打印主要内容总结与编写伪代码。
+    """检查场景必需 FLASH 源文件, 缺失时给出提示。
 
-    在源码工作区 (仓库内) 运行时不触发; 仅当 sim_input 目录中缺少
-    F90/Config/Makefile 时给出编写指引 (wheel 安装模式常见)。
+    源码仓库模式 (本目录含 gen_flash_inputs.py 生成器): 缺失文件将由
+    gen_flash_inputs.py / laserslab1d_local_custom.py 步骤 1 自动生成,
+    此处仅打印一行提示, 不打印编写伪代码 (避免误导)。
+    wheel 安装模式 (无生成器): 打印编写指引与伪代码。
     """
     missing = []
     for fname, (ships, _desc) in _REQUIRED_SIM_INPUT.items():
@@ -488,18 +490,25 @@ def _check_sim_input() -> None:
             missing.append((fname, ships))
     if not missing:
         return
+    auto_gen = (_HERE / "gen_flash_inputs.py").exists()
     print("\n" + "=" * 72)
     print("  ⚠️  ch_center 场景缺少以下 FLASH 源文件 (不随发布包分发):")
     print("  " + "=" * 68)
     for fname, ships in missing:
         print(f"    - {fname}" + ("  (自研表随包分发, 无需编写)" if ships else ""))
-    print("\n  说明: 按 FLASH License Agreement §3, FLASH 分发的源文件不可再分发,")
-    print("  请从 https://flash.rochester.edu 获取 FLASH 后, 参照 FLASH 自带")
-    print("  SimulationMain/LaserSlab 示例文件修改, 或按下方伪代码自行编写。")
-    print("  完整参考实现见源码仓库 scenarios/center_evolution/ch_center/flash_input/。")
-    for fname, _ships in missing:
-        if not _ships:
-            _print_file_pseudocode(fname, _REQUIRED_SIM_INPUT[fname][1])
+    if auto_gen:
+        print("\n  说明: 本仓库为源码模式, 上述文件由自动生成器补齐 —")
+        print("    运行 laserslab1d_local_custom.py (步骤 1 自动检查生成) 或")
+        print("    python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py")
+        print("    生成后本提示自动消失, 无需手动编写。")
+    else:
+        print("\n  说明: 按 FLASH License Agreement §3, FLASH 分发的源文件不可再分发,")
+        print("  请从 https://flash.rochester.edu 获取 FLASH 后, 参照 FLASH 自带")
+        print("  SimulationMain/LaserSlab 示例文件修改, 或按下方伪代码自行编写。")
+        print("  完整参考实现见源码仓库 scenarios/center_evolution/ch_center/flash_input/。")
+        for fname, _ships in missing:
+            if not _ships:
+                _print_file_pseudocode(fname, _REQUIRED_SIM_INPUT[fname][1])
 
 
 # 场景实例化后立即执行完整性检查 (导入时打印一次)

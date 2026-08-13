@@ -780,9 +780,16 @@ class FlashHDF5File:
                 names = [str(x["name"].decode("utf-8", errors="replace").strip())
                          for x in unames]
             else:
-                # 简单字符串数组 (yt 风格): (n,) S80
-                names = [str(x.decode("utf-8", errors="replace").strip())
-                         for x in np.atleast_1d(unames)]
+                # 简单字符串数组 (yt 风格): (n,) S80; 注意 WSL FLASH 实况为 (n,1) S4
+                # (每行是 shape (1,) 的数组, 直接 .decode() 会 AttributeError)
+                names = []
+                for x in np.atleast_1d(unames):
+                    if isinstance(x, (bytes, np.bytes_)):
+                        raw = bytes(x)
+                    else:
+                        flat = np.asarray(x).reshape(-1)
+                        raw = bytes(flat[0]) if flat.size and flat.dtype.kind in ("S", "U") else b""
+                    names.append(raw.decode("utf-8", errors="replace").strip())
         else:
             names = []
             for k in f.keys():
