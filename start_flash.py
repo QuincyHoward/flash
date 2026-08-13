@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
-========================================================
+start_flash.py — flash 包「环境自检自愈 + 从零安装 + 全局测试」一键脚本
+========================================================================
 
 用途（对应发布验证流程）：
-  1. 检查项目专属虚拟环境 .venv：不存在则全新创建（master 不含此目录，
-     因 .gitignore 排除）；已存在则默认复用，设置 FLASH_FORCE_CLEAN=1 才清理
+  1. 检查项目专属虚拟环境 .venv：
+     - 不存在 → 全新创建（master 不含此目录，因 .gitignore 排除）
+     - 存在   → 做**环境健康检查**（关键依赖可导入 + pytest 可启动）
+       - 健康 → 复用
+       - 不健康 → **自动清零重建**（无需手动 FLASH_FORCE_CLEAN=1）
   2. 修复 base 内置的损坏 setuptools
   3. pip 从零安装 flash 包:  pip install -e ".[full,dev]" scipy paramiko
-  4. 运行全局三套测试:  framework / input_gen / output_processors
-  5. 生成纯文本测试报告 INSTALL_TEST_REPORT.txt 并在终端完整显示
+  4. 安装后环境复检（仍不健康 → 再自动重建一轮）
+  5. 运行全局三套测试:  framework / input_gen / output_processors
+     - 若三套件全部「0 用例启动失败」（pytest 崩溃特征）→ 判定为环境问题
+       → 自动清零重建 → 重新测试
+  6. 生成纯文本测试报告 INSTALL_TEST_REPORT.txt
+     （含「环境版本快照」：关键依赖的真实版本统一记录）并在终端完整显示
+
+设计原则（用户明确要求）：
+  - start_flash.py 是新用户开启 flash 包的第一步、老用户/调试者验证 flash 包
+    是否正常的关键一步 —— 必须**自愈**：环境损坏自动清零重建，测试环境异常
+    也自动重建后重测，不依赖重启 WorkBuddy/机器、不依赖人工确认。
+  - 进行全局测试的前提是测试环境正常；环境不正常 → 清零重建。
+  - 统一使用项目专属 .venv（flash 内部环境），所有关键依赖版本以报告中
+    「环境版本快照」为权威记录，版本不统一问题透明化。
 
 注意：
   - 使用项目专属虚拟环境 <项目根目录>/.venv（IDE 默认识别的标准命名），
@@ -23,20 +38,22 @@ start_flash.py — flash 包「从零安装 + 全局测试」一键脚本
 
 特性：
   - 幂等：重复执行即重新进行"从零安装 + 测试"，无需修改任何文件
+  - 自愈：环境健康检查失败 / pytest 启动崩溃 → 自动清零重建（最多重建 2 轮）
   - 所有关键子进程都清空 CODEBUDDY_SESSION_ID / CLAUDE_SESSION_ID，
     以禁用 WorkBuddy 沙箱的"安全删除守卫"（否则 pip 无法删除旧文件而卡死）
   - pip 步骤带自动重试（网络中断时等待 60s 重试）
   - 测试步骤带超时保护，任何一步失败都给出明确错误信息
 
 可覆盖的环境变量：
-  FLASH_BASE_PY    base 解释器绝对路径（默认自动探测）
-  FLASH_VENV_DIR   虚拟环境绝对路径（默认 <项目根目录>/.venv）
+  FLASH_BASE_PY        base 解释器绝对路径（默认自动探测）
+  FLASH_VENV_DIR       虚拟环境绝对路径（默认 <项目根目录>/.venv）
+  FLASH_FORCE_CLEAN=1  强制清零重建（原语义保留）
+  FLASH_NO_AUTO_REBUILD=1  禁用自动重建（仅检查与报告，不重建；用于诊断）
 """
 
 import datetime
 import os
 import re
-import shutil
 import subprocess
 import sys
 
@@ -61,6 +78,19 @@ TEST_SUITES = [
     ("framework",          "test"),
     ("input_gen",          os.path.join("flash", "input_gen", "test")),
     ("output_processors",  os.path.join("flash", "output_processors", "test")),
+]
+
+# 环境健康检查的关键模块（对应 pyproject 依赖 + start_flash 补装项 + 传递依赖）：
+#   - pytest 启动链: pytest/pluggy/iniconfig/packaging/pygments
+#   - 科学计算: numpy/scipy/h5py/matplotlib/cycler/kiwisolver
+#   - flash 功能: setuptools/paramiko/cryptography/nacl
+#   - AMR 可视化: yt
+# 任何一个缺失 → 环境不健康 → 自动清零重建。
+ENV_KEY_MODULES = [
+    "pytest", "pluggy", "iniconfig", "packaging", "pygments",
+    "numpy", "scipy", "h5py", "matplotlib", "cycler", "kiwisolver",
+    "paramiko", "cryptography", "nacl",
+    "setuptools", "yt",
 ]
 
 
@@ -180,40 +210,117 @@ def parse_pytest(out: str, rc: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 主流程
+# 环境健康检查 / 版本快照
 # ---------------------------------------------------------------------------
-def main() -> int:
-    global VENV_DIR, BASE_PY
+def check_env_health(venv_py: str) -> tuple:
+    """检查 .venv 关键依赖完整性 + pytest 可启动。
 
-    BASE_PY = find_base_python()
-    VENV_DIR = os.environ.get("FLASH_VENV_DIR", DEFAULT_VENV_DIR).strip()
-    VENV_PY = os.path.join(VENV_DIR, "Scripts", "python.exe")
+    返回: (是否健康: bool, 问题清单: list[str])
+    """
+    probe = (
+        "import importlib, sys\n"
+        f"mods = {ENV_KEY_MODULES!r}\n"
+        "bad = []\n"
+        "for m in mods:\n"
+        "    try:\n"
+        "        importlib.import_module(m)\n"
+        "    except Exception as e:\n"
+        "        bad.append(f'{m}: {type(e).__name__}: {str(e)[:80]}')\n"
+        "print('HEALTHY' if not bad else 'BAD')\n"
+        "for b in bad:\n"
+        "    print(b)\n"
+        "sys.exit(0 if not bad else 2)\n"
+    )
+    try:
+        r = subprocess.run(
+            [venv_py, "-c", probe], env=clean_env(),
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        return False, ["环境健康检查超时（venv 解释器无响应）"]
+    except OSError as e:
+        return False, [f"venv 解释器无法启动（{venv_py}）: {e}"]
 
-    start = datetime.datetime.now()
-    log("=" * 72)
-    log("  start_flash.py — flash 包从零安装 + 全局测试")
-    log("=" * 72)
-    log(f"[info] 项目目录 : {PROJECT_DIR}")
-    log(f"[info] base 解释器: {BASE_PY}")
-    log(f"[info] 虚拟环境 : {VENV_DIR}")
+    problems: list = []
+    if r.returncode == 0:
+        # 关键包齐全 → 再验证 pytest 能启动
+        try:
+            r2 = subprocess.run(
+                [venv_py, "-m", "pytest", "--version"], env=clean_env(),
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=180,
+            )
+        except subprocess.TimeoutExpired:
+            return False, ["pytest 启动超时"]
+        if r2.returncode == 0:
+            return True, []
+        err_tail = ((r2.stderr or "") + (r2.stdout or "")).strip().splitlines()
+        problems.append("pytest 无法启动: " + (err_tail[-1] if err_tail else "未知错误"))
+        return False, problems
 
-    # ---- Step 0: 前置校验 -------------------------------------------------
-    if not os.path.isfile(BASE_PY):
-        raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
-    for name, rel in TEST_SUITES:
-        if not os.path.isdir(os.path.join(PROJECT_DIR, rel)):
-            log(f"[warn] 测试套件目录缺失，将跳过: {rel}")
+    for line in (r.stdout or "").splitlines():
+        s = line.strip()
+        if s and not s.startswith(("HEALTHY", "BAD")):
+            problems.append(s)
+    if not problems and (r.stderr or "").strip():
+        problems.append((r.stderr or "").strip().splitlines()[-1])
+    if not problems:
+        problems.append(f"环境检查异常（venv 解释器退出码 {r.returncode}，无详细输出）")
+    return False, problems
 
-    # ---- Step 1: 检查/准备虚拟环境 -----------------------------------------
-    # flash_venv / .venv 位于 .gitignore 中，Gitee master 上不含它：从 master 拉取后
-    # 必然不存在，直接新建即可，默认无需删除。仅当本地残留且显式设置
-    # FLASH_FORCE_CLEAN=1 时才清理（本环境批量删除较慢，请谨慎使用）。
-    log("\n[step 1/5] 检查虚拟环境 .venv ...")
-    need_create = False
-    if os.path.isdir(VENV_DIR):
-        if os.environ.get("FLASH_FORCE_CLEAN") == "1":
-            log("[info] FLASH_FORCE_CLEAN=1：并行删除旧 .venv（预计 5~15 分钟）...")
-            code = r'''
+
+def collect_versions(venv_py: str) -> dict:
+    """收集关键依赖的真实版本（供报告「环境版本快照」使用）。"""
+    code = (
+        "import importlib\n"
+        f"mods = {ENV_KEY_MODULES!r}\n"
+        "for m in mods:\n"
+        "    try:\n"
+        "        mod = importlib.import_module(m)\n"
+        "        print(m, getattr(mod, '__version__', '?'))\n"
+        "    except Exception:\n"
+        "        print(m, 'N/A')\n"
+    )
+    try:
+        r = subprocess.run(
+            [venv_py, "-c", code], env=clean_env(),
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=300,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return {}
+    versions = {}
+    for line in (r.stdout or "").splitlines():
+        parts = line.split(" ", 1)
+        if len(parts) == 2:
+            versions[parts[0]] = parts[1].strip()
+    return versions
+
+
+def suites_crashed(results: dict) -> bool:
+    """三套件全部 rc!=0 且 0 用例 → pytest 启动即崩（环境问题，非测试本身失败）。
+
+    特征: passed=0 failed=0 errors=0 但 rc!=0 —— 进程在收集用例前就已崩溃。
+    """
+    if not results:
+        return False
+    for res in results.values():
+        if res is None:
+            return False
+        if not (res["rc"] != 0 and res["passed"] == 0
+                and res["failed"] == 0 and res["errors"] == 0):
+            return False
+    return True
+
+
+# ---------------------------------------------------------------------------
+# 环境构建（创建 / 重建 / 安装）
+# ---------------------------------------------------------------------------
+def wipe_venv() -> None:
+    """并行删除旧 .venv（调用 base 解释器 -S 模式，避开 sitecustomize 干扰）。"""
+    log("[info] 并行删除旧 .venv（预计 5~15 分钟）...")
+    code = r'''
 import os, time
 from concurrent.futures import ThreadPoolExecutor
 base = r'__VENV_DIR__'
@@ -240,55 +347,42 @@ if os.path.isdir(base):
     except OSError: pass
 print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
 '''
-            code = code.replace("__VENV_DIR__", VENV_DIR)
-            try:
-                r = subprocess.run(
-                    [BASE_PY, "-S", "-u", "-c", code], env=clean_env(),
-                    capture_output=True, text=True, encoding="utf-8", errors="replace",
-                    timeout=1800,
-                )
-            except subprocess.TimeoutExpired:
-                raise SystemExit(
-                    "[FATAL] 删除旧 .venv 超时（30 分钟）。目录可能被其他进程占用，"
-                    "请关闭占用后重新运行。"
-                )
-            if r.returncode != 0 and os.path.isdir(VENV_DIR):
-                raise SystemExit(
-                    f"[FATAL] 删除旧 .venv 失败（可能被其他进程占用，请关闭占用后重试）:\n"
-                    f"{r.stderr[-400:]}"
-                )
-            log("[ok] 已删除旧 .venv（并行删除）")
-            need_create = True
-        else:
-            log("[info] .venv 已存在，复用（如需从零重装请设置 FLASH_FORCE_CLEAN=1）")
-    else:
-        log("[info] .venv 不存在（master 不含此目录），将全新创建")
-        need_create = True
-
-    # ---- Step 2: 创建 venv（仅当不存在时） ----------------------------------
-    if need_create:
-        log("\n[step 2/5] 创建全新虚拟环境 ...")
+    code = code.replace("__VENV_DIR__", VENV_DIR)
+    try:
         r = subprocess.run(
-            [BASE_PY, "-m", "venv", VENV_DIR], env=clean_env(),
+            [BASE_PY, "-S", "-u", "-c", code], env=clean_env(),
             capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=600,
+            timeout=1800,
         )
-        if r.returncode != 0 or not os.path.isfile(VENV_PY):
-            raise SystemExit(f"[FATAL] 创建 venv 失败:\n{r.stderr[-400:]}")
-        log(f"[ok] venv 已创建: {VENV_PY}")
-        install_mode = "全新创建（.venv 在 .gitignore 中，master 不含此目录）"
-    else:
-        log("\n[step 2/5] 复用已有虚拟环境 ...")
-        log(f"[ok] 使用现有 venv: {VENV_PY}")
-        install_mode = "复用已有 .venv（如需从零请设置 FLASH_FORCE_CLEAN=1）"
-    ver = subprocess.run(
-        [VENV_PY, "-c", "import sys; print(sys.version.split()[0])"],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
-    log(f"[ok] venv Python 版本: {ver.stdout.strip()}")
+    except subprocess.TimeoutExpired:
+        raise SystemExit(
+            "[FATAL] 删除旧 .venv 超时（30 分钟）。目录可能被其他进程占用，"
+            "请关闭占用后重新运行。"
+        )
+    if r.returncode != 0 and os.path.isdir(VENV_DIR):
+        raise SystemExit(
+            f"[FATAL] 删除旧 .venv 失败（可能被其他进程占用，请关闭占用后重试）:\n"
+            f"{r.stderr[-400:]}"
+        )
+    log("[ok] 已删除旧 .venv（并行删除）")
 
-    # ---- Step 3: 修复 setuptools（base 内置副本缺 _distutils/cmd.py） ------
-    log("\n[step 3/5] 修复 setuptools（覆盖 base 内置损坏副本） ...")
+
+def create_venv() -> None:
+    """创建全新虚拟环境。"""
+    log("[info] 创建全新虚拟环境 ...")
+    r = subprocess.run(
+        [BASE_PY, "-m", "venv", VENV_DIR], env=clean_env(),
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=600,
+    )
+    if r.returncode != 0 or not os.path.isfile(VENV_PY):
+        raise SystemExit(f"[FATAL] 创建 venv 失败:\n{r.stderr[-400:]}")
+    log(f"[ok] venv 已创建: {VENV_PY}")
+
+
+def fix_setuptools() -> None:
+    """修复 setuptools（覆盖 base 内置损坏副本）。"""
+    log("[info] 修复 setuptools（覆盖 base 内置损坏副本） ...")
     run_pip(["--ignore-installed", "--no-deps", "setuptools"],
             step="安装干净 setuptools")
     r = subprocess.run(
@@ -300,11 +394,13 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
         raise SystemExit(f"[FATAL] setuptools 仍不可用:\n{r.stderr[-300:]}")
     log(f"[ok] {r.stdout.strip()}")
 
-    # ---- Step 4: 从零安装 flash 包 ----------------------------------------
+
+def install_flash_package() -> str:
+    """从零安装 flash 包，返回安装验证输出。"""
     # 注意: 额外补装 paramiko —— flash_run.remote.remote_deploy 顶层 import
     # paramiko（SSH/SFTP 依赖），但 pyproject.toml 的 full/dev extras 未声明，
     # 从零安装后 framework 测试收集会因此报错。此处脚本层面补装，不改仓库文件。
-    log("\n[step 4/5] 从零安装 flash 包: pip install -e \".[full,dev]\" scipy paramiko ...")
+    log("[info] 从零安装 flash 包: pip install -e \".[full,dev]\" scipy paramiko ...")
     run_pip(["-e", ".[full,dev]", "scipy", "paramiko"],
             step="安装 flash 包及全部依赖（含 paramiko: remote_deploy 的 SSH 依赖）",
             cwd=PROJECT_DIR)
@@ -329,10 +425,23 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
         log("[warn] flash 安装验证异常:\n" + flash_verify)
     else:
         log("[ok] " + flash_verify.replace("\n", "\n[ok] "))
+    return flash_verify
 
-    # ---- Step 5: 全局测试 -------------------------------------------------
+
+def provision() -> str:
+    """完整构建环境: 创建 venv + 修复 setuptools + 安装 flash 包。
+
+    返回 flash 安装验证输出。环境健康复检由调用方负责。
+    """
+    create_venv()
+    fix_setuptools()
+    return install_flash_package()
+
+
+def run_suites() -> dict:
+    """运行三套测试，返回 {套件名: parse_pytest 结果}。"""
     results = {}
-    log("\n[step 5/5] 运行全局测试（三套件） ...")
+    log("\n[step] 运行全局测试（三套件） ...")
     for name, rel in TEST_SUITES:
         path = os.path.join(PROJECT_DIR, rel)
         if not os.path.isdir(path):
@@ -363,8 +472,133 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
         log(f"  => {res['summary'] or f'rc={r.returncode}'}")
         for fl in res["failed_lines"][:10]:
             log(f"     {fl}")
+    return results
 
-    # ---- 汇总报告 ---------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# 主流程
+# ---------------------------------------------------------------------------
+def main() -> int:
+    global VENV_DIR, VENV_PY, BASE_PY
+
+    BASE_PY = find_base_python()
+    VENV_DIR = os.environ.get("FLASH_VENV_DIR", DEFAULT_VENV_DIR).strip()
+    VENV_PY = os.path.join(VENV_DIR, "Scripts", "python.exe")
+
+    start = datetime.datetime.now()
+    log("=" * 72)
+    log("  start_flash.py — flash 包从零安装 + 全局测试（环境自检自愈）")
+    log("=" * 72)
+    log(f"[info] 项目目录 : {PROJECT_DIR}")
+    log(f"[info] base 解释器: {BASE_PY}")
+    log(f"[info] 虚拟环境 : {VENV_DIR}")
+
+    auto_rebuild = os.environ.get("FLASH_NO_AUTO_REBUILD") != "1"
+    force_clean = os.environ.get("FLASH_FORCE_CLEAN") == "1"
+
+    # ---- Step 0: 前置校验 -------------------------------------------------
+    if not os.path.isfile(BASE_PY):
+        raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
+    for name, rel in TEST_SUITES:
+        if not os.path.isdir(os.path.join(PROJECT_DIR, rel)):
+            log(f"[warn] 测试套件目录缺失，将跳过: {rel}")
+
+    # ---- Step 1: 环境准备（存在性 + 健康检查 + 自动清零重建） ---------------
+    # flash_venv / .venv 位于 .gitignore 中，Gitee master 上不含它：从 master 拉取后
+    # 必然不存在，直接新建即可。已存在时默认复用；但若**环境健康检查不通过**
+    # （关键依赖缺失 / pytest 无法启动），则自动清零重建 —— 这是本脚本的
+    # 自愈核心：不依赖重启机器、不依赖手动 FLASH_FORCE_CLEAN=1。
+    log("\n[step 1/5] 检查虚拟环境与健康自检 ...")
+    install_mode = ""
+    rebuild_count = 0
+
+    if os.path.isdir(VENV_DIR):
+        if force_clean:
+            log("[info] FLASH_FORCE_CLEAN=1：强制清零重建 ...")
+            wipe_venv()
+            install_mode = "FLASH_FORCE_CLEAN=1 强制重建"
+        else:
+            log("[info] .venv 已存在，进行环境健康检查 ...")
+            ok, problems = check_env_health(VENV_PY)
+            if ok:
+                log("[ok] 环境健康检查通过（关键依赖 + pytest 均正常），复用 .venv")
+                install_mode = "复用已有 .venv（健康检查通过）"
+            else:
+                log("[warn] 环境健康检查不通过：")
+                for p in problems:
+                    log(f"  - {p}")
+                if auto_rebuild:
+                    log("[info] 自动清零重建 .venv（环境不健康 → 自愈，无需手动操作）...")
+                    wipe_venv()
+                    rebuild_count += 1
+                    install_mode = "自动重建（环境不健康 → 清零重装）"
+                else:
+                    raise SystemExit(
+                        "[FATAL] 环境不健康且 FLASH_NO_AUTO_REBUILD=1 禁用自动重建。"
+                        "可运行: FLASH_FORCE_CLEAN=1 python start_flash.py")
+    else:
+        log("[info] .venv 不存在（master 不含此目录），将全新创建")
+        install_mode = "全新创建（.venv 在 .gitignore 中，master 不含此目录）"
+
+    # ---- Step 2: 构建环境（创建 + setuptools 修复 + flash 安装） ------------
+    if not os.path.isfile(VENV_PY):
+        log("\n[step 2/5] 构建环境（创建 venv + 修复 setuptools + 安装 flash 包）...")
+        flash_verify = provision()
+    else:
+        log("\n[step 2/5] 复用环境，修复 setuptools + 安装 flash 包 ...")
+        fix_setuptools()
+        flash_verify = install_flash_package()
+
+    ver = subprocess.run(
+        [VENV_PY, "-c", "import sys; print(sys.version.split()[0])"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    log(f"[ok] venv Python 版本: {ver.stdout.strip()}")
+
+    # ---- Step 3: 安装后环境复检（仍不健康 → 再重建一轮） --------------------
+    log("\n[step 3/5] 安装后环境复检 ...")
+    ok, problems = check_env_health(VENV_PY)
+    if not ok:
+        log("[warn] 安装后环境仍不健康：")
+        for p in problems:
+            log(f"  - {p}")
+        if auto_rebuild and rebuild_count < 2:
+            log("[info] 清零重建 .venv 后重新安装（自愈第 2 轮）...")
+            wipe_venv()
+            rebuild_count += 1
+            flash_verify = provision()
+            ok, problems = check_env_health(VENV_PY)
+            if not ok:
+                raise SystemExit(
+                    "[FATAL] 重建两轮后环境仍不健康，请手动排查"
+                    "（可先重启机器后重试；或查看上方问题清单）")
+            install_mode += "（第 2 轮重建）"
+        elif not auto_rebuild:
+            raise SystemExit("[FATAL] 安装后环境不健康且已禁用自动重建")
+        else:
+            raise SystemExit("[FATAL] 重建两轮后环境仍不健康，请手动排查")
+    else:
+        log("[ok] 安装后环境复检通过")
+
+    # ---- Step 4: 全局测试（pytest 启动崩溃 → 自动重建重测） -----------------
+    results = run_suites()
+    if auto_rebuild and suites_crashed(results) and rebuild_count < 2:
+        log("\n[info] 三套件全部「0 用例启动失败」→ pytest 环境异常（非测试失败），"
+            "自动清零重建后重测 ...")
+        wipe_venv()
+        rebuild_count += 1
+        flash_verify = provision()
+        ok, problems = check_env_health(VENV_PY)
+        if not ok:
+            raise SystemExit("[FATAL] 重建后环境仍不健康，pytest 无法运行，请手动排查")
+        install_mode += "（测试崩溃 → 重建重测）"
+        results = run_suites()
+        if suites_crashed(results):
+            raise SystemExit(
+                "[FATAL] 重建重测后 pytest 仍无法启动，请手动排查环境"
+                "（查看 pytest_*.log 与上方问题清单）")
+
+    # ---- Step 5: 汇总报告（含统一版本快照） --------------------------------
     log("\n" + "=" * 72)
     log("  汇总")
     log("=" * 72)
@@ -398,9 +632,8 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     if r.returncode == 0:
         git_sha = r.stdout.strip()[:12]
 
-    py_ver = subprocess.run(
-        [VENV_PY, "-c", "import sys; print(sys.version.split()[0])"],
-        capture_output=True, text=True).stdout.strip()
+    py_ver = ver.stdout.strip()
+    versions = collect_versions(VENV_PY)
 
     lines = []
     lines.append("=" * 72)
@@ -413,13 +646,26 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     lines.append(f"Python(venv): {py_ver}")
     lines.append(f"虚拟环境 : {VENV_DIR}")
     lines.append(f"安装命令 : pip install -e \".[full,dev]\" scipy paramiko")
-    lines.append(f"安装方式 : {install_mode}")
+    lines.append(f"安装方式 : {install_mode or '（未记录）'}")
     lines.append("")
     lines.append("-" * 72)
     lines.append("安装验证")
     lines.append("-" * 72)
     lines.append("")
     lines.append(flash_verify.strip() or "(验证输出为空)")
+    lines.append("")
+    lines.append("-" * 72)
+    lines.append("环境版本快照（关键依赖真实版本，统一记录）")
+    lines.append("-" * 72)
+    lines.append("")
+    lines.append(f"  Python     : {py_ver}")
+    for m in ENV_KEY_MODULES:
+        v = versions.get(m, "N/A")
+        lines.append(f"  {m:14s}: {v}")
+    lines.append("")
+    lines.append("  注: 本快照为本次运行环境的权威版本记录；若与 pyproject.toml")
+    lines.append("      声明差异较大，可运行 FLASH_FORCE_CLEAN=1 python start_flash.py")
+    lines.append("      重建获得纯净环境后重新生成快照。")
     lines.append("")
     lines.append("-" * 72)
     lines.append("测试结果")
@@ -458,6 +704,9 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     lines.append("环境备注")
     lines.append("-" * 72)
     lines.append("")
+    lines.append("- 自愈机制: .venv 环境健康检查不通过（关键依赖缺失 / pytest 无法启动）"
+                 "或三套件全部 0 用例启动失败时，本脚本自动清零重建并重测，"
+                 "无需手动 FLASH_FORCE_CLEAN=1，也不依赖重启机器。")
     lines.append("- output_processors 套件测试数据（inputfiles/，.gitignore 排除）"
                  "由 flash/output_processors/test/gen_test_data.py 在测试会话中自动生成，"
                  "克隆/发布环境无需手动准备。")
