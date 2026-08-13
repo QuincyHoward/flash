@@ -262,3 +262,7 @@ flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4
 
 # 临时 Gitee 链接测试工具 (不入库)
 scripts/_gitee_link_test/
+
+# 测试运行产物（不入库，由测试自动生成）
+**/test_output.txt
+flash/output_processors/test/test_output/
