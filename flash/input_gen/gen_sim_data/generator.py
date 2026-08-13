@@ -83,5 +83,5 @@ class SimDataGenerator:
         content = self.generate(species=species)
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(content, encoding="utf-8")
+        out.write_text(content, encoding="utf-8", newline="\n")
         return out

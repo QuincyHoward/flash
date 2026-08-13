@@ -415,7 +415,7 @@ class BlockGenerator:
         
         out = Path(filepath)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(self._generated_code, encoding="utf-8")
+        out.write_text(self._generated_code, encoding="utf-8", newline="\n")
         return out
     
     def preview(self) -> None:

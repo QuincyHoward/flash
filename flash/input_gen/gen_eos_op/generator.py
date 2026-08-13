@@ -327,7 +327,7 @@ class EOSOpacityGenerator:
             meta = self.get_material_config(query) or {}
             meta_path = target / (src.stem + ".eosmeta.json")
             meta_path.write_text(
-                json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
+                json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8", newline="\n"
             )
         return dst
 

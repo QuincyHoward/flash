@@ -625,19 +625,19 @@ class NewParaGenerator:
         out.mkdir(parents=True, exist_ok=True)
 
         files = {}
-        files["config"] = (out / "Config").write_text(self.generate_config(), encoding="utf-8")
+        files["config"] = (out / "Config").write_text(self.generate_config(), encoding="utf-8", newline="\n")
         files["sim_data"] = (out / "Simulation_data.F90").write_text(
-            self.generate_sim_data(), encoding="utf-8"
+            self.generate_sim_data(), encoding="utf-8", newline="\n"
         )
         files["sim_init"] = (out / "Simulation_init.F90").write_text(
-            self.generate_sim_init(), encoding="utf-8"
+            self.generate_sim_init(), encoding="utf-8", newline="\n"
         )
         files["init_block"] = (out / "Simulation_initBlock.F90").write_text(
-            self.generate_init_block(), encoding="utf-8"
+            self.generate_init_block(), encoding="utf-8", newline="\n"
         )
         # .par content (just the generated section, user merges with full .par)
         par_path = out / "gen_zones.par"
-        par_path.write_text(self.generate_par_content(), encoding="utf-8")
+        par_path.write_text(self.generate_par_content(), encoding="utf-8", newline="\n")
         files["par"] = par_path
 
         return {k: Path(v) if isinstance(v, str) else out / k for k, v in files.items()}

@@ -28,5 +28,5 @@ class MakefileGenerator:
         content = self.generate(sim_path=sim_path)
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(content, encoding="utf-8")
+        out.write_text(content, encoding="utf-8", newline="\n")
         return out

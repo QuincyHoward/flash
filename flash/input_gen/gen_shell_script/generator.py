@@ -838,7 +838,7 @@ ed_maxPulseSections=300 \
         out.parent.mkdir(parents=True, exist_ok=True)
 
         if script_type == "windows":
-            out.write_text(content, encoding="utf-8")
+            out.write_text(content, encoding="utf-8", newline="\n")
         else:
             out.write_bytes(content.encode("utf-8"))
 
