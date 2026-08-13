@@ -793,15 +793,35 @@ def main(credential_name: Optional[str] = None):
     print(f"    分析区域: [{ -cfg['analysis_half_width_um']}, {cfg['analysis_half_width_um']}] um")
     print("=" * 65)
 
-    # ── 步骤 1: 生成输入文件 ────────────────────
-    print("\n[步骤 1/5] 生成 FLASH 输入文件")
+    # ── 步骤 1: 检查 FLASH 仿真必须文件，缺失则生成 ──
+    # 仓库不发布 par/Makefile/Config/F90/cn4 等生成文件（flash_input/ 被
+    # .gitignore 排除），先经 gen_checker 检查 7 项必须文件：
+    #   已就绪 → 直接下一步；缺失 → 调用 input_gen 生成器自动生成。
+    print("\n[步骤 1/5] 检查 FLASH 仿真必须文件（gen_checker）")
     print("-" * 50)
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        generate_input_files(cfg)
+        from flash.input_gen.gen_checker import DependencyChecker
+
+        missing = DependencyChecker(INPUT_DIR).missing_standard()
+        if missing:
+            log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
+            log("自动调用 input_gen 生成器生成必须文件 ...", "INFO")
+            generate_input_files(cfg)
+            # 生成后复查
+            missing2 = DependencyChecker(INPUT_DIR).missing_standard()
+            if missing2:
+                log(f"生成后仍有 {len(missing2)} 项缺失: {missing2}", "ERROR")
+                log("请查看上方生成日志定位错误，或运行 "
+                    "python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --force 重试",
+                    "ERROR")
+                return False
+            log(f"必须文件已生成: {INPUT_DIR}")
+        else:
+            log("FLASH 仿真必须文件已就绪（gen_checker 检查通过），无需重新生成", "OK")
         log(f"输入文件目录: {INPUT_DIR}")
     except Exception as e:
-        log(f"输入文件生成失败: {e}", "ERROR")
+        log(f"输入文件检查/生成失败: {e}", "ERROR")
         import traceback
         traceback.print_exc()
         return False

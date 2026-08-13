@@ -364,7 +364,8 @@ python start_flash.py   # 用系统 Python 运行（自动创建 .venv，约 3-4
 ```
 
 - 运行模式：脚本顶部 `RUN_MODE = "hpc"`（超算）/ `"wsl"`（本地 WSL），一行切换
-- EOS 表：使用随仓库分发的自研 ionmix 表（`Gen_eos_op_data/`：`ch_mix` / `helium_hires`），克隆即自带，无需额外获取 FLASH 分发原始表
+- **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_processors 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
+- EOS 表：cn4 源文件存放于 `flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/`（`ch_mix` / `helium_hires` 等自研 ionmix 表随仓库分发），由 `EOSOpacityGenerator` 复制到 `flash_input/`
 - 输出：`scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地）
 
 ### 1. 场景系统 — 即插即用（推荐）

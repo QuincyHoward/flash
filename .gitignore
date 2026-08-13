@@ -202,12 +202,20 @@ wheels/
 # 自研 EOS 表保留 (Z*.cn4 = ionmix 自生成, 发布包必需)
 # ==============================
 # 全局排除 Z*.cn4 (默认不发布), 例外保留以下两类:
-#   - Gen_eos_op_data/  自生成表目录
+#   - Gen_eos_op_data/  自生成表目录 (cn4 源文件统一存放于此)
 #   - sim_input*/       场景输入目录 (thin_layer 等)
-#   - flash_input/      ch_center 等场景输入目录 (flash_input/Z*.cn4)
 !**/Gen_eos_op_data/**/Z*.cn4
 !**/sim_input*/Z*.cn4
-!**/flash_input/Z*.cn4
+
+# ==============================
+# 场景生成文件 (不入库, 由 gen_flash_inputs.py 经 input_gen 生成)
+# ==============================
+# flash_input/ 下的 .par/Makefile/Config/F90/run 脚本/cn4/诊断图/日志
+# 均由 ch_center/gen_flash_inputs.py 调用 input_gen 包生成 (同 inputfiles 模式);
+# cn4 源文件存放于 flash/input_gen/gen_eos_op/eos_op_data/ (上方案例保留)。
+# flash_output/ 为分析输出目录 (plots 等)。
+flash/scenarios/**/flash_input/
+flash/scenarios/**/flash_output/
 
 # ==============================
 # Credentials (never commit)

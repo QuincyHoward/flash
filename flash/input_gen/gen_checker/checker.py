@@ -200,6 +200,32 @@ class DependencyChecker:
 
     # ── 聚合方法 ────────────────────────────────────────
 
+    def check_standard(self) -> List[CheckResult]:
+        """只检查 7 项 FLASH 仿真必须文件（不含可选环境检查）。
+
+        供场景脚本 / 生成器在运行前调用：.par / .cn4 / Config /
+        Simulation_initBlock.F90 / Simulation_init.F90 / Simulation_data.F90 / Makefile。
+        """
+        self._results = [
+            self.check_par_file(),
+            self.check_eos_files(),
+            self.check_config_file(),
+            self.check_init_block(),
+            self.check_init(),
+            self.check_sim_data(),
+            self.check_makefile(),
+        ]
+        return self._results
+
+    def missing_standard(self) -> List[str]:
+        """检查 7 项必须文件并返回缺失项名称列表（空 = 全部就绪）。
+
+        等价于 check_standard() + 筛选 status=False 的结果，
+        供"检查 → 缺失则生成"流程直接使用。
+        """
+        results = self.check_standard()
+        return [r.name for r in results if not r.status]
+
     def check_all(self, binary_path: Optional[Union[str, Path]] = None) -> List[CheckResult]:
         """运行所有 10 项检查。
 
