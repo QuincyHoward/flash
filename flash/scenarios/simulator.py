@@ -786,6 +786,8 @@ class FlashSimulatorEngine:
             print(f"  [Simulator] .par 已生成 ({len(par_content)} bytes)")
 
         # ── 5. 复制 sim_input/ ──
+        # 先确保场景输入目录就绪 (生成目录设计: 缺失时场景自动生成, 不入库)
+        scenario.ensure_sim_input()
         for f in scenario.sim_input_dir.iterdir():
             if f.is_file() and not f.name.endswith(".par"):
                 (sim_input_dir / f.name).write_bytes(f.read_bytes())

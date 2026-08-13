@@ -82,7 +82,10 @@ def test_each_scenario_metadata():
 
         # 断言
         assert sc.name == name
-        assert sc.sim_input_dir.exists(), f"{name}: sim_input 不存在!"
+        # 生成目录设计: sim_input 不入库, 须满足"已存在 或 具备自动生成能力"
+        # (场景实现 ensure_sim_input 或目录含生成器); 不再要求目录静态存在。
+        assert sc.sim_input_dir.exists() or callable(getattr(sc, "ensure_sim_input", None)), \
+            f"{name}: sim_input 不存在且场景无 ensure_sim_input 生成能力!"
         assert sc.sim_name, f"{name}: sim_name 为空!"
         assert sc.flash_setup_args, f"{name}: flash_setup_args 为空!"
         assert len(sc.default_params) > 0, f"{name}: 无默认参数"

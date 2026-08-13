@@ -48,3 +48,18 @@ class SimulationScenario:
     build_par: Callable = lambda params: ""
     build_grid: Callable = lambda params: (None, None)
     interpolate: Callable = lambda flash_files, t_grid, x_grid, var_names: {}
+
+    def ensure_sim_input(self) -> None:
+        """确保 FLASH 仿真输入文件 (sim_input_dir) 就绪, 供引擎/测试在运行前调用。
+
+        默认实现: 目录已存在则无操作; 缺失时抛出 FileNotFoundError 并给出生成指引。
+        生成目录设计的场景 (如 ch_center, 输入文件由 gen_flash_inputs.py 产生、
+        不随仓库分发) 应覆盖本方法, 在缺失时自动调用生成器补齐。
+        """
+        if self.sim_input_dir.exists():
+            return
+        raise FileNotFoundError(
+            f"场景 {self.name} 的输入目录不存在: {self.sim_input_dir}\n"
+            f"  输入文件为生成物, 不随仓库分发; 请先运行生成器: "
+            f"python {self.scenario_dir / 'gen_flash_inputs.py'} 后重试。"
+        )

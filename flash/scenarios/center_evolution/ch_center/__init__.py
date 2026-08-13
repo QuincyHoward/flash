@@ -517,7 +517,22 @@ _check_sim_input()
 
 # ── 场景实例 ──────────────────────────────────────────
 
-scenario = SimulationScenario(
+
+class ChCenterScenario(SimulationScenario):
+    """ch_center 场景: flash_input/ 为生成目录 (不入库)。
+
+    ensure_sim_input(): 目录缺失时自动调用 gen_flash_inputs 生成器补齐,
+    供引擎 run / 测试在运行前调用, 保证干净克隆/发布环境开箱即用。
+    """
+
+    def ensure_sim_input(self) -> None:
+        if self.sim_input_dir.exists():
+            return
+        from flash.scenarios.center_evolution.ch_center import gen_flash_inputs as _gen
+        _gen.ensure_generated()
+
+
+scenario = ChCenterScenario(
     name="ch_center",
     description="CH 靶中心时域演化 5e14 W/cm²",
     scenario_dir=_HERE,

@@ -55,6 +55,32 @@ def check_input_files() -> list:
     return missing
 
 
+def ensure_generated(force: bool = False) -> bool:
+    """确保 FLASH 仿真必须文件就绪: 检查 → 缺失则生成 → 复查。
+
+    供场景 ensure_sim_input / 引擎 / 测试复用 (非 CLI 入口)。
+    返回 True=就绪; False=生成后仍有缺失。
+    """
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    missing = check_input_files()
+    if missing and not force:
+        print(f"\n[gen] 缺失 {len(missing)} 项必须文件，调用 input_gen 生成器生成 ...")
+        generate_input_files(dict(config_constants))
+    elif force:
+        print("\n[gen] --force：强制重新生成全部输入文件 ...")
+        generate_input_files(dict(config_constants))
+    else:
+        print("\n[gen] 全部必须文件已就绪，无需生成（幂等跳过）。")
+        return True
+    missing2 = check_input_files()
+    if missing2:
+        print(f"\n[FAIL] 生成后仍有 {len(missing2)} 项缺失: {missing2}")
+        print("       请检查上方生成日志中的错误（ERROR 行）。")
+        return False
+    print("\n[OK] FLASH 仿真必须文件已全部就绪 ✓")
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="生成 ch_center 场景的 FLASH 仿真必须文件（经 input_gen 包）")
@@ -86,28 +112,12 @@ def main() -> int:
         print(f"\n[check] {'✅ 全部就绪（缺失 0 项）' if not missing else '⚠ 缺失 ' + str(len(missing)) + ' 项: ' + ', '.join(missing)}")
         return 0 if not missing else 1
 
-    if missing and not args.force:
-        print(f"\n[2/2] 缺失 {len(missing)} 项必须文件，调用 input_gen 生成器生成 ...")
-        generate_input_files(dict(config_constants))
-    elif args.force:
-        print("\n[2/2] --force：强制重新生成全部输入文件 ...")
-        generate_input_files(dict(config_constants))
-    else:
-        print("\n[2/2] 全部必须文件已就绪，无需生成（幂等跳过）。")
-        print("       如需重新生成: python gen_flash_inputs.py --force")
-        return 0
-
-    # 生成后复查
-    print("\n[复查] 生成后再次检查必须文件 ...")
-    missing2 = check_input_files()
-    if missing2:
-        print(f"\n[FAIL] 生成后仍有 {len(missing2)} 项缺失: {missing2}")
-        print("       请检查上方生成日志中的错误（ERROR 行）。")
-        return 1
-    print("\n[OK] FLASH 仿真必须文件已全部就绪 ✓")
-    print(f"     目录: {INPUT_DIR}")
-    print(f"     文件: .par / Config / Makefile / F90×3 / run_flash.sh / submit_flash.sh / *.cn4")
-    return 0
+    # 生成 + 复查 (复用 ensure_generated)
+    ok = ensure_generated(force=args.force)
+    if ok:
+        print(f"     目录: {INPUT_DIR}")
+        print(f"     文件: .par / Config / Makefile / F90×3 / run_flash.sh / submit_flash.sh / *.cn4")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":
