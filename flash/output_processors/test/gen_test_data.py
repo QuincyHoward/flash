@@ -108,10 +108,14 @@ def write_flash_hdf5(path: Path, vars_data: dict, bbox: np.ndarray,
         for name, arr in vars_data.items():
             f.create_dataset(name, data=arr.astype(np.float64))
 
-        # ── 变量名映射 (简单 S80 数组, yt frontend 兼容) ──
+        # ── 变量名映射 (与真实 FLASH 一致: (n,1) |S4 固定 4 字节布局) ──
+        # 真实 WSL/超算 FLASH 的 unknown names 数据集为 (num_vars, 1) 数组,
+        # 每个变量名是 4 字节定长 (|S4); 若按旧版 (n,) S80 生成, FlashHDF5File
+        # 的 (n,1) 兼容路径不会被测试覆盖 (曾导致 WSL 实跑 decode 崩溃)。
+        # 两种布局 FlashHDF5File 与 yt frontend 均兼容 (变量名须 ≤4 字符)。
         f.create_dataset("unknown names",
                          data=np.array([n.encode("utf-8") for n in vars_data.keys()],
-                                       dtype="S80"))
+                                       dtype="S4").reshape(-1, 1))
 
         # ── 标量 ──
         rs_dt = np.dtype([("name", "S80"), ("value", "f8")])
