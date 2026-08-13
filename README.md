@@ -27,7 +27,8 @@ https://gitee.com/physimx/flash
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
-> 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 发布包已通过全局测试 (**236 passed / 1 skipped**: framework 132 / input_gen 78 /
+> output_processors 26) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
 
 ---
 
@@ -86,6 +87,14 @@ from flash.scenarios.simulator import FlashSimulatorEngine
 engine = FlashSimulatorEngine(get_scenario("thin_layer_sandwich_si"))
 output = engine.run()  # 自动编译→运行→插值→输出
 ```
+
+**输入文件生成机制（重要）**: 场景的 FLASH 源文件目录 `flash_input/`
+（`.par` / `Config` / `Makefile` / `*.F90` / EOS `.cn4`）**不随仓库分发**
+（.gitignore 排除，同 output_processors 的 inputfiles/ 模式）。引擎
+`FlashSimulatorEngine.run()` 运行前调用场景 `ensure_sim_input()` 自动补齐
+（ch_center 由 `gen_flash_inputs.py` 经 input_gen 包生成），干净克隆/发布环境
+开箱即用；也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`
+（`--check` 仅检查 / `--force` 强制重生成）。
 
 详见 [`scenarios/README.md`](scenarios/README.md)。
 
@@ -302,7 +311,7 @@ pip install -e ".[full]"
 # 安装开发工具
 pip install -e ".[dev]"
 
-# 建议安装好后运行 scripts\run_global_tests.py 进行全局测试
+# 建议安装好后运行 start_flash.py 进行全局测试 (环境自检自愈)
 ```
 
 ### 最小依赖（独立模式）
@@ -748,14 +757,31 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   collection, interpolation and result output.
   Built-in scenarios: `ch_center`, `grad_dens_sandwich`,
   `thin_layer_sandwich_si`, `thin_layer_sandwich_al`.
+- **Generated Scenario Inputs** (no static `flash_input/` in the repo): FLASH
+  source files (`.par` / `Config` / `Makefile` / `*.F90` / EOS `.cn4` tables)
+  are produced on demand by `gen_flash_inputs.py` (powered by the `input_gen`
+  package); the scenario's `ensure_sim_input()` and the engine auto-generate
+  them before a run, so clean clones and published wheels work out of the box.
+- **Self-Healing One-Command Setup** (`start_flash.py`): creates the project
+  `.venv`, health-checks it (key dependencies importable + pytest launchable),
+  **automatically rebuilds from scratch when unhealthy**, re-runs the global
+  test suites if pytest crashes at startup, and writes an
+  `INSTALL_TEST_REPORT.txt` including a **dependency version snapshot**.
 - **Input Generation** (`input_gen/`): parameter-file editor/calculator, EOS &
-  opacity table tooling, Makefile generation, shell-script generation.
-- **Output Processing** (`output_processors/`): HDF5 loading (1D/2D/3D), derived
-  variables, unit conversion, batch/lazy loading, AMR visualization.
+  opacity table tooling (`gen_eos_op` hosts the self-generated `*.cn4` tables),
+  Makefile generation, shell-script generation, and a dependency checker
+  (`gen_checker`).
+- **Output Processing** (`output_processors/`): HDF5 loading (1D/2D/3D) that is
+  byte-compatible with real FLASH files (incl. WSL `(n,1)` `unknown names`
+  layout), derived variables, unit conversion, batch/lazy loading, AMR
+  visualization. Test data is synthesized at session start and auto-cleaned
+  after a green run.
 - **Multi-Environment Execution**: local WSL (Ubuntu) and HPC clusters over SSH
   (ParaCloud), with SLURM/SBATCH support.
 - **Credential Management** (`_core/credentials/`): encrypted storage for Gitee
-  tokens, SSH accounts and API keys.
+  tokens, SSH accounts and API keys (read-only for agents; user-managed).
+- **No-Prompt Gitee Integration**: direct HTTPS auth via login+token URLs with
+  credential helpers disabled — `git push` never pops a dialog.
 - **Dual Mode**: standalone Python package (`flash.*`) or PhySimX plugin
   (`physimx_sim.flash.*`).
 
@@ -768,6 +794,19 @@ from flash.scenarios.simulator import FlashSimulatorEngine
 scenario = get_scenario("thin_layer_sandwich_si")
 engine = FlashSimulatorEngine(scenario, verbose=True)
 output = engine.run(run_flash=False)   # dry-run: generate inputs only
+```
+
+One-command setup + global test (self-healing):
+
+```bash
+python start_flash.py     # .venv check → auto-rebuild if broken → 3 test suites → report
+```
+
+Generate scenario input files explicitly (optional; normally auto-generated):
+
+```bash
+python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --check   # 0=ready / 1=missing
+python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --force   # regenerate all
 ```
 
 See [README.md] (Chinese) for the full documentation, or run the global test
