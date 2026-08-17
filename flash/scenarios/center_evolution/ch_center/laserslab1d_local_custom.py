@@ -30,11 +30,18 @@ CH 靶居中 (Z06_0.50-Z01_0.50-20260708_0850.cn4, ch_mix)，两侧真空
 
 import sys
 import os
+import re
 import time
 import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
+
+# 统一 stdout/stderr 为 UTF-8（errors="replace"），避免 GBK 控制台
+# (Windows 默认代码页 936) 打印 ✓/中文时抛 UnicodeEncodeError。
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
 
@@ -703,28 +710,74 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     # ── 步骤 3: WSL 运行 FLASH ───────────────────
     print("\n[步骤 3/5] WSL 运行 FLASH 仿真 (setup→编译→运行→收集)")
     print("-" * 50)
-    cmd = f"cd {wsl_dir} && bash run_flash.sh 2>&1"
+    # 输出重定向到 WSL 内日志文件 + 追加退出码，再从 Windows 侧读取：
+    #   wsl.exe 从无控制台/非交互上下文 (如某些 IDE 子进程) 启动时，
+    #   stdout 管道捕获可能静默为空 (exit=0 或 exit=1 但无任何输出)，
+    #   导致旧实现出现 "(exit=1, 空日志)" 的无声失败。写文件绕开该问题。
+    run_log_name = "wsl_console.log"
+    console_log = INPUT_DIR / run_log_name
+    try:
+        console_log.unlink()
+    except OSError:
+        pass
+    cmd = (
+        f"cd {wsl_dir} && bash run_flash.sh > {run_log_name} 2>&1; "
+        f"echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
+    )
     log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
     log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")
-    try:
-        r = subprocess.run(
-            ["wsl", "bash", "-c", cmd],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=7200,
-        )
-    except FileNotFoundError:
-        log("未找到 wsl 命令。请确认已安装 WSL (wsl --install) 并设置默认发行版。", "ERROR")
-        return False
-    except subprocess.TimeoutExpired:
-        log("WSL 运行超时 (2 小时)", "ERROR")
+
+    # 无任何有效输出时重试：WSL 冷启动/VM 竞态等瞬态故障表现为
+    # 立即返回 rc!=0 且 stdout/stderr 与日志文件均为空，非真实 FLASH 失败。
+    max_attempts = 3
+    attempt = 0
+    r = None
+    out = ""
+    console_txt = ""
+    while attempt < max_attempts:
+        attempt += 1
+        if attempt > 1:
+            log(f"WSL 返回无有效输出，重试 ({attempt}/{max_attempts})...", "WARN")
+        try:
+            r = subprocess.run(
+                ["wsl", "bash", "-c", cmd],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=7200,
+            )
+        except FileNotFoundError:
+            log("未找到 wsl 命令。请确认已安装 WSL (wsl --install) 并设置默认发行版。", "ERROR")
+            return False
+        except subprocess.TimeoutExpired:
+            log("WSL 运行超时 (2 小时)", "ERROR")
+            return False
+
+        out = r.stdout + "\n" + r.stderr
+        console_txt = ""
+        if console_log.exists():
+            console_txt = console_log.read_text(encoding="utf-8", errors="replace")
+        combined = (console_txt + "\n" + out).strip()
+        if r.returncode == 0 and console_txt.strip():
+            break              # WSL 正常返回且日志文件有内容
+        if r.returncode != 0 and combined.strip():
+            break              # FLASH 真实失败，已有诊断输出
+        log(f"WSL 无输出 (exit={r.returncode})，疑似冷启动/捕获异常，5s 后重试...", "WARN")
+        time.sleep(5)
+
+    if r is None:
+        log("WSL 启动失败 (多次重试后仍无输出)", "ERROR")
         return False
 
-    out = r.stdout + "\n" + r.stderr
-    log(out[-3000:] if len(out) > 3000 else out)
+    # 提取 WSL 内 FLASH 退出码（管道返回码在捕获异常时不可靠）
+    flash_exit = r.returncode
+    m = re.search(r"FLASH_EXIT_CODE=(\d+)", console_txt)
+    if m:
+        flash_exit = int(m.group(1))
+
+    log(combined[-3000:] if len(combined) > 3000 else combined)
     wsl_log = INPUT_DIR / "wsl_run.log"
-    wsl_log.write_text(out, encoding="utf-8", errors="replace")
-    if r.returncode != 0:
-        log(f"FLASH 运行失败 (exit={r.returncode})，完整日志: {wsl_log}", "ERROR")
+    wsl_log.write_text(combined, encoding="utf-8", errors="replace")
+    if flash_exit != 0:
+        log(f"FLASH 运行失败 (exit={flash_exit})，完整日志: {wsl_log}", "ERROR")
         return False
     log(f"FLASH 运行成功 ✓ (完整日志: {wsl_log})")
 
