@@ -63,7 +63,7 @@ wsl_run.log
 **/collision_compression/
 **/plasma_preparation/
 **/SNBtest/
-**/private/
+#**/private/
 
 # ================================================================
 # FLASH CENTER — 禁止再分发 (FLASH License Agreement §3)
@@ -246,6 +246,10 @@ scenarios/collision_compression/grad_dens_sandwich/
 
 # 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
 scenarios/collision_compression/thin_layer_sandwich/
+
+# 私有场景: layer_tracer 参考数据 (含 FLASH 分发 EOS 表与参考 F90/par, 不入库;
+# 场景脚本仅提交 .py, 运行时可从本地 tmp/ 复制重建)
+flash/scenarios/private/tracer/tmp/
 
 # ==============================
 # FLASH 版权材料 — IONMIX 文档/源 (重组后 flash/ 前缀路径)

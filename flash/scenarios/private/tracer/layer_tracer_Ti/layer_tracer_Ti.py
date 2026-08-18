@@ -67,7 +67,7 @@ config_constants = {
     "nblockx": 8,
     "lrefine_max": 10,
     # 输出频率（覆写 tmp 的 2000，保证 dens 时空图有足够时间序列）
-    "plot_interval_step": 100,
+    "plot_interval_step": 1000,
     "checkpoint_interval_step": 400,
     # MPI
     "nprocs": 4,

@@ -179,9 +179,9 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     pulse_total_ns = cfg["pulse_duration_ns"] + 2 * cfg["rise_fall_ps"] * 1e-3  # ns
     tmax = pulse_total_ns * 1e-9 * cfg["tmax_multiplier"]
 
-    sim_path = f"{SIM_USER_DIR}/LaserSlab_custom"
-    objdir = f"{SIM_USER_DIR}/LaserSlab_custom"
-    par_filename = "laserslab_custom.par"
+    sim_path = f"{SIM_USER_DIR}/LaserSlab_ChCenter"
+    objdir = f"{SIM_USER_DIR}/LaserSlab_ChCenter"
+    par_filename = "laserslab_chcenter.par"
 
     result: Dict[str, str] = {}
 
@@ -379,7 +379,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     log("  [8/8] 生成运行脚本...", "STEP")
     setup_cmd = ShellScriptGenerator.build_setup_cmd(
         sim_path=sim_path, objdir=objdir, parfile=par_filename,
-        flags="-1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10",
+        flags="-1d +cartesian -nxb=16 +hdf5typeio species=cham,targ +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=6",
     )
     script_config = {
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
@@ -689,6 +689,66 @@ def _to_wsl_path(win_path: Path) -> str:
     return "/mnt/" + drive.lower() + rest.replace("\\", "/")
 
 
+def _tail_lines(path: Path, n: int = 25, max_len: int = 160) -> str:
+    """读取文件末尾 n 行（运行中日志），每行截断到 max_len 字符。
+
+    日志文件可能正被 WSL 侧追加写入；读不到时返回空串。
+    """
+    try:
+        data = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    lines = data.splitlines()
+    return "\n".join(l[:max_len] for l in lines[-n:])
+
+
+def _run_wsl_with_progress(cmd: str, console_log: Path,
+                           interval: float = 120.0,
+                           timeout: float = 7200.0) -> Tuple[int, str]:
+    """在 WSL 中执行命令，运行期间每隔 interval 秒回显一段实际日志。
+
+    用 Popen 轮询替代阻塞的 subprocess.run：长时 FLASH 仿真期间用户能
+    每 120s 看到一小段真实输出（编译进度/网格细化/时间步进等），确认
+    代码在推进而非卡死。
+
+    Args:
+        cmd: 交给 `wsl bash -c` 执行的命令串（输出重定向到 console_log）。
+        console_log: WSL 侧写出的日志文件（Windows 路径）。
+        interval: 进度回显间隔（秒）。
+        timeout: 总超时（秒），超出则 kill 进程并抛 TimeoutExpired。
+
+    Returns:
+        (WSL 返回码, 日志文件当前全部内容)。
+    """
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        ["wsl", "bash", "-c", cmd],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    last_report = start
+    while proc.poll() is None:
+        now = time.monotonic()
+        if now - last_report >= interval:
+            last_report = now
+            elapsed = int(now - start)
+            tail = _tail_lines(console_log)
+            if tail.strip():
+                log(f"[{elapsed}s] FLASH 运行中，最近输出:")
+                print(tail)
+            else:
+                log(f"[{elapsed}s] 尚无输出（可能仍在 setup/编译阶段）...")
+        if now - start > timeout:
+            proc.kill()
+            proc.wait()
+            raise subprocess.TimeoutExpired(cmd, timeout)
+        time.sleep(5)
+    rc = proc.wait()
+    console_txt = ""
+    if console_log.exists():
+        console_txt = console_log.read_text(encoding="utf-8", errors="replace")
+    return rc, console_txt
+
+
 def main_wsl(cfg: Dict[str, Any]) -> bool:
     """本地 WSL 运行 FLASH（替代超算 RemoteSession 流程）。
 
@@ -731,18 +791,15 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     # 立即返回 rc!=0 且 stdout/stderr 与日志文件均为空，非真实 FLASH 失败。
     max_attempts = 3
     attempt = 0
-    r = None
-    out = ""
+    flash_rc = None
     console_txt = ""
     while attempt < max_attempts:
         attempt += 1
         if attempt > 1:
             log(f"WSL 返回无有效输出，重试 ({attempt}/{max_attempts})...", "WARN")
         try:
-            r = subprocess.run(
-                ["wsl", "bash", "-c", cmd],
-                capture_output=True, text=True, encoding="utf-8", errors="replace",
-                timeout=7200,
+            flash_rc, console_txt = _run_wsl_with_progress(
+                cmd, console_log, interval=120.0, timeout=7200.0,
             )
         except FileNotFoundError:
             log("未找到 wsl 命令。请确认已安装 WSL (wsl --install) 并设置默认发行版。", "ERROR")
@@ -751,24 +808,20 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
             log("WSL 运行超时 (2 小时)", "ERROR")
             return False
 
-        out = r.stdout + "\n" + r.stderr
-        console_txt = ""
-        if console_log.exists():
-            console_txt = console_log.read_text(encoding="utf-8", errors="replace")
-        combined = (console_txt + "\n" + out).strip()
-        if r.returncode == 0 and console_txt.strip():
+        combined = console_txt.strip()
+        if flash_rc == 0 and console_txt.strip():
             break              # WSL 正常返回且日志文件有内容
-        if r.returncode != 0 and combined.strip():
+        if flash_rc != 0 and combined:
             break              # FLASH 真实失败，已有诊断输出
-        log(f"WSL 无输出 (exit={r.returncode})，疑似冷启动/捕获异常，5s 后重试...", "WARN")
+        log(f"WSL 无输出 (exit={flash_rc})，疑似冷启动/捕获异常，5s 后重试...", "WARN")
         time.sleep(5)
 
-    if r is None:
+    if flash_rc is None:
         log("WSL 启动失败 (多次重试后仍无输出)", "ERROR")
         return False
 
     # 提取 WSL 内 FLASH 退出码（管道返回码在捕获异常时不可靠）
-    flash_exit = r.returncode
+    flash_exit = flash_rc
     m = re.search(r"FLASH_EXIT_CODE=(\d+)", console_txt)
     if m:
         flash_exit = int(m.group(1))

@@ -27,7 +27,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 # 统一 stdout/stderr 为 UTF-8，避免 GBK 控制台报错
 if hasattr(sys.stdout, "reconfigure"):
@@ -67,7 +67,7 @@ config_constants = {
     "nblockx": 8,
     "lrefine_max": 9,
     # 输出频率（覆写 tmp 的 2000，保证 dens 时空图有足够时间序列）
-    "plot_interval_step": 100,
+    "plot_interval_step": 1000,
     "checkpoint_interval_step": 400,
     # MPI
     "nprocs": 4,
@@ -340,6 +340,56 @@ def _to_wsl_path(win_path: Path) -> str:
     return "/mnt/" + drive.lower() + rest.replace("\\", "/")
 
 
+def _tail_lines(path: Path, n: int = 25, max_len: int = 160) -> str:
+    """读取文件末尾 n 行（运行中日志），每行截断到 max_len 字符。"""
+    try:
+        data = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    lines = data.splitlines()
+    return "\n".join(l[:max_len] for l in lines[-n:])
+
+
+def _run_wsl_with_progress(cmd: str, console_log: Path,
+                           interval: float = 120.0,
+                           timeout: float = 7200.0) -> Tuple[int, str]:
+    """在 WSL 中执行命令，运行期间每隔 interval 秒回显一段实际日志。
+
+    用 Popen 轮询替代阻塞的 subprocess.run：长时 FLASH 仿真期间用户能
+    每 120s 看到一小段真实输出（编译进度/网格细化/时间步进等）。
+
+    Returns:
+        (WSL 返回码, 日志文件当前全部内容)。
+    """
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        ["wsl", "bash", "-c", cmd],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    last_report = start
+    while proc.poll() is None:
+        now = time.monotonic()
+        if now - last_report >= interval:
+            last_report = now
+            elapsed = int(now - start)
+            tail = _tail_lines(console_log)
+            if tail.strip():
+                log(f"[{elapsed}s] FLASH 运行中，最近输出:")
+                print(tail)
+            else:
+                log(f"[{elapsed}s] 尚无输出（可能仍在 setup/编译阶段）...")
+        if now - start > timeout:
+            proc.kill()
+            proc.wait()
+            raise subprocess.TimeoutExpired(cmd, timeout)
+        time.sleep(5)
+    rc = proc.wait()
+    console_txt = ""
+    if console_log.exists():
+        console_txt = console_log.read_text(encoding="utf-8", errors="replace")
+    return rc, console_txt
+
+
 def main_wsl(cfg: Dict[str, Any]) -> bool:
     wsl_dir = _to_wsl_path(INPUT_DIR)
     run_sh = INPUT_DIR / "run_flash.sh"
@@ -379,35 +429,30 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
         pass
 
     max_attempts = 3
-    r = None
-    out = ""
+    flash_rc = None
     console_txt = ""
     for attempt in range(1, max_attempts + 1):
         if attempt > 1:
             log(f"WSL 返回无有效输出，重试 ({attempt}/{max_attempts})...", "WARN")
         try:
-            r = subprocess.run(["wsl", "bash", "-c", cmd],
-                               capture_output=True, text=True,
-                               encoding="utf-8", errors="replace", timeout=7200)
+            flash_rc, console_txt = _run_wsl_with_progress(
+                cmd, console_log, interval=120.0, timeout=7200.0,
+            )
         except FileNotFoundError:
             log("未找到 wsl 命令。请确认已安装 WSL。", "ERROR")
             return False
         except subprocess.TimeoutExpired:
             log("WSL 运行超时 (2 小时)", "ERROR")
             return False
-        out = r.stdout + "\n" + r.stderr
-        console_txt = ""
-        if console_log.exists():
-            console_txt = console_log.read_text(encoding="utf-8", errors="replace")
-        combined = (console_txt + "\n" + out).strip()
-        if r.returncode == 0 and console_txt.strip():
+        combined = console_txt.strip()
+        if flash_rc == 0 and console_txt.strip():
             break
-        if r.returncode != 0 and combined.strip():
+        if flash_rc != 0 and combined:
             break
-        log(f"WSL 无输出 (exit={r.returncode})，5s 后重试...", "WARN")
+        log(f"WSL 无输出 (exit={flash_rc})，5s 后重试...", "WARN")
         time.sleep(5)
 
-    if r is None:
+    if flash_rc is None:
         log("WSL 启动失败 (多次重试后仍无输出)", "ERROR")
         return False
 
