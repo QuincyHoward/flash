@@ -28,6 +28,24 @@ import textwrap
 from .grid import GridBuilder, Region
 
 
+def _species_constants_block(species_names: List[str]) -> str:
+    """生成 FLASH 物种常量声明块 (含 #ifndef 保护)。
+
+    仅在 Flash.h 未预定义物种常量时使用，顺序与 setup species= 标志一致。
+    """
+    if not species_names:
+        species_names = ["cham", "targ"]
+    decls = ", ".join(
+        f"{name.upper()}_SPEC = {i + 1}" for i, name in enumerate(species_names)
+    )
+    return textwrap.dedent(
+        f"""\
+        #ifndef CHAM_SPEC
+          integer :: {decls}
+        #endif"""
+    )
+
+
 _F90_TEMPLATE = """!!****if* source/Simulation/SimulationMain/{sim_path}/Simulation_initBlock
 !!
 !! NAME
@@ -81,15 +99,11 @@ subroutine Simulation_initBlock(blockId)
   real, allocatable :: xcent(:), ycent(:), zcent(:)
   real :: tradActual
   real :: rho, tele, trad, tion, zbar, abar
-  integer :: species
+integer :: species
 {face_decls}
 
-#ifndef CHAM_SPEC
-  integer :: CHAM_SPEC = 1, TARG_SPEC = 2
-#endif
-
-
-  ! get the coordinate information for the current block from the database
+{species_constants}
+   ! get the coordinate information for the current block from the database
   call Grid_getBlkIndexLimits(blockId,blkLimits,blkLimitsGC)
 
   ! get the coordinate information for the current block from the database
@@ -172,6 +186,7 @@ class BlockGenerator:
         use_radtrans: bool = True,
         use_3t: bool = True,
         use_face_vars: bool = False,
+        species: Optional[List[str]] = None,
     ):
         """
         Args:
@@ -180,12 +195,15 @@ class BlockGenerator:
             use_radtrans: 是否使用辐射传输 (RadTrans_mgdEFromT)
             use_3t: 是否使用 3T 物理 (FLASH_3T)
             use_face_vars: 是否使用面变量 (MHD)
+            species: 物种名列表 (如 ["cham","shld","samp","targ"])，顺序与
+                setup species= 标志一致。为 None 时从 builder.regions 推断。
         """
         self.simulation_name = simulation_name
         self.sim_path = sim_path
         self.use_radtrans = use_radtrans
         self.use_3t = use_3t
         self.use_face_vars = use_face_vars
+        self.species = species
         
         self._builder: Optional[GridBuilder] = None
         self._generated_code: Optional[str] = None
@@ -286,75 +304,87 @@ class BlockGenerator:
         # 区域判断逻辑 - 核心部分
         region_logic = self._generate_region_logic(builder)
         code = code.replace("{region_logic}", region_logic)
-        
+
+        # 物种常量块 (优先用显式 species，否则从 regions 推断)
+        if self.species:
+            species_names = self.species
+        else:
+            species_names = list(dict.fromkeys(
+                r.species for r in builder.regions if r.species
+            ))
+        code = code.replace(
+            "{species_constants}", _species_constants_block(species_names)
+        )
+
         return code
     
     def _generate_region_logic(self, builder: GridBuilder) -> str:
         """从 regions 生成 Fortran 条件判断逻辑。
-        
-        将 Python 的 Region.contains() 逻辑转换为 Fortran if-else 条件。
-        
-        策略:
-        1. 识别 target regions (is_target=True)
-        2. 对每个 target region 生成条件
-        3. 默认 fallback 到 chamber
+
+        支持多物种分层：每个 region 按 x/y/z 范围映射到对应物种常量，
+        默认 (未命中任何 region) 回落到 cham (CHAM_SPEC)。
         """
         dim = builder.spec.dim
-        target_regions = [r for r in builder.regions if r.is_target]
-        chamber_regions = [r for r in builder.regions if not r.is_target]
-        
-        # 收集所有 target region 的属性
         lines = []
         indent = "           "
-        
-        # 初始化 species = CHAM_SPEC
+
+        # 物种列表 (去重，保留顺序)：优先显式 species，否则从 regions 推断，
+        # 并确保 cham 作为兜底物种存在
+        if self.species:
+            species_names = list(dict.fromkeys(self.species))
+        else:
+            species_names = list(dict.fromkeys(
+                r.species for r in builder.regions if r.species
+            ))
+        if "cham" not in species_names:
+            species_names = ["cham"] + species_names
+
+        # 初始化 species = CHAM_SPEC (默认腔室)
         lines.append(f"{indent}species = CHAM_SPEC")
         lines.append("")
-        
-        if target_regions:
-            # 生成 if 条件 - 只设置 species，属性值在后面的 if/else 中统一设定
-            for i, region in enumerate(target_regions):
-                condition = self._make_fortran_condition(region, dim)
-                
-                if i == 0:
-                    lines.append(f"{indent}if ({condition}) then")
-                else:
-                    lines.append(f"{indent}else if ({condition}) then")
-                
-                lines.append(f"{indent}   species = TARG_SPEC")
-            
-            lines.append(f"{indent}end if")
-        
-        # 生成 else 分支 (chamber 属性)
-        if chamber_regions:
-            # 取第一个 chamber region 的属性
-            default = chamber_regions[0]
-        else:
-            # fallback chamber 默认值
-            default = Region("default_chamber", species="cham",
-                             rho=1e-6, tele=290.11375, tion=290.11375, trad=290.11375)
-        
-        lines.append("")
-        lines.append(f"{indent}if(species == TARG_SPEC) then")
-        
-        # 靶材属性
-        if target_regions:
-            targ = target_regions[0]
-            lines.extend(self._make_value_assignments(targ, indent + "   "))
-        else:
-            lines.append(f"{indent}   rho = {default.rho}")
-            lines.append(f"{indent}   tele = {default.tele}")
-            lines.append(f"{indent}   tion = {default.tion}")
-            lines.append(f"{indent}   trad = {default.trad}")
-        
-        lines.append(f"{indent}else")
-        
-        # 腔室属性
-        lines.extend(self._make_value_assignments(default, indent + "   "))
-        
+
+        # 生成 if / else-if 条件链 (跳过零宽区域)
+        active_regions = [r for r in builder.regions if self._region_has_extent(r)]
+        for i, region in enumerate(active_regions):
+            condition = self._make_fortran_condition(region, dim)
+            sp = region.species.upper() + "_SPEC"
+            if i == 0:
+                lines.append(f"{indent}if ({condition}) then")
+            else:
+                lines.append(f"{indent}else if ({condition}) then")
+            lines.append(f"{indent}   species = {sp}")
         lines.append(f"{indent}end if")
-        
+        lines.append("")
+
+        # 按物种分配物理量
+        lines.append(f"{indent}if(species == CHAM_SPEC) then")
+        for sp_name in species_names:
+            cap = sp_name.capitalize()
+            const = sp_name.upper() + "_SPEC"
+            if sp_name == "cham":
+                lines.append(f"{indent}   rho  = sim_rho{cap}")
+                lines.append(f"{indent}   tele = sim_tele{cap}")
+                lines.append(f"{indent}   tion = sim_tion{cap}")
+                lines.append(f"{indent}   trad = sim_trad{cap}")
+            else:
+                lines.append(f"{indent}else if (species == {const}) then")
+                lines.append(f"{indent}   rho  = sim_rho{cap}")
+                lines.append(f"{indent}   tele = sim_tele{cap}")
+                lines.append(f"{indent}   tion = sim_tion{cap}")
+                lines.append(f"{indent}   trad = sim_trad{cap}")
+        lines.append(f"{indent}end if")
+
         return "\n".join(lines)
+
+    @staticmethod
+    def _region_has_extent(region: Region) -> bool:
+        """判断区域是否在任一维度有非零宽度。"""
+        for rng in (region.x_range, region.y_range, region.z_range):
+            if rng:
+                lo, hi = rng
+                if hi - lo > 1e-30:
+                    return True
+        return False
     
     def _make_fortran_condition(self, region: Region, dim: int) -> str:
         """生成 Fortran 区域判断条件."""

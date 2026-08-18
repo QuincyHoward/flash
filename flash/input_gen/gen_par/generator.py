@@ -417,9 +417,9 @@ class ParGeneratorExtended:
             if abs_val == 0.0:
                 return f"{key} = 0.0"
             elif abs_val < 0.01 or abs_val >= 10000:
-                return f"{key} = {value:.6e}"
+                return f"{key} = {value:.15e}"
             else:
-                return f"{key} = {value:.6g}"
+                return f"{key} = {value:.15g}"
         else:
             return f"{key} = {value}"
 
