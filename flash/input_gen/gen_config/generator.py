@@ -9,6 +9,19 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 
+def _real_literal(value: Any) -> str:
+    """格式化 FLASH REAL 默认值: 整数必须带小数点。
+
+    Config 中 `PARAMETER x REAL 23` 会被 setup 注册为 INTEGER 运行时参数,
+    之后代码调用 getReal('x') 会报 "cannot locate real runtime parameter"。
+    (实测: ms_shldZ = 23 -> RuntimeParameters_add(ms_shldZ, 23) 整数注册 -> 运行崩溃)
+    """
+    s = f"{float(value):.10g}"
+    if "." not in s and "e" not in s.lower():
+        s += ".0"
+    return s
+
+
 def _build_multi_species_config(species_defs: List[dict], simulation_path: str) -> str:
     """从物种定义列表生成多物种 Config。
 
@@ -73,26 +86,26 @@ def _build_multi_species_config(species_defs: List[dict], simulation_path: str) 
         hei = sp.get("height_param") or f"sim_{name}Height"
         if "radius" in sp and sp["radius"] is not None:
             lines.append(f"D {rad} The radius of the {name} layer")
-            lines.append(f"PARAMETER {rad} REAL {sp.get('radius', 0.0)}")
+            lines.append(f"PARAMETER {rad} REAL {_real_literal(sp.get('radius', 0.0))}")
         if "height" in sp and sp["height"] is not None:
             lines.append(f"D {hei} The height of the {name} layer")
-            lines.append(f"PARAMETER {hei} REAL {sp.get('height', 0.0)}")
+            lines.append(f"PARAMETER {hei} REAL {_real_literal(sp.get('height', 0.0))}")
         lines.append(f"D sim_rho{cap} Initial {name} density")
-        lines.append(f"PARAMETER sim_rho{cap}   REAL {sp.get('rho', 1.0)}")
+        lines.append(f"PARAMETER sim_rho{cap}   REAL {_real_literal(sp.get('rho', 1.0))}")
         lines.append(f"D sim_tele{cap} Initial {name} electron temperature")
-        lines.append(f"PARAMETER sim_tele{cap}  REAL {sp.get('tele', 290.11375)}")
+        lines.append(f"PARAMETER sim_tele{cap}  REAL {_real_literal(sp.get('tele', 290.11375))}")
         lines.append(f"D sim_tion{cap} Initial {name} ion temperature")
-        lines.append(f"PARAMETER sim_tion{cap}  REAL {sp.get('tion', 290.11375)}")
+        lines.append(f"PARAMETER sim_tion{cap}  REAL {_real_literal(sp.get('tion', 290.11375))}")
         lines.append(f"D sim_trad{cap} Initial {name} radiation temperature")
-        lines.append(f"PARAMETER sim_trad{cap}  REAL {sp.get('trad', 290.11375)}")
+        lines.append(f"PARAMETER sim_trad{cap}  REAL {_real_literal(sp.get('trad', 290.11375))}")
         lines.append(f"D sim_zmin{cap} {name} minimum zbar allowed")
         lines.append(f"PARAMETER sim_zmin{cap}  REAL 0.0")
         lines.append(f"D sim_eos{cap} {name} EOS type")
         lines.append(f'PARAMETER sim_eos{cap}   STRING "eos_tab" ["eos_tab","eos_gam"]')
         lines.append(f"D ms_{name}A {name} atomic weight")
-        lines.append(f"PARAMETER ms_{name}A REAL {sp.get('A', 1.0)}")
+        lines.append(f"PARAMETER ms_{name}A REAL {_real_literal(sp.get('A', 1.0))}")
         lines.append(f"D ms_{name}Z {name} atomic number")
-        lines.append(f"PARAMETER ms_{name}Z REAL {sp.get('Z', 1.0)}")
+        lines.append(f"PARAMETER ms_{name}Z REAL {_real_literal(sp.get('Z', 1.0))}")
         if sp.get("file"):
             lines.append(f"D eos_{name}EosType {name} EOS type")
             lines.append(f'PARAMETER eos_{name}EosType STRING "eos_tab" ["eos_tab","eos_gam"]')

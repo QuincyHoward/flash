@@ -223,6 +223,9 @@ ed_maxPulseSections=300 \
             "slurm_email": "",
             "slurm_gpus": 0,
             "slurm_modules": ["mpich/3.2-gcc9.3", "hdf5/1.8.18"],
+            "slurm_mpi_runner": "srun",  # SLURM 内运行 FLASH 的 MPI 启动器 (srun/mpiexec)
+            # module load 之后追加的环境初始化行 (如 source setvars.sh)
+            "slurm_env_lines": [],
             # 内存 (GB), None 表示从 resource_config 自动计算
             "slurm_mem_gb": None,
         }
@@ -613,6 +616,8 @@ ed_maxPulseSections=300 \
             "module purge",
         ]
         lines += module_lines
+        for env_line in cfg.get("slurm_env_lines", []):
+            lines.append(env_line)
         lines += [
             "",
             f'FLASH_HOME="{cfg["flash_home"]}"',
@@ -668,10 +673,10 @@ ed_maxPulseSections=300 \
             "",
             '# ── Step 5: Run FLASH ──',
             'echo ""',
-            'echo "[5/6] Running FLASH simulation (srun)..."',
+            f'echo "[5/6] Running FLASH simulation ({cfg.get("slurm_mpi_runner", "srun")})..."',
             '# TOTAL_TASKS from SLURM (#SBATCH -n), or default to 4 for direct execution',
             "TOTAL_TASKS=${SLURM_NTASKS:-4}",
-            f"srun -n $TOTAL_TASKS $FLASH_BIN -par_file $PAR_FILE 2>&1 | tee flash_run.log",
+            f'{cfg.get("slurm_mpi_runner", "srun")} -n $TOTAL_TASKS $FLASH_BIN -par_file $PAR_FILE 2>&1 | tee flash_run.log',
             'FLASH_EXIT=${PIPESTATUS[0]}',
             'echo "  FLASH exit code: $FLASH_EXIT"',
             "",

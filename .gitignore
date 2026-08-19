@@ -205,8 +205,11 @@ wheels/
 # 全局排除 Z*.cn4 (默认不发布), 例外保留以下两类:
 #   - Gen_eos_op_data/  自生成表目录 (cn4 源文件统一存放于此)
 #   - sim_input*/       场景输入目录 (thin_layer 等)
-!**/Gen_eos_op_data/**/Z*.cn4
+!**/Gen_eos_op_data/**/*.cn4
 !**/sim_input*/Z*.cn4
+# FLASH 分发 IONMIX 版权表一律不入库; 自研 Au-imx* 表 (Gen_eos_op_data 内) 例外保留
+*-imx*.cn4
+!**/Gen_eos_op_data/**/*-imx*.cn4
 
 # ==============================
 # 场景生成文件 (不入库, 由 gen_flash_inputs.py 经 input_gen 生成)
@@ -247,9 +250,8 @@ scenarios/collision_compression/grad_dens_sandwich/
 # 私有场景: thin_layer_sandwich (Al/CH/He 与 Si/CH/He 三层靶)
 scenarios/collision_compression/thin_layer_sandwich/
 
-# 私有场景: layer_tracer 参考数据 (含 FLASH 分发 EOS 表与参考 F90/par, 不入库;
-# 场景脚本仅提交 .py, 运行时可从本地 tmp/ 复制重建)
-flash/scenarios/private/tracer/tmp/
+# 私有场景: layer_tracer 参考数据已规范迁移至 Gen_eos_op_data (入库) +
+# _par_layers.py (物理参数内嵌), tmp/ 参考目录已删除
 
 # ==============================
 # FLASH 版权材料 — IONMIX 文档/源 (重组后 flash/ 前缀路径)
