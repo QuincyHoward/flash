@@ -48,6 +48,8 @@ if hasattr(sys.stdout, "reconfigure"):
 # ── 运行模式 ─────────────────────────────────────────
 # "wsl": 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
 # "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
+# 一键切换即修改此行; 也可用环境变量 FLASH_RUN_MODE 覆盖
+# (resolve_run_mode 解析规则统一见 flash.scenarios.runner)
 RUN_MODE = "wsl"
 
 
@@ -69,15 +71,10 @@ if str(_PARENT) not in sys.path:
 # ── RemoteSession 导入 ───────────────────────────────
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-# ── 用户信息（优先从 flash 凭证中心读取，再回落环境变量）──
+# ── 用户信息（统一走 runner.get_sim_user_dir: credentials → env → hello）──
 def _get_sim_user_dir() -> str:
-    """三层回落: credentials → 环境变量 → 'hello'"""
-    try:
-        from flash._core.credentials import get_user_name
-        return get_user_name()
-    except ImportError:
-        pass
-    return os.environ.get("FLASH_SIM_USER_DIR", "hello")
+    from flash.scenarios.runner import get_sim_user_dir as _sud
+    return _sud()
 
 SIM_USER_DIR = _get_sim_user_dir()
 
@@ -933,8 +930,10 @@ def main(credential_name: Optional[str] = None):
         return False
 
     # ── 运行模式分支 ────────────────────────────
-    if RUN_MODE == "wsl":
-        log("运行模式: 本地 WSL（RUN_MODE=wsl）", "INFO")
+    from flash.scenarios.runner import resolve_run_mode
+    run_mode = resolve_run_mode(RUN_MODE)
+    log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
+    if run_mode == "wsl":
         return main_wsl(cfg)
 
     # ── 步骤 2-5: 通过 RemoteSession 连接超算 ────

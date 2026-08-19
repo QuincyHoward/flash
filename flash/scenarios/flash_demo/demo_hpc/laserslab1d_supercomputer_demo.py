@@ -50,15 +50,16 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-# ── 用户信息（优先从 credentials 读取，再找环境变量，最后用 "hello"）──
+# ── 运行模式 ─────────────────────────────────────────
+# 本 Demo 仅实现 hpc 超算运行; 切换 wsl 请用 trace/center 场景的共享 runner。
+# 一键切换即修改此行; 也可用环境变量 FLASH_RUN_MODE 覆盖 (resolve_run_mode 统一规则)
+RUN_MODE = "hpc"
+
+
+# ── 用户信息（统一走 runner.get_sim_user_dir: credentials → env → hello）──
 def _get_sim_user_dir() -> str:
-    """三层回落: credentials → env var → 'hello'"""
-    try:
-        from flash._core.credentials import get_user_name
-        return get_user_name()
-    except ImportError:
-        pass
-    return os.environ.get("FLASH_SIM_USER_DIR", "hello")
+    from flash.scenarios.runner import get_sim_user_dir as _sud
+    return _sud()
 
 SIM_USER_DIR = _get_sim_user_dir()
 
@@ -587,6 +588,13 @@ def main():
     print(f"  运行 ID: {_RUN_TIMESTAMP}")
     print(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
+
+    from flash.scenarios.runner import resolve_run_mode
+    run_mode = resolve_run_mode(RUN_MODE)
+    print(f"  运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})")
+    if run_mode != "hpc":
+        print("  demo_hpc 仅实现 hpc 运行; wsl 请使用 trace/center 场景的共享 runner")
+        return False
     
     # ── 步骤1: 加载 SSH 凭据 ─────────────────────────────
     print("\n[步骤1] 加载 SSH 凭据...")

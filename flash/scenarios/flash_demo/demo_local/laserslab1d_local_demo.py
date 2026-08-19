@@ -50,30 +50,21 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-# ── 用户信息（优先从 credentials 获取，再回落环境变量）──
+# ── 运行模式 ─────────────────────────────────────────
+# 本 Demo 仅实现 wsl 本机运行; 切换 hpc 请用 trace/center 场景的共享 runner。
+# 一键切换即修改此行; 也可用环境变量 FLASH_RUN_MODE 覆盖 (resolve_run_mode 统一规则)
+RUN_MODE = "wsl"
+
+
+# ── 用户信息（统一走 runner.get_sim_user_dir: credentials → env → hello）──
 def _get_sim_user_dir() -> str:
-    """三层回落: credentials → 环境变量 → 'hello'"""
-    try:
-        from flash._core.credentials import get_user_name
-        return get_user_name()
-    except ImportError:
-        pass
-    return os.environ.get("FLASH_SIM_USER_DIR", "hello")
+    from flash.scenarios.runner import get_sim_user_dir as _sud
+    return _sud()
 
 SIM_USER_DIR = _get_sim_user_dir()
 WSL_DISTRO = os.environ.get("WSL_DISTRO", "Ubuntu-22.04")
 
-# Bootstrap: find flash project root by searching upward for marker
-_ROOT = Path(__file__).resolve().parent
-for _ in range(12):
-    if (_ROOT / "pyproject.toml").exists():
-        break
-    _ROOT = _ROOT.parent
-else:
-    raise RuntimeError("Cannot locate flash package root")
-_PARENT = _ROOT
-if str(_PARENT) not in sys.path:
-    sys.path.insert(0, str(_PARENT))
+PROJECT_ROOT = _PARENT
 
 print(f"  [Demo] PROJECT_ROOT = {PROJECT_ROOT}")
 print(f"  [Demo] SIM_USER_DIR = {SIM_USER_DIR}")
@@ -103,6 +94,13 @@ def main():
     print(f" User dir: {SIM_USER_DIR}")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
+
+    from flash.scenarios.runner import resolve_run_mode
+    run_mode = resolve_run_mode(RUN_MODE)
+    log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
+    if run_mode != "wsl":
+        log("demo_local 仅实现 wsl 运行; hpc 请使用 trace/center 场景的共享 runner", "ERROR")
+        return False
 
     # ── 构建自定义仿真路径 ────────────────────────
     sim_path = f"{SIM_USER_DIR}/LaserSlab_local"

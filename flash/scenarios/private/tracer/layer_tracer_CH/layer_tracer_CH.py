@@ -1,18 +1,18 @@
-"""
+﻿"""
 layer_tracer_CH 场景 — 1D 分层示踪靶 (CH) 仿真
 ═══════════════════════════════════════════════
 
-复现 private/tracer/tmp/layer_tracer_CH 的 FLASH 输入配置（来自
-runfiles_CH_CH_*um8.00e-022026），通过多物种 input_gen 生成器重建：
+复现原 runfiles_CH_CH_*um8.00e-022026 的 FLASH 输入配置（物理参数
+内嵌于同包 _par_layers.py），通过多物种 input_gen 生成器重建：
 
   * 1D 笛卡尔域 x=[-0.04, 0.01] cm，FLASH_3T，NXB=16，MAXBLOCKS=1024
   * 单光束 0.351um 激光（透镜 x=-1.0，靶 x=0），82 点功率脉冲
   * 4 物种分层：cham(He) → samp(CH) → targ(CH) → samp(CH)
-    （首层厚度由 layer_samp_um 控制，即 tmp 命名中的 01/02/03um）
+    （首层厚度由 layer_samp_um 控制，即原 tmp 命名中的 01/02/03um）
   * MGD 10 能群辐射，tabular EOS/opacity（ionmix4）
 
-物理参数（82 点脉冲、MGD 群边界、扩散/热交换/水动力学等）均从 tmp
-runfiles 的 flash.par 程序化提取，避免转录错误；仅把可调层厚度参数化。
+物理参数（82 点脉冲、MGD 群边界、扩散/热交换/水动力学等）均来自
+_par_layers.py 内嵌字典，避免转录错误；仅把可调层厚度参数化。
 
 用法:
   cd <flash 包目录>
@@ -21,13 +21,9 @@ runfiles 的 flash.par 程序化提取，避免转录错误；仅把可调层厚
 
 import sys
 import os
-import re
-import time
-import shutil
-import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, List
 
 # 统一 stdout/stderr 为 UTF-8，避免 GBK 控制台报错
 if hasattr(sys.stdout, "reconfigure"):
@@ -46,19 +42,19 @@ if str(_ROOT) not in sys.path:
 
 
 def _get_sim_user_dir() -> str:
-    try:
-        from flash._core.credentials import get_user_name
-        return get_user_name()
-    except ImportError:
-        pass
-    return os.environ.get("FLASH_SIM_USER_DIR", "hello")
+    from flash.scenarios.runner import get_sim_user_dir as _sud
+    return _sud()
 
 
 SIM_USER_DIR = _get_sim_user_dir()
 
+# 运行模式: "wsl" 本机 WSL 运行; "hpc" 超算(paramiko 分阶段驱动)
+# 一键切换即修改此行; 也可用环境变量 FLASH_RUN_MODE 覆盖
+RUN_MODE = "wsl"
+
 # ── 可配置参数 ────────────────────────────────────────────
 config_constants = {
-    # 首层(CH)示踪层厚度 (μm)，对应 tmp 命名 01/02/03um
+    # 首层(CH)示踪层厚度 (μm)，对应原 runfiles 命名 01/02/03um
     "layer_samp_um": 2.0,
     # 仿真域 (cm)
     "xmin": -0.04,
@@ -66,19 +62,27 @@ config_constants = {
     # 网格
     "nblockx": 8,
     "lrefine_max": 9,
-    # 输出频率（覆写 tmp 的 2000，保证 dens 时空图有足够时间序列）
+    # 输出频率（覆写规范参数的 2000，保证 dens 时空图有足够时间序列）
     "plot_interval_step": 1000,
     "checkpoint_interval_step": 400,
-    # MPI
-    "nprocs": 4,
+    # 维度 (用于按装置×维度自动配置资源核数)
+    "dimension": 1,
+    # MPI 进程数: None → 按装置×维度自动计算; 显式指定则覆盖
+    "nprocs": None,
+    # 超算 SLURM 分区/ntasks: None → 生成器按维度自动计算
+    "slurm_partition": "v5_192",
+    "slurm_ntasks": None,
 }
 
-# 规范来源目录：tmp runfiles（物理参数/脉冲/EOS 的权威来源）
-TMP_RUNFILES = (
-    Path(__file__).resolve().parent.parent
-    / "tmp" / "layer_tracer_CH"
-    / "runfiles_CH_CH_02um8.00e-022026"
+# FLASH setup 标志 (wsl/hpc 共用)
+SETUP_FLAGS = (
+    "-1d +cartesian -nxb=16 +hdf5typeio species=cham,shld,samp,targ "
+    "+mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 "
+    "ed_maxPulseSections=300 -maxblocks=4096"
 )
+
+# 规范物理参数（原 tmp flash.par 全文解析后内嵌于 _par_layers.py，自包含）
+from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
 
 # 场景目录
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -117,38 +121,6 @@ def build_species_defs(layer_samp_um: float) -> List[dict]:
     ]
 
 
-# ── tmp flash.par → 参数字典 ──────────────────────────────
-def _parse_par_value(v: str):
-    v = v.strip()
-    if v.startswith('"') and v.endswith('"'):
-        return v[1:-1]
-    if v in (".true.", ".false."):
-        return v == ".true."
-    # 尝试数值
-    try:
-        return int(v)
-    except ValueError:
-        pass
-    try:
-        return float(v)
-    except ValueError:
-        pass
-    return v
-
-
-def load_tmp_par(tmp_dir: Path) -> Dict[str, Any]:
-    """读取 tmp flash.par 全部参数（去注释），返回 {key: value}。"""
-    par_file = tmp_dir / "flash.par"
-    params: Dict[str, Any] = {}
-    for line in par_file.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.split("#", 1)[0].strip()
-        if not line or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        params[k.strip()] = _parse_par_value(v)
-    return params
-
-
 # ── 步骤 1: 生成 FLASH 输入文件 ───────────────────────────
 def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     from flash.input_gen.gen_par import ParGeneratorExtended
@@ -159,22 +131,24 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     from flash.input_gen.gen_sim_initblock import BlockGenerator, GridBuilder
     from flash.input_gen.gen_shell_script import ShellScriptGenerator
 
-    if not TMP_RUNFILES.exists():
-        raise RuntimeError(f"tmp 规范目录不存在: {TMP_RUNFILES}")
-
     species_defs = build_species_defs(cfg["layer_samp_um"])
     sim_path = f"{SIM_USER_DIR}/LaserSlab_custom"
     objdir = f"{SIM_USER_DIR}/LaserSlab_custom"
     par_filename = "laserslab_custom.par"
 
+    from flash.scenarios.runner import default_nprocs
+    # 维度感知资源默认值: 未显式指定时按装置×维度自动计算
+    nprocs = cfg["nprocs"] or default_nprocs(cfg["dimension"], is_hpc=False)
+    slurm_ntasks = cfg["slurm_ntasks"] or default_nprocs(cfg["dimension"], is_hpc=True)
+
     result: Dict[str, str] = {}
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── 1. par（从 tmp flash.par 提取全部物理参数）───────
+    # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 覆写）───────
     log("  [1/8] 生成 .par 文件...", "STEP")
-    tmp_params = load_tmp_par(TMP_RUNFILES)
+    tmp_params = dict(CH_FLASH_PAR)
     par_gen = ParGeneratorExtended(simulation_name="LaserSlab_custom", dimension=1)
-    # 清除维度默认参数，仅保留 tmp 规范参数 + 下方覆写，避免未注册参数混入 par
+    # 清除维度默认参数，仅保留规范参数 + 下方覆写，避免未注册参数混入 par
     par_gen._params.clear()
     for k, v in tmp_params.items():
         par_gen.set(k, v)
@@ -217,7 +191,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     for sp in species_defs:
         builder.set_material(sp["name"], rho=sp["rho"], tele=290.11375,
                              tion=290.11375, trad=290.11375)
-    # 分层边界（与 tmp 一致: 0 → samp → targ → samp → 域外 cham）
+    # 分层边界（与规范配置一致: 0 → samp → targ → samp → 域外 cham）
     builder.add_region("samp_front", species="samp", x_range=(0.0, samp_cm))
     builder.add_region("targ", species="targ",
                        x_range=(samp_cm, samp_cm + target_radius))
@@ -232,35 +206,57 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     result["sim_initblock"] = str(block_path)
     log(f"    Simulation_initBlock.F90 ({len(builder.regions)} regions) ✓")
 
-    # ── 7. EOS/opacity .cn4（从 tmp 复制）─────────────────
+    # ── 7. EOS/opacity .cn4（从 gen_eos_op 规范库复制）────
     log("  [7/8] 复制 EOS/opacity 表...", "STEP")
-    eos_names = ["He-BADGER-TOPS-Final.cn4", "CH-QC-1-001.cn4"]
-    for f in eos_names:
-        src = TMP_RUNFILES / f
-        if src.exists():
-            (INPUT_DIR / f).write_bytes(src.read_bytes())
-            log(f"    {f} ✓")
-        else:
-            log(f"    {f} 缺失!", "ERROR")
+    from flash.input_gen.gen_eos_op import EOSOpacityGenerator
+    eos_aliases = ["he_badger", "ch_qc"]
+    for alias in eos_aliases:
+        try:
+            EOSOpacityGenerator().copy_eos_file(alias, INPUT_DIR)
+            log(f"    {alias} ✓")
+        except FileNotFoundError as exc:
+            log(f"    {alias} 缺失: {exc}", "ERROR")
 
-    # ── 8. run_flash.sh ───────────────────────────────────
-    log("  [8/8] 生成运行脚本...", "STEP")
+    # ── 8. run_flash.sh (wsl) + submit_flash.sh (hpc) ────
+    log("  [8/8] 生成运行脚本 (wsl + hpc)...", "STEP")
     setup_cmd = ShellScriptGenerator.build_setup_cmd(
-        sim_path=sim_path, objdir=objdir, parfile=par_filename,
-        flags="-1d +cartesian -nxb=16 +hdf5typeio species=cham,shld,samp,targ "
-              "+mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 "
-              "ed_maxPulseSections=300 -maxblocks=4096",
+        sim_path=sim_path, objdir=objdir, parfile=par_filename, flags=SETUP_FLAGS,
     )
-    script_config = {
-        "sim_user_dir": SIM_USER_DIR, "dimension": 1,
+    wsl_config = {
+        "sim_user_dir": SIM_USER_DIR, "dimension": cfg["dimension"],
         "platform": "local", "setup_cmd": setup_cmd,
-        "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
+        "nprocs": nprocs, "sim_path": sim_path, "object_dir": objdir,
         "flash_home": f"$HOME/{SIM_USER_DIR}/FLASH/FLASH4.8",
     }
-    script_gen = ShellScriptGenerator(config=script_config)
-    script_gen.save(str(INPUT_DIR / "run_flash.sh"), "wsl", par_file=par_filename)
+    ShellScriptGenerator(config=wsl_config).save(
+        str(INPUT_DIR / "run_flash.sh"), "wsl", par_file=par_filename,
+    )
     result["script_wsl"] = str(INPUT_DIR / "run_flash.sh")
     log(f"    run_flash.sh ✓")
+    hpc_config = {
+        "sim_user_dir": SIM_USER_DIR, "dimension": cfg["dimension"],
+        "platform": "hpc", "setup_cmd": setup_cmd,
+        "nprocs": slurm_ntasks,
+        "sim_path": sim_path, "object_dir": objdir,
+        "par_file": par_filename, "flash_home": f"$HOME/{SIM_USER_DIR}/FLASH/FLASH4.8",
+        "flash_exe": "flash4", "build_cores": 32,
+        "slurm_partition": cfg.get("slurm_partition", "v5_192"),
+        "slurm_nodes": 1, "slurm_ntasks": slurm_ntasks,
+        "slurm_job_name": "layer_tracer_CH", "slurm_walltime": "24:00:00",
+        "slurm_modules": ["mpich/3.2-gcc9.3", "hdf5/1.8.18"],
+        # srun 直启 oneAPI MPI 在本集群 PMI2 握手失败, 用 mpiexec 实测正常
+        "slurm_mpi_runner": "mpiexec",
+        # 模块加载后补 source oneAPI setvars: Makefile.h 硬编码 oneAPI mpiifort,
+        # 作业中 module purge 会清掉其环境变量导致链接找不到 -lmpifort/-lmpi
+        "slurm_env_lines": [
+            "source /public1/soft/oneAPI/2022.1/setvars.sh >/dev/null 2>&1 || true",
+        ],
+    }
+    ShellScriptGenerator(config=hpc_config).save(
+        str(INPUT_DIR / "submit_flash.sh"), "slurm", par_file=par_filename,
+    )
+    result["script_hpc"] = str(INPUT_DIR / "submit_flash.sh")
+    log(f"    submit_flash.sh ✓")
 
     log(f"  输入文件总数: {len(result)}", "OK")
     return result
@@ -333,166 +329,31 @@ def plot_density_timespace(outdir: Path, save_path: Path) -> int:
     return len(plt_files)
 
 
-# ── WSL 运行 ──────────────────────────────────────────────
-def _to_wsl_path(win_path: Path) -> str:
-    s = str(win_path)
-    drive, rest = s.split(":", 1)
-    return "/mnt/" + drive.lower() + rest.replace("\\", "/")
-
-
-def _tail_lines(path: Path, n: int = 25, max_len: int = 160) -> str:
-    """读取文件末尾 n 行（运行中日志），每行截断到 max_len 字符。"""
-    try:
-        data = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return ""
-    lines = data.splitlines()
-    return "\n".join(l[:max_len] for l in lines[-n:])
-
-
-def _run_wsl_with_progress(cmd: str, console_log: Path,
-                           interval: float = 120.0,
-                           timeout: float = 7200.0) -> Tuple[int, str]:
-    """在 WSL 中执行命令，运行期间每隔 interval 秒回显一段实际日志。
-
-    用 Popen 轮询替代阻塞的 subprocess.run：长时 FLASH 仿真期间用户能
-    每 120s 看到一小段真实输出（编译进度/网格细化/时间步进等）。
-
-    Returns:
-        (WSL 返回码, 日志文件当前全部内容)。
-    """
-    start = time.monotonic()
-    proc = subprocess.Popen(
-        ["wsl", "bash", "-c", cmd],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+# ── HPC 远程分析命令 ──────────────────────────────────────
+def remote_analysis_cmd(outdir: str) -> str:
+    """超算端绘图分析 (脚本已由 runner 上传至 analysis 目录)。"""
+    return (
+        "source /public1/soft/modules/module.sh >/dev/null 2>&1; "
+        "module purge >/dev/null 2>&1; module load python/3.9.6 >/dev/null 2>&1; "
+        "export PYTHONIOENCODING=utf-8 && "
+        f"python layer_tracer_CH_remote_analysis.py "
+        f"--outdir {outdir} --save dens_timespace.png --json summary.json 2>&1"
     )
-    last_report = start
-    while proc.poll() is None:
-        now = time.monotonic()
-        if now - last_report >= interval:
-            last_report = now
-            elapsed = int(now - start)
-            tail = _tail_lines(console_log)
-            if tail.strip():
-                log(f"[{elapsed}s] FLASH 运行中，最近输出:")
-                print(tail)
-            else:
-                log(f"[{elapsed}s] 尚无输出（可能仍在 setup/编译阶段）...")
-        if now - start > timeout:
-            proc.kill()
-            proc.wait()
-            raise subprocess.TimeoutExpired(cmd, timeout)
-        time.sleep(5)
-    rc = proc.wait()
-    console_txt = ""
-    if console_log.exists():
-        console_txt = console_log.read_text(encoding="utf-8", errors="replace")
-    return rc, console_txt
-
-
-def main_wsl(cfg: Dict[str, Any]) -> bool:
-    wsl_dir = _to_wsl_path(INPUT_DIR)
-    run_sh = INPUT_DIR / "run_flash.sh"
-    if not run_sh.exists():
-        log(f"run_flash.sh 不存在: {run_sh}", "ERROR")
-        return False
-
-    print("\n[WSL] 运行 FLASH (setup→编译→运行→收集)")
-    print("-" * 50)
-    run_log_name = "wsl_console.log"
-    console_log = INPUT_DIR / run_log_name
-    try:
-        console_log.unlink()
-    except OSError:
-        pass
-    cmd = (
-        f"cd {wsl_dir} && bash run_flash.sh > {run_log_name} 2>&1; "
-        f"echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
-    )
-    log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
-    log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")
-
-    # 清理旧输出/旧 objdir，确保用新 setup 标志重编译且无残留文件污染
-    log("清理旧 objdir 与本地输出...", "STEP")
-    for p in [INPUT_DIR / "outputfiles", PLOTS_DIR]:
-        if p.exists():
-            shutil.rmtree(p, ignore_errors=True)
-            p.mkdir(parents=True, exist_ok=True)
-    try:
-        subprocess.run(
-            ["wsl", "bash", "-c",
-             f"cd {wsl_dir} && rm -f wsl_run.log {run_log_name} flash_run.log "
-             "&& rm -rf ~/QC/FLASH/FLASH4.8/QC/LaserSlab_custom"],
-            capture_output=True, timeout=120,
-        )
-    except Exception:
-        pass
-
-    max_attempts = 3
-    flash_rc = None
-    console_txt = ""
-    for attempt in range(1, max_attempts + 1):
-        if attempt > 1:
-            log(f"WSL 返回无有效输出，重试 ({attempt}/{max_attempts})...", "WARN")
-        try:
-            flash_rc, console_txt = _run_wsl_with_progress(
-                cmd, console_log, interval=120.0, timeout=7200.0,
-            )
-        except FileNotFoundError:
-            log("未找到 wsl 命令。请确认已安装 WSL。", "ERROR")
-            return False
-        except subprocess.TimeoutExpired:
-            log("WSL 运行超时 (2 小时)", "ERROR")
-            return False
-        combined = console_txt.strip()
-        if flash_rc == 0 and console_txt.strip():
-            break
-        if flash_rc != 0 and combined:
-            break
-        log(f"WSL 无输出 (exit={flash_rc})，5s 后重试...", "WARN")
-        time.sleep(5)
-
-    if flash_rc is None:
-        log("WSL 启动失败 (多次重试后仍无输出)", "ERROR")
-        return False
-
-    # 优先解析 run_flash.sh 自身输出的 "FLASH exit code: N"（可靠，不受管道影响）
-    flash_exit = 1
-    m = re.findall(r"FLASH exit code:\s*(\d+)", console_txt)
-    if m:
-        flash_exit = int(m[-1])
-    if "DRIVER_ABORT:" in console_txt or "Driver_abort called" in console_txt:
-        flash_exit = 1
-
-    log(combined[-3000:] if len(combined) > 3000 else combined)
-    wsl_log = INPUT_DIR / "wsl_run.log"
-    wsl_log.write_text(combined, encoding="utf-8", errors="replace")
-    if flash_exit != 0:
-        log(f"FLASH 运行失败 (exit={flash_exit})，完整日志: {wsl_log}", "ERROR")
-        return False
-    log(f"FLASH 运行成功 ✓ (完整日志: {wsl_log})")
-
-    outdir = INPUT_DIR / "outputfiles"
-    h5s = sorted(outdir.glob("*plt_cnt*")) or sorted(outdir.glob("*chk*"))
-    if not h5s:
-        log(f"未找到 HDF5 输出: {outdir}", "ERROR")
-        return False
-    log(f"找到 {len(h5s)} 个 HDF5 输出: {outdir}")
-
-    print("\n[分析] 制作 dens 时空彩图")
-    print("-" * 50)
-    plot_density_timespace(outdir, PLOTS_DIR / "dens_timespace.png")
-
-    print("\n" + "=" * 65)
-    print(" WSL 全流程完成!")
-    print(f"  输入文件目录: {INPUT_DIR}")
-    print(f"  输出结果目录: {outdir}")
-    print(f"  分析图像目录: {PLOTS_DIR}")
-    print("=" * 65)
-    return True
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="layer_tracer_CH (wsl/hpc 一键切换)")
+    ap.add_argument(
+        "action", nargs="?", default=None,
+        help="hpc 分阶段动作: all/upload/submit/monitor/analyze/download/status "
+             "(默认按 RUN_MODE 完整运行)",
+    )
+    ap.add_argument(
+        "--wait", type=int, default=0, help="hpc monitor 等待秒数 (默认不阻塞轮询一次)",
+    )
+    args = ap.parse_args()
+
     print("\n" + "=" * 65)
     print(" FLASH layer_tracer_CH Simulation")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -501,6 +362,7 @@ def main():
     print(f"\n  参数配置:")
     print(f"    域: [{cfg['xmin']}, {cfg['xmax']}] cm")
     print(f"    首层(CH)厚度: {cfg['layer_samp_um']} um")
+    print(f"    维度: {cfg['dimension']}D")
     print("=" * 65)
 
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -519,7 +381,38 @@ def main():
         traceback.print_exc()
         return False
 
-    return main_wsl(cfg)
+    from flash.scenarios.runner import (
+        HpcRunner, HpcSpec, WslSpec, resolve_run_mode, run_wsl, user_flash_home,
+    )
+
+    if args.action:
+        run_mode = "hpc"
+        log(f"分阶段动作: {args.action} (hpc)", "OK")
+    else:
+        run_mode = resolve_run_mode(RUN_MODE)
+        log(f"运行模式: {run_mode}", "OK")
+
+    if run_mode == "wsl":
+        wsl_spec = WslSpec(
+            input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR,
+            objdir=f"{SIM_USER_DIR}/LaserSlab_custom",
+            analyze_local=plot_density_timespace,
+            flash_home=user_flash_home(),
+        )
+        return run_wsl(wsl_spec, cfg)
+
+    hpc_spec = HpcSpec(
+        name="layer_tracer_CH",
+        input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR,
+        objdir=f"{SIM_USER_DIR}/LaserSlab_custom", flash_home=user_flash_home(),
+        work_base=f"{user_flash_home()}/AI/Aitemp",
+        remote_analysis_script="layer_tracer_CH_remote_analysis.py",
+        remote_analysis_cmd=remote_analysis_cmd,
+    )
+    runner = HpcRunner(hpc_spec)
+    if args.action:
+        return runner.staged(args.action, wait_seconds=args.wait or None)
+    return runner.all(cfg)
 
 
 if __name__ == "__main__":
