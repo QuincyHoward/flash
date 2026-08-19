@@ -60,6 +60,9 @@ class FlashDataContainer:
         self.refine_level = None
         self.bbox = None
         self.config = DATA_CONFIG.copy()
+        # True 表示数据来自 extract_var 模式的扁平化坐标/数据 (1D:(x,data) 等),
+        # 而非逐块 (block-wise) 表示; 由 plotter 按扁平坐标直接绘图。
+        self.flat = False
 
     def __repr__(self) -> str:
         nvars = len(self.data)
@@ -112,19 +115,28 @@ class FlashDataLoader:
 
     def load(self, compute_derived: bool = True,
              use_cell_centers: bool = True,
-             return_global_coords: bool = True) -> FlashDataContainer:
+             return_global_coords: bool = True,
+             extraction_mode: str | None = None) -> FlashDataContainer:
         """加载 HDF5 文件并返回结构化数据容器
 
         参数:
             compute_derived: 是否自动计算派生变量
             use_cell_centers: (API 兼容) 是否使用单元中心坐标
             return_global_coords: (API 兼容) 是否返回全局坐标
+            extraction_mode: 数据提取模式 ('h5py' / 'yt'), None = 使用
+                当前默认模式 (见 flash.output_processors.extraction_modes,
+                修改其中的 CURRENT_EXTRACTION_MODE 一行即可切换默认)。
+                非 None 时按 extract_var 扁平化坐标/数据加载
+                (container.flat=True, 适合 plotter 直接绘图)。
 
         说明:
             所有数据读取完成后底层 h5py 文件句柄立即关闭
             (数据已拷贝为 numpy 数组, 容器不依赖句柄),
             避免文件被进程锁住 (Windows 上测试/批处理会因此无法删除文件)。
         """
+        if extraction_mode is not None:
+            return self._load_extracted(extraction_mode=extraction_mode)
+
         container = FlashDataContainer(self.filepath)
         ff = self._flash_file
         try:
@@ -162,6 +174,52 @@ class FlashDataLoader:
                 # 传入网格信息以便梯度计算
                 calc._data["_grid_info"] = container.grid
                 container.derived = calc.compute_all()
+        finally:
+            ff.close()
+
+        return container
+
+    def _load_extracted(self, extraction_mode: str) -> FlashDataContainer:
+        """按 extract_var 模式加载扁平化坐标/数据容器 (供 plotter 直接绘图)"""
+        from ..extraction_modes import resolve_extraction_mode
+
+        mode = resolve_extraction_mode(extraction_mode)
+        container = FlashDataContainer(self.filepath)
+        ff = self._flash_file
+        try:
+            # 元信息
+            container.ndim = ff.ndim
+            container.nblocks = ff.nblocks
+            container.nx = ff.nx
+            container.ny = ff.ny
+            container.nz = ff.nz
+            container.file_type = ff.file_type
+            container.sim_info = ff.sim_info
+            container.varnames = ff.varnames
+            container.simulation_time = ff.simulation_time
+            container.simulation_step = ff.simulation_step
+            container.laser_groups = ff.laser_groups
+            container.flat = True
+
+            # 用第一个变量确定坐标 (extract_var 返回 (x[, y[, z]], data))
+            if ff.varnames:
+                first = ff.varnames[0]
+                res = ff.extract_var(first, mode=mode)
+                coords = res[:-1]
+                if container.ndim == 1:
+                    container.x = coords[0]
+                elif container.ndim == 2:
+                    container.x, container.y = coords[0], coords[1]
+                elif container.ndim == 3:
+                    container.x, container.y, container.z = coords
+
+            # 读取所有物理量 (扁平化)
+            for vname in ff.varnames:
+                try:
+                    res = ff.extract_var(vname, mode=mode)
+                    container.data[vname] = res[-1]
+                except KeyError:
+                    pass
         finally:
             ff.close()
 

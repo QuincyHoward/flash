@@ -110,6 +110,27 @@ class FlashPlotter:
 
     def _plot_1d(self, varname: str, save_path: str, title: str,
                  show: bool, data_arr: np.ndarray = None, **kwargs):
+        # 扁平化容器 (extract_var 模式, yt/h5py 提取): 直接使用全局坐标
+        if getattr(self.container, "flat", False):
+            arr = data_arr if data_arr is not None else self.container.data[varname]
+            x = np.asarray(self.container.x)
+            y = np.asarray(arr)
+            idx = np.argsort(x)
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.plot(x[idx], y[idx], "b-", linewidth=1.5, **kwargs)
+            ax.set_xlabel("x [cm]")
+            ax.set_ylabel(self._get_label(varname))
+            ax.set_title(title or f"{varname} (1D, t={self.container.simulation_time:.3e}s)")
+            ax.grid(True, alpha=0.3)
+
+            if save_path:
+                plt.savefig(save_path, dpi=200, bbox_inches="tight")
+            if show:
+                plt.show()
+            plt.close(fig)
+            return
+
         g = self.container.grid
         x_list = g["x_global"]
         arr = data_arr if data_arr is not None else self.container.data[varname]
@@ -138,6 +159,33 @@ class FlashPlotter:
 
     def _plot_2d(self, varname: str, save_path: str, title: str,
                  show: bool, data_arr: np.ndarray = None, **kwargs):
+        # 扁平化容器 (extract_var 模式): 直接使用全局坐标重建网格
+        if getattr(self.container, "flat", False):
+            arr = data_arr if data_arr is not None else self.container.data[varname]
+            x = np.asarray(self.container.x)
+            y = np.asarray(self.container.y)
+            v = np.asarray(arr)
+            idx = np.argsort(np.lexsort((y, x)))
+            x_unique = sorted(set(np.round(x[idx], 10)))
+            y_unique = sorted(set(np.round(y[idx], 10)))
+            Z = v[idx].reshape(len(y_unique), len(x_unique))
+
+            fig, ax = plt.subplots(figsize=(7, 6))
+            im = ax.pcolormesh(x_unique, y_unique, Z, shading="auto",
+                               cmap="inferno", **kwargs)
+            cb = plt.colorbar(im, ax=ax)
+            cb.set_label(self._get_label(varname))
+            ax.set_xlabel("x [cm]")
+            ax.set_ylabel("y [cm]")
+            ax.set_title(title or f"{varname} (2D, t={self.container.simulation_time:.3e}s)")
+
+            if save_path:
+                plt.savefig(save_path, dpi=200, bbox_inches="tight")
+            if show:
+                plt.show()
+            plt.close(fig)
+            return
+
         g = self.container.grid
         x_list, y_list = g["x_global"], g["y_global"]
         arr = data_arr if data_arr is not None else self.container.data[varname]

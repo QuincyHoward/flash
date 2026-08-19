@@ -17,6 +17,15 @@ output_processors — FLASH 仿真的通用输出处理器包
   通过 node_type(叶节点)+bounding box(坐标重建)+(x,y)/(x,y,z)去重，
   实现与 yt 一致的 AMR 数据提取。支持坐标系统自动检测 (Cartesian/Cylindrical)。
 
+模式字典 — extraction_modes.py:
+  统一管理 AMR 数据提取方案，一行代码切换当前模式 (默认优先 h5py):
+    from flash.output_processors.extraction_modes import CURRENT_EXTRACTION_MODE
+    CURRENT_EXTRACTION_MODE = "yt"      # ← 切换默认提取模式
+  FlashHDF5File.extract_var(mode=...) 按模式调度:
+    - "h5py": extract_var_yt_style (纯 h5py, 超算环境优先)
+    - "yt":   extract_var_with_yt  (基于 yt 库)
+  两种模式返回格式一致 (1D: (x, data) / 2D: (x,y,data) / 3D: (x,y,z,data))。
+
 用法示例:
     from output_processors.loader import FlashDataLoader
     from output_processors.plotter import FlashPlotter

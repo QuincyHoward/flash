@@ -19,3 +19,11 @@ from .flash_hdf5 import (
     VAR_ALIASES,
     NA,
 )
+from ..extraction_modes import (
+    EXTRACTION_MODES,
+    CURRENT_EXTRACTION_MODE,
+    get_extraction_mode,
+    set_extraction_mode,
+    resolve_extraction_mode,
+    available_extraction_modes,
+)

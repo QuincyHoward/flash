@@ -49,6 +49,11 @@ import h5py
 from pathlib import Path
 import re
 
+from ..extraction_modes import (
+    EXTRACTION_MODES,
+    resolve_extraction_mode,
+)
+
 
 # ═══════════════════════════════════════════════════════════════
 #  data_config — 变量元信息注册表
@@ -441,6 +446,37 @@ def _gradient_scale_1d_blocks(var: np.ndarray, grid_info: dict) -> np.ndarray:
 # 注册梯度标长计算函数
 _CALC_FUNCS["ls_nele"] = _calc_ls_nele
 _CALC_FUNCS["ls_tele"] = _calc_ls_tele
+
+
+# ═══════════════════════════════════════════════════════════════
+#  展平坐标去重辅助函数 (h5py 模式与 yt 模式共用, 保证语义一致)
+# ═══════════════════════════════════════════════════════════════
+
+def _dedup_1d(x: np.ndarray, d: np.ndarray, decimals: int = 10):
+    """按 (x) 去重重叠边界单元, 返回去重后的 (x, data)。"""
+    _, uniq_idx = np.unique(np.round(x, decimals=decimals), return_index=True)
+    si = np.sort(uniq_idx)
+    return x[si], d[si]
+
+
+def _dedup_2d(x: np.ndarray, y: np.ndarray, d: np.ndarray, decimals: int = 10):
+    """按 (x, y) 二元组去重, 返回去重后的 (x, y, data)。"""
+    pairs = np.column_stack([np.round(x, decimals=decimals),
+                             np.round(y, decimals=decimals)])
+    _, uniq_idx = np.unique(pairs, axis=0, return_index=True)
+    si = np.sort(uniq_idx)
+    return x[si], y[si], d[si]
+
+
+def _dedup_3d(x: np.ndarray, y: np.ndarray, z: np.ndarray,
+              d: np.ndarray, decimals: int = 10):
+    """按 (x, y, z) 三元组去重, 返回去重后的 (x, y, z, data)。"""
+    triples = np.column_stack([np.round(x, decimals=decimals),
+                               np.round(y, decimals=decimals),
+                               np.round(z, decimals=decimals)])
+    _, uniq_idx = np.unique(triples, axis=0, return_index=True)
+    si = np.sort(uniq_idx)
+    return x[si], y[si], z[si], d[si]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -931,6 +967,81 @@ class FlashHDF5File:
         else:
             raise ValueError(f"不支持 {ndim}D 数据")
 
+    def extract_var(self, var_name: str = "dens",
+                    use_cell_centers: bool = True,
+                    mode: str | None = None):
+        """按当前提取模式调度 AMR 数据提取 (模式字典统一入口)
+
+        提取方案注册表见 flash/output_processors/extraction_modes.py,
+        默认优先 h5py 模式 (超算环境无 yt 也可用), 修改其中的
+        CURRENT_EXTRACTION_MODE 一行即可切换默认模式。
+
+        参数:
+            var_name:       物理量名
+            use_cell_centers: (API 兼容) 是否使用单元中心坐标
+            mode:           显式指定提取模式 ('h5py' / 'yt'),
+                            None = 使用当前默认模式 CURRENT_EXTRACTION_MODE
+
+        返回值 (按维度):
+            1D: (x, data)
+            2D: (x, y, data)
+            3D: (x, y, z, data)
+        """
+        mode = resolve_extraction_mode(mode)
+        if mode == "h5py":
+            return self.extract_var_yt_style(var_name, use_cell_centers=use_cell_centers)
+        elif mode == "yt":
+            return self.extract_var_with_yt(var_name, use_cell_centers=use_cell_centers)
+        raise ValueError(
+            f"未知提取模式: {mode!r}, 可用模式: {sorted(EXTRACTION_MODES)}"
+        )
+
+    def extract_var_with_yt(self, var_name: str = "dens",
+                            use_cell_centers: bool = True):
+        """基于 yt 库的数据提取方案 (yt 模式)
+
+        使用 yt 的 AMR 数据选择 (all_data) 提取坐标与物理量,
+        返回格式与 extract_var_yt_style 一致:
+          1D: (x, data)
+          2D: (x, y, data)    — cylindrical_rz 时坐标为 (r, z)
+          3D: (x, y, z, data)
+
+        依赖 yt 库 (pyproject optional-dependencies "full")。
+        """
+        try:
+            import yt
+        except ImportError as e:
+            raise ImportError(
+                "yt 模式需要安装 yt 库: pip install 'flash-sim[full]' 或 pip install yt"
+            ) from e
+
+        yt.mylog.disabled = True
+        ds = yt.load(str(self.filepath))
+        ad = ds.all_data()
+
+        ndim = self.ndim
+        cs = self.coordinate_system
+        vals = np.asarray(ad[var_name].to_value())
+
+        if ndim == 1:
+            x = np.asarray(ad["x"].to_value())
+            return _dedup_1d(x, vals)
+        elif ndim == 2:
+            if cs == "cylindrical_rz":
+                c1 = np.asarray(ad["r"].to_value())
+                c2 = np.asarray(ad["z"].to_value())
+            else:
+                c1 = np.asarray(ad["x"].to_value())
+                c2 = np.asarray(ad["y"].to_value())
+            return _dedup_2d(c1, c2, vals)
+        elif ndim == 3:
+            x = np.asarray(ad["x"].to_value())
+            y = np.asarray(ad["y"].to_value())
+            z = np.asarray(ad["z"].to_value())
+            return _dedup_3d(x, y, z, vals)
+        else:
+            raise ValueError(f"不支持 {ndim}D 数据")
+
     def _extract_yt_1d(self, data_raw, leaf_idx, bbox, nx):
         """1D yt 风格提取"""
         x_list, d_list = [], []
@@ -951,11 +1062,7 @@ class FlashHDF5File:
 
         x_flat = np.concatenate(x_list)
         d_flat = np.concatenate(d_list)
-
-        # 去重重叠边界
-        _, uniq_idx = np.unique(np.round(x_flat, decimals=10), return_index=True)
-        si = np.sort(uniq_idx)
-        return x_flat[si], d_flat[si]
+        return _dedup_1d(x_flat, d_flat)
 
     def _extract_yt_2d(self, data_raw, leaf_idx, bbox, nx, ny):
         """2D yt 风格提取"""
@@ -988,13 +1095,7 @@ class FlashHDF5File:
         x_flat = np.concatenate(x_list)
         y_flat = np.concatenate(y_list)
         d_flat = np.concatenate(d_list)
-
-        # 去重: 使用 (x, y) 二元组去重
-        xy_pairs = np.column_stack([np.round(x_flat, decimals=10),
-                                    np.round(y_flat, decimals=10)])
-        _, uniq_idx = np.unique(xy_pairs, axis=0, return_index=True)
-        si = np.sort(uniq_idx)
-        return x_flat[si], y_flat[si], d_flat[si]
+        return _dedup_2d(x_flat, y_flat, d_flat)
 
     def _extract_yt_3d(self, data_raw, leaf_idx, bbox, nx, ny, nz):
         """3D yt 风格提取 — 全 3D 坐标重建"""
@@ -1023,14 +1124,7 @@ class FlashHDF5File:
         y_flat = np.concatenate(y_list)
         z_flat = np.concatenate(z_list)
         d_flat = np.concatenate(d_list)
-
-        # 去重: 使用 (x, y, z) 三元组
-        xyz_pairs = np.column_stack([np.round(x_flat, decimals=10),
-                                     np.round(y_flat, decimals=10),
-                                     np.round(z_flat, decimals=10)])
-        _, uniq_idx = np.unique(xyz_pairs, axis=0, return_index=True)
-        si = np.sort(uniq_idx)
-        return x_flat[si], y_flat[si], z_flat[si], d_flat[si]
+        return _dedup_3d(x_flat, y_flat, z_flat, d_flat)
 
     def read_grid(self, use_cell_centers: bool = True, **kwargs) -> dict:
         self._probe_shape()

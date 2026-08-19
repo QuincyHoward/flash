@@ -52,6 +52,14 @@ if hasattr(sys.stdout, "reconfigure"):
 # (resolve_run_mode 解析规则统一见 flash.scenarios.runner)
 RUN_MODE = "wsl"
 
+# ── 本地分析提取模式 ────────────────────────────────
+# 本地分析/绘图使用的 AMR 数据提取方案:
+#   "yt":   基于 yt 库 (extract_var_with_yt, 需本地安装 yt)
+#   "h5py": 纯 h5py yt 风格 (extract_var_yt_style, 无 yt 依赖)
+# 一键切换即修改此行; 也可用环境变量 FLASH_EXTRACTION_MODE 覆盖
+# (模式字典/优先级统一见 flash.output_processors.extraction_modes)
+EXTRACTION_MODE = "yt"
+
 
 # ── 路径设置 ──────────────────────────────────────────
 
@@ -851,7 +859,9 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
         from flash.output_processors.loader import FlashDataLoader
         from flash.output_processors.plotter import FlashPlotter
 
-        container = FlashDataLoader(str(h5s[0])).load(compute_derived=True)
+        container = FlashDataLoader(str(h5s[0])).load(
+            compute_derived=True, extraction_mode=EXTRACTION_MODE,
+        )
         for var, fname in [
             ("dens", "dens_wsl.png"),
             ("tele", "tele_wsl.png"),
@@ -1051,7 +1061,9 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str, actual_outpu
             from flash.output_processors.plotter import FlashPlotter
             h5_files = sorted(OUTPUT_DIR.glob("*chk*")) or sorted(OUTPUT_DIR.glob("*plt*"))
             if h5_files:
-                container = FlashDataLoader(str(h5_files[0])).load(compute_derived=True)
+                container = FlashDataLoader(str(h5_files[0])).load(
+                    compute_derived=True, extraction_mode=EXTRACTION_MODE,
+                )
                 FlashPlotter(container).plot(
                     "dens", save_path=str(PLOTS_DIR / "dens_local.png"),
                     title="Density (Local Analysis)",

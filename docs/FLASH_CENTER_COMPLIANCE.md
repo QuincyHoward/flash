@@ -33,7 +33,6 @@ FLASH License Agreement §3 明确规定：
 **自研 EOS 表例外**（`Z*.cn4` = ionmix 自生成，发布包必需）：
 ```
 !**/Gen_eos_op_data/**/Z*.cn4
-!**/sim_input*/Z*.cn4
 ```
 
 ## 保留的原创内容

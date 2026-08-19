@@ -3,15 +3,10 @@
 此文件支持双重模式，使用 _compat.py 进行智能导入。
 """
 
-import sys
 import pytest
-from pathlib import Path
-import tempfile
 
 # 使用兼容性模块进行智能导入
-from ._compat import ParGeneratorExtended, BeamConfig, RUN_MODE
-
-
+from ._compat import BeamConfig, ParGeneratorExtended
 
 
 class TestParGeneratorExtendedImport:
@@ -220,8 +215,9 @@ class TestParGeneratorExtendedEdgeCases:
         content = gen.generate()
         # 检查生成的文件内容（可能是科学计数法）
         assert "tmax" in content
-        # 注意：_format_param 可能会格式化为 1.000000e+09 或 1e+09
-        assert "1e+09" in content or "1.000000e+09" in content or "1e9" in content
+        # _format_param 对超大值使用 .15e 格式, 如 1.000000000000000e+09
+        import re
+        assert re.search(r"1\.?0*e\+?09", content), f"未找到科学计数法 tmax: {content}"
 
 
 class TestParGeneratorExtendedIntegration:
