@@ -58,8 +58,16 @@ wsl_run.log
 **/temp
 **/tmp
 
+#
+#脚本尽可能控制成py脚本、sh脚本
+#文档文件统一使用md，若有必要可以特殊html
 *.log
 *.html
+*.json
+*.txt
+
+
+
 
 # ================================================================
 # My Projects (内部工作区, 不发布)
@@ -283,6 +291,13 @@ scripts/_gitee_link_test/
 # 测试运行产物（不入库，由测试自动生成）
 **/test_output.txt
 flash/output_processors/test/test_output/
+
+# eosop_pro 绘图包 — 测试生成产物（不入库，本地可保留）
+# 注: 全局 *.html / *.log 已覆盖前两项, 此处显式列出以明确意图,
+#      test_summary.json 为测试汇总(json) 亦属生成产物。
+flash/input_gen/gen_eos_op/ionmix/ionmix/eosop_pro/test/report.html
+flash/input_gen/gen_eos_op/ionmix/ionmix/eosop_pro/test/test_run_full.log
+flash/input_gen/gen_eos_op/ionmix/ionmix/eosop_pro/test/test_summary.json
 
 # 场景生成文件备份/遗留目录（不入库）
 **/flash_input_old/
