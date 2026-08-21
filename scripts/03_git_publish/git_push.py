@@ -31,6 +31,7 @@ import argparse
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -90,11 +91,21 @@ def fail(msg: str):
     eprint(f"  {RED}❌{RESET} {msg}")
 
 
-def run_git(cmd: str, cwd: Path | None = None, check: bool = True,
+def run_git(args, cwd: Path | None = None, check: bool = True,
             capture: bool = True) -> subprocess.CompletedProcess:
     """执行 git 命令。返回 CompletedProcess 对象。
 
+    args: list, 不含 'git' 前缀。例如 ["commit", "-m", msg]。
+          也兼容传入字符串 (内部按 shlex 切分, 仅用于无动态引号场景)。
+
     显式指定 utf-8 编码避免 Windows 上 GBK 解码 UTF-8 输出时报错。
+
+    关键修复 (2026-08-21):
+      旧实现用 shell=True + f-string 拼接 `-m "{msg}"`, 当提交信息含
+      双引号/空格 (如文件名带引号、时间戳 `[2026-08-21 21:00]`) 时,
+      shell 解析会把消息拆成多个 pathspec, 导致
+      `error: pathspec '...' did not match any file(s) known to git`。
+      现改为 shell=False + 参数列表, 提交信息等任意内容均安全。
 
     无交互直连 (统一):
       所有 git 命令注入 `-c credential.helper=` 与 `-c core.askPass=`,
@@ -102,19 +113,59 @@ def run_git(cmd: str, cwd: Path | None = None, check: bool = True,
       helper-selector 弹窗来源), 认证完全依赖 remote URL 中嵌入的
       login:token (由 push_to_gitee 统一设置)。任何环境都不会弹窗。
     """
-    if cmd.startswith("git "):
-        cmd = "git -c credential.helper= -c core.askPass= " + cmd[4:]
+    if isinstance(args, str):
+        import shlex
+        args = shlex.split(args)
+    if args and args[0] == "git":
+        args = args[1:]
+    full = ["git", "-c", "credential.helper=", "-c", "core.askPass="] + args
     result = subprocess.run(
-        cmd, shell=True, cwd=cwd,
+        full, shell=False, cwd=cwd,
         capture_output=capture, text=True,
         encoding="utf-8", errors="replace",
     )
     if check and result.returncode != 0:
         err_msg = result.stderr.strip() if result.stderr else "(no stderr)"
-        fail(f"Git 命令失败: {cmd}")
+        fail(f"Git 命令失败: {' '.join(full)}")
         fail(f"  {err_msg}")
         sys.exit(1)
     return result
+
+
+def input_with_timeout(prompt: str, timeout: float = 5.0) -> str | None:
+    """等待用户输入, 超时 (默认 5s) 自动返回 None。
+
+    适用场景: 双击脚本时希望「可选备注, 不输入则自动提交」。
+    仅当标准输入是交互终端 (tty) 时才真正提示; 非交互 (如 CI / 本工具
+    自动执行) 直接返回 None, 不会阻塞。
+
+    实现: 后台线程执行 input(), 主线程 join(timeout)。超时后线程变为
+    daemon 且随进程退出, 不会泄漏。
+    """
+    if not sys.stdin.isatty():
+        return None
+    try:
+        print(prompt, flush=True)
+    except Exception:  # noqa: BLE001
+        return None
+
+    bucket: dict = {}
+
+    def _reader():
+        try:
+            bucket["val"] = input()
+        except EOFError:
+            bucket["val"] = None
+        except Exception:  # noqa: BLE001
+            bucket["val"] = None
+
+    t = threading.Thread(target=_reader, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        # 超时: 用户 5s 内未输入
+        return None
+    return bucket.get("val")
 
 
 def find_git_root(start_dir: Path) -> Path:
@@ -131,13 +182,13 @@ def find_git_root(start_dir: Path) -> Path:
 
 def has_untracked_files(cwd: Path) -> bool:
     """检查是否有未跟踪的文件。"""
-    r = run_git("git status --porcelain", cwd=cwd)
+    r = run_git(["status", "--porcelain"], cwd=cwd)
     return bool(r.stdout.strip())
 
 
 def count_commits_ahead(cwd: Path, branch: str) -> int:
     """检查本地比远程多几个 commit。"""
-    r = run_git(f"git rev-list --count origin/{branch}..HEAD", cwd=cwd, check=False)
+    r = run_git(["rev-list", "--count", f"origin/{branch}..HEAD"], cwd=cwd, check=False)
     if r.returncode == 0 and r.stdout.strip():
         return int(r.stdout.strip())
     return 0
@@ -145,7 +196,7 @@ def count_commits_ahead(cwd: Path, branch: str) -> int:
 
 def auto_commit_message(cwd: Path) -> str:
     """根据 git status --short 自动生成提交信息。"""
-    r = run_git("git status --short", cwd=cwd)
+    r = run_git(["status", "--short"], cwd=cwd)
     lines = [line.strip() for line in r.stdout.strip().split("\n") if line.strip()]
     if not lines:
         return "Auto commit [no changes detected]"
@@ -235,7 +286,7 @@ def push_to_gitee(
 
     # ── 1. 确定分支 ──
     if branch is None:
-        r = run_git("git branch --show-current", cwd=project_root)
+        r = run_git(["branch", "--show-current"], cwd=project_root)
         branch = r.stdout.strip()
         if not branch:
             branch = "master"
@@ -258,15 +309,15 @@ def push_to_gitee(
     else:
         auth_url = repo_url
 
-    r = run_git("git remote -v", cwd=project_root, check=False)
+    r = run_git(["remote", "-v"], cwd=project_root, check=False)
     if "origin" not in r.stdout:
         info("添加远程仓库 origin")
         if not dry_run:
-            run_git(f'git remote add origin "{auth_url}"', cwd=project_root)
+            run_git(["remote", "add", "origin", auth_url], cwd=project_root)
     else:
         info("更新远程仓库 URL (token 认证)")
         if not dry_run:
-            run_git(f'git remote set-url origin "{auth_url}"', cwd=project_root)
+            run_git(["remote", "set-url", "origin", auth_url], cwd=project_root)
 
     # ── 3. 检查并提交 ──
     has_changes = has_untracked_files(project_root)
@@ -276,13 +327,19 @@ def push_to_gitee(
         else:
             ok("发现未提交变更，执行自动提交...")
 
-            # 自动生成提交信息
+            # 自动生成或交互获取提交信息
+            # 双击运行时 (tty) 可等待 5s 输入自定义备注, 超时则自动生成
+            if commit_msg is None:
+                user_msg = input_with_timeout(
+                    "  (可选) 输入提交信息, 5 秒内无输入将自动生成: ", timeout=5.0)
+                if user_msg and user_msg.strip():
+                    commit_msg = user_msg.strip()
             msg = commit_msg if commit_msg else auto_commit_message(project_root)
             info(f"提交信息: {msg}")
 
-            # git add + commit (触发 pre-commit 钩子)
-            run_git("git add -A", cwd=project_root)
-            run_git(f'git commit -m "{msg}"', cwd=project_root)
+            # git add + commit (shell=False, 提交信息含特殊字符也安全)
+            run_git(["add", "-A"], cwd=project_root)
+            run_git(["commit", "-m", msg], cwd=project_root)
             ok("提交成功!")
     else:
         info("没有未提交的变更")
@@ -325,7 +382,7 @@ def push_to_gitee(
         if dry_run:
             info(f"[DRY-RUN] 将创建标签: {tag}")
         else:
-            run_git(f'git tag -a {tag} -m "{tag}"', cwd=project_root)
+            run_git(["tag", "-a", tag, "-m", tag], cwd=project_root)
             ok(f"标签 {tag} 已创建")
 
     # ── 5. 执行推送 (触发 pre-push 钩子) ──
@@ -337,16 +394,16 @@ def push_to_gitee(
         return
 
     eprint()
-    push_cmd = f"git push origin {branch}"
+    push_args = ["push", "origin", branch]
     if force:
-        push_cmd += " --force"
+        push_args.append("--force")
         warn("强制推送模式!")
 
     if dry_run:
-        warn(f"[DRY-RUN] 将执行: {push_cmd}")
+        warn(f"[DRY-RUN] 将执行: git {' '.join(push_args)}")
     else:
-        info(f"执行: {push_cmd}")
-        r = run_git(push_cmd, cwd=project_root, check=False)
+        info(f"执行: git {' '.join(push_args)}")
+        r = run_git(push_args, cwd=project_root, check=False)
         if r.returncode == 0:
             ok(f"推送成功! ({branch})")
         else:
@@ -361,7 +418,7 @@ def push_to_gitee(
     # ── 6. 如果同时打了标签, 推送标签 ──
     if tag and not dry_run:
         ok(f"推送标签: {tag}")
-        run_git(f"git push origin {tag}", cwd=project_root, check=False)
+        run_git(["push", "origin", tag], cwd=project_root, check=False)
 
     eprint()
     ok("全部完成!")
@@ -378,12 +435,12 @@ def show_status(project_root: Path | None = None):
     info(f"目录: {project_root}")
 
     # 分支
-    r = run_git("git branch --show-current", cwd=project_root)
+    r = run_git(["branch", "--show-current"], cwd=project_root)
     branch = r.stdout.strip() or "(detached HEAD)"
     info(f"分支: {branch}")
 
     # 状态
-    r = run_git("git status --short", cwd=project_root)
+    r = run_git(["status", "--short"], cwd=project_root)
     if r.stdout.strip():
         eprint(f"\n  {'─'*50}")
         eprint(f"  变更文件:")
@@ -394,7 +451,7 @@ def show_status(project_root: Path | None = None):
         ok("工作区干净, 无未提交变更")
 
     # 远程同步状态
-    r = run_git("git rev-list --count --left-right origin/HEAD...HEAD",
+    r = run_git(["rev-list", "--count", "--left-right", "origin/HEAD...HEAD"],
                 cwd=project_root, check=False)
     if r.returncode == 0 and r.stdout.strip():
         parts = r.stdout.strip().split()

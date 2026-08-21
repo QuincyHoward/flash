@@ -1,0 +1,2040 @@
+{
+  "generated_at": "2026-08-21 17:33:54",
+  "python": "3.13.14",
+  "output_root": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output",
+  "n_materials": 13,
+  "tasks": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "materials": [
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair.cn4",
+      "name": "Au-imx-ForcedRepair",
+      "species": "Z79(100%)",
+      "atomwt": [
+        196.966569
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        1.0,
+        999992.0
+      ],
+      "nion_range": [
+        1e+16,
+        1.00006e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\Au-imx-ForcedRepair_group10_all.png"
+          ],
+          "info": {
+            "material": "Z79(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 17.53
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.41
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.66
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 9834.8675553085,
+              "b": 1.163451517004409,
+              "R2": 0.6033
+            },
+            "exponential_zbar": {
+              "a": 19.02997765252148,
+              "b": 2.4589389834229544e-06,
+              "R2": -0.5586
+            },
+            "ideal_gas": {
+              "slope": 11603.2455,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                133.8682,
+                420.0853
+              ],
+              "R2": 0.9164
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.58
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 61979.357639338275,
+              "n_points": 123
+            },
+            "isentrope": {
+              "n_points": 84
+            },
+            "hugoniot": {
+              "n_points": 8
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.94
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH.cn4",
+      "name": "Au-imx-ForcedRepair_CH",
+      "species": "Z79(100%)",
+      "atomwt": [
+        196.966569
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        1.0,
+        999992.0
+      ],
+      "nion_range": [
+        1e+16,
+        1.00006e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\Au-imx-ForcedRepair_CH_group10_all.png"
+          ],
+          "info": {
+            "material": "Z79(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 17.78
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.46
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.66
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 9834.8675553085,
+              "b": 1.163451517004409,
+              "R2": 0.6033
+            },
+            "exponential_zbar": {
+              "a": 19.02997765252148,
+              "b": 2.4589389834229544e-06,
+              "R2": -0.5586
+            },
+            "ideal_gas": {
+              "slope": 11603.2455,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                133.8682,
+                420.0853
+              ],
+              "R2": 0.9164
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.5
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx-ForcedRepair_CH\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 61979.357639338275,
+              "n_points": 123
+            },
+            "isentrope": {
+              "n_points": 84
+            },
+            "hugoniot": {
+              "n_points": 8
+            }
+          },
+          "error": null,
+          "elapsed_s": 2.1
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Au-imx\\Au-imx.cn4",
+      "name": "Au-imx",
+      "species": "Z79(100%)",
+      "atomwt": [
+        196.966569
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        1.0,
+        999992.0
+      ],
+      "nion_range": [
+        1e+16,
+        1.00006e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981,
+        1.585,
+        6.31,
+        25.1,
+        100.0,
+        398.1,
+        1585.0,
+        6310.0,
+        25100.0,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\Au-imx_group10_all.png"
+          ],
+          "info": {
+            "material": "Z79(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 17.16
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.47
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.61
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 9834.8675553085,
+              "b": 1.163451517004409,
+              "R2": 0.6033
+            },
+            "exponential_zbar": {
+              "a": 19.02997765252148,
+              "b": 2.4589389834229544e-06,
+              "R2": -0.5586
+            },
+            "ideal_gas": {
+              "slope": 11603.2455,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                133.8682,
+                420.0853
+              ],
+              "R2": 0.9164
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.43
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Au-imx\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 61979.357639338275,
+              "n_points": 123
+            },
+            "isentrope": {
+              "n_points": 84
+            },
+            "hugoniot": {
+              "n_points": 8
+            }
+          },
+          "error": null,
+          "elapsed_s": 2.04
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final.cn4",
+      "name": "CH-BADGER-TOPS-Final",
+      "species": "Z3(100%)",
+      "atomwt": [
+        6.94
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        0.1,
+        100000.0
+      ],
+      "nion_range": [
+        1e+16,
+        1e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\CH-BADGER-TOPS-Final_group10_all.png"
+          ],
+          "info": {
+            "material": "Z3(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 16.83
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.25
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.61
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 10113.897769528427,
+              "b": 1.3036283381626406,
+              "R2": -8.6697
+            },
+            "exponential_zbar": {
+              "a": 0.8594927112931071,
+              "b": 2.51896732605732e-05,
+              "R2": -1.6052
+            },
+            "ideal_gas": {
+              "slope": 17802.3609,
+              "R2": 0.9891
+            },
+            "generic_saha": {
+              "params": [
+                6.6581,
+                3.1267
+              ],
+              "R2": 0.959
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.38
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-BADGER-TOPS-Final\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 1081.8978966204195,
+              "n_points": 124
+            },
+            "isentrope": {
+              "n_points": 93
+            },
+            "hugoniot": {
+              "n_points": 10
+            }
+          },
+          "error": null,
+          "elapsed_s": 2.05
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\CH-QC-1-001\\CH-QC-1-001.cn4",
+      "name": "CH-QC-1-001",
+      "species": "Z6(50%) + Z1(50%)",
+      "atomwt": [
+        12.011,
+        1.008
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        2.0,
+        1999980.0
+      ],
+      "nion_range": [
+        1e+16,
+        6.30895e+25
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\CH-QC-1-001_group10_all.png"
+          ],
+          "info": {
+            "material": "Z6(50%) + Z1(50%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 16.89
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.28
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.63
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 131854.61370854807,
+              "b": 0.9542382792127503,
+              "R2": 0.985
+            },
+            "exponential_zbar": {
+              "a": 2.915883558368371,
+              "b": 1.6380245477562548e-07,
+              "R2": 0.0181
+            },
+            "ideal_gas": {
+              "slope": 11603.2455,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                6.8301,
+                5.6757
+              ],
+              "R2": 0.8886
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.42
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 763250.9623557641,
+              "n_points": 108
+            },
+            "isentrope": {
+              "n_points": 114
+            },
+            "hugoniot": {
+              "n_points": 4
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.83
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\CH-QC-1-001_Au\\CH-QC-1-001_Au.cn4",
+      "name": "CH-QC-1-001_Au",
+      "species": "Z6(50%) + Z1(50%)",
+      "atomwt": [
+        12.011,
+        1.008
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        2.0,
+        1999980.0
+      ],
+      "nion_range": [
+        1e+16,
+        6.30895e+25
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\CH-QC-1-001_Au_group10_all.png"
+          ],
+          "info": {
+            "material": "Z6(50%) + Z1(50%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 16.81
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.29
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.63
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 131854.61370854807,
+              "b": 0.9542382792127503,
+              "R2": 0.985
+            },
+            "exponential_zbar": {
+              "a": 2.915883558368371,
+              "b": 1.6380245477562548e-07,
+              "R2": 0.0181
+            },
+            "ideal_gas": {
+              "slope": 11603.2455,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                6.8301,
+                5.6757
+              ],
+              "R2": 0.8886
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.41
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_Au\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 763250.9623557641,
+              "n_points": 108
+            },
+            "isentrope": {
+              "n_points": 114
+            },
+            "hugoniot": {
+              "n_points": 4
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.8
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\CH-QC-1-001_T\\CH-QC-1-001_T.cn4",
+      "name": "CH-QC-1-001_T",
+      "species": "Z6(50%) + Z1(50%)",
+      "atomwt": [
+        12.011,
+        1.008
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        2.0,
+        1999980.0
+      ],
+      "nion_range": [
+        1e+16,
+        6.30895e+25
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\CH-QC-1-001_T_group10_all.png"
+          ],
+          "info": {
+            "material": "Z6(50%) + Z1(50%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 16.94
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.19
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.71
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 131854.61370854807,
+              "b": 0.9542382792127503,
+              "R2": 0.985
+            },
+            "exponential_zbar": {
+              "a": 2.6242952025315334,
+              "b": 1.6380245477562548e-07,
+              "R2": 0.0181
+            },
+            "ideal_gas": {
+              "slope": 11651.8767,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                6.1471,
+                5.6757
+              ],
+              "R2": 0.8886
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.42
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\CH-QC-1-001_T\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 763250.9623557641,
+              "n_points": 108
+            },
+            "isentrope": {
+              "n_points": 114
+            },
+            "hugoniot": {
+              "n_points": 4
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.66
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final.cn4",
+      "name": "He-BADGER-TOPS-Final",
+      "species": "Z2(100%)",
+      "atomwt": [
+        4.002602
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        0.1,
+        100000.0
+      ],
+      "nion_range": [
+        1e+16,
+        1e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\He-BADGER-TOPS-Final_group10_all.png"
+          ],
+          "info": {
+            "material": "Z2(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 16.91
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.3
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.76
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 3829.513903648061,
+              "b": 1.4189327995315135,
+              "R2": -25.7989
+            },
+            "exponential_zbar": {
+              "a": 0.3567834275170946,
+              "b": 3.092834129361825e-05,
+              "R2": -2.5102
+            },
+            "ideal_gas": {
+              "slope": 27776.9953,
+              "R2": 0.987
+            },
+            "generic_saha": {
+              "params": [
+                4.105,
+                2.9262
+              ],
+              "R2": 0.9743
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.38
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\He-BADGER-TOPS-Final\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 889.7049112886367,
+              "n_points": 122
+            },
+            "isentrope": {
+              "n_points": 95
+            },
+            "hugoniot": {
+              "n_points": 6
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.9
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS.cn4",
+      "name": "Ti-BADGER-TOPS",
+      "species": "Z22(100%)",
+      "atomwt": [
+        47.867
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        0.1,
+        100000.0
+      ],
+      "nion_range": [
+        1e+16,
+        1e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\Ti-BADGER-TOPS_group10_all.png"
+          ],
+          "info": {
+            "material": "Z22(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 17.06
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.33
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.62
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 8060.57391989717,
+              "b": 1.2809340294880107,
+              "R2": -3.9737
+            },
+            "exponential_zbar": {
+              "a": 3.8809735540707697,
+              "b": 2.9317072878251825e-05,
+              "R2": -1.284
+            },
+            "ideal_gas": {
+              "slope": 55984.9866,
+              "R2": 0.8939
+            },
+            "generic_saha": {
+              "params": [
+                34.0474,
+                18.4154
+              ],
+              "R2": 0.882
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.38
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Ti-BADGER-TOPS\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 2554.848110677962,
+              "n_points": 120
+            },
+            "isentrope": {
+              "n_points": 96
+            },
+            "hugoniot": {
+              "n_points": 12
+            }
+          },
+          "error": null,
+          "elapsed_s": 2.04
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\V-BADGER-TOPS\\V-BADGER-TOPS.cn4",
+      "name": "V-BADGER-TOPS",
+      "species": "Z23(100%)",
+      "atomwt": [
+        50.9415
+      ],
+      "ntemp": 61,
+      "ndens": 71,
+      "ngrups": 10,
+      "T_range": [
+        0.1,
+        100000.0
+      ],
+      "nion_range": [
+        1e+16,
+        1e+23
+      ],
+      "group_bounds": [
+        0.1,
+        0.3981072,
+        1.584893,
+        6.309573,
+        25.11886,
+        100.0,
+        398.1072,
+        1584.893,
+        6309.573,
+        25118.86,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group6_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group7_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group8_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group9_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\V-BADGER-TOPS_group10_all.png"
+          ],
+          "info": {
+            "material": "Z23(100%)",
+            "combos": 6,
+            "group_figures": 10,
+            "ngroups": 10
+          },
+          "error": null,
+          "elapsed_s": 17.05
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.39
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.63
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 7566.5067085517385,
+              "b": 1.2895886611376648,
+              "R2": -4.7364
+            },
+            "exponential_zbar": {
+              "a": 4.062620330928989,
+              "b": 2.9379701414567125e-05,
+              "R2": -1.2735
+            },
+            "ideal_gas": {
+              "slope": 86154.6772,
+              "R2": 0.8837
+            },
+            "generic_saha": {
+              "params": [
+                36.3086,
+                19.3687
+              ],
+              "R2": 0.8954
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.39
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\V-BADGER-TOPS\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 2661.189076979537,
+              "n_points": 119
+            },
+            "isentrope": {
+              "n_points": 106
+            },
+            "hugoniot": {
+              "n_points": 14
+            }
+          },
+          "error": null,
+          "elapsed_s": 2.08
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851.cn4",
+      "name": "Z02_1.00-20260708_0851",
+      "species": "Z2(100%)",
+      "atomwt": [
+        4.002602
+      ],
+      "ntemp": 51,
+      "ndens": 31,
+      "ngrups": 6,
+      "T_range": [
+        1.0,
+        19998.6
+      ],
+      "nion_range": [
+        10000000000000.0,
+        1.9994e+22
+      ],
+      "group_bounds": [
+        0.1,
+        1.0,
+        10.0,
+        100.0,
+        1000.0,
+        10000.0,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\Z02_1.00-20260708_0851_group6_all.png"
+          ],
+          "info": {
+            "material": "Z2(100%)",
+            "combos": 6,
+            "group_figures": 6,
+            "ngroups": 6
+          },
+          "error": null,
+          "elapsed_s": 10.4
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.49
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.61
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 18006.796291854313,
+              "b": 1.2315795376672436,
+              "R2": -1.0379
+            },
+            "exponential_zbar": {
+              "a": 0.6600278287816677,
+              "b": 0.00010084786111865553,
+              "R2": -2.5503
+            },
+            "ideal_gas": {
+              "slope": 11603.2239,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                4.1154,
+                4.3588
+              ],
+              "R2": 0.9597
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.4
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z02_1.00-20260708_0851\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 17.541878617488404,
+              "n_points": 66
+            },
+            "isentrope": {
+              "n_points": 64
+            },
+            "hugoniot": {
+              "n_points": 1
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.77
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850.cn4",
+      "name": "Z06_0.50-Z01_0.50-20260708_0850",
+      "species": "Z6(50%) + Z1(50%)",
+      "atomwt": [
+        12.011,
+        1.008
+      ],
+      "ntemp": 51,
+      "ndens": 31,
+      "ngrups": 6,
+      "T_range": [
+        1.0,
+        19998.6
+      ],
+      "nion_range": [
+        1e+16,
+        1.9994e+25
+      ],
+      "group_bounds": [
+        0.1,
+        1.0,
+        10.0,
+        100.0,
+        1000.0,
+        10000.0,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\Z06_0.50-Z01_0.50-20260708_0850_group6_all.png"
+          ],
+          "info": {
+            "material": "Z6(50%) + Z1(50%)",
+            "combos": 6,
+            "group_figures": 6,
+            "ngroups": 6
+          },
+          "error": null,
+          "elapsed_s": 10.6
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.38
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.6
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 92753.2371912746,
+              "b": 0.9975299098665825,
+              "R2": 0.9699
+            },
+            "exponential_zbar": {
+              "a": 1.8809559570824694,
+              "b": 5.635242916572805e-05,
+              "R2": -0.1442
+            },
+            "ideal_gas": {
+              "slope": 11603.2207,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                6.7759,
+                8.6087
+              ],
+              "R2": 0.9499
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.61
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z06_0.50-Z01_0.50-20260708_0850\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 23344.225490866043,
+              "n_points": 67
+            },
+            "isentrope": {
+              "n_points": 71
+            },
+            "hugoniot": {
+              "n_points": 1
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.77
+        }
+      ]
+    },
+    {
+      "file": "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\eos_op_data\\Gen_eos_op_data\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850.cn4",
+      "name": "Z14_1.00-20260708_0850",
+      "species": "Z14(100%)",
+      "atomwt": [
+        28.085
+      ],
+      "ntemp": 51,
+      "ndens": 31,
+      "ngrups": 6,
+      "T_range": [
+        1.0,
+        19998.6
+      ],
+      "nion_range": [
+        1e+16,
+        1.9994e+25
+      ],
+      "group_bounds": [
+        0.1,
+        1.0,
+        10.0,
+        100.0,
+        1000.0,
+        10000.0,
+        100000.0
+      ],
+      "results": [
+        {
+          "task": "A",
+          "name": "Heatmaps (2D color maps)",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_zbar_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_zbar_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_rho_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_nele_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_p_ion_T-nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\A1_e_ele_T-nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group1_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group2_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group3_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group4_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group5_all.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\Z14_1.00-20260708_0850_group6_all.png"
+          ],
+          "info": {
+            "material": "Z14(100%)",
+            "combos": 6,
+            "group_figures": 6,
+            "ngroups": 6
+          },
+          "error": null,
+          "elapsed_s": 11.17
+        },
+        {
+          "task": "B",
+          "name": "1D curves",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\B1_zbar_vs_T.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\B2_rosseland_g1_vs_nion.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\B3_zbar_vs_nion.png"
+          ],
+          "info": {
+            "curves": 3
+          },
+          "error": null,
+          "elapsed_s": 1.25
+        },
+        {
+          "task": "C",
+          "name": "Time series",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\C1_timespace_nele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\C2_center_nele.png"
+          ],
+          "info": {
+            "synthetic": true,
+            "nt": 40,
+            "nx": 100
+          },
+          "error": null,
+          "elapsed_s": 0.67
+        },
+        {
+          "task": "D",
+          "name": "Fittings",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\D1_powerlaw_eele.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\D2_exp_zbar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\D3_ideal_gas.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\D4_generic_saha.png"
+          ],
+          "info": {
+            "powerlaw_e_ele": {
+              "a": 36754.639839133284,
+              "b": 1.1160129205956613,
+              "R2": 0.6836
+            },
+            "exponential_zbar": {
+              "a": 5.247473511828524,
+              "b": 8.824344075074583e-05,
+              "R2": -0.2176
+            },
+            "ideal_gas": {
+              "slope": 11603.2205,
+              "R2": 1.0
+            },
+            "generic_saha": {
+              "params": [
+                26.7529,
+                37.3696
+              ],
+              "R2": 0.9338
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.47
+        },
+        {
+          "task": "E",
+          "name": "EOS paths",
+          "ok": true,
+          "files": [
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\E1_isotherm.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\E2_isobar.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\E3_isentrope.png",
+            "E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\input_gen\\gen_eos_op\\ionmix\\ionmix\\eosop_pro\\test\\output\\Z14_1.00-20260708_0850\\E4_hugoniot.png"
+          ],
+          "info": {
+            "isobar": {
+              "P_target": 53574.59321880102,
+              "n_points": 69
+            },
+            "isentrope": {
+              "n_points": 62
+            },
+            "hugoniot": {
+              "n_points": 3
+            }
+          },
+          "error": null,
+          "elapsed_s": 1.89
+        }
+      ]
+    }
+  ],
+  "total_elapsed_s": 273.16,
+  "n_steps_ok": 65,
+  "n_steps_fail": 0,
+  "n_images": 365
+}
