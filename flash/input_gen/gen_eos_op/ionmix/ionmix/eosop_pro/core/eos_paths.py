@@ -465,23 +465,32 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
         raise ValueError("压缩分支过滤后为空 (Us/Up 非有限)")
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    # 左: rho-P 雨贡纽 (背景行 = 表最低 T 的连续插值 P(rho))
+    # 左: rho-P 雨贡纽。
+    #   - Hugoniot 用散点 (H=0 等值线在 (T,rho) 平面非单调, 同一 rho 可能对应
+    #     多个 T, 连线会来回跳跃, 散点如实展示)。
+    #   - 轴范围聚焦从参考态开始的压缩分支 (而非全表范围)。
     rho_full = rho_from_nion(data, data.density)
     Pr_full = interpolate_quantity(data, "p", rho_full,
                                    data.temperature[0], field=P, clip=True)
     ax1.plot(rho_full, Pr_full, "-", lw=2.0, color="gray",
              label="Table row (lowest T, interp)")
-    ax1.plot(rho_c, P_c, "o-", lw=1.8, ms=4, color="tab:red",
+    ax1.plot(rho_c, P_c, "o", ms=5, mfc="tab:red", mec="none", alpha=0.85,
              label=f"Hugoniot ({len(rho_c)} pts)")
-    ax1.plot([rho0_eff], [P0], "*", ms=18, color="black",
+    ax1.plot([rho0_eff], [P0], "*", ms=20, color="black",
              label="Reference state")
     ax1.set_xscale("log"); ax1.set_yscale("log")
     ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)")
     ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
     ax1.set_title("Shock Hugoniot")
+    # 放大到参考态附近 (覆盖 Hugoniot 压缩分支, 留 20~50% 边距)
+    rho_hi = max(rho0_eff * 1.05, rho_c.max())
+    ax1.set_xlim(rho0_eff * 0.5, rho_hi * 1.3)
+    p_lo = min(P0, P_c.min())
+    p_hi = max(P0, P_c.max())
+    ax1.set_ylim(p_lo * 0.5, p_hi * 2.0)
     ax1.legend(fontsize=FONT_SIZE_TICK)
-    # 右: Us-Up
-    ax2.plot(Up, Us, "s-", lw=1.8, ms=4, color="tab:blue",
+    # 右: Us-Up (按 rho 排序后 Up/Us 均单调, 连线可读; 亦用散点保持一致性)
+    ax2.plot(Up, Us, "o", ms=4, mfc="tab:blue", mec="none", alpha=0.85,
              label=f"{len(Us)} pts")
     ax2.set_xlabel(r"Particle velocity $U_p$ (cm/s)")
     ax2.set_ylabel(r"Shock velocity $U_s$ (cm/s)")
