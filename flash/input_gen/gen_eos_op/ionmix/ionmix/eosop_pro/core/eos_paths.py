@@ -184,7 +184,11 @@ def trace_isotherm(data: CN4Data, T_idx=10, T=None, x_axis="rho",
     """
     setup_style()
     T_val = float(data.temperature[T_idx]) if T is None else float(T)
-    nion = data.density
+    # 加密 rho 轴: 表密度 (ndens) -> 精细对数网格 (n_dense), 充分利用插值
+    nion_tab = data.density
+    n_dense = 200
+    nion = 10 ** np.linspace(np.log10(nion_tab[0]), np.log10(nion_tab[-1]),
+                             n_dense)
     rho_axis = rho_from_nion(data, nion)
     P = interpolate_quantity(data, "p", rho_axis, T_val, field=_press(data))
     e = interpolate_quantity(data, "e", rho_axis, T_val, field=_energy(data))
@@ -692,43 +696,64 @@ def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
     """
     from scipy.interpolate import RegularGridInterpolator
     setup_style()
+    # 加密 rho 轴 (200 点) 与 T 轴 (120 点), 充分利用插值
     rho_axis = rho_from_nion(data, data.density)          # (ndens,)
-    V_axis = 1.0 / rho_axis
+    rho_dense = 10 ** np.linspace(np.log10(rho_axis[0]),
+                                  np.log10(rho_axis[-1]), 200)
+    T_dense = 10 ** np.linspace(np.log10(data.temperature[0]),
+                                np.log10(data.temperature[-1]), 120)
+    V_dense = 1.0 / rho_dense
     V0 = 1.0 / float(rho_ref)
     P0 = interpolate_quantity(data, "p", rho_ref, T_ref, field=_press(data))
 
-    # ── 等温线: T=T_ref 全密度行 (散点) ──
-    P_iso = interpolate_quantity(data, "p", rho_axis, T_ref,
+    # ── 等温线: T=T_ref 固定, 沿加密 rho 轴插值 (200 点, 散点) ──
+    P_iso = interpolate_quantity(data, "p", rho_dense, T_ref,
                                  field=_press(data))
 
-    # ── 等熵线: 参考态处 s 归零 -> s_rel = s_field - s(rho_ref, T_ref)
-    #    沿 ρ 逐列扫描 s_rel=0 (与 Hugoniot 相同的双方向扫描法),
-    #    保证覆盖整个 (ρ,T) 表范围, s_rel=0 必经过 (rho_ref, T_ref)。
+    # ── 等熵线: 参考态处 s 归零 -> s_rel = s_field - s(rho_ref, T_ref)。
     #    注意: s_field 含负值 (相对归零场), 不能走 log 插值,
-    #    故 s_ref 用 scipy RegularGridInterpolator 直接双线性插值。 ──
-    s_interp = RegularGridInterpolator(
+    #    用 RegularGridInterpolator 在 log(nion) x log(T) 坐标上直接
+    #    线性插值到精细网格, 再逐列(固定 ρ 沿 T) + 逐行(固定 T 沿 ρ)
+    #    双方向扫描 s_rel=0 (与 Hugoniot 相同策略), 点数密集。 ──
+    s_gi = RegularGridInterpolator(
         (np.log10(data.density), np.log10(data.temperature)),
         s_field, bounds_error=False, fill_value=None)
-    # 注意: s_interp 第一轴为 log10(nion) (密度=离子数密度), 不是 log10(rho);
-    # rho -> nion: nion = rho * N_A / <A>
     nion_ref = float(rho_ref) * _NAV / data.avgatw
-    s_ref = float(s_interp(
-        [np.log10(nion_ref), np.log10(float(T_ref))])[0])
-    s_rel = s_field - s_ref
-    rho_ent_pts, T_ent_pts = [], []
-    for i in range(data.ndens):
+    s_ref = float(s_gi([np.log10(nion_ref), np.log10(float(T_ref))])[0])
+    # s_rel 精细场
+    Rg, Tg = np.meshgrid(rho_dense, T_dense, indexing="ij")
+    nion_grid = Rg * _NAV / data.avgatw
+    s_fine = s_gi(np.stack([np.log10(nion_grid.ravel()),
+                            np.log10(Tg.ravel())], axis=1)).reshape(Rg.shape)
+    s_rel = s_fine - s_ref
+
+    rho_pts, T_pts = [], []
+    # 逐列 (固定 ρ 沿 T)
+    n_rho, n_T = s_rel.shape
+    for i in range(n_rho):
         row = s_rel[i]
-        for j in range(data.ntemp - 1):
+        for j in range(n_T - 1):
             if row[j] * row[j + 1] < 0:
                 fr = row[j] / (row[j] - row[j + 1])
-                T_c = 10 ** (np.log10(data.temperature[j]) +
-                             fr * (np.log10(data.temperature[j + 1]) -
-                                   np.log10(data.temperature[j])))
-                rho_ent_pts.append(data.density[i])
-                T_ent_pts.append(T_c)
-    if rho_ent_pts:
-        rho_ent_all = np.array(rho_ent_pts, dtype=float)
-        T_ent_all = np.array(T_ent_pts, dtype=float)
+                T_c = 10 ** (np.log10(T_dense[j]) +
+                             fr * (np.log10(T_dense[j + 1]) -
+                                   np.log10(T_dense[j])))
+                rho_pts.append(rho_dense[i])
+                T_pts.append(T_c)
+    # 逐行 (固定 T 沿 ρ)
+    for j in range(n_T):
+        col = s_rel[:, j]
+        for i in range(n_rho - 1):
+            if col[i] * col[i + 1] < 0:
+                fr = col[i] / (col[i] - col[i + 1])
+                rho_c = 10 ** (np.log10(rho_dense[i]) +
+                               fr * (np.log10(rho_dense[i + 1]) -
+                                     np.log10(rho_dense[i])))
+                rho_pts.append(rho_c)
+                T_pts.append(T_dense[j])
+    if rho_pts:
+        rho_ent_all = np.array(rho_pts, dtype=float)
+        T_ent_all = np.array(T_pts, dtype=float)
         P_ent_all = interpolate_quantity(data, "p", rho_ent_all,
                                          T_ent_all, field=_press(data))
         V_ent = 1.0 / rho_ent_all
@@ -741,8 +766,8 @@ def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
     P_h = np.asarray(hug_P, dtype=float)
 
     fig, ax = plt.subplots(figsize=figsize)
-    # 等温线 (散点, 细点)
-    ax.plot(V_axis, pressure_mbar(P_iso), ".", ms=3, color="tab:red",
+    # 等温线 (加密 rho 轴 200 点, 散点, 细点)
+    ax.plot(V_dense, pressure_mbar(P_iso), ".", ms=3, color="tab:red",
             alpha=0.7, label=f"Isotherm $T={T_ref:.3e}$ eV")
     # 等熵线 (散点)
     if V_ent is not None and len(V_ent) > 1:
