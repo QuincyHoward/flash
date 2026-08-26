@@ -52,6 +52,13 @@ def setup_style() -> None:
         "figure.dpi": DPI,
         "savefig.dpi": DPI,
         "savefig.bbox": "tight",
+        # 全局网格线 (便于读数): 主次刻度均显示, 浅灰细线
+        "axes.grid": True,
+        "axes.grid.which": "both",
+        "grid.alpha": 0.35,
+        "grid.linestyle": ":",
+        "grid.linewidth": 0.8,
+        "grid.color": "#888888",
     })
 
 
@@ -77,6 +84,9 @@ def apply_axes_style(ax, lw: float = 2.0, tick_size: float = 6,
         if name not in n_exclude:
             spine.set_linewidth(lw)
     ax.tick_params(labelsize=FONT_SIZE_TICK, width=lw, length=tick_size)
+    # 网格线 (主次刻度, 便于读数)
+    ax.grid(True, which="both", alpha=0.35, linestyle=":", linewidth=0.8,
+            color="#888888")
 
 
 def save_fig(fig, outfile: str, tag: str = "fig", base_dir: str = None) -> str:

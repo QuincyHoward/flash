@@ -516,21 +516,30 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     p_hi = max(P0, P_c.max())
     ax1.set_ylim(pressure_mbar(p_lo) * 0.5, pressure_mbar(p_hi) * 2.0)
     ax1.legend(fontsize=FONT_SIZE_TICK)
-    # 右: Us-Up (显示单位 um/ns; 线性拟合 Us = k*Up + b)
+    # 中: Us-Up (显示单位 um/ns; 仅用 Up∈[0,80] um/ns 的数据做线性拟合,
+    # 并聚焦该范围显示)
     Us_u = velocity_umns(Us)
     Up_u = velocity_umns(Up)
-    k, b = np.polyfit(Up_u, Us_u, 1)
-    yfit = k * Up_u + b
-    ss_res = float(np.sum((Us_u - yfit) ** 2))
-    ss_tot = float(np.sum((Us_u - np.mean(Us_u)) ** 2))
-    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    fit_win = 80.0                                     # Up 拟合窗口 (um/ns)
+    m_fit = Up_u <= fit_win
+    if m_fit.sum() >= 2:
+        k, b = np.polyfit(Up_u[m_fit], Us_u[m_fit], 1)
+        yfit = k * Up_u[m_fit] + b
+        ss_res = float(np.sum((Us_u[m_fit] - yfit) ** 2))
+        ss_tot = float(np.sum((Us_u[m_fit] - np.mean(Us_u[m_fit])) ** 2))
+        r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    else:
+        k, b, r2 = np.nan, np.nan, float("nan")
+        yfit = None
     ax2.plot(Up_u, Us_u, "o", ms=4, mfc="tab:blue", mec="none",
              alpha=0.85, label=f"Data ({len(Us)} pts)")
-    ax2.plot(Up_u, yfit, "--", lw=2.0, color="black", alpha=0.75,
-             label=f"Fit: $U_s={k:.4f}U_p+{b:.4e}$")
+    if yfit is not None:
+        ax2.plot(Up_u[m_fit], yfit, "--", lw=2.0, color="black",
+                 alpha=0.75,
+                 label=f"Fit (Up<=80): $U_s={k:.4f}U_p+{b:.4e}$")
     ax2.text(0.05, 0.97,
-             f"$U_s = {k:.4f}\\,U_p + {b:.4e}$ (um/ns)\n"
-             f"$R^2 = {r2:.4f}$",
+             f"$U_s = {k:.4f}\\,U_p + {b:.4e}$ um/ns\n"
+             f"(fit window $U_p\\in[0,{fit_win:.0f}]$, $R^2 = {r2:.4f}$)",
              transform=ax2.transAxes, ha="left", va="top",
              fontsize=FONT_SIZE_TICK,
              bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.85))
@@ -538,6 +547,10 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)")
     ax2.set_title(r"$U_s$-$U_p$ relation (linear fit)")
     ax2.legend(fontsize=FONT_SIZE_TICK)
+    ax2.set_xlim(0.0, fit_win)
+    # y 范围: 覆盖窗口内数据 (留 10% 边距), 便于查看
+    if m_fit.sum() >= 1:
+        ax2.set_ylim(0.0, float(np.nanmax(Us_u[m_fit])) * 1.1)
     # ── 右2: P-V 雨贡纽 (V = 1/rho 比体积, 散点, 聚焦压缩分支) ──
     V_c = 1.0 / rho_c
     V0 = 1.0 / rho0_eff
@@ -563,30 +576,45 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
 
 def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5)):
     """
-    绘制 Us、Up 随压力 P 的关系图 (log-log, 双曲线 + 图例)。
-    显示单位: P -> Mbar, Us/Up -> um/ns。
+    绘制 Us、Up 随压力 P 的关系图。
+    显示单位: P -> Mbar (对数轴), Us/Up -> um/ns (线性轴, 窗口 [0,100])。
+    仅显示窗口内数据; x 轴范围相应调整到窗口内数据的 P 区间, 便于查看。
     用于 Hugoniot 后处理: 展示冲击/粒子速度与压力的关联。
     Returns: 输出文件路径
     """
     setup_style()
-    P_mbar = pressure_mbar(np.asarray(P, dtype=float))
     Us_umns = velocity_umns(np.asarray(Us, dtype=float))
     Up_umns = velocity_umns(np.asarray(Up, dtype=float))
+    P_mbar = pressure_mbar(np.asarray(P, dtype=float))
+
+    # y 窗口 [0, 100] um/ns (线性); 只保留窗口内数据
+    keep = (Us_umns >= 0) & (Us_umns <= 100.0) \
+        & (Up_umns >= 0) & (Up_umns <= 100.0)
+    if keep.sum() == 0:
+        keep = np.ones_like(keep, dtype=bool)   # 兜底: 全显示
+    P_w = P_mbar[keep]
+    Us_w = Us_umns[keep]
+    Up_w = Up_umns[keep]
+
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot(P_mbar, Us_umns, "o", ms=5, mfc="tab:blue", mec="none",
+    ax.plot(P_w, Us_w, "o", ms=5, mfc="tab:blue", mec="none",
             alpha=0.85, label=r"Shock velocity $U_s$ (um/ns)")
-    ax.plot(P_mbar, Up_umns, "s", ms=5, mfc="tab:orange", mec="none",
+    ax.plot(P_w, Up_w, "s", ms=5, mfc="tab:orange", mec="none",
             alpha=0.85, label=r"Particle velocity $U_p$ (um/ns)")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
+    ax.set_xscale("log")                          # P 跨多量级, 保持对数
+    ax.set_ylim(0.0, 100.0)                       # 速度线性轴 [0,100] um/ns
     ax.set_xlabel("Pressure $P$ (Mbar)")
     ax.set_ylabel("Velocity (um/ns)")
-    ax.set_title(r"$U_s$ / $U_p$ vs Pressure $P$")
+    ax.set_title(r"$U_s$ / $U_p$ vs Pressure $P$ (linear y)")
+    # x 轴相应调整: 覆盖窗口内数据的 P 范围
+    if len(P_w):
+        ax.set_xlim(P_w.min() * 0.5, P_w.max() * 2.0)
     ax.legend(fontsize=FONT_SIZE_TICK)
     _style(ax)
     fig.tight_layout()
     outfile = _save(fig, outfile, "hugoniot_usup_vs_P")
-    print(f"[eos] Us/Up vs P -> {outfile}")
+    print(f"[eos] Us/Up vs P (window [0,100] um/ns, {len(P_w)} pts) "
+          f"-> {outfile}")
     return outfile
 
 
