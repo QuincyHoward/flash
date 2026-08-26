@@ -41,11 +41,12 @@ from plot_utils import setup_style, FONT_SIZE_LABEL, FONT_SIZE_TICK, save_fig
 
 
 def plot_time_series(
-    times: np.ndarray,          # (nt,) s
-    xgrid: np.ndarray,          # (nx,) cm
+    times: np.ndarray,          # (nt,) 时间 (显示单位 ns)
+    xgrid: np.ndarray,          # (nx,) 空间坐标 (显示单位 um)
     field: np.ndarray,          # (nt, nx) 物理量场
-    xlabel: str = "x (cm)",
+    xlabel: str = "x (um)",
     quantity_label: str = "Quantity",
+    time_label: str = "Time (ns)",
     title: str = "",
     cmap: str = "inferno",
     zlog: bool = None,          # None=自动
@@ -54,7 +55,8 @@ def plot_time_series(
 ) -> str:
     """
     形式A: 时间-空间二维彩图 (t, x) -> 物理量, 展示演化过程。
-    x 轴: 时间 (s, 线性或对数), y 轴: 空间坐标 x (cm), 颜色: 物理量。
+    x 轴: 时间 (ns, 线性或对数), y 轴: 空间坐标 x (um), 颜色: 物理量。
+    调用方负责将物理量换算为显示单位 (见 units.py: time_ns/length_um)。
     """
     import matplotlib.colors as mcolors
     setup_style()
@@ -67,7 +69,7 @@ def plot_time_series(
     norm = (mcolors.LogNorm() if zlog else None)
     sm = ax.pcolormesh(X, Y, fplot, cmap=cmap, norm=norm,
                        shading="auto", rasterized=True)
-    ax.set_xlabel("Time (s)")
+    ax.set_xlabel(time_label)
     ax.set_ylabel(xlabel)
     if title:
         ax.set_title(title)
@@ -83,30 +85,32 @@ def plot_time_series(
 
 
 def plot_center_series(
-    times: np.ndarray,          # (nt,) s
-    xgrid: np.ndarray,          # (nx,) cm
+    times: np.ndarray,          # (nt,) 时间 (显示单位 ns)
+    xgrid: np.ndarray,          # (nx,) 空间坐标 (显示单位 um)
     field: np.ndarray,          # (nt, nx)
-    x_center: float = 0.0,      # 特征空间位置 (cm), 取最近网格点
+    x_center: float = 0.0,      # 特征空间位置 (um), 取最近网格点
     ylog: bool = True,
     xlog: bool = False,
     quantity_label: str = "Quantity",
+    time_label: str = "Time (ns)",
     outfile: str = None,
 ) -> str:
     """
     形式B: 特征点 (默认靶中心 x_center) 的物理量随时间演化曲线。
+    调用方负责将物理量换算为显示单位 (见 units.py)。
     """
     setup_style()
     i = int(np.argmin(np.abs(xgrid - x_center)))
     fig, ax = plt.subplots(figsize=(10.0, 7.0))
     ax.plot(times, field[:, i], lw=2.5, marker="o", ms=5,
-            label=f"x = {xgrid[i]:.4e} cm")
+            label=f"x = {xgrid[i]:.4e} um")
     if xlog:
         ax.set_xscale("log")
     if ylog:
         ax.set_yscale("log")
-    ax.set_xlabel("Time (s)")
+    ax.set_xlabel(time_label)
     ax.set_ylabel(quantity_label)
-    ax.set_title(f"{quantity_label} at x={xgrid[i]:.3e} cm")
+    ax.set_title(f"{quantity_label} at x={xgrid[i]:.3e} um")
     ax.legend(fontsize=FONT_SIZE_TICK)
     for spine in ax.spines.values():
         spine.set_linewidth(2.0)

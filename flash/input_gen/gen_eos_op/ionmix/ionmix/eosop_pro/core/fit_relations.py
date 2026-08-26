@@ -22,7 +22,7 @@ IONMIX .cn4 数据函数关系拟合模块 (任务D)
 
     # 固定某密度行, 检验 e_ele 是否满足幂律 E ~ T^b
     fit_power_law(d.temperature, d.e_ele[5], xlabel="T (eV)",
-                  ylabel="E_e (J/g)")
+                  ylabel="E_e (erg/g)")
 
     # 检验 P = (1+<Z>) n k_B T
     fit_ideal_gas(d, T_idx=10)
@@ -139,6 +139,10 @@ def fit_ideal_gas(data, T_idx=0, outfile=None):
     slope, intercept = np.polyfit(P_theory, P_model, 1)
     yfit = slope * P_theory + intercept
     r2 = compute_r2(P_model, yfit)
+    # 显示单位: J/cm^3 -> Mbar (斜率 s 无量纲不受影响)
+    P_model = P_model * 1e-5
+    P_theory = P_theory * 1e-5
+    yfit = yfit * 1e-5
     fig, ax = plt.subplots(figsize=(9.5, 7.5))
     setup_style()
     ax.plot(P_theory, P_model, "o", ms=7, label="IONMIX data")
@@ -146,8 +150,8 @@ def fit_ideal_gas(data, T_idx=0, outfile=None):
             label=f"Fit: slope={slope:.4f}")
     ax.plot(P_theory, P_theory, "--", lw=2.0, color="gray",
             label="Ideal gas (slope=1)")
-    ax.set_xlabel(r"$(1+\langle Z\rangle)\, n_i k_B T$  (J/cm$^3$)")
-    ax.set_ylabel("IONMIX pressure  (J/cm$^3$)")
+    ax.set_xlabel(r"$(1+\langle Z\rangle)\, n_i k_B T$  (Mbar)")
+    ax.set_ylabel("IONMIX pressure  (Mbar)")
     ax.set_title(f"Ideal gas check, T={T:.3e} eV (R$^2$={r2:.4f})")
     ax.legend(fontsize=FONT_SIZE_TICK)
     for spine in ax.spines.values():

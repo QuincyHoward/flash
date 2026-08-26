@@ -41,21 +41,22 @@ from plot_heatmaps import (                          # noqa: E402
 )
 
 # 颜色场物理量 -> (图内标签, 是否建议对数色)
+# (数值换算由 plot_heatmaps._resolve_quantity 统一处理, 单位见 units.py)
 QUANTITY_META = {
     "zbar":      ("Average charge state $\\langle Z \\rangle$", False),
     "dzdt":      ("$\\partial \\langle Z \\rangle / \\partial T$ (eV$^{-1}$)", False),
-    "p_ion":     ("Ion pressure (J/cm$^3$)", True),
-    "p_ele":     ("Electron pressure (J/cm$^3$)", True),
-    "dpion_dt":  ("$\\partial P_i / \\partial T$ (J/cm$^3$/eV)", False),
-    "dpele_dt":  ("$\\partial P_e / \\partial T$ (J/cm$^3$/eV)", False),
-    "e_ion":     ("Ion specific energy (J/g)", True),
-    "e_ele":     ("Electron specific energy (J/g)", True),
-    "cv_ion":    ("Ion specific heat (J/g/eV)", False),
-    "cv_ele":    ("Electron specific heat (J/g/eV)", False),
+    "p_ion":     ("Ion pressure (Mbar)", True),
+    "p_ele":     ("Electron pressure (Mbar)", True),
+    "dpion_dt":  ("$\\partial P_i / \\partial T$ (Mbar/eV)", False),
+    "dpele_dt":  ("$\\partial P_e / \\partial T$ (Mbar/eV)", False),
+    "e_ion":     ("Ion specific energy (erg/g)", True),
+    "e_ele":     ("Electron specific energy (erg/g)", True),
+    "cv_ion":    ("Ion specific heat (erg/g/eV)", False),
+    "cv_ele":    ("Electron specific heat (erg/g/eV)", False),
     "deion_dn":  ("$\\partial e_i / \\partial n_i$", False),
     "deele_dn":  ("$\\partial e_e / \\partial n_e$", False),
-    "nele":      ("Average charge state $\\langle Z \\rangle$", False),
-    "rho":       ("Average charge state $\\langle Z \\rangle$", False),
+    "nele":      ("Electron number density (cm$^{-3}$)", True),
+    "rho":       ("Mass density (g/cm$^3$)", True),
 }
 
 DEFAULT_CMAP = "cubehelix"

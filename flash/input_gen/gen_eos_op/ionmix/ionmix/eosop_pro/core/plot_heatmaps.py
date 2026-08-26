@@ -172,29 +172,41 @@ def _resolve_quantity(data: CN4Data, quantity: str, transmission_L: float, ig: i
     # EOS 物理量 (CN4Data.quantity 别名表)
     meta = _QUANTITY_META.get(q)
     if meta is not None:
+        label, zlog = meta
         field = data.quantity(q)
-        return field, meta[0], meta[1]
+        scale = _QUANTITY_SCALE.get(q, 1.0)     # 单位换算 (显示单位)
+        if scale != 1.0:
+            field = field * scale
+        return field, label, zlog
     # 兜底: 让 CN4Data.quantity 抛错
     data.quantity(q)
     raise AssertionError("unreachable")
 
 
-# EOS 物理量 -> (色条标签, 建议对数)
+# EOS 物理量 -> (色条标签, 建议对数)  [数值已按 units.py 换算为显示单位]
 _QUANTITY_META = {
     "zbar":      ("Average charge state $\\langle Z \\rangle$", False),
     "dzdt":      ("$\\partial \\langle Z \\rangle / \\partial T$ (eV$^{-1}$)", False),
-    "p_ion":     ("Ion pressure (J/cm$^3$)", True),
-    "p_ele":     ("Electron pressure (J/cm$^3$)", True),
-    "dpion_dt":  ("$\\partial P_i / \\partial T$ (J/cm$^3$/eV)", False),
-    "dpele_dt":  ("$\\partial P_e / \\partial T$ (J/cm$^3$/eV)", False),
-    "e_ion":     ("Ion specific energy (J/g)", True),
-    "e_ele":     ("Electron specific energy (J/g)", True),
-    "cv_ion":    ("Ion specific heat (J/g/eV)", False),
-    "cv_ele":    ("Electron specific heat (J/g/eV)", False),
+    "p_ion":     ("Ion pressure (Mbar)", True),
+    "p_ele":     ("Electron pressure (Mbar)", True),
+    "dpion_dt":  ("$\\partial P_i / \\partial T$ (Mbar/eV)", False),
+    "dpele_dt":  ("$\\partial P_e / \\partial T$ (Mbar/eV)", False),
+    "e_ion":     ("Ion specific energy (erg/g)", True),
+    "e_ele":     ("Electron specific energy (erg/g)", True),
+    "cv_ion":    ("Ion specific heat (erg/g/eV)", False),
+    "cv_ele":    ("Electron specific heat (erg/g/eV)", False),
     "deion_dn":  ("$\\partial e_i / \\partial n_i$", False),
     "deele_dn":  ("$\\partial e_e / \\partial n_e$", False),
     "nele":      ("Electron number density (cm$^{-3}$)", True),
     "rho":       ("Mass density (g/cm$^3$)", True),
+}
+
+# 单位换算因子 (cn4 J/g、J/cm^3 -> 显示单位; 见 units.py)
+_QUANTITY_SCALE = {
+    "p_ion": 1.0e-5, "p_ele": 1.0e-5,
+    "dpion_dt": 1.0e-5, "dpele_dt": 1.0e-5,
+    "e_ion": 1.0e7, "e_ele": 1.0e7,
+    "cv_ion": 1.0e7, "cv_ele": 1.0e7,
 }
 
 

@@ -131,20 +131,23 @@ def task_B_curves(data, out_dir):
 
 
 def task_C_timeseries(data, out_dir):
-    """任务C: 时间序列图 (合成 FLASH 风格高斯波包, 验证绘图管线)"""
-    t = np.linspace(0, 3.1e-9, 40)
-    x = np.linspace(-50e-4, 50e-4, 100)
+    """任务C: 时间序列图 (合成 FLASH 风格高斯波包, 验证绘图管线)。
+
+    显示单位: 时间 ns, 位置 um (内部物理量纲 s/cm 仅用于场计算)。
+    """
+    t = np.linspace(0, 3.1e-9, 40)          # s (物理)
+    x = np.linspace(-50e-4, 50e-4, 100)     # cm (物理)
     T, X = np.meshgrid(t, x)
     # 空间波前随时间推进 + 量纲取 nele 量级
     field = np.exp(-((X - 1e-3 * T / 3.1e-9) ** 2) / (2 * (8e-4) ** 2)) \
         * data.nele.max()
     f1 = TS.plot_time_series(
-        t, x, field.T,
-        xlabel="x (cm)",
+        t * 1e9, x * 1e4, field.T,          # 显示: ns, um
+        xlabel="x (um)",
         quantity_label="Electron density (cm$^{-3}$)",
         outfile=os.path.join(out_dir, "C1_timespace_nele.png"))
     f2 = TS.plot_center_series(
-        t, x, field.T, x_center=0.0,
+        t * 1e9, x * 1e4, field.T, x_center=0.0,
         quantity_label="Electron density (cm$^{-3}$)",
         outfile=os.path.join(out_dir, "C2_center_nele.png"))
     return [f1, f2], {"synthetic": True, "nt": len(t), "nx": len(x)}
@@ -219,7 +222,8 @@ def task_E_eospaths(data, out_dir):
     try:
         T_c, n_c, f2 = E.trace_isobar(
             data, P=Pmid, outfile=os.path.join(out_dir, "E2_isobar.png"))
-        info["isobar"] = {"P_target": Pmid, "n_points": len(T_c)}
+        info["isobar"] = {"P_target_Mbar": round(Pmid * 1e-5, 4),
+                          "n_points": len(T_c)}
     except Exception as ex:                              # noqa: BLE001
         f2 = None
         info["isobar"] = {"error": str(ex)}

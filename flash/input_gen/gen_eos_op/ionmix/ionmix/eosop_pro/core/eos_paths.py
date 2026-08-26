@@ -40,6 +40,7 @@ import numpy as np
 from cn4_parser import CN4Data
 from plot_utils import (setup_style, FONT_SIZE_LABEL, FONT_SIZE_TICK,
                          save_fig, apply_axes_style)
+from units import (pressure_mbar, energy_ergg, velocity_umns)
 
 _KB_J = 1.380649e-23          # J/K
 _EV_J = 1.602176634e-19       # J/eV
@@ -193,19 +194,23 @@ def trace_isotherm(data: CN4Data, T_idx=10, T=None, x_axis="rho",
     xlabel = (r"Mass density $\rho$ (g/cm$^3$)"
               if use_rho else r"Ion Number Density $n_i$ (cm$^{-3}$)")
 
+    # 显示单位: P -> Mbar, e -> erg/g (CGS)
+    P = pressure_mbar(P)
+    e = energy_ergg(e)
+
     fig, ax1 = plt.subplots(figsize=figsize)
     ax1.plot(x, P, "o-", lw=2.5, ms=7, color="tab:red",
-             label="Pressure $P$ (J/cm$^3$)")
+             label="Pressure $P$ (Mbar)")
     ax1.set_xscale("log")
     ax1.set_yscale("log")
     ax1.set_xlabel(xlabel)
-    ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
+    ax1.set_ylabel("Pressure $P$ (Mbar)")
     ax1.tick_params(axis="y", labelcolor="tab:red")
     ax2 = ax1.twinx()
     ax2.plot(x, e, "s-", lw=2.5, ms=7, color="tab:blue",
-             label="Energy $e$ (J/g)")
+             label="Energy $e$ (erg/g)")
     ax2.set_yscale("log")
-    ax2.set_ylabel("Specific energy $e$ (J/g)")
+    ax2.set_ylabel("Specific energy $e$ (erg/g)")
     ax2.tick_params(axis="y", labelcolor="tab:blue")
     ax1.set_title(f"Isotherm, T = {T_val:.4e} eV")
     h1, l1 = ax1.get_legend_handles_labels()
@@ -232,14 +237,15 @@ def trace_isobar(data: CN4Data, P: float, outfile=None, figsize=(10.0, 7.5)):
     setup_style()
     Pgrid = _press(data)
     if not (Pgrid.min() <= P <= Pgrid.max()):
-        raise ValueError(f"等压线 P={P:.3e} J/cm^3 超出数据范围 "
-                         f"({Pgrid.min():.2e} ~ {Pgrid.max():.2e})")
+        raise ValueError(f"等压线 P={pressure_mbar(P):.3e} Mbar 超出数据范围 "
+                         f"({pressure_mbar(Pgrid.min()):.2e} ~ "
+                         f"{pressure_mbar(Pgrid.max()):.2e} Mbar)")
     # 等高线提取 (线性场, seg 坐标即为线性 T, n_i)
     fig0, ax0 = plt.subplots()
     CS = ax0.contour(data.temperature, data.density, Pgrid, levels=[P])
     plt.close(fig0)
     if not CS.allsegs or not CS.allsegs[0]:
-        raise ValueError(f"等压线 P={P:.3e} J/cm^3 未在网格内形成等值线")
+        raise ValueError(f"等压线 P={pressure_mbar(P):.3e} Mbar 未在网格内形成等值线")
     seg = CS.allsegs[0][0]
     T_c = seg[:, 0]
     n_c = seg[:, 1]
@@ -250,11 +256,11 @@ def trace_isobar(data: CN4Data, P: float, outfile=None, figsize=(10.0, 7.5)):
     ax.set_yscale("log")
     ax.set_xlabel(r"Temperature $T$ (eV)")
     ax.set_ylabel(r"Ion Number Density $n_i$ (cm$^{-3}$)")
-    ax.set_title(f"Isobar, P = {P:.3e} J/cm$^3$")
+    ax.set_title(f"Isobar, P = {pressure_mbar(P):.3e} Mbar")
     _style(ax)
     fig.tight_layout()
-    outfile = _save(fig, outfile, f"isobar_P{P:.0e}")
-    print(f"[eos] isobar P={P:.3e} J/cm^3 -> {outfile}")
+    outfile = _save(fig, outfile, f"isobar_P{pressure_mbar(P):.2e}Mbar")
+    print(f"[eos] isobar P={pressure_mbar(P):.3e} Mbar -> {outfile}")
     return T_c, n_c, outfile
 
 
@@ -335,11 +341,11 @@ def trace_isentrope(data: CN4Data, s: np.ndarray, s0_idx=(5, 10),
     ax.set_yscale("log")
     ax.set_xlabel(r"Temperature $T$ (eV)")
     ax.set_ylabel(r"Ion Number Density $n_i$ (cm$^{-3}$)")
-    ax.set_title(f"Isentrope, s = {s0:.4f} J/(g eV)")
+    ax.set_title(f"Isentrope, s = {energy_ergg(s0):.4f} erg/(g eV)")
     _style(ax)
     fig.tight_layout()
-    outfile = _save(fig, outfile, f"isentrope_s{s0:.2f}")
-    print(f"[eos] isentrope s={s0:.4f} J/(g eV) -> {outfile}")
+    outfile = _save(fig, outfile, f"isentrope_s{energy_ergg(s0):.2e}")
+    print(f"[eos] isentrope s={energy_ergg(s0):.4f} erg/(g eV) -> {outfile}")
     return T_c, n_c, outfile
 
 
@@ -444,13 +450,14 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
         e0 = interpolate_quantity(data, "e", rho0, T0_eff, field=e)
         rho0_eff = float(rho0)
         print(f"[eos] hugoniot 参考态 (插值): rho0={rho0_eff:.4e} g/cm^3, "
-              f"T0={T0_eff:.4e} eV, P0={P0:.4e} J/cm^3, e0={e0:.4e} J/g")
+              f"T0={T0_eff:.4e} eV, P0={pressure_mbar(P0):.4e} Mbar, "
+              f"e0={energy_ergg(e0):.4e} erg/g")
     else:
         rho0_eff = float(rho[ref_idx])
         P0 = float(P[ref_idx])
         e0 = float(e[ref_idx])
         print(f"[eos] hugoniot 参考态 (网格点): rho0={rho0_eff:.4e} g/cm^3, "
-              f"P0={P0:.4e} J/cm^3")
+              f"P0={pressure_mbar(P0):.4e} Mbar")
 
     # 在插值连续空间求 H=0 曲线 (数据点位于插值区域内, 非网格点)
     rho_c, P_c, T_c = _extract_hugoniot_curve(
@@ -465,35 +472,37 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
         raise ValueError("压缩分支过滤后为空 (Us/Up 非有限)")
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    # 左: rho-P 雨贡纽。
+    # 左: rho-P 雨贡纽 (P 显示 Mbar)。
     #   - Hugoniot 用散点 (H=0 等值线在 (T,rho) 平面非单调, 同一 rho 可能对应
     #     多个 T, 连线会来回跳跃, 散点如实展示)。
     #   - 轴范围聚焦从参考态开始的压缩分支 (而非全表范围)。
     rho_full = rho_from_nion(data, data.density)
     Pr_full = interpolate_quantity(data, "p", rho_full,
                                    data.temperature[0], field=P, clip=True)
-    ax1.plot(rho_full, Pr_full, "-", lw=2.0, color="gray",
+    ax1.plot(rho_full, pressure_mbar(Pr_full), "-", lw=2.0, color="gray",
              label="Table row (lowest T, interp)")
-    ax1.plot(rho_c, P_c, "o", ms=5, mfc="tab:red", mec="none", alpha=0.85,
+    ax1.plot(rho_c, pressure_mbar(P_c), "o", ms=5, mfc="tab:red",
+             mec="none", alpha=0.85,
              label=f"Hugoniot ({len(rho_c)} pts)")
-    ax1.plot([rho0_eff], [P0], "*", ms=20, color="black",
+    ax1.plot([rho0_eff], [pressure_mbar(P0)], "*", ms=20, color="black",
              label="Reference state")
     ax1.set_xscale("log"); ax1.set_yscale("log")
     ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)")
-    ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
+    ax1.set_ylabel("Pressure $P$ (Mbar)")
     ax1.set_title("Shock Hugoniot")
     # 放大到参考态附近 (覆盖 Hugoniot 压缩分支, 留 20~50% 边距)
     rho_hi = max(rho0_eff * 1.05, rho_c.max())
     ax1.set_xlim(rho0_eff * 0.5, rho_hi * 1.3)
     p_lo = min(P0, P_c.min())
     p_hi = max(P0, P_c.max())
-    ax1.set_ylim(p_lo * 0.5, p_hi * 2.0)
+    ax1.set_ylim(pressure_mbar(p_lo) * 0.5, pressure_mbar(p_hi) * 2.0)
     ax1.legend(fontsize=FONT_SIZE_TICK)
-    # 右: Us-Up (按 rho 排序后 Up/Us 均单调, 连线可读; 亦用散点保持一致性)
-    ax2.plot(Up, Us, "o", ms=4, mfc="tab:blue", mec="none", alpha=0.85,
+    # 右: Us-Up (显示单位 um/ns; 按 rho 排序后 Up/Us 均单调, 连线可读)
+    ax2.plot(velocity_umns(Up), velocity_umns(Us), "o", ms=4,
+             mfc="tab:blue", mec="none", alpha=0.85,
              label=f"{len(Us)} pts")
-    ax2.set_xlabel(r"Particle velocity $U_p$ (cm/s)")
-    ax2.set_ylabel(r"Shock velocity $U_s$ (cm/s)")
+    ax2.set_xlabel(r"Particle velocity $U_p$ (um/ns)")
+    ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)")
     ax2.set_title(r"$U_s$-$U_p$ relation")
     ax2.legend(fontsize=FONT_SIZE_TICK)
     for a in (ax1, ax2):
@@ -508,19 +517,23 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
 def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5)):
     """
     绘制 Us、Up 随压力 P 的关系图 (log-log, 双曲线 + 图例)。
+    显示单位: P -> Mbar, Us/Up -> um/ns。
     用于 Hugoniot 后处理: 展示冲击/粒子速度与压力的关联。
     Returns: 输出文件路径
     """
     setup_style()
+    P_mbar = pressure_mbar(np.asarray(P, dtype=float))
+    Us_umns = velocity_umns(np.asarray(Us, dtype=float))
+    Up_umns = velocity_umns(np.asarray(Up, dtype=float))
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot(P, Us, "o-", lw=2.5, ms=7, color="tab:blue",
-            label=r"Shock velocity $U_s$ (cm/s)")
-    ax.plot(P, Up, "s-", lw=2.5, ms=7, color="tab:orange",
-            label=r"Particle velocity $U_p$ (cm/s)")
+    ax.plot(P_mbar, Us_umns, "o", ms=5, mfc="tab:blue", mec="none",
+            alpha=0.85, label=r"Shock velocity $U_s$ (um/ns)")
+    ax.plot(P_mbar, Up_umns, "s", ms=5, mfc="tab:orange", mec="none",
+            alpha=0.85, label=r"Particle velocity $U_p$ (um/ns)")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("Pressure $P$ (J/cm$^3$)")
-    ax.set_ylabel("Velocity (cm/s)")
+    ax.set_xlabel("Pressure $P$ (Mbar)")
+    ax.set_ylabel("Velocity (um/ns)")
     ax.set_title(r"$U_s$ / $U_p$ vs Pressure $P$")
     ax.legend(fontsize=FONT_SIZE_TICK)
     _style(ax)
@@ -550,12 +563,18 @@ def plot_interpolated_probe(data: CN4Data, rho_probe: float, T_probe: float,
     e_at = interpolate_quantity(data, "e", rho_probe, T_probe,
                                 field=_energy(data))
 
+    # 显示单位: P -> Mbar, e -> erg/g
+    P_probe = pressure_mbar(P_probe)
+    e_probe = energy_ergg(e_probe)
+    P_at = pressure_mbar(P_at)
+    e_at = energy_ergg(e_at)
+
     fig, ax1 = plt.subplots(figsize=figsize)
     ax1.plot(Ts, P_probe, "o-", lw=2.5, ms=6, color="tab:red",
-             label="Pressure $P$ (J/cm$^3$)")
+             label="Pressure $P$ (Mbar)")
     ax1.set_xscale("log"); ax1.set_yscale("log")
     ax1.set_xlabel(r"Temperature $T$ (eV)")
-    ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
+    ax1.set_ylabel("Pressure $P$ (Mbar)")
     ax1.tick_params(axis="y", labelcolor="tab:red")
     ax2 = ax1.twinx()
     ax2.plot(Ts, zb_probe, "s-", lw=2.5, ms=6, color="tab:blue",
@@ -576,7 +595,7 @@ def plot_interpolated_probe(data: CN4Data, rho_probe: float, T_probe: float,
 
     info = {
         "rho_probe": rho_probe, "T_probe": T_probe,
-        "P_probe": P_at, "e_probe": e_at, "zbar_probe": zb_at,
+        "P_probe_Mbar": P_at, "e_probe_ergg": e_at, "zbar_probe": zb_at,
     }
     return outfile, info
 
