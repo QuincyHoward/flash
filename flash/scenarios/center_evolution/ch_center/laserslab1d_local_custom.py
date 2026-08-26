@@ -933,6 +933,28 @@ def main(credential_name: Optional[str] = None):
         else:
             log("FLASH 仿真必须文件已就绪（gen_checker 检查通过），无需重新生成", "OK")
         log(f"输入文件目录: {INPUT_DIR}")
+
+        # ── 步骤 1.5: 文件内在关联检查（check_relations）──
+        # 在"文件都存在"之上，进一步校验 7 个文件之间的内容一致性
+        # （.par 引用 ↔ Config DATAFILES ↔ 磁盘 .cn4 / sim_* 参数 ↔ F90 /
+        #   维度/光束/脉冲 / 脚本装配），详见 gen_checker/GEN_CHECKER_GUIDE.md。
+        log("进行文件内在关联检查 (check_relations)...", "STEP")
+        try:
+            from flash.input_gen.gen_checker import RelationChecker
+
+            rc = RelationChecker(INPUT_DIR, verbose=False)
+            rc.run_all()
+            if not rc.all_passed():
+                failed = rc.failed()
+                log(f"内在关联检查发现 {len(failed)} 处不一致，请修正后重试:", "ERROR")
+                for r in failed:
+                    log(f"    [FAIL] {r.rule_id}: {r.message}", "ERROR")
+                log("若为新增自定义关联误报，可在 gen_checker/relations/ 扩展/调整规则。",
+                    "WARN")
+                return False
+            log(f"内在关联检查通过（{len(rc.results())} 条规则全部通过/跳过）", "OK")
+        except Exception as e:
+            log(f"内在关联检查执行异常（不阻断流程）: {e}", "WARN")
     except Exception as e:
         log(f"输入文件检查/生成失败: {e}", "ERROR")
         import traceback
