@@ -476,19 +476,22 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     rho_c, P_c, T_c = _extract_hugoniot_curve(
         data, rho0_eff, P0, e0, n_rho=n_rho, n_T=n_T, clip=clip)
 
-    # Us-Up 关系 (过滤非有限值, 弱冲击极限处 Us 发散)
-    Us = np.sqrt(np.maximum((P_c - P0) / (rho0_eff * (1.0 - rho0_eff / rho_c)), 0))
+    # Us-Up 关系。
+    # 单位: P 为 J/cm^3, Rankine-Hugoniot 公式要求压力用 dyne/cm^2(=erg/cm^3),
+    # 故乘 1e7 (1 J = 1e7 erg) 后 Us 才为 cm/s:
+    #   Us^2 = (P-P0)[dyne/cm^2] / (rho0 (1 - rho0/rho)) [g/cm^3] = cm^2/s^2
+    Us = np.sqrt(np.maximum(
+        (P_c - P0) * 1e7 / (rho0_eff * (1.0 - rho0_eff / rho_c)), 0))
     Up = Us * (1.0 - rho0_eff / rho_c)
     finite = np.isfinite(Us) & np.isfinite(Up) & (Us > 0) & (rho_c > rho0_eff)
     rho_c, P_c, T_c, Us, Up = rho_c[finite], P_c[finite], T_c[finite], Us[finite], Up[finite]
     if len(rho_c) == 0:
         raise ValueError("压缩分支过滤后为空 (Us/Up 非有限)")
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    # 左: rho-P 雨贡纽 (P 显示 Mbar)。
-    #   - Hugoniot 用散点 (H=0 等值线在 (T,rho) 平面非单调, 同一 rho 可能对应
-    #     多个 T, 连线会来回跳跃, 散点如实展示)。
-    #   - 轴范围聚焦从参考态开始的压缩分支 (而非全表范围)。
+    # 三幅图: rho-P 雨贡纽 | Us-Up 拟合 | P-V 雨贡纽 (V=1/rho)
+    fig, (ax1, ax2, ax3) = plt.subplots(
+        1, 3, figsize=(figsize[0] * 1.5, figsize[1]))
+    # ── 左: rho-P 雨贡纽 (P 显示 Mbar; 散点防连线跳跃; 聚焦参考态) ──
     rho_full = rho_from_nion(data, data.density)
     Pr_full = interpolate_quantity(data, "p", rho_full,
                                    data.temperature[0], field=P, clip=True)
@@ -503,7 +506,6 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)")
     ax1.set_ylabel("Pressure $P$ (Mbar)")
     ax1.set_title("Shock Hugoniot")
-    # 放大到参考态附近 (覆盖 Hugoniot 压缩分支, 留 20~50% 边距)
     rho_hi = max(rho0_eff * 1.05, rho_c.max())
     ax1.set_xlim(rho0_eff * 0.5, rho_hi * 1.3)
     p_lo = min(P0, P_c.min())
@@ -532,7 +534,21 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)")
     ax2.set_title(r"$U_s$-$U_p$ relation (linear fit)")
     ax2.legend(fontsize=FONT_SIZE_TICK)
-    for a in (ax1, ax2):
+    # ── 右2: P-V 雨贡纽 (V = 1/rho 比体积, 散点, 聚焦压缩分支) ──
+    V_c = 1.0 / rho_c
+    V0 = 1.0 / rho0_eff
+    ax3.plot(V_c, pressure_mbar(P_c), "o", ms=5, mfc="tab:green",
+             mec="none", alpha=0.85, label=f"Hugoniot ({len(V_c)} pts)")
+    ax3.plot([V0], [pressure_mbar(P0)], "*", ms=20, color="black",
+             label="Reference state")
+    ax3.set_xscale("log"); ax3.set_yscale("log")
+    ax3.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)")
+    ax3.set_ylabel("Pressure $P$ (Mbar)")
+    ax3.set_title("Hugoniot in P-V plane")
+    ax3.set_xlim(V_c.min() * 0.8, V0 * 1.2)          # V 从参考态向压缩方向减小
+    ax3.set_ylim(pressure_mbar(p_lo) * 0.5, pressure_mbar(p_hi) * 2.0)
+    ax3.legend(fontsize=FONT_SIZE_TICK)
+    for a in (ax1, ax2, ax3):
         _style(a)
     fig.tight_layout()
     outfile = _save(fig, outfile, "hugoniot")
@@ -660,57 +676,81 @@ def sound_speed(data: CN4Data):
 # ---------------------------------------------------------------
 
 def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
-                    hug_rho, hug_P, outfile=None, figsize=(10.0, 7.5)):
+                    rho_ref: float, hug_rho, hug_P,
+                    outfile=None, figsize=(10.0, 7.5)):
     """
-    在 P-V 图 (V = 1/rho 比体积) 中绘制三条典型路径:
-      - 等温线  (Isotherm):  T = T_ref 固定
-      - 等熵线  (Isentrope): s = s_field 在参考点的值, 提取 s=const 曲线
-      - 冲击绝热线 (Hugoniot): 冲击压缩状态点 (rho_h, P_h)
+    在 P-V 图 (V = 1/rho 比体积) 中绘制三条典型路径, **均从同一参考态
+    (rho_ref, T_ref) 出发** (物理预期: 等温线/等熵线/冲击绝热线在
+    参考态交汇; 冲击压缩后 Hugoniot 位于最硬侧 (熵增), 等熵线次之,
+    等温线最软):
+      - 等温线  (Isotherm):  T = T_ref 固定, P(V) 全密度行
+      - 等熵线  (Isentrope): s0 = s(rho_ref, T_ref), 提取 s=s0 曲线
+      - 冲击绝热线 (Hugoniot): 冲击压缩状态点 (hug_rho, hug_P)
+    全部使用散点 (不连线, 避免非单调路径的误导连线);
     显示单位: P -> Mbar, V -> cm^3/g (CGS)。
     Returns: 输出文件路径
     """
     setup_style()
     rho_axis = rho_from_nion(data, data.density)          # (ndens,)
     V_axis = 1.0 / rho_axis
+    V0 = 1.0 / float(rho_ref)
+    P0 = interpolate_quantity(data, "p", rho_ref, T_ref, field=_press(data))
 
-    # 等温线
+    # ── 等温线: T=T_ref 全密度行 (散点) ──
     P_iso = interpolate_quantity(data, "p", rho_axis, T_ref,
                                  field=_press(data))
-    # 等熵线: 取参考温度行中值密度处的 s 值, contour 提取
-    imid = data.ndens // 2
-    s0 = float(s_field[imid, int(np.argmin(np.abs(data.temperature - T_ref)))])
-    fig0, ax0 = plt.subplots()
-    CS = ax0.contour(data.temperature, data.density, s_field, levels=[s0])
-    plt.close(fig0)
-    if CS.allsegs and CS.allsegs[0] and len(CS.allsegs[0]) > 0:
-        seg = CS.allsegs[0][0]
-        T_ent = seg[:, 0]
-        rho_ent = seg[:, 1]
-        P_ent = interpolate_quantity(data, "p", rho_ent, T_ent,
-                                     field=_press(data))
-        V_ent = 1.0 / rho_ent
-    else:
-        T_ent = rho_ent = P_ent = V_ent = None
 
-    # Hugoniot
+    # ── 等熵线: 参考态处 s 归零 -> s_rel = s_field - s(rho_ref, T_ref),
+    #    contour s_rel = 0 必经过 (rho_ref, T_ref) (与等温线、Hugoniot
+    #    在 P-V 图上交汇于同一参考状态) ──
+    s_ref = float(interpolate_quantity(
+        data, "s", rho_ref, T_ref, field=s_field))
+    s_rel = s_field - s_ref
+    fig0, ax0 = plt.subplots()
+    CS = ax0.contour(data.temperature, data.density, s_rel, levels=[0.0])
+    plt.close(fig0)
+    V_ent = P_ent = None
+    if CS.allsegs and CS.allsegs[0]:
+        segs = [s for s in CS.allsegs[0] if len(s) >= 2]
+        if segs:
+            T_ent_all = np.concatenate([s[:, 0] for s in segs])
+            rho_ent_all = np.concatenate([s[:, 1] for s in segs])
+            P_ent_all = interpolate_quantity(data, "p", rho_ent_all,
+                                             T_ent_all, field=_press(data))
+            V_ent = 1.0 / rho_ent_all
+            P_ent = P_ent_all
+
+    # ── Hugoniot ──
     V_h = 1.0 / np.asarray(hug_rho, dtype=float)
     P_h = np.asarray(hug_P, dtype=float)
 
     fig, ax = plt.subplots(figsize=figsize)
-    ax.plot(V_axis, pressure_mbar(P_iso), "-", lw=2.5, color="tab:red",
-            label=f"Isotherm $T={T_ref:.3e}$ eV")
+    # 等温线 (散点, 细点)
+    ax.plot(V_axis, pressure_mbar(P_iso), ".", ms=3, color="tab:red",
+            alpha=0.7, label=f"Isotherm $T={T_ref:.3e}$ eV")
+    # 等熵线 (散点)
     if V_ent is not None and len(V_ent) > 1:
-        order = np.argsort(V_ent)
-        ax.plot(V_ent[order], pressure_mbar(P_ent[order]), "-", lw=2.5,
-                color="tab:purple", label=f"Isentrope $s={energy_ergg(s0):.3e}$ erg/(g eV)")
+        ax.plot(V_ent, pressure_mbar(P_ent), "^", ms=4, mfc="tab:purple",
+                mec="none", alpha=0.85,
+                label=r"Isentrope from ref. ($\Delta s = 0$)")
+    # Hugoniot (散点)
     if len(V_h) > 1:
-        order = np.argsort(V_h)
-        ax.plot(V_h[order], pressure_mbar(P_h[order]), "o-", lw=1.8, ms=4,
-                color="tab:blue", label=f"Hugoniot ({len(V_h)} pts)")
+        ax.plot(V_h, pressure_mbar(P_h), "o", ms=5, mfc="tab:blue",
+                mec="none", alpha=0.85, label=f"Hugoniot ({len(V_h)} pts)")
+    # 参考态 (三条线交汇点)
+    ax.plot([V0], [pressure_mbar(P0)], "*", ms=22, color="black",
+            label="Reference state")
     ax.set_xscale("log"); ax.set_yscale("log")
     ax.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)")
     ax.set_ylabel("Pressure $P$ (Mbar)")
-    ax.set_title("EOS paths in P-V diagram")
+    ax.set_title("EOS paths in P-V diagram (from common state)")
+    # 聚焦: V 从参考态向压缩方向 (减小), 覆盖 Hugoniot/等熵范围
+    v_min = V_h.min() if len(V_h) else V0 * 0.1
+    if V_ent is not None and len(V_ent):
+        v_min = min(v_min, V_ent.min())
+    ax.set_xlim(v_min * 0.8, V0 * 1.5)
+    ax.set_ylim(pressure_mbar(min(P0, P_h.min())) * 0.5,
+                pressure_mbar(max(P0, P_h.max())) * 2.0)
     ax.legend(fontsize=FONT_SIZE_TICK)
     _style(ax)
     fig.tight_layout()

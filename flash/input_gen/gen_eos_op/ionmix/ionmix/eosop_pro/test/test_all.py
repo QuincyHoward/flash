@@ -252,11 +252,11 @@ def task_E_eospaths(data, out_dir):
             Us, Up, P_c,
             outfile=os.path.join(out_dir, "E4b_usup_vs_P.png"))
         info["usup_vs_P"] = {"n_points": len(P_c)}
-        # E4c: P-V 图 (等温 + 等熵 + Hugoniot; V=1/rho)
+        # E4c: P-V 图 (等温 + 等熵 + Hugoniot; V=1/rho, 同一参考态出发)
         f4c = E.plot_pv_diagram(
-            data, T_ref, s, rho_c, P_c,
+            data, T_ref, s, rho_ref, rho_c, P_c,
             outfile=os.path.join(out_dir, "E4c_pv_diagram.png"))
-        info["pv_diagram"] = {"T_ref": T_ref}
+        info["pv_diagram"] = {"T_ref": T_ref, "rho_ref": rho_ref}
     except Exception as ex:                              # noqa: BLE001
         f4 = f4b = f4c = None
         info["hugoniot"] = {"error": str(ex)}
