@@ -169,6 +169,12 @@ def _resolve_quantity(data: CN4Data, quantity: str, transmission_L: float, ig: i
         field = arr[ig - 1]
         return field, f"{opts[name]} opacity (cm$^2$/g)", True
 
+    # 声速场: 等熵声速 (cm/s -> um/ns 显示)
+    if q == "cs":
+        from eos_paths import sound_speed
+        field = sound_speed(data) * 1.0e-5      # cm/s -> um/ns
+        return field, "Sound speed $c_s$ (um/ns)", True
+
     # EOS 物理量 (CN4Data.quantity 别名表)
     meta = _QUANTITY_META.get(q)
     if meta is not None:

@@ -95,6 +95,7 @@ def task_A_heatmaps(data, out_dir):
         ("nele", "T", "nion"),
         ("p_ion", "T", "nion"),
         ("e_ele", "T", "nele"),
+        ("cs", "T", "nion"),
     ]
     for q, x, y in combos:
         f = H.plot_quantity_heatmap(
@@ -243,14 +244,21 @@ def task_E_eospaths(data, out_dir):
             data, rho0=rho_ref, T0=T_ref,
             outfile=os.path.join(out_dir, "E4_hugoniot.png"))
         info["hugoniot"] = {"n_points": len(rho_c),
-                            "rho0": rho_ref, "T0": T_ref}
+                            "rho0": rho_ref, "T0": T_ref,
+                            "Us_max_umns": float(np.max(Us)) * 1e-5,
+                            "Up_max_umns": float(np.max(Up)) * 1e-5}
         # E4b: Us/Up 随压力 P 的关系图
         f4b = E.plot_usup_vs_pressure(
             Us, Up, P_c,
             outfile=os.path.join(out_dir, "E4b_usup_vs_P.png"))
         info["usup_vs_P"] = {"n_points": len(P_c)}
+        # E4c: P-V 图 (等温 + 等熵 + Hugoniot; V=1/rho)
+        f4c = E.plot_pv_diagram(
+            data, T_ref, s, rho_c, P_c,
+            outfile=os.path.join(out_dir, "E4c_pv_diagram.png"))
+        info["pv_diagram"] = {"T_ref": T_ref}
     except Exception as ex:                              # noqa: BLE001
-        f4 = f4b = None
+        f4 = f4b = f4c = None
         info["hugoniot"] = {"error": str(ex)}
     # E5: 插值探针 (固定 rho_ref, 沿 T 插值; 验证非网格点求值)
     try:
@@ -265,7 +273,7 @@ def task_E_eospaths(data, out_dir):
         f5 = None
         info["interp_probe"] = {"error": str(ex)}
 
-    files.extend([f for f in [f1, f2, f3, f4, f4b, f5] if f])
+    files.extend([f for f in [f1, f2, f3, f4, f4b, f4c, f5] if f])
     return files, info
 
 

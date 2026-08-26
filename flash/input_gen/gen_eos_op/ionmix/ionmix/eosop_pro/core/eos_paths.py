@@ -354,15 +354,19 @@ def trace_isentrope(data: CN4Data, s: np.ndarray, s0_idx=(5, 10),
 # ---------------------------------------------------------------
 
 def _extract_hugoniot_curve(data: CN4Data, rho0: float, P0: float, e0: float,
-                            n_rho=240, n_T=80, clip=True):
+                            n_rho=400, n_T=120, clip=True):
     """
     在插值后的连续 (rho, T) 空间求 Hugoniot 残差 H=0 曲线。
 
     P(rho,T)、e(rho,T) 均由二维插值 (log n_i x log T) 获得, 因此曲线上
     任意点、以及 H 过零的"最佳位置"都不必落在表格网格上:
         H(rho,T) = (e - e0) - 0.5 (P + P0) (1/rho0 - 1/rho)
-    在精细 (rho, T) 网格 (对数均匀) 上计算 H 场, 用 contour 提取 H=0
-    等值线段 -> 数据点密集且位于插值区域内部。
+
+    搜索策略 (覆盖整个表格范围):
+      - rho 轴: 从参考密度 rho0 到表最高质量密度 (对数均匀, n_rho 点)
+      - T  轴: 从表最低温到表最高温 (对数均匀, n_T 点)
+      - 逐列 (固定 rho) 沿 T 找 H 过零 + 逐行 (固定 T) 沿 rho 找 H 过零,
+        双方向扫描保证 (rho,T) 平面上所有 H=0 分支都被捕捉。
 
     Returns: (rho_c, P_c, T_c) 一维数组 (仅压缩分支 rho>rho0, 按 rho 升序)
     """
@@ -377,31 +381,40 @@ def _extract_hugoniot_curve(data: CN4Data, rho0: float, P0: float, e0: float,
                                field=_energy(data), clip=clip)
     H = (e_f - e0) - 0.5 * (P_f + P0) * (1.0 / rho0 - 1.0 / rho_grid[:, None])
 
-    fig0, ax0 = plt.subplots()
-    CS = ax0.contour(T_grid, rho_grid, H, levels=[0.0])
-    plt.close(fig0)
+    def _interp_along(rho_v, T_v):
+        """对 (rho_v, T_v) 逐点求 P (clip=False: 点均在表内)"""
+        return interpolate_quantity(data, "p", rho_v, T_v,
+                                    field=_press(data), clip=False)
 
-    segs = CS.allsegs[0] if (CS.allsegs and CS.allsegs[0]) else []
-    if not segs:
+    rho_pts, P_pts, T_pts = [], [], []
+    # ── 逐列扫描: 固定 rho, 沿 T 找 H 过零 ──
+    for i in range(n_rho):
+        Hrow = H[i]
+        for j in range(n_T - 1):
+            if Hrow[j] * Hrow[j + 1] < 0:
+                fr = Hrow[j] / (Hrow[j] - Hrow[j + 1])
+                T_c = 10 ** (np.log10(T_grid[j]) +
+                             fr * (np.log10(T_grid[j + 1]) - np.log10(T_grid[j])))
+                rho_c = rho_grid[i]
+                rho_pts.append(rho_c)
+                T_pts.append(T_c)
+    # ── 逐行扫描: 固定 T, 沿 rho 找 H 过零 (补充捕捉多支) ──
+    for j in range(n_T):
+        Hcol = H[:, j]
+        for i in range(n_rho - 1):
+            if Hcol[i] * Hcol[i + 1] < 0:
+                fr = Hcol[i] / (Hcol[i] - Hcol[i + 1])
+                rho_c = 10 ** (np.log10(rho_grid[i]) +
+                               fr * (np.log10(rho_grid[i + 1]) - np.log10(rho_grid[i])))
+                rho_pts.append(rho_c)
+                T_pts.append(T_grid[j])
+    if not rho_pts:
         raise ValueError("插值区域中未找到 Hugoniot H=0 曲线, "
                          "请调整参考态或检查其物理性")
 
-    rho_list, P_list, T_list = [], [], []
-    for seg in segs:
-        if len(seg) < 2:
-            continue
-        T_s = seg[:, 0]
-        rho_s = seg[:, 1]
-        P_s = interpolate_quantity(data, "p", rho_s, T_s,
-                                   field=_press(data), clip=False)
-        rho_list.append(rho_s)
-        P_list.append(P_s)
-        T_list.append(T_s)
-    if not rho_list:
-        raise ValueError("Hugoniot 等值线段为空")
-    rho_c = np.concatenate(rho_list)
-    P_c = np.concatenate(P_list)
-    T_c = np.concatenate(T_list)
+    rho_c = np.asarray(rho_pts, dtype=float)
+    T_c = np.asarray(T_pts, dtype=float)
+    P_c = _interp_along(rho_c, T_c)
 
     # 仅保留压缩分支 (rho > rho0), 按 rho 升序并去重
     m = rho_c > rho0 * (1.0 + 1e-9)
@@ -497,13 +510,27 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     p_hi = max(P0, P_c.max())
     ax1.set_ylim(pressure_mbar(p_lo) * 0.5, pressure_mbar(p_hi) * 2.0)
     ax1.legend(fontsize=FONT_SIZE_TICK)
-    # 右: Us-Up (显示单位 um/ns; 按 rho 排序后 Up/Us 均单调, 连线可读)
-    ax2.plot(velocity_umns(Up), velocity_umns(Us), "o", ms=4,
-             mfc="tab:blue", mec="none", alpha=0.85,
-             label=f"{len(Us)} pts")
+    # 右: Us-Up (显示单位 um/ns; 线性拟合 Us = k*Up + b)
+    Us_u = velocity_umns(Us)
+    Up_u = velocity_umns(Up)
+    k, b = np.polyfit(Up_u, Us_u, 1)
+    yfit = k * Up_u + b
+    ss_res = float(np.sum((Us_u - yfit) ** 2))
+    ss_tot = float(np.sum((Us_u - np.mean(Us_u)) ** 2))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    ax2.plot(Up_u, Us_u, "o", ms=4, mfc="tab:blue", mec="none",
+             alpha=0.85, label=f"Data ({len(Us)} pts)")
+    ax2.plot(Up_u, yfit, "--", lw=2.0, color="black", alpha=0.75,
+             label=f"Fit: $U_s={k:.4f}U_p+{b:.4e}$")
+    ax2.text(0.05, 0.97,
+             f"$U_s = {k:.4f}\\,U_p + {b:.4e}$ (um/ns)\n"
+             f"$R^2 = {r2:.4f}$",
+             transform=ax2.transAxes, ha="left", va="top",
+             fontsize=FONT_SIZE_TICK,
+             bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.85))
     ax2.set_xlabel(r"Particle velocity $U_p$ (um/ns)")
     ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)")
-    ax2.set_title(r"$U_s$-$U_p$ relation")
+    ax2.set_title(r"$U_s$-$U_p$ relation (linear fit)")
     ax2.legend(fontsize=FONT_SIZE_TICK)
     for a in (ax1, ax2):
         _style(a)
@@ -598,6 +625,98 @@ def plot_interpolated_probe(data: CN4Data, rho_probe: float, T_probe: float,
         "P_probe_Mbar": P_at, "e_probe_ergg": e_at, "zbar_probe": zb_at,
     }
     return outfile, info
+
+
+# ---------------------------------------------------------------
+# 5. 声速场 (等熵声速)
+# ---------------------------------------------------------------
+
+def sound_speed(data: CN4Data):
+    """
+    等熵声速场 c_s (ndens, ntemp) [cm/s]。
+
+    热力学: c_s^2 = (∂P/∂ρ)_s
+      = (∂P/∂ρ)_T + (∂P/∂T)_ρ * (∂T/∂ρ)_s
+      其中 (∂T/∂ρ)_s = T / (ρ^2 c_v) * (∂P/∂T)_ρ   (Maxwell + 第一定律)
+
+    数值差分: 密度轴对数差分 (∂lnP/∂ln n), 温度轴线性差分; c_v 取表值。
+    显示单位换算见调用方 (cm/s -> um/ns 时 ×1e-5)。
+    """
+    P = _press(data)                          # J/cm^3
+    rho = data.rho                            # g/cm^3 (ndens,ntemp)
+    logn = np.log10(data.density)             # (ndens,)
+    dlnP_dlnn = np.gradient(np.log(P), logn, axis=0)      # (∂lnP/∂ln n)_T
+    dPdRho_T = (P / rho) * dlnP_dlnn          # (∂P/∂ρ)_T [J/g]
+    dP_dT = np.gradient(P, data.temperature, axis=1)      # (∂P/∂T)_ρ [J/cm^3/eV]
+    cv = np.maximum(data.cv_ion + data.cv_ele, 1e-30)     # J/g/eV
+    dTdrho_s = (data.temperature[None, :] / (rho ** 2 * cv)) * dP_dT  # eV/(g/cm^3)
+    cs2 = dPdRho_T + dP_dT * dTdrho_s         # J/g = 1e7 cm^2/s^2
+    cs = np.sqrt(np.maximum(cs2, 0.0) * 1e7)  # cm/s
+    return cs
+
+
+# ---------------------------------------------------------------
+# 6. P-V 图 (等温线 + 等熵线 + 冲击绝热线; V = 1/rho 比体积)
+# ---------------------------------------------------------------
+
+def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
+                    hug_rho, hug_P, outfile=None, figsize=(10.0, 7.5)):
+    """
+    在 P-V 图 (V = 1/rho 比体积) 中绘制三条典型路径:
+      - 等温线  (Isotherm):  T = T_ref 固定
+      - 等熵线  (Isentrope): s = s_field 在参考点的值, 提取 s=const 曲线
+      - 冲击绝热线 (Hugoniot): 冲击压缩状态点 (rho_h, P_h)
+    显示单位: P -> Mbar, V -> cm^3/g (CGS)。
+    Returns: 输出文件路径
+    """
+    setup_style()
+    rho_axis = rho_from_nion(data, data.density)          # (ndens,)
+    V_axis = 1.0 / rho_axis
+
+    # 等温线
+    P_iso = interpolate_quantity(data, "p", rho_axis, T_ref,
+                                 field=_press(data))
+    # 等熵线: 取参考温度行中值密度处的 s 值, contour 提取
+    imid = data.ndens // 2
+    s0 = float(s_field[imid, int(np.argmin(np.abs(data.temperature - T_ref)))])
+    fig0, ax0 = plt.subplots()
+    CS = ax0.contour(data.temperature, data.density, s_field, levels=[s0])
+    plt.close(fig0)
+    if CS.allsegs and CS.allsegs[0] and len(CS.allsegs[0]) > 0:
+        seg = CS.allsegs[0][0]
+        T_ent = seg[:, 0]
+        rho_ent = seg[:, 1]
+        P_ent = interpolate_quantity(data, "p", rho_ent, T_ent,
+                                     field=_press(data))
+        V_ent = 1.0 / rho_ent
+    else:
+        T_ent = rho_ent = P_ent = V_ent = None
+
+    # Hugoniot
+    V_h = 1.0 / np.asarray(hug_rho, dtype=float)
+    P_h = np.asarray(hug_P, dtype=float)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(V_axis, pressure_mbar(P_iso), "-", lw=2.5, color="tab:red",
+            label=f"Isotherm $T={T_ref:.3e}$ eV")
+    if V_ent is not None and len(V_ent) > 1:
+        order = np.argsort(V_ent)
+        ax.plot(V_ent[order], pressure_mbar(P_ent[order]), "-", lw=2.5,
+                color="tab:purple", label=f"Isentrope $s={energy_ergg(s0):.3e}$ erg/(g eV)")
+    if len(V_h) > 1:
+        order = np.argsort(V_h)
+        ax.plot(V_h[order], pressure_mbar(P_h[order]), "o-", lw=1.8, ms=4,
+                color="tab:blue", label=f"Hugoniot ({len(V_h)} pts)")
+    ax.set_xscale("log"); ax.set_yscale("log")
+    ax.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)")
+    ax.set_ylabel("Pressure $P$ (Mbar)")
+    ax.set_title("EOS paths in P-V diagram")
+    ax.legend(fontsize=FONT_SIZE_TICK)
+    _style(ax)
+    fig.tight_layout()
+    outfile = _save(fig, outfile, "pv_diagram")
+    print(f"[eos] P-V diagram -> {outfile}")
+    return outfile
 
 
 if __name__ == "__main__":
