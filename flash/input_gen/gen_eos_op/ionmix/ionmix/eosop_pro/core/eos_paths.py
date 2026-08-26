@@ -43,6 +43,7 @@ from plot_utils import (setup_style, FONT_SIZE_LABEL, FONT_SIZE_TICK,
 
 _KB_J = 1.380649e-23          # J/K
 _EV_J = 1.602176634e-19       # J/eV
+_NAV = 6.02214076e23          # 阿伏伽德罗常数 (1/mol)
 
 
 def _press(data):
@@ -68,44 +69,137 @@ def _style(ax):
 
 
 # ---------------------------------------------------------------
+# 0. rho-T 输入与二维插值 (任务E默认输入为质量密度 rho + 温度 T)
+#    cn4 表格的密度轴是离子数密度 n_i (cm^-3), 需先换算:
+#        n_i = rho * N_A / <A>
+#    支持非网格点: 在 (log n_i, log T) 上做二维线性插值。
+# ---------------------------------------------------------------
+
+def nion_from_rho(data: CN4Data, rho):
+    """质量密度 rho (g/cm^3) -> 离子数密度 n_i (cm^-3)"""
+    aw = data.avgatw
+    if aw is None:
+        raise ValueError("原子量未知, 无法换算 rho -> nion")
+    return np.asarray(rho, dtype=float) * _NAV / aw
+
+
+def rho_from_nion(data: CN4Data, nion):
+    """离子数密度 n_i (cm^-3) -> 质量密度 rho (g/cm^3)"""
+    aw = data.avgatw
+    if aw is None:
+        raise ValueError("原子量未知, 无法换算 nion -> rho")
+    return np.asarray(nion, dtype=float) * aw / _NAV
+
+
+def interpolate_quantity(data: CN4Data, qname: str, rho, T,
+                         clip: bool = True, field=None):
+    """
+    在 (log n_i, log T) 网格上二维插值物理量, 支持任意 (rho, T) 数值。
+
+    Args:
+        data: CN4Data
+        qname: 物理量名 (data.quantity 别名, 如 'zbar'/'p_ion'/'e_ele'/'rho')
+        rho:   质量密度 (g/cm^3, 标量或数组)
+        T:     温度 (eV, 标量或数组)
+        clip:  越界时 clamp 到表边界 (默认 True); False 则外推 (可能不稳)
+        field: 可选, 直接传入物理量场 (ndens, ntemp) 覆盖 qname 查询
+               (用于总压 P = p_ion+p_ele, 总内能 e = e_ion+e_ele 等组合量)
+
+    Returns:
+        插值结果: 标量x标量->float; 含数组->对应形状数组。
+    """
+    from scipy.interpolate import RegularGridInterpolator
+
+    fld = data.quantity(qname) if field is None else np.asarray(field)
+    if fld.shape != (data.ndens, data.ntemp):
+        raise ValueError(f"物理量场形状 {fld.shape} != (ndens,ntemp)")
+    if np.any(fld <= 0):
+        raise ValueError(f"物理量 '{qname}' 含非正值, 无法做对数插值")
+
+    logn = np.log10(data.density)          # 网格: log n_i
+    logT = np.log10(data.temperature)      # 网格: log T
+
+    rho_a = np.atleast_1d(np.asarray(rho, dtype=float))
+    T_a = np.atleast_1d(np.asarray(T, dtype=float))
+    nion_a = nion_from_rho(data, rho_a)
+    logn_in = np.log10(nion_a)
+    logT_in = np.log10(T_a)
+
+    if clip:
+        lo_n, hi_n = logn[0], logn[-1]
+        lo_T, hi_T = logT[0], logT[-1]
+        if (np.any(logn_in < lo_n) or np.any(logn_in > hi_n)
+                or np.any(logT_in < lo_T) or np.any(logT_in > hi_T)):
+            rho_lo = 10 ** lo_n * data.avgatw / _NAV
+            rho_hi = 10 ** hi_n * data.avgatw / _NAV
+            print(f"[interp] 输入越界, clamp 到表范围: "
+                  f"rho∈[{rho_lo:.3e},{rho_hi:.3e}] g/cm^3, "
+                  f"T∈[{10**lo_T:.3e},{10**hi_T:.3e}] eV")
+        logn_in = np.clip(logn_in, lo_n, hi_n)
+        logT_in = np.clip(logT_in, lo_T, hi_T)
+
+    interp = RegularGridInterpolator(
+        (logn, logT), np.log10(fld), bounds_error=False, fill_value=None)
+
+    # 任意 rho x T 组合 -> 网格化后逐点插值
+    Rg, Tg = np.meshgrid(logn_in, logT_in, indexing="ij")
+    pts = np.stack([Rg.ravel(), Tg.ravel()], axis=1)
+    val = 10.0 ** interp(pts).reshape(Rg.shape)
+
+    # 标量输入 -> 标量输出
+    val = val.squeeze()
+    if val.ndim == 0:
+        return float(val)
+    return val
+
+
+# ---------------------------------------------------------------
 # 1. 等温线
 # ---------------------------------------------------------------
 
-def trace_isotherm(data: CN4Data, T_idx=10, outfile=None, figsize=(10.0, 7.5)):
+def trace_isotherm(data: CN4Data, T_idx=10, T=None, x_axis="rho",
+                   outfile=None, figsize=(10.0, 7.5)):
     """
-    等温线: 固定温度 T_idx, 绘制 P 与 e 随离子数密度 n_i 的变化。
+    等温线: 固定温度, 绘制 P 与 e 随质量密度 rho (默认) 或离子数密度 n_i 的变化。
     左侧轴: P (J/cm^3, log), 右侧轴: e (J/g, log)。
-    Returns: (nion, P, e)
+    T_idx: 温度网格索引 (T 未给定时使用); T: 温度数值 (eV, 非网格点也支持, 自动插值)。
+    Returns: (x, P, e, outfile), x 为 rho 或 nion 轴
     """
     setup_style()
-    T = data.temperature[T_idx]
+    T_val = float(data.temperature[T_idx]) if T is None else float(T)
     nion = data.density
-    P = _press(data)[:, T_idx]
-    e = _energy(data)[:, T_idx]
+    rho_axis = rho_from_nion(data, nion)
+    P = interpolate_quantity(data, "p", rho_axis, T_val, field=_press(data))
+    e = interpolate_quantity(data, "e", rho_axis, T_val, field=_energy(data))
+
+    use_rho = (x_axis == "rho")
+    x = rho_axis if use_rho else nion
+    xlabel = (r"Mass density $\rho$ (g/cm$^3$)"
+              if use_rho else r"Ion Number Density $n_i$ (cm$^{-3}$)")
 
     fig, ax1 = plt.subplots(figsize=figsize)
-    ax1.plot(nion, P, "o-", lw=2.5, ms=7, color="tab:red",
+    ax1.plot(x, P, "o-", lw=2.5, ms=7, color="tab:red",
              label="Pressure $P$ (J/cm$^3$)")
     ax1.set_xscale("log")
     ax1.set_yscale("log")
-    ax1.set_xlabel(r"Ion Number Density $n_i$ (cm$^{-3}$)")
+    ax1.set_xlabel(xlabel)
     ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
     ax1.tick_params(axis="y", labelcolor="tab:red")
     ax2 = ax1.twinx()
-    ax2.plot(nion, e, "s-", lw=2.5, ms=7, color="tab:blue",
+    ax2.plot(x, e, "s-", lw=2.5, ms=7, color="tab:blue",
              label="Energy $e$ (J/g)")
     ax2.set_yscale("log")
     ax2.set_ylabel("Specific energy $e$ (J/g)")
     ax2.tick_params(axis="y", labelcolor="tab:blue")
-    ax1.set_title(f"Isotherm, T = {T:.4e} eV")
+    ax1.set_title(f"Isotherm, T = {T_val:.4e} eV")
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, fontsize=FONT_SIZE_TICK, loc="best")
     _style(ax1); _style(ax2)
     fig.tight_layout()
-    outfile = _save(fig, outfile, f"isotherm_T{T_idx}")
-    print(f"[eos] isotherm T={T:.4e} eV -> {outfile}")
-    return nion, P, e, outfile
+    outfile = _save(fig, outfile, f"isotherm_T{T_val:.3e}")
+    print(f"[eos] isotherm T={T_val:.4e} eV -> {outfile}")
+    return x, P, e, outfile
 
 
 # ---------------------------------------------------------------
@@ -237,27 +331,44 @@ def trace_isentrope(data: CN4Data, s: np.ndarray, s0_idx=(5, 10),
 # 4. 冲击雨贡纽
 # ---------------------------------------------------------------
 
-def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), outfile=None,
-                   figsize=(12.0, 8.0)):
+def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
+                   outfile=None, figsize=(12.0, 8.0)):
     """
-    冲击雨贡纽: 给定参考态 (rho0, P0, e0) (网格索引 ref_idx),
-    对全场计算 Hugoniot 残差
+    冲击雨贡纽: 给定参考态 (rho0, P0, e0), 对全场计算 Hugoniot 残差
         H = (e - e0) - 0.5 (P + P0) (1/rho0 - 1/rho)
     满足 H=0 的状态点构成雨贡纽曲线; 并换算冲击速度 Us 与粒子速度 Up:
         Us^2 = (P - P0) / (rho0 (1 - rho0/rho))
         Up  = Us (1 - rho0/rho)
-    输出: 两张图 (rho-P 雨贡纽, Us-Up 关系)。
+
+    参考态输入 (二选一):
+      - ref_idx=(i, j): 直接取网格点 (默认, 向后兼容)
+      - rho0 (g/cm^3), T0 (eV): 任意数值 (支持非网格点), 通过二维插值
+        求 P0、e0; T0 缺省时取表最低温度。
+
+    输出: 主图 (rho-P 雨贡纽 + Us-Up 关系并排); 另有独立函数
+    plot_usup_vs_pressure 绘制 Us/Up 随压力 P 的关系。
     """
     setup_style()
     rho = data.rho
     P = _press(data)
     e = _energy(data)
-    rho0 = rho[ref_idx]
-    P0 = P[ref_idx]
-    e0 = e[ref_idx]
+
+    if rho0 is not None:
+        T0_eff = float(data.temperature[0]) if T0 is None else float(T0)
+        P0 = interpolate_quantity(data, "p", rho0, T0_eff, field=P)
+        e0 = interpolate_quantity(data, "e", rho0, T0_eff, field=e)
+        rho0_eff = float(rho0)
+        print(f"[eos] hugoniot 参考态 (插值): rho0={rho0_eff:.4e} g/cm^3, "
+              f"T0={T0_eff:.4e} eV, P0={P0:.4e} J/cm^3, e0={e0:.4e} J/g")
+    else:
+        rho0_eff = rho[ref_idx]
+        P0 = P[ref_idx]
+        e0 = e[ref_idx]
+        print(f"[eos] hugoniot 参考态 (网格点): rho0={rho0_eff:.4e} g/cm^3, "
+              f"P0={P0:.4e} J/cm^3")
 
     # Hugoniot 残差 H = (e-e0) - 0.5 (P+P0)(1/rho0 - 1/rho)
-    H = (e - e0) - 0.5 * (P + P0) * (1.0 / rho0 - 1.0 / rho)
+    H = (e - e0) - 0.5 * (P + P0) * (1.0 / rho0_eff - 1.0 / rho)
 
     # 在全场 (T, n_i) 网格上找 H 过零点 (每条密度行扫描温度方向)
     ndens, ntemp = H.shape
@@ -279,28 +390,31 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), outfile=None,
 
     if not crossings:
         raise ValueError("全场未找到 Hugoniot 过零点, "
-                         "请调整 ref_idx 或检查参考态物理性")
+                         "请调整参考态或检查其物理性")
 
     rho_c = np.array([c[0] for c in crossings])
     P_c = np.array([c[1] for c in crossings])
     T_c = np.array([c[2] for c in crossings])
     # 只保留 rho_c > rho0 (冲击压缩分支)
-    m = rho_c > rho0
+    m = rho_c > rho0_eff
     rho_c, P_c, T_c = rho_c[m], P_c[m], T_c[m]
+    if len(rho_c) == 0:
+        raise ValueError("参考态上方无压缩分支 (rho_c > rho0 为空)")
 
     # Us-Up 关系
-    Us = np.sqrt(np.maximum((P_c - P0) / (rho0 * (1.0 - rho0 / rho_c)), 0))
-    Up = Us * (1.0 - rho0 / rho_c)
+    Us = np.sqrt(np.maximum((P_c - P0) / (rho0_eff * (1.0 - rho0_eff / rho_c)), 0))
+    Up = Us * (1.0 - rho0_eff / rho_c)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     # 左: rho-P 雨贡纽
-    rho_full = rho[:, ref_idx[1]]
-    Pr_full = P[:, ref_idx[1]]
+    rho_full = rho[:, 0]
+    Pr_full = P[:, 0]
     ax1.plot(rho_full, Pr_full, "-", lw=2.0, color="gray",
-             label=f"Reference T-row (T={data.temperature[ref_idx[1]]:.3e} eV)")
+             label="Table row (lowest T)")
     ax1.plot(rho_c, P_c, "o-", lw=2.5, ms=8, color="tab:red",
              label="Hugoniot")
-    ax1.plot([rho0], [P0], "*", ms=18, color="black", label="Reference state")
+    ax1.plot([rho0_eff], [P0], "*", ms=18, color="black",
+             label="Reference state")
     ax1.set_xscale("log"); ax1.set_yscale("log")
     ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)")
     ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
@@ -315,9 +429,85 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), outfile=None,
         _style(a)
     fig.tight_layout()
     outfile = _save(fig, outfile, "hugoniot")
-    print(f"[eos] hugoniot: rho0={rho0:.4e} g/cm^3, P0={P0:.4e} J/cm^3 "
-          f"-> {outfile}")
+    print(f"[eos] hugoniot: {len(rho_c)} 个压缩点, "
+          f"rho0={rho0_eff:.4e} g/cm^3 -> {outfile}")
     return rho_c, P_c, Us, Up, outfile
+
+
+def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5)):
+    """
+    绘制 Us、Up 随压力 P 的关系图 (log-log, 双曲线 + 图例)。
+    用于 Hugoniot 后处理: 展示冲击/粒子速度与压力的关联。
+    Returns: 输出文件路径
+    """
+    setup_style()
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.plot(P, Us, "o-", lw=2.5, ms=7, color="tab:blue",
+            label=r"Shock velocity $U_s$ (cm/s)")
+    ax.plot(P, Up, "s-", lw=2.5, ms=7, color="tab:orange",
+            label=r"Particle velocity $U_p$ (cm/s)")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Pressure $P$ (J/cm$^3$)")
+    ax.set_ylabel("Velocity (cm/s)")
+    ax.set_title(r"$U_s$ / $U_p$ vs Pressure $P$")
+    ax.legend(fontsize=FONT_SIZE_TICK)
+    _style(ax)
+    fig.tight_layout()
+    outfile = _save(fig, outfile, "hugoniot_usup_vs_P")
+    print(f"[eos] Us/Up vs P -> {outfile}")
+    return outfile
+
+
+def plot_interpolated_probe(data: CN4Data, rho_probe: float, T_probe: float,
+                            outfile=None, figsize=(10.0, 7.5)):
+    """
+    插值探针图: 固定质量密度 rho_probe (g/cm^3, 可非网格点),
+    沿温度轴插值 P 与 zbar, 并标记参考点 (rho_probe, T_probe)。
+    验证 rho-T 输入 + 二维插值对任意 (rho, T) 的可用性。
+    Returns: (outfile, info_dict)
+    """
+    setup_style()
+    Ts = data.temperature
+    P_probe = interpolate_quantity(data, "p", rho_probe, Ts, field=_press(data))
+    e_probe = interpolate_quantity(data, "e", rho_probe, Ts, field=_energy(data))
+    zb_probe = interpolate_quantity(data, "zbar", rho_probe, Ts)
+
+    P_at = interpolate_quantity(data, "p", rho_probe, T_probe,
+                                field=_press(data))
+    zb_at = interpolate_quantity(data, "zbar", rho_probe, T_probe)
+    e_at = interpolate_quantity(data, "e", rho_probe, T_probe,
+                                field=_energy(data))
+
+    fig, ax1 = plt.subplots(figsize=figsize)
+    ax1.plot(Ts, P_probe, "o-", lw=2.5, ms=6, color="tab:red",
+             label="Pressure $P$ (J/cm$^3$)")
+    ax1.set_xscale("log"); ax1.set_yscale("log")
+    ax1.set_xlabel(r"Temperature $T$ (eV)")
+    ax1.set_ylabel("Pressure $P$ (J/cm$^3$)")
+    ax1.tick_params(axis="y", labelcolor="tab:red")
+    ax2 = ax1.twinx()
+    ax2.plot(Ts, zb_probe, "s-", lw=2.5, ms=6, color="tab:blue",
+             label="Average charge $\\langle Z \\rangle$")
+    ax2.set_xscale("log")
+    ax2.set_ylabel(r"Average charge $\langle Z \rangle$")
+    ax2.tick_params(axis="y", labelcolor="tab:blue")
+    ax1.plot([T_probe], [P_at], "D", ms=14, color="black",
+             label=f"Probe ({rho_probe:.3g} g/cm$^3$, {T_probe:.4g} eV)")
+    ax1.set_title(f"Interpolated EOS at fixed $\\rho$ = {rho_probe:.4g} g/cm$^3$")
+    h1, l1 = ax1.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax1.legend(h1 + h2, l1 + l2, fontsize=FONT_SIZE_TICK, loc="best")
+    _style(ax1); _style(ax2)
+    fig.tight_layout()
+    outfile = _save(fig, outfile, "interp_probe_rhoT")
+    print(f"[eos] interp probe rho={rho_probe:.4g} g/cm^3 -> {outfile}")
+
+    info = {
+        "rho_probe": rho_probe, "T_probe": T_probe,
+        "P_probe": P_at, "e_probe": e_at, "zbar_probe": zb_at,
+    }
+    return outfile, info
 
 
 if __name__ == "__main__":

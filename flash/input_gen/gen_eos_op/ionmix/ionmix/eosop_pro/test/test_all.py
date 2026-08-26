@@ -185,13 +185,34 @@ def task_D_fit(data, out_dir):
 
 
 def task_E_eospaths(data, out_dir):
-    """任务E: 物态方程路径 (等温/等压/等熵/冲击雨贡纽)"""
+    """
+    任务E: 物态方程路径 (等温/等压/等熵/冲击雨贡纽 + 插值探针)。
+    默认以 (rho, T) 数值为输入 (cn4 表格为 nion,T 网格, 内部自动换算 + 插值):
+      - 参考温度 T_ref = 表最低温 (≈ IONMIX 低温下限 1 eV; 常温 0.025 eV 会 clamp)
+      - 参考密度 rho_ref: CH (含 C+H) 用常温常压固定密度 1.0 g/cm^3;
+        其他材料用表 nion 几何中值对应的质量密度 (保证在表范围内)
+    """
     files = []
     info = {}
-    # E1: 等温线
-    nion, P, e, f1 = E.trace_isotherm(
-        data, T_idx=10,
-        outfile=os.path.join(out_dir, "E1_isotherm.png"))
+    T_ref = float(data.temperature[0])   # 表最低温 (eV)
+
+    # ── 参考密度选择 ──
+    avgatw = data.avgatw
+    if avgatw is None:
+        raise ValueError("原子量未知, 任务E需要 rho<->nion 换算")
+    is_ch = (6 in data.izgas) and (1 in data.izgas)   # C + H -> CH
+    rho_geom = (float(np.sqrt(data.density[0] * data.density[-1]))
+                * avgatw / 6.02214076e23)
+    rho_ref = 1.0 if is_ch else rho_geom              # g/cm^3
+    info["input_mode"] = "rho,T (interpolated)"
+    info["T_ref_eV"] = T_ref
+    info["rho_ref_gcm3"] = rho_ref
+    info["is_CH"] = is_ch
+
+    # E1: 等温线 (T 数值输入, rho 轴)
+    x, P, e, f1 = E.trace_isotherm(
+        data, T=T_ref, x_axis="rho",
+        outfile=os.path.join(out_dir, "E1_isotherm_rho.png"))
     # E2: 等压线 (取压力范围中部)
     P_grid = (data.p_ion + data.p_ele)
     Pmid = float(np.sqrt(P_grid.min() * P_grid.max()))   # 几何中值
@@ -211,17 +232,36 @@ def task_E_eospaths(data, out_dir):
         info["isentrope"] = {"n_points": len(T_c)}
     except Exception as ex:                              # noqa: BLE001
         f3 = None
-        info["is  entrope"] = {"error": str(ex)}
-    # E4: 冲击雨贡纽 (参考态取中间网格点)
+        info["isentrope"] = {"error": str(ex)}
+    # E4: 冲击雨贡纽 (rho0/T0 数值输入, 非网格点参考态经插值)
     try:
         rho_c, P_c, Us, Up, f4 = E.trace_hugoniot(
-            data, ref_idx=(15, 20),
+            data, rho0=rho_ref, T0=T_ref,
             outfile=os.path.join(out_dir, "E4_hugoniot.png"))
-        info["hugoniot"] = {"n_points": len(rho_c)}
+        info["hugoniot"] = {"n_points": len(rho_c),
+                            "rho0": rho_ref, "T0": T_ref}
+        # E4b: Us/Up 随压力 P 的关系图
+        f4b = E.plot_usup_vs_pressure(
+            Us, Up, P_c,
+            outfile=os.path.join(out_dir, "E4b_usup_vs_P.png"))
+        info["usup_vs_P"] = {"n_points": len(P_c)}
     except Exception as ex:                              # noqa: BLE001
-        f4 = None
+        f4 = f4b = None
         info["hugoniot"] = {"error": str(ex)}
-    files.extend([f for f in [f1, f2, f3, f4] if f])
+    # E5: 插值探针 (固定 rho_ref, 沿 T 插值; 验证非网格点求值)
+    try:
+        T_probe = min(float(data.temperature[-1]),
+                      max(float(data.temperature[0]),
+                          float(data.temperature[0])))
+        f5, probe_info = E.plot_interpolated_probe(
+            data, rho_probe=rho_ref, T_probe=T_ref,
+            outfile=os.path.join(out_dir, "E5_interp_probe.png"))
+        info["interp_probe"] = probe_info
+    except Exception as ex:                              # noqa: BLE001
+        f5 = None
+        info["interp_probe"] = {"error": str(ex)}
+
+    files.extend([f for f in [f1, f2, f3, f4, f4b, f5] if f])
     return files, info
 
 
@@ -250,8 +290,13 @@ def discover_cn4(only=None, cn4_path=None):
     return cn4s
 
 
-def test_one_material(cn4_path, selected_tasks=None):
-    """对单个材料运行所选任务, 返回 material 记录 dict"""
+def run_one_material(cn4_path, selected_tasks=None):
+    """对单个材料运行所选任务, 返回 material 记录 dict.
+
+    注意: 函数名不以 test_ 开头, 避免被 pytest 误收集为测试函数
+    (旧名 test_one_material 曾导致 'fixture cn4_path not found' 报错)。
+    pytest 入口见 test_eosop_all_tasks。
+    """
     print(f"\n=== 材料: {os.path.basename(cn4_path)} ===")
     data = load_cn4(cn4_path)
     mat_name = data.basename
@@ -301,7 +346,7 @@ def main():
     t_start = time.time()
     for cn4 in cn4s:
         try:
-            rec = test_one_material(cn4, selected_tasks=selected)
+            rec = run_one_material(cn4, selected_tasks=selected)
             all_recs.append(rec)
         except Exception as ex:                          # noqa: BLE001
             print(f"  [FATAL] 材料 {cn4} 加载失败: {ex}")
@@ -340,3 +385,33 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ---------------------------------------------------------------
+# pytest 入口 (修复: 旧版 test_one_material 被 pytest 误收集,
+# cn4_path 被当作 fixture 解析 -> 'fixture not found' 报错)
+# 在 PyCharm / pytest 中运行本文件时执行真实全任务:
+#   环境变量 EOSOP_ONLY / EOSOP_TASKS 可选过滤 (如 --only CH 等价行为)
+# ---------------------------------------------------------------
+def test_eosop_all_tasks():
+    """pytest 入口: 对全部自动发现的 cn4 材料执行 A-E 任务, 断言无失败步骤。"""
+    only = os.environ.get("EOSOP_ONLY")
+    tasks_env = os.environ.get("EOSOP_TASKS", "A,B,C,D,E")
+    selected = [t.strip().upper() for t in tasks_env.split(",") if t.strip()]
+
+    cn4s = discover_cn4(only=only, cn4_path=None)
+    assert cn4s, "未发现任何 .cn4 材料文件"
+    print(f"[pytest] 发现 {len(cn4s)} 个材料, 任务集: {selected}")
+
+    n_fail = 0
+    fail_msgs = []
+    for cn4 in cn4s:
+        print(f"[pytest] 运行材料: {os.path.basename(cn4)}")
+        rec = run_one_material(cn4, selected_tasks=selected)
+        for r in rec["results"]:
+            if not r["ok"]:
+                n_fail += 1
+                fail_msgs.append(f"{rec['name']}/{r['task']}: {r['error']}")
+
+    assert n_fail == 0, \
+        f"{n_fail} 个任务步骤失败:\n" + "\n".join(fail_msgs[:20])
