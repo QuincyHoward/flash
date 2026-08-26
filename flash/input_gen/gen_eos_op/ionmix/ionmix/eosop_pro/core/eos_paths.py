@@ -106,7 +106,11 @@ def interpolate_quantity(data: CN4Data, qname: str, rho, T,
                (用于总压 P = p_ion+p_ele, 总内能 e = e_ion+e_ele 等组合量)
 
     Returns:
-        插值结果: 标量x标量->float; 含数组->对应形状数组。
+        插值结果, 语义自动分派:
+          - rho、T 均为标量      -> float (单点)
+          - 其一为数组 (广播)     -> 一维数组 (逐点对应)
+          - rho、T 同形状数组    -> 同形状数组 (逐点对应, 如曲线点对)
+          - rho、T 异形状数组    -> (n_rho, n_T) 网格 (笛卡尔积, 如场重建)
     """
     from scipy.interpolate import RegularGridInterpolator
 
@@ -119,8 +123,11 @@ def interpolate_quantity(data: CN4Data, qname: str, rho, T,
     logn = np.log10(data.density)          # 网格: log n_i
     logT = np.log10(data.temperature)      # 网格: log T
 
-    rho_a = np.atleast_1d(np.asarray(rho, dtype=float))
-    T_a = np.atleast_1d(np.asarray(T, dtype=float))
+    rho_a = np.asarray(rho, dtype=float)
+    T_a = np.asarray(T, dtype=float)
+    rho_scalar = (rho_a.ndim == 0)
+    T_scalar = (T_a.ndim == 0)
+
     nion_a = nion_from_rho(data, rho_a)
     logn_in = np.log10(nion_a)
     logT_in = np.log10(T_a)
@@ -141,16 +148,25 @@ def interpolate_quantity(data: CN4Data, qname: str, rho, T,
     interp = RegularGridInterpolator(
         (logn, logT), np.log10(fld), bounds_error=False, fill_value=None)
 
-    # 任意 rho x T 组合 -> 网格化后逐点插值
+    # ── 语义分派 ──
+    if rho_scalar and T_scalar:
+        # 单点
+        val = float(10.0 ** interp([[float(logn_in), float(logT_in)]])[0])
+        return val
+    if rho_scalar or T_scalar:
+        # 标量广播到数组: 逐点对应
+        R, TT = np.broadcast_arrays(logn_in, logT_in)
+        pts = np.stack([R.ravel(), TT.ravel()], axis=1)
+        v = 10.0 ** interp(pts).reshape(R.shape).squeeze()
+        return float(v) if v.ndim == 0 else v
+    if rho_a.shape == T_a.shape:
+        # 同形状数组: 逐点对应 (如 Hugoniot 曲线点对 (rho_i, T_i))
+        pts = np.stack([logn_in.ravel(), logT_in.ravel()], axis=1)
+        return 10.0 ** interp(pts).reshape(logn_in.shape)
+    # 异形状数组: 笛卡尔积网格 (rho x T 场重建)
     Rg, Tg = np.meshgrid(logn_in, logT_in, indexing="ij")
     pts = np.stack([Rg.ravel(), Tg.ravel()], axis=1)
-    val = 10.0 ** interp(pts).reshape(Rg.shape)
-
-    # 标量输入 -> 标量输出
-    val = val.squeeze()
-    if val.ndim == 0:
-        return float(val)
-    return val
+    return 10.0 ** interp(pts).reshape(Rg.shape)
 
 
 # ---------------------------------------------------------------
@@ -331,12 +347,80 @@ def trace_isentrope(data: CN4Data, s: np.ndarray, s0_idx=(5, 10),
 # 4. 冲击雨贡纽
 # ---------------------------------------------------------------
 
-def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
-                   outfile=None, figsize=(12.0, 8.0)):
+def _extract_hugoniot_curve(data: CN4Data, rho0: float, P0: float, e0: float,
+                            n_rho=240, n_T=80, clip=True):
     """
-    冲击雨贡纽: 给定参考态 (rho0, P0, e0), 对全场计算 Hugoniot 残差
-        H = (e - e0) - 0.5 (P + P0) (1/rho0 - 1/rho)
-    满足 H=0 的状态点构成雨贡纽曲线; 并换算冲击速度 Us 与粒子速度 Up:
+    在插值后的连续 (rho, T) 空间求 Hugoniot 残差 H=0 曲线。
+
+    P(rho,T)、e(rho,T) 均由二维插值 (log n_i x log T) 获得, 因此曲线上
+    任意点、以及 H 过零的"最佳位置"都不必落在表格网格上:
+        H(rho,T) = (e - e0) - 0.5 (P + P0) (1/rho0 - 1/rho)
+    在精细 (rho, T) 网格 (对数均匀) 上计算 H 场, 用 contour 提取 H=0
+    等值线段 -> 数据点密集且位于插值区域内部。
+
+    Returns: (rho_c, P_c, T_c) 一维数组 (仅压缩分支 rho>rho0, 按 rho 升序)
+    """
+    rho_hi = rho_from_nion(data, data.density[-1])
+    rho_grid = 10 ** np.linspace(np.log10(rho0), np.log10(rho_hi), n_rho)
+    T_grid = 10 ** np.linspace(
+        np.log10(data.temperature[0]), np.log10(data.temperature[-1]), n_T)
+
+    P_f = interpolate_quantity(data, "p", rho_grid, T_grid,
+                               field=_press(data), clip=clip)
+    e_f = interpolate_quantity(data, "e", rho_grid, T_grid,
+                               field=_energy(data), clip=clip)
+    H = (e_f - e0) - 0.5 * (P_f + P0) * (1.0 / rho0 - 1.0 / rho_grid[:, None])
+
+    fig0, ax0 = plt.subplots()
+    CS = ax0.contour(T_grid, rho_grid, H, levels=[0.0])
+    plt.close(fig0)
+
+    segs = CS.allsegs[0] if (CS.allsegs and CS.allsegs[0]) else []
+    if not segs:
+        raise ValueError("插值区域中未找到 Hugoniot H=0 曲线, "
+                         "请调整参考态或检查其物理性")
+
+    rho_list, P_list, T_list = [], [], []
+    for seg in segs:
+        if len(seg) < 2:
+            continue
+        T_s = seg[:, 0]
+        rho_s = seg[:, 1]
+        P_s = interpolate_quantity(data, "p", rho_s, T_s,
+                                   field=_press(data), clip=False)
+        rho_list.append(rho_s)
+        P_list.append(P_s)
+        T_list.append(T_s)
+    if not rho_list:
+        raise ValueError("Hugoniot 等值线段为空")
+    rho_c = np.concatenate(rho_list)
+    P_c = np.concatenate(P_list)
+    T_c = np.concatenate(T_list)
+
+    # 仅保留压缩分支 (rho > rho0), 按 rho 升序并去重
+    m = rho_c > rho0 * (1.0 + 1e-9)
+    rho_c, P_c, T_c = rho_c[m], P_c[m], T_c[m]
+    order = np.argsort(rho_c)
+    rho_c, P_c, T_c = rho_c[order], P_c[order], T_c[order]
+    if len(rho_c) > 1:
+        keep = np.ones(len(rho_c), dtype=bool)
+        keep[1:] = np.diff(np.log10(rho_c)) > 1e-5
+        rho_c, P_c, T_c = rho_c[keep], P_c[keep], T_c[keep]
+    if len(rho_c) == 0:
+        raise ValueError("参考态上方无压缩分支 (rho > rho0 为空)")
+    return rho_c, P_c, T_c
+
+
+def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
+                   outfile=None, figsize=(12.0, 8.0),
+                   n_rho=240, n_T=80, clip=True):
+    """
+    冲击雨贡纽: 给定参考态 (rho0, P0, e0), 在插值后的连续 (rho, T) 空间
+    求 Hugoniot 残差 H=0 曲线:
+        H(rho,T) = (e - e0) - 0.5 (P + P0) (1/rho0 - 1/rho)
+    其中 P(rho,T)、e(rho,T) 均由二维插值获得 —— 参考态与曲线上任意点
+    (包括 H 过零的"最佳残差位置") 都不必落在表格网格上, 数据点密集。
+    并换算冲击速度 Us 与粒子速度 Up:
         Us^2 = (P - P0) / (rho0 (1 - rho0/rho))
         Up  = Us (1 - rho0/rho)
 
@@ -345,11 +429,12 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
       - rho0 (g/cm^3), T0 (eV): 任意数值 (支持非网格点), 通过二维插值
         求 P0、e0; T0 缺省时取表最低温度。
 
+    n_rho/n_T: 插值残差场的精细网格密度 (决定 Hugoniot 曲线点数)。
+
     输出: 主图 (rho-P 雨贡纽 + Us-Up 关系并排); 另有独立函数
     plot_usup_vs_pressure 绘制 Us/Up 随压力 P 的关系。
     """
     setup_style()
-    rho = data.rho
     P = _press(data)
     e = _energy(data)
 
@@ -361,58 +446,33 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
         print(f"[eos] hugoniot 参考态 (插值): rho0={rho0_eff:.4e} g/cm^3, "
               f"T0={T0_eff:.4e} eV, P0={P0:.4e} J/cm^3, e0={e0:.4e} J/g")
     else:
-        rho0_eff = rho[ref_idx]
-        P0 = P[ref_idx]
-        e0 = e[ref_idx]
+        rho0_eff = float(rho[ref_idx])
+        P0 = float(P[ref_idx])
+        e0 = float(e[ref_idx])
         print(f"[eos] hugoniot 参考态 (网格点): rho0={rho0_eff:.4e} g/cm^3, "
               f"P0={P0:.4e} J/cm^3")
 
-    # Hugoniot 残差 H = (e-e0) - 0.5 (P+P0)(1/rho0 - 1/rho)
-    H = (e - e0) - 0.5 * (P + P0) * (1.0 / rho0_eff - 1.0 / rho)
+    # 在插值连续空间求 H=0 曲线 (数据点位于插值区域内, 非网格点)
+    rho_c, P_c, T_c = _extract_hugoniot_curve(
+        data, rho0_eff, P0, e0, n_rho=n_rho, n_T=n_T, clip=clip)
 
-    # 在全场 (T, n_i) 网格上找 H 过零点 (每条密度行扫描温度方向)
-    ndens, ntemp = H.shape
-    crossings = []
-    for i in range(ndens):
-        Hrow = H[i]
-        rho_row = rho[i]
-        Pr_row = P[i]
-        for j in range(ntemp - 1):
-            if Hrow[j] * Hrow[j + 1] < 0:
-                frac = Hrow[j] / (Hrow[j] - Hrow[j + 1])
-                rho_c = 10 ** (np.log10(rho_row[j]) +
-                               frac * (np.log10(rho_row[j + 1]) -
-                                       np.log10(rho_row[j])))
-                P_c = Pr_row[j] + frac * (Pr_row[j + 1] - Pr_row[j])
-                T_c = data.temperature[j] + frac * (
-                    data.temperature[j + 1] - data.temperature[j])
-                crossings.append((rho_c, P_c, T_c))
-
-    if not crossings:
-        raise ValueError("全场未找到 Hugoniot 过零点, "
-                         "请调整参考态或检查其物理性")
-
-    rho_c = np.array([c[0] for c in crossings])
-    P_c = np.array([c[1] for c in crossings])
-    T_c = np.array([c[2] for c in crossings])
-    # 只保留 rho_c > rho0 (冲击压缩分支)
-    m = rho_c > rho0_eff
-    rho_c, P_c, T_c = rho_c[m], P_c[m], T_c[m]
-    if len(rho_c) == 0:
-        raise ValueError("参考态上方无压缩分支 (rho_c > rho0 为空)")
-
-    # Us-Up 关系
+    # Us-Up 关系 (过滤非有限值, 弱冲击极限处 Us 发散)
     Us = np.sqrt(np.maximum((P_c - P0) / (rho0_eff * (1.0 - rho0_eff / rho_c)), 0))
     Up = Us * (1.0 - rho0_eff / rho_c)
+    finite = np.isfinite(Us) & np.isfinite(Up) & (Us > 0) & (rho_c > rho0_eff)
+    rho_c, P_c, T_c, Us, Up = rho_c[finite], P_c[finite], T_c[finite], Us[finite], Up[finite]
+    if len(rho_c) == 0:
+        raise ValueError("压缩分支过滤后为空 (Us/Up 非有限)")
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    # 左: rho-P 雨贡纽
-    rho_full = rho[:, 0]
-    Pr_full = P[:, 0]
+    # 左: rho-P 雨贡纽 (背景行 = 表最低 T 的连续插值 P(rho))
+    rho_full = rho_from_nion(data, data.density)
+    Pr_full = interpolate_quantity(data, "p", rho_full,
+                                   data.temperature[0], field=P, clip=True)
     ax1.plot(rho_full, Pr_full, "-", lw=2.0, color="gray",
-             label="Table row (lowest T)")
-    ax1.plot(rho_c, P_c, "o-", lw=2.5, ms=8, color="tab:red",
-             label="Hugoniot")
+             label="Table row (lowest T, interp)")
+    ax1.plot(rho_c, P_c, "o-", lw=1.8, ms=4, color="tab:red",
+             label=f"Hugoniot ({len(rho_c)} pts)")
     ax1.plot([rho0_eff], [P0], "*", ms=18, color="black",
              label="Reference state")
     ax1.set_xscale("log"); ax1.set_yscale("log")
@@ -421,15 +481,17 @@ def trace_hugoniot(data: CN4Data, ref_idx=(0, 0), rho0=None, T0=None,
     ax1.set_title("Shock Hugoniot")
     ax1.legend(fontsize=FONT_SIZE_TICK)
     # 右: Us-Up
-    ax2.plot(Up, Us, "s-", lw=2.5, ms=8, color="tab:blue")
+    ax2.plot(Up, Us, "s-", lw=1.8, ms=4, color="tab:blue",
+             label=f"{len(Us)} pts")
     ax2.set_xlabel(r"Particle velocity $U_p$ (cm/s)")
     ax2.set_ylabel(r"Shock velocity $U_s$ (cm/s)")
     ax2.set_title(r"$U_s$-$U_p$ relation")
+    ax2.legend(fontsize=FONT_SIZE_TICK)
     for a in (ax1, ax2):
         _style(a)
     fig.tight_layout()
     outfile = _save(fig, outfile, "hugoniot")
-    print(f"[eos] hugoniot: {len(rho_c)} 个压缩点, "
+    print(f"[eos] hugoniot: {len(rho_c)} 个插值压缩点, "
           f"rho0={rho0_eff:.4e} g/cm^3 -> {outfile}")
     return rho_c, P_c, Us, Up, outfile
 
