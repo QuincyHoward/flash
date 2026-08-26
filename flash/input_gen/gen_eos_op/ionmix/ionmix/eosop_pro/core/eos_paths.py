@@ -690,6 +690,7 @@ def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
     显示单位: P -> Mbar, V -> cm^3/g (CGS)。
     Returns: 输出文件路径
     """
+    from scipy.interpolate import RegularGridInterpolator
     setup_style()
     rho_axis = rho_from_nion(data, data.density)          # (ndens,)
     V_axis = 1.0 / rho_axis
@@ -700,25 +701,40 @@ def plot_pv_diagram(data: CN4Data, T_ref: float, s_field: np.ndarray,
     P_iso = interpolate_quantity(data, "p", rho_axis, T_ref,
                                  field=_press(data))
 
-    # ── 等熵线: 参考态处 s 归零 -> s_rel = s_field - s(rho_ref, T_ref),
-    #    contour s_rel = 0 必经过 (rho_ref, T_ref) (与等温线、Hugoniot
-    #    在 P-V 图上交汇于同一参考状态) ──
-    s_ref = float(interpolate_quantity(
-        data, "s", rho_ref, T_ref, field=s_field))
+    # ── 等熵线: 参考态处 s 归零 -> s_rel = s_field - s(rho_ref, T_ref)
+    #    沿 ρ 逐列扫描 s_rel=0 (与 Hugoniot 相同的双方向扫描法),
+    #    保证覆盖整个 (ρ,T) 表范围, s_rel=0 必经过 (rho_ref, T_ref)。
+    #    注意: s_field 含负值 (相对归零场), 不能走 log 插值,
+    #    故 s_ref 用 scipy RegularGridInterpolator 直接双线性插值。 ──
+    s_interp = RegularGridInterpolator(
+        (np.log10(data.density), np.log10(data.temperature)),
+        s_field, bounds_error=False, fill_value=None)
+    # 注意: s_interp 第一轴为 log10(nion) (密度=离子数密度), 不是 log10(rho);
+    # rho -> nion: nion = rho * N_A / <A>
+    nion_ref = float(rho_ref) * _NAV / data.avgatw
+    s_ref = float(s_interp(
+        [np.log10(nion_ref), np.log10(float(T_ref))])[0])
     s_rel = s_field - s_ref
-    fig0, ax0 = plt.subplots()
-    CS = ax0.contour(data.temperature, data.density, s_rel, levels=[0.0])
-    plt.close(fig0)
-    V_ent = P_ent = None
-    if CS.allsegs and CS.allsegs[0]:
-        segs = [s for s in CS.allsegs[0] if len(s) >= 2]
-        if segs:
-            T_ent_all = np.concatenate([s[:, 0] for s in segs])
-            rho_ent_all = np.concatenate([s[:, 1] for s in segs])
-            P_ent_all = interpolate_quantity(data, "p", rho_ent_all,
-                                             T_ent_all, field=_press(data))
-            V_ent = 1.0 / rho_ent_all
-            P_ent = P_ent_all
+    rho_ent_pts, T_ent_pts = [], []
+    for i in range(data.ndens):
+        row = s_rel[i]
+        for j in range(data.ntemp - 1):
+            if row[j] * row[j + 1] < 0:
+                fr = row[j] / (row[j] - row[j + 1])
+                T_c = 10 ** (np.log10(data.temperature[j]) +
+                             fr * (np.log10(data.temperature[j + 1]) -
+                                   np.log10(data.temperature[j])))
+                rho_ent_pts.append(data.density[i])
+                T_ent_pts.append(T_c)
+    if rho_ent_pts:
+        rho_ent_all = np.array(rho_ent_pts, dtype=float)
+        T_ent_all = np.array(T_ent_pts, dtype=float)
+        P_ent_all = interpolate_quantity(data, "p", rho_ent_all,
+                                         T_ent_all, field=_press(data))
+        V_ent = 1.0 / rho_ent_all
+        P_ent = P_ent_all
+    else:
+        V_ent = P_ent = None
 
     # ── Hugoniot ──
     V_h = 1.0 / np.asarray(hug_rho, dtype=float)
