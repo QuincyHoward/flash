@@ -241,14 +241,14 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
         outdir = spec.outputfiles_dir / run_id_name(run_id)
         run_plots = plots_dir / run_id_name(run_id)
         # 输入快照: 不同 id 的输入文件可能不同, 归档到 flash_input/run_NNNNNN/
+        # (崩溃记录用; 运行成功后再全量收纳根目录文件, 见 run_wsl 末尾)
         in_snap = input_dir / run_id_name(run_id)
         in_snap.mkdir(parents=True, exist_ok=True)
         for f in input_dir.iterdir():
-            if (f.is_file() and not f.name.startswith("wsl_")
-                    and not f.name.startswith("run_")
-                    and f.suffix.lower() in
-                    (".par", ".cn4", ".f90", ".sh", ".png", ".json")
-                    or f.name in ("Config", "Makefile")):
+            if f.is_file() and not f.name.startswith(("wsl_", "run_")) \
+                    and (f.suffix.lower() in
+                         (".par", ".cn4", ".f90", ".sh", ".png", ".json")
+                         or f.name in ("Config", "Makefile")):
                 shutil.copy2(f, in_snap / f.name)
         log(f"run_id = {run_id:06d} (输入快照: {in_snap.name}/)", "OK")
         outdir.mkdir(parents=True, exist_ok=True)
@@ -337,10 +337,29 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
     print("-" * 50)
     spec.analyze_local(outdir, run_plots / "dens_timespace.png")
 
+    # 输入全量收纳: 本轮 flash_input 根目录全部文件 (含运行日志) 移入
+    # run_{id:06d}/ — 根目录仅保留 run_* 目录, 下一轮运行从零自动生成。
+    # (copy2+unlink 而非 shutil.move: 目标同名时覆盖, 避免中途快照已存在)
+    if run_id is not None:
+        in_snap = input_dir / run_id_name(run_id)
+        in_snap.mkdir(parents=True, exist_ok=True)
+        n_arch = 0
+        for f in sorted(input_dir.iterdir()):
+            if f.is_file() and not f.name.startswith("run_"):
+                try:
+                    shutil.copy2(f, in_snap / f.name)
+                    f.unlink()
+                    n_arch += 1
+                except OSError as exc:  # noqa: PERF203
+                    log(f"归档失败 {f.name}: {exc}", "WARN")
+        if n_arch:
+            log(f"输入收纳: {n_arch} 个文件 → flash_input/{in_snap.name}/", "OK")
+
     print("\n" + "=" * 65)
     print(" WSL 全流程完成!")
     print(f"  run_id:       {run_id:06d}" if run_id is not None else "")
-    print(f"  输入文件目录: {input_dir}")
+    print(f"  输入文件目录: {input_dir / run_id_name(run_id)}"
+          if run_id is not None else f"  输入文件目录: {input_dir}")
     print(f"  输出结果目录: {outdir}")
     print(f"  分析图像目录: {run_plots}")
     print("=" * 65)
