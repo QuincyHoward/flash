@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-一键推送脚本 (One-click Git push to Gitee)
-==========================================
+一键拉取脚本 (One-click Git pull from Gitee)
+=============================================
 
-定位: flash/scripts/03_git_publish/git_push.py
-双击 git_push.bat 即可运行: 自动读取加密凭据 → 自动提交 → 推送到 Gitee。
+定位: flash/scripts/03_git_publish/git_pull.py
+双击 git_pull.bat 即可运行: 自动读取加密凭据 → 拉取远端最新到本地。
 
 设计约束 (强制):
   * 任何密码 / 账户 / token 都 **绝不硬编码** 到本文件。
@@ -15,17 +15,17 @@
     任何环境都不会弹出凭据输入框。
 
 使用示例:
-  python git_push.py              # 双击/默认: 自动提交 + 推送到当前分支
-  python git_push.py -m "msg"     # 自定义提交信息
-  python git_push.py -b main      # 推送到指定分支
-  python git_push.py -f           # 强制推送
-  python git_push.py -n           # dry-run (只展示不执行)
-  python git_push.py --status     # 查看 git 状态 (不推送)
-  python git_push.py --setup      # 进入凭据设置界面 (唯一需要交互的选项)
+  python git_pull.py              # 双击/默认: 拉取当前分支最新 (ff-only, 干净工作区)
+  python git_pull.py -b main      # 拉取指定分支
+  python git_pull.py --rebase     # 用 rebase 方式拉取 (保留线性历史)
+  python git_pull.py --stash      # 有未提交变更时先 stash, 拉取后 pop
+  python git_pull.py -n           # dry-run (fetch + 展示将要做的操作, 不合并)
+  python git_pull.py --status     # 查看与远端同步状态 (不拉取)
+  python git_pull.py --setup      # 进入凭据设置界面 (唯一需要交互的选项)
 
-钩子机制 (通过 git 命令自动触发):
-  - git commit → pre-commit: Black 格式检查 + 导入检查
-  - git push   → pre-push:   框架 pytest 测试
+安全说明:
+  * 默认 --ff-only: 只有当本地为远端快进时才合并, 不会意外产生 merge commit。
+  * 若本地有未提交变更且未加 --stash, 脚本拒绝拉取以免覆盖工作, 并给出提示。
 """
 
 import argparse
@@ -37,7 +37,6 @@ from pathlib import Path
 
 # ============================================================================
 #  Bootstrap: 定位 flash 项目根 (含 pyproject.toml 的目录)
-#  使 flash 包可被导入 (flash/_core/credentials)。脚本可独立搬迁。
 # ============================================================================
 _ROOT = Path(__file__).resolve().parent
 for _ in range(12):
@@ -54,7 +53,7 @@ from flash._core.credentials import get_credential_manager, interactive_menu
 
 
 # ============================================================================
-#  颜色辅助 (输出到 stderr, 不影响 stdout 捕获)
+#  颜色辅助
 # ============================================================================
 RED = "\033[91m"
 GREEN = "\033[92m"
@@ -98,9 +97,8 @@ def read_gitee_credential():
     cred = cm.get("gitee") or {}
     if not cred.get("token"):
         fail("未找到 Gitee 凭据 (token 为空)。")
-        fail("请先运行: python git_push.py --setup")
+        fail("请先运行: python git_pull.py --setup")
         sys.exit(1)
-    # 兜底默认值由凭据动态提供, 不写死
     cred.setdefault("username", "")
     cred.setdefault("login", cred.get("username", ""))
     cred.setdefault("repo_url", "")
@@ -111,7 +109,6 @@ def resolve_login(token: str, fallback: str) -> str:
     """Gitee 无交互直连需用 login (认证登录名), 显示名会 403。
 
     仅在凭据缺 login 时查询 API 获取; 否则直接返回凭据中的值。
-    返回空串表示获取失败 (调用方回退到 fallback)。
     """
     if fallback:
         return fallback
@@ -121,7 +118,7 @@ def resolve_login(token: str, fallback: str) -> str:
     import urllib.request
     try:
         url = f"https://gitee.com/api/v5/user?access_token={token}"
-        req = urllib.request.Request(url, headers={"User-Agent": "flash-git-push"})
+        req = urllib.request.Request(url, headers={"User-Agent": "flash-git-pull"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         login = data.get("login")
@@ -138,12 +135,7 @@ def resolve_login(token: str, fallback: str) -> str:
 # ============================================================================
 
 def run_git(args, cwd: Path | None = None, check: bool = True, capture: bool = True):
-    """运行 git 命令 (shell=False, 参数列表, 强制禁用 credential 弹窗)。
-
-    注入 -c credential.helper= 与 -c core.askPass= 确保任何环境都不弹出
-    凭据输入框; 认证完全依赖 remote URL 中嵌入的 login:token。
-    传入字符串时按 shlex 切分 (仅用于无动态引号场景)。
-    """
+    """运行 git 命令 (shell=False, 参数列表, 强制禁用 credential 弹窗)。"""
     if isinstance(args, str):
         import shlex
         args = shlex.split(args)
@@ -164,7 +156,6 @@ def run_git(args, cwd: Path | None = None, check: bool = True, capture: bool = T
 
 
 def find_git_root(start: Path) -> Path:
-    """向上查找含 .git 的目录。"""
     cur = start.resolve()
     for _ in range(10):
         if (cur / ".git").exists():
@@ -175,76 +166,47 @@ def find_git_root(start: Path) -> Path:
     return start.resolve()
 
 
+def current_branch(cwd: Path) -> str:
+    r = run_git(["branch", "--show-current"], cwd=cwd)
+    return r.stdout.strip() or "master"
+
+
 def has_changes(cwd: Path) -> bool:
     r = run_git(["status", "--porcelain"], cwd=cwd)
     return bool(r.stdout.strip())
 
 
-def count_ahead(cwd: Path, branch: str) -> int:
-    r = run_git(["rev-list", "--count", f"origin/{branch}..HEAD"], cwd=cwd, check=False)
+def ahead_behind(cwd: Path, branch: str):
+    """返回 (ahead, behind): 本地相对 origin/<branch> 的领先/落后提交数。"""
+    r = run_git(["rev-list", "--count", "--left-right", f"origin/{branch}...HEAD"],
+                cwd=cwd, check=False)
     if r.returncode == 0 and r.stdout.strip():
-        return int(r.stdout.strip())
-    return 0
+        parts = r.stdout.strip().split()
+        left = int(parts[0]) if len(parts) >= 1 else 0   # 远端独有 = 我们落后
+        right = int(parts[1]) if len(parts) >= 2 else 0  # 本地独有 = 我们领先
+        return right, left
+    return 0, 0
 
 
-def auto_commit_message(cwd: Path) -> str:
-    """根据 git status --short 自动生成提交信息。"""
-    r = run_git(["status", "--short"], cwd=cwd)
-    lines = [l.strip() for l in r.stdout.strip().split("\n") if l.strip()]
-    if not lines:
-        return "Auto commit [no changes detected]"
-    added = sum(1 for l in lines if l.startswith("??") or l.startswith("A"))
-    modified = sum(1 for l in lines if l.startswith("M"))
-    deleted = sum(1 for l in lines if l.startswith("D"))
-    renamed = sum(1 for l in lines if l.startswith("R"))
-    parts = []
-    if added:
-        parts.append(f"+{added}")
-    if modified:
-        parts.append(f"~{modified}")
-    if deleted:
-        parts.append(f"-{deleted}")
-    if renamed:
-        parts.append(f"R{renamed}")
-    filenames = [l.split()[-1] for l in lines[:3]]
-    ts = time.strftime("%Y-%m-%d %H:%M")
-    fstr = ", ".join(filenames)
-    if len(filenames) < len(lines):
-        fstr += f" (+{len(lines) - len(filenames)} more)"
-    return f"auto({','.join(parts)}): {fstr} [{ts}]"
-
-
-def input_with_timeout(prompt: str, timeout: float = 5.0) -> str | None:
-    """非交互环境下直接返回 None; 交互终端下等待 timeout 秒可选输入。"""
-    if not sys.stdin.isatty():
-        return None
-    try:
-        print(prompt, flush=True)
-    except Exception:
-        return None
-
-    bucket: dict = {}
-
-    def _reader():
-        try:
-            bucket["val"] = input()
-        except EOFError:
-            bucket["val"] = None
-        except Exception:
-            bucket["val"] = None
-
-    t = threading.Thread(target=_reader, daemon=True)
-    t.start()
-    t.join(timeout)
-    return bucket.get("val") if not t.is_alive() else None
+def ensure_remote_auth(cwd: Path, auth_url: str, dry_run: bool):
+    """配置 origin remote 为 token 认证 URL (不持久化明文到仓库文件)。"""
+    r = run_git(["remote", "-v"], cwd=cwd, check=False)
+    if "origin" not in r.stdout:
+        info("添加远程仓库 origin")
+        if not dry_run:
+            run_git(["remote", "add", "origin", auth_url], cwd=cwd)
+    else:
+        info("更新远程仓库 URL (token 认证)")
+        if not dry_run:
+            run_git(["remote", "set-url", "origin", auth_url], cwd=cwd)
 
 
 # ============================================================================
-#  核心: 一键推送
+#  核心: 一键拉取
 # ============================================================================
 
-def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
-                  project_root: Path | None = None):
+def pull_from_gitee(branch=None, rebase=False, stash=False, dry_run=False,
+                    project_root: Path | None = None):
     if project_root is None:
         project_root = find_git_root(Path(__file__).resolve().parent)
 
@@ -259,83 +221,88 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
 
     # ── 1. 确定分支 ──
     if branch is None:
-        r = run_git(["branch", "--show-current"], cwd=project_root)
-        branch = r.stdout.strip() or "master"
+        branch = current_branch(project_root)
 
     eprint(f"\n  {BOLD}{'='*56}{RESET}")
-    eprint(f"  {BOLD}  Git 一键推送{RESET}")
+    eprint(f"  {BOLD}  Git 一键拉取{RESET}")
     eprint(f"  {BOLD}{'='*56}{RESET}")
     info(f"仓库: {repo_url}")
     info(f"分支: {branch}")
     info(f"目录: {project_root}")
-
     if dry_run:
         warn("DRY-RUN 模式 — 仅展示将要执行的操作\n")
 
-    # ── 2. 配置 remote (token 认证, 不持久化明文) ──
+    # ── 2. 配置 remote (token 认证) ──
     if "://" in repo_url:
         scheme, rest = repo_url.split("://", 1)
         auth_url = f"{scheme}://{auth_username}:{token}@{rest}"
     else:
         auth_url = repo_url
+    ensure_remote_auth(project_root, auth_url, dry_run)
 
-    r = run_git(["remote", "-v"], cwd=project_root, check=False)
-    if "origin" not in r.stdout:
-        info("添加远程仓库 origin")
-        if not dry_run:
-            run_git(["remote", "add", "origin", auth_url], cwd=project_root)
+    # ── 3. 获取远端最新 (刷新远端跟踪引用) ──
+    info(f"获取远端最新: git fetch origin {branch}")
+    if dry_run:
+        warn(f"[DRY-RUN] 将执行: git fetch origin {branch}")
     else:
-        info("更新远程仓库 URL (token 认证)")
-        if not dry_run:
-            run_git(["remote", "set-url", "origin", auth_url], cwd=project_root)
+        run_git(["fetch", "origin", branch], cwd=project_root)
 
-    # ── 3. 自动提交 ──
-    if has_changes(project_root):
-        if dry_run:
-            warn(f"[DRY-RUN] 将执行: git add -A && git commit -m '{commit_msg or '(auto)'}'")
+    ahead, behind = ahead_behind(project_root, branch)
+    info(f"本地领先远程: {ahead} commit(s), 落后远程: {behind} commit(s)")
+
+    if behind == 0:
+        if ahead == 0:
+            ok(f"分支 '{branch}' 已与远程完全同步, 无需拉取")
         else:
-            if commit_msg is None:
-                user_msg = input_with_timeout(
-                    "  (可选) 输入提交信息, 5 秒内无输入将自动生成: ", timeout=5.0)
-                if user_msg and user_msg.strip():
-                    commit_msg = user_msg.strip()
-            msg = commit_msg if commit_msg else auto_commit_message(project_root)
-            info(f"提交信息: {msg}")
-            run_git(["add", "-A"], cwd=project_root)
-            run_git(["commit", "-m", msg], cwd=project_root)
-            ok("提交成功!")
-    else:
-        info("没有未提交的变更")
-
-    # ── 4. 推送 ──
-    ahead = count_ahead(project_root, branch)
-    if ahead == 0 and not has_changes(project_root) and not force:
-        info(f"分支 '{branch}' 已与远程同步, 无需推送")
+            info(f"本地领先远程 {ahead} commit(s), 无新内容可拉取")
         eprint()
         ok("完成!")
         return
 
-    push_args = ["push", "origin", branch]
-    if force:
-        push_args.append("--force")
-        warn("强制推送模式!")
+    # ── 4. 本地有未提交变更的处理 ──
+    if has_changes(project_root):
+        if not stash:
+            fail("存在未提交变更, 为避免覆盖已拒绝拉取。")
+            fail("请先提交变更, 或加 --stash 自动暂存 (拉取后恢复)。")
+            sys.exit(1)
+        if dry_run:
+            warn("[DRY-RUN] 将执行: git stash push (拉取后 git stash pop)")
+        else:
+            info("暂存本地变更 (git stash push)")
+            run_git(["stash", "push", "-m", "auto-pull-stash"], cwd=project_root)
+
+    # ── 5. 执行拉取 ──
+    pull_mode = "--rebase" if rebase else "--ff-only"
+    pull_args = ["pull", pull_mode, "origin", branch]
 
     if dry_run:
-        warn(f"[DRY-RUN] 将执行: git {' '.join(push_args)}")
+        warn(f"[DRY-RUN] 将执行: git {' '.join(pull_args)}")
+        if stash:
+            warn("[DRY-RUN] 拉取后将执行: git stash pop")
+        eprint()
+        ok("DRY-RUN 完成 (未做任何修改)")
+        return
+
+    info(f"执行: git {' '.join(pull_args)}")
+    r = run_git(pull_args, cwd=project_root, check=False)
+    if r.returncode == 0:
+        ok(f"拉取成功! ({branch})")
     else:
-        info(f"执行: git {' '.join(push_args)}")
-        r = run_git(push_args, cwd=project_root, check=False)
-        if r.returncode == 0:
-            ok(f"推送成功! ({branch})")
-        else:
-            fail("推送失败!")
-            stderr = (r.stderr or "").strip()
-            eprint(f"  {stderr}")
-            if "403" in stderr or "authentication" in stderr.lower():
-                warn("Token 可能无效, 请运行: python git_push.py --setup")
-            elif "no upstream" in stderr.lower():
-                warn(f"分支未设置上游, 尝试: git push --set-upstream origin {branch}")
-            sys.exit(1)
+        fail("拉取失败!")
+        eprint(f"  {(r.stderr or '').strip()}")
+        if "403" in (r.stderr or "") or "authentication" in (r.stderr or "").lower():
+            warn("Token 可能无效, 请运行: python git_pull.py --setup")
+        elif rebase is False and "not possible" in (r.stderr or "") and "fast-forward" in (r.stderr or ""):
+            warn("非快进合并被 --ff-only 拒绝; 如需保留历史可用 --rebase, 或先处理本地提交。")
+        elif stash:
+            warn("拉取失败, 正在恢复暂存: git stash pop")
+            run_git(["stash", "pop"], cwd=project_root, check=False)
+        sys.exit(1)
+
+    # ── 6. 恢复暂存 ──
+    if stash:
+        info("恢复暂存变更 (git stash pop)")
+        run_git(["stash", "pop"], cwd=project_root, check=False)
 
     eprint()
     ok("全部完成!")
@@ -345,11 +312,10 @@ def show_status(project_root: Path | None = None):
     if project_root is None:
         project_root = find_git_root(Path(__file__).resolve().parent)
     eprint(f"\n  {BOLD}{'='*56}{RESET}")
-    eprint(f"  {BOLD}  Git 状态检查{RESET}")
+    eprint(f"  {BOLD}  Git 同步状态{RESET}")
     eprint(f"  {BOLD}{'='*56}{RESET}")
     info(f"目录: {project_root}")
-    r = run_git(["branch", "--show-current"], cwd=project_root)
-    branch = r.stdout.strip() or "(detached HEAD)"
+    branch = current_branch(project_root)
     info(f"分支: {branch}")
     r = run_git(["status", "--short"], cwd=project_root)
     if r.stdout.strip():
@@ -359,13 +325,13 @@ def show_status(project_root: Path | None = None):
         eprint(f"  {'─'*50}")
     else:
         ok("工作区干净, 无未提交变更")
-    r = run_git(["rev-list", "--count", "--left-right", "origin/HEAD...HEAD"],
-                cwd=project_root, check=False)
-    if r.returncode == 0 and r.stdout.strip():
-        parts = r.stdout.strip().split()
-        ahead = parts[0] if len(parts) >= 1 else "?"
-        behind = parts[1] if len(parts) >= 2 else "?"
-        info(f"领先远程: {ahead} commit(s), 落后远程: {behind} commit(s)")
+    # 刷新远端后报告
+    info("刷新远端引用 (git fetch)")
+    run_git(["fetch", "origin", branch], cwd=project_root, check=False)
+    ahead, behind = ahead_behind(project_root, branch)
+    info(f"领先远程: {ahead} commit(s), 落后远程: {behind} commit(s)")
+    if behind > 0:
+        warn(f"远端有 {behind} 个新提交可拉取, 运行: python git_pull.py")
     eprint()
     ok("状态检查完成")
 
@@ -376,16 +342,16 @@ def show_status(project_root: Path | None = None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="一键推送脚本 — 双击即可自动提交 + 推送到 Gitee (凭据从加密存储读取)",
+        description="一键拉取脚本 — 双击即可从 Gitee 拉取最新 (凭据从加密存储读取)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__.split("使用示例:")[1] if "使用示例:" in __doc__ else "",
     )
-    parser.add_argument("-b", "--branch", default=None, help="推送的分支 (默认: 当前分支)")
-    parser.add_argument("-m", "--message", default=None, help="自定义提交信息 (默认: 自动生成)")
-    parser.add_argument("-f", "--force", action="store_true", help="强制推送")
-    parser.add_argument("-n", "--dry-run", action="store_true", help="试运行 (只展示不执行)")
+    parser.add_argument("-b", "--branch", default=None, help="拉取的分支 (默认: 当前分支)")
+    parser.add_argument("--rebase", action="store_true", help="用 rebase 方式拉取 (线性历史)")
+    parser.add_argument("--stash", action="store_true", help="有未提交变更时先 stash, 拉取后 pop")
+    parser.add_argument("-n", "--dry-run", action="store_true", help="试运行 (fetch + 展示, 不合并)")
     parser.add_argument("--setup", action="store_true", help="进入凭据设置界面 (有交互)")
-    parser.add_argument("--status", action="store_true", help="查看当前 git 状态 (不推送)")
+    parser.add_argument("--status", action="store_true", help="查看与远端同步状态 (不拉取)")
     parser.add_argument("-r", "--root", default=None, help="项目根目录 (含 .git)")
     args = parser.parse_args()
 
@@ -398,10 +364,10 @@ def main():
         show_status(root)
         return
 
-    push_to_gitee(
+    pull_from_gitee(
         branch=args.branch,
-        force=args.force,
-        commit_msg=args.message,
+        rebase=args.rebase,
+        stash=args.stash,
         dry_run=args.dry_run,
         project_root=root,
     )

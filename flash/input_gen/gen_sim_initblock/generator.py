@@ -99,6 +99,7 @@ subroutine Simulation_initBlock(blockId)
   real, allocatable :: xcent(:), ycent(:), zcent(:)
   real :: tradActual
   real :: rho, tele, trad, tion, zbar, abar
+{bnd_decls}
 integer :: species
 {face_decls}
 
@@ -185,7 +186,7 @@ class BlockGenerator:
         sim_path: str = "hello/LaserSlab1d_new",
         use_radtrans: bool = True,
         use_3t: bool = True,
-        use_face_vars: bool = False,
+        use_face_vars: bool = True, # 260829修改False为True
         species: Optional[List[str]] = None,
     ):
         """
@@ -302,7 +303,23 @@ class BlockGenerator:
         code = code.replace("{if_3t}", if_3t)
         
         # 区域判断逻辑 - 核心部分
-        region_logic = self._generate_region_logic(builder)
+        # 参数化边界表达式去重收集 → 局部变量 bnd1..N (避免条件行超过
+        # Fortran 132 列截断), 声明占位 {bnd_decls}
+        bnd_exprs: List[str] = []
+        for r in builder.regions:
+            if r.x_expr:
+                for e in r.x_expr:
+                    if e not in bnd_exprs:
+                        bnd_exprs.append(e)
+        if bnd_exprs:
+            bnd_decls = ("  real :: "
+                         + ", ".join(f"bnd{i + 1}"
+                                     for i in range(len(bnd_exprs))))
+        else:
+            bnd_decls = ""
+        code = code.replace("{bnd_decls}", bnd_decls)
+
+        region_logic = self._generate_region_logic(builder, bnd_exprs=bnd_exprs)
         code = code.replace("{region_logic}", region_logic)
 
         # 物种常量块 (优先用显式 species，否则从 regions 推断)
@@ -318,11 +335,14 @@ class BlockGenerator:
 
         return code
     
-    def _generate_region_logic(self, builder: GridBuilder) -> str:
+    def _generate_region_logic(self, builder: GridBuilder,
+                               bnd_exprs: Optional[List[str]] = None) -> str:
         """从 regions 生成 Fortran 条件判断逻辑。
 
         支持多物种分层：每个 region 按 x/y/z 范围映射到对应物种常量，
         默认 (未命中任何 region) 回落到 cham (CHAM_SPEC)。
+        bnd_exprs: 参数化边界表达式列表 (去重后); 非空时先生成
+        `bndN = <表达式>` 赋值块, 条件行引用短变量名 bndN。
         """
         dim = builder.spec.dim
         lines = []
@@ -343,10 +363,19 @@ class BlockGenerator:
         lines.append(f"{indent}species = CHAM_SPEC")
         lines.append("")
 
+        # 参数化边界赋值块: bndN = <运行时参数表达式> (来自 .par)
+        if bnd_exprs:
+            lines.append(
+                f"{indent}! parameterized layer boundaries (.par runtime params)")
+            for idx, e in enumerate(bnd_exprs):
+                lines.append(f"{indent}bnd{idx + 1} = {e}")
+            lines.append("")
+
         # 生成 if / else-if 条件链 (跳过零宽区域)
         active_regions = [r for r in builder.regions if self._region_has_extent(r)]
         for i, region in enumerate(active_regions):
-            condition = self._make_fortran_condition(region, dim)
+            condition = self._make_fortran_condition(
+                region, dim, bnd_exprs=bnd_exprs)
             sp = region.species.upper() + "_SPEC"
             if i == 0:
                 lines.append(f"{indent}if ({condition}) then")
@@ -386,11 +415,24 @@ class BlockGenerator:
                     return True
         return False
     
-    def _make_fortran_condition(self, region: Region, dim: int) -> str:
-        """生成 Fortran 区域判断条件."""
+    def _make_fortran_condition(self, region: Region, dim: int,
+                                bnd_exprs: Optional[List[str]] = None) -> str:
+        """生成 Fortran 区域判断条件.
+
+        参数化边界优先: region.x_expr 为 (lo_expr, hi_expr) 时, 表达式经
+        bnd_exprs 映射为短局部变量 bndN (避免条件行超 132 列截断);
+        否则回退到数值 x_range 字面量。
+        """
         parts = []
-        
-        if region.x_range:
+
+        if region.x_expr:
+            xlo, xhi = region.x_expr
+            xlo_s = (f"bnd{bnd_exprs.index(xlo) + 1}"
+                     if bnd_exprs and xlo in bnd_exprs else xlo)
+            xhi_s = (f"bnd{bnd_exprs.index(xhi) + 1}"
+                     if bnd_exprs and xhi in bnd_exprs else xhi)
+            parts.append(f"xcent(i) >= {xlo_s} .and. xcent(i) <= {xhi_s}")
+        elif region.x_range:
             xlo, xhi = region.x_range
             parts.append(f"xcent(i) >= {self._fmt(xlo)} .and. xcent(i) <= {self._fmt(xhi)}")
         

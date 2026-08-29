@@ -46,6 +46,11 @@ class Region:
     x_range: Optional[Tuple[float, float]] = None
     y_range: Optional[Tuple[float, float]] = None
     z_range: Optional[Tuple[float, float]] = None
+    # 参数化边界 (Fortran 表达式二元组, 如 ("sim_shldRadius",
+    # "sim_tar1Radius + sim_shldRadius")): 存在时优先用于
+    # Simulation_initBlock 代码生成, 使几何由 .par 运行时参数控制;
+    # 数值 x_range 仍保留用于采样/预诊断。
+    x_expr: Optional[Tuple[str, str]] = None
     rho: float = 1.0e-06
     tele: float = 290.11375
     tion: float = 290.11375

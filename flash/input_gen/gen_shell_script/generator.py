@@ -481,6 +481,12 @@ ed_maxPulseSections=300 \
             "",
             '# Determine script directory',
             'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+            # 输出收集目录: 可被环境变量 FLASH_COLLECT_DIR 运行时覆盖
+            # (runner.run_wsl 按 run_id 注入 run_NNNNNN 子目录);
+            # 缺省回落: config["collect_dir"] 或 <脚本目录>/outputfiles
+            f'COLLECT_DIR="${{FLASH_COLLECT_DIR:-{cfg["collect_dir"]}}}"'
+            if cfg.get("collect_dir")
+            else 'COLLECT_DIR="${FLASH_COLLECT_DIR:-$SCRIPT_DIR/outputfiles}"',
             'echo "=== FLASH Full Pipeline ==="',
             'echo "  FLASH_HOME:   $FLASH_HOME"',
             'echo "  Object dir:   $OBJ_DIR"',
@@ -547,18 +553,18 @@ ed_maxPulseSections=300 \
             '# ── Step 6: Collect output ──',
             'echo ""',
             'echo "[6/6] Collecting output files..."',
-            'mkdir -p "$SCRIPT_DIR/outputfiles"',
-            'cp *.h5 "$SCRIPT_DIR/outputfiles/" 2>/dev/null || true',
-            'cp *chk* "$SCRIPT_DIR/outputfiles/" 2>/dev/null || true',
-            'cp *plt* "$SCRIPT_DIR/outputfiles/" 2>/dev/null || true',
-            'cp flash_run.log "$SCRIPT_DIR/outputfiles/" 2>/dev/null || true',
+            'mkdir -p "$COLLECT_DIR"',
+            'cp *.h5 "$COLLECT_DIR/" 2>/dev/null || true',
+            'cp *chk* "$COLLECT_DIR/" 2>/dev/null || true',
+            'cp *plt* "$COLLECT_DIR/" 2>/dev/null || true',
+            'cp flash_run.log "$COLLECT_DIR/" 2>/dev/null || true',
             "",
             '# Summary',
             'echo ""',
             'echo "=== Summary ==="',
             'echo "  Input files:  $SCRIPT_DIR"',
-            'echo "  Output files: $SCRIPT_DIR/outputfiles/"',
-            'nfiles=$(ls "$SCRIPT_DIR/outputfiles/"*.h5 2>/dev/null | wc -l)',
+            'echo "  Output files: $COLLECT_DIR/"',
+            'nfiles=$(ls "$COLLECT_DIR/"*.h5 2>/dev/null | wc -l)',
             'echo "  HDF5 files:   $nfiles"',
             'echo "  FLASH exit:   $FLASH_EXIT"',
             'echo "=== Done ==="',

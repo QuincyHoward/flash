@@ -655,3 +655,40 @@ DIMENSION_PARAMS[4] = PARAMS_CUSTOM  # 添加新的维度4
 **文档版本**: 1.0
 **最后更新**: 2026-07-03
 **维护**: PhySimX Team
+
+---
+
+## 行尾注释 (2026-08-29 新增, 全场景生效)
+
+`generate()`/`save()` 输出时自动为**尽可能多**的参数行追加行尾注释，
+所有 `#` 按全局对齐列统一（对齐基准 = 可注释行的最大长度 + 2）。
+
+### 覆盖范围
+
+| 类别 | 处理方式 | 示例 |
+|------|---------|------|
+| 静态字典 `PARAM_COMMENTS` | 常用 I/O / 时间 / 网格 / 激光标量 / MGD / 扩散参数 | `tmax = ... # simulation end time [s]` |
+| 静态字典 — PPMLR 水动求解器 | 13 项: `order`, `slopeLimiter`, `LimitedSlopeBeta`, `charLimiting`, `use_avisc`, `cvisc`, `use_flattening`, `use_steepening`, `use_upwindTVD`, `RiemannSolver`, `entropy`, `shockDetect`, `use_hybridOrder` | `shockDetect = .true. # shock detection sensor (used by use_hybridOrder)` |
+| 激光脉冲序列 | 动态规则 | `ed_time_1_82 = ... # laser pulse time, beam 1 section 82 [s]` |
+| MGD 能群边界 | 动态规则 | `rt_mgdBounds_3 = ... # MGD radiation group boundary 3` |
+| plot_var 白名单 | 动态规则 (防漏配提醒) | `plot_var_14 = "fllm" # plotfile output variable whitelist #14` |
+| 物种表绑定/材料族 | 动态规则 | `eos_tar1TableFile = ... # tar1 EOS table file`、`sim_rhoCham = ... # cham initial density [g/cm3]` |
+| 场景自定义几何 | 动态规则 | `sim_shldRadius = ... # layer geometry: shld radius [cm]` |
+| lrefine_max/min | 动态规则 (分辨率公式+结果, 简化格式) | 见下 |
+
+### lrefine 网格分辨率注释 (简化格式)
+
+`lrefine_max`/`lrefine_min` 行尾自动附理论分辨率：
+
+```
+lrefine_max = 9        # res = dir_delta/(nxb*nblock*2^(lrefine_max-1)) = 1.525879e-06 cm
+```
+
+公式：`res = dir_delta/(nxb*nblock*2^(lrefine-1))`，其中
+`dir_delta = xmax - xmin`（沿 x），`nblock = nblockx`，`nxb` 取参数
+`nxb`（缺省 16，须与 setup 的 `-nxb` 一致）。域/分块参数缺失时不生成注释。
+
+### 扩展
+
+新增参数的注释：加入模块级 `PARAM_COMMENTS` 字典；模式化参数族在
+`_inline_comment()` 中加动态规则。未覆盖的参数不追加注释（保持行尾干净）。

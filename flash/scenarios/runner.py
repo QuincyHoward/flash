@@ -120,10 +120,18 @@ class WslSpec:
     run_sh_name: str = "run_flash.sh"
     flash_home: str = ""                 # 如 "~/<user>/FLASH/FLASH4.8"，用于清理旧 objdir
     wsl_timeout: int = 7200              # WSL 运行超时 (秒)
+    outputfiles_dir: Optional[Path] = None
+    # FLASH 输出收集目录 (plt/chk/h5 落盘位置)。
+    # None → 旧行为: <input_dir>/outputfiles;
+    # 推荐显式指定 <output_dir>/outputfiles, 并在 run_flash.sh 生成时传
+    # config["collect_dir"] (WSL 路径) 保持两端一致。
 
 
 def _to_wsl_path(win_path: Path) -> str:
     s = str(win_path)
+    # 幂等: 已是 POSIX 路径 (WSL 下运行, __file__ 为 /mnt/... 形式) 时原样返回
+    if s.startswith("/"):
+        return s
     drive, rest = s.split(":", 1)
     return "/mnt/" + drive.lower() + rest.replace("\\", "/")
 
@@ -175,8 +183,40 @@ def _run_wsl_with_progress(cmd: str, console_log: Path,
     return rc, console_txt
 
 
+def allocate_run_id(*base_dirs: Optional[Path]) -> int:
+    """扫描各目录下 run_NNNNNN* 条目, 返回下一个可用 run_id (从 1 起)。
+
+    run_id 采用 6 位零填充显示 (run_000001), 为大规模仿真预留位数;
+    扫描正则不限位数 (兼容历史 4 位目录, 如 run_0001_longrun → id=1)。
+    输入快照目录与输出目录一并扫描, 取二者最大 id + 1。
+    """
+    mx = 0
+    for base in base_dirs:
+        if not base or not base.exists():
+            continue
+        for p in base.iterdir():
+            m = re.match(r"run_(\d+)", p.name)
+            if m:
+                mx = max(mx, int(m.group(1)))
+    return mx + 1
+
+
+def run_id_name(run_id: int, label: str = "") -> str:
+    """run_id → 目录名 (06d 零填充, 可附标签): run_000003_longrun。"""
+    return f"run_{run_id:06d}" + (f"_{label}" if label else "")
+
+
 def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
-    """在 WSL 中执行 run_flash.sh 并做本地分析。"""
+    """在 WSL 中执行 run_flash.sh 并做本地分析。
+
+    run_id 规范 (06d): 当 spec.outputfiles_dir 显式指定时, 每次运行自动
+    分配下一个 run_id (扫描现有 run_NNNNNN* 取 max+1):
+      * 输出收集: <outputfiles_dir>/run_NNNNNN/ — run_flash.sh 经环境变量
+        FLASH_COLLECT_DIR 接收 (优先于脚本内置 COLLECT_DIR);
+      * 输入快照: <input_dir>/run_NNNNNN/ — 不同 id 的输入文件可能不同;
+      * 分析图像: <plots_dir>/run_NNNNNN/。
+    未指定 outputfiles_dir 时保持旧行为 (input_dir/outputfiles, 不分 id)。
+    """
     input_dir, plots_dir = spec.input_dir, spec.plots_dir
     wsl_dir = _to_wsl_path(input_dir)
     run_sh = input_dir / spec.run_sh_name
@@ -192,18 +232,43 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
         console_log.unlink()
     except OSError:
         pass
+
+    log("清理旧 objdir 与本地输出...", "STEP")
+    # run_id 分配 (06d): 输出基目录显式指定时按 run_NNNNNN 分轮存储
+    # (必须先于 cmd 构造 — cmd 中 FLASH_COLLECT_DIR 引用 outdir)
+    if spec.outputfiles_dir is not None:
+        run_id = allocate_run_id(spec.outputfiles_dir, input_dir)
+        outdir = spec.outputfiles_dir / run_id_name(run_id)
+        run_plots = plots_dir / run_id_name(run_id)
+        # 输入快照: 不同 id 的输入文件可能不同, 归档到 flash_input/run_NNNNNN/
+        in_snap = input_dir / run_id_name(run_id)
+        in_snap.mkdir(parents=True, exist_ok=True)
+        for f in input_dir.iterdir():
+            if (f.is_file() and not f.name.startswith("wsl_")
+                    and not f.name.startswith("run_")
+                    and f.suffix.lower() in
+                    (".par", ".cn4", ".f90", ".sh", ".png", ".json")
+                    or f.name in ("Config", "Makefile")):
+                shutil.copy2(f, in_snap / f.name)
+        log(f"run_id = {run_id:06d} (输入快照: {in_snap.name}/)", "OK")
+        outdir.mkdir(parents=True, exist_ok=True)
+    else:
+        run_id = None
+        outdir = input_dir / "outputfiles"
+        run_plots = plots_dir
+    for p in [outdir, run_plots]:
+        if p.exists():
+            shutil.rmtree(p, ignore_errors=True)
+            p.mkdir(parents=True, exist_ok=True)
+
     cmd = (
-        f"cd {wsl_dir} && bash {spec.run_sh_name} > {run_log_name} 2>&1; "
+        f"cd {wsl_dir} && "
+        f"FLASH_COLLECT_DIR='{_to_wsl_path(outdir)}' "
+        f"bash {spec.run_sh_name} > {run_log_name} 2>&1; "
         f"echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
     )
     log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
     log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")
-
-    log("清理旧 objdir 与本地输出...", "STEP")
-    for p in [input_dir / "outputfiles", plots_dir]:
-        if p.exists():
-            shutil.rmtree(p, ignore_errors=True)
-            p.mkdir(parents=True, exist_ok=True)
     flash_home = spec.flash_home or user_flash_home()
     objdir = spec.objdir
     try:
@@ -259,7 +324,9 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
         return False
     log(f"FLASH 运行成功 ✓ (完整日志: {wsl_log})")
 
-    outdir = input_dir / "outputfiles"
+    outdir = spec.outputfiles_dir / run_id_name(run_id) \
+        if (run_id is not None and spec.outputfiles_dir) \
+        else (input_dir / "outputfiles")
     h5s = sorted(outdir.glob("*plt_cnt*")) or sorted(outdir.glob("*chk*"))
     if not h5s:
         log(f"未找到 HDF5 输出: {outdir}", "ERROR")
@@ -268,13 +335,14 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
 
     print("\n[分析] 制作密度时空彩图")
     print("-" * 50)
-    spec.analyze_local(outdir, plots_dir / "dens_timespace.png")
+    spec.analyze_local(outdir, run_plots / "dens_timespace.png")
 
     print("\n" + "=" * 65)
     print(" WSL 全流程完成!")
+    print(f"  run_id:       {run_id:06d}" if run_id is not None else "")
     print(f"  输入文件目录: {input_dir}")
     print(f"  输出结果目录: {outdir}")
-    print(f"  分析图像目录: {plots_dir}")
+    print(f"  分析图像目录: {run_plots}")
     print("=" * 65)
     return True
 

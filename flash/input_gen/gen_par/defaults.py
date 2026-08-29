@@ -8,14 +8,14 @@ gen_par 默认参数值 — 从 LaserSlab 模板提取
 
 # ── 1D 默认参数 (from example1d.par) ─────────────────
 PARAMS_1D = {
-    "LimitedSlopeBeta": 1.0,
-    "RiemannSolver": "hllc",
+    "LimitedSlopeBeta": 1.0,  # Slope parameter for the "limited" slope by Toro
+    "RiemannSolver": "hllc",  # Riemann solver (Roe, HLL, HLLC, LLF, Marquina, hybrid)
     "cfl": 0.4,
-    "charLimiting": True,
+    "charLimiting": True,  # Characteristic limiting vs. Primitive limiting
     "checkpointFileIntervalStep": 20,
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
-    "cvisc": 0.1,
+    "cvisc": 0.1,  # coefficient for artificial viscosity
     "diff_eleFlCoef": 0.06,
     "diff_eleFlMode": "fl_larsen",
     "diff_eleXlBoundaryType": "neumann",
@@ -52,7 +52,7 @@ PARAMS_1D = {
     "ed_time_1_5": 1.2e-09,
     "ed_useLaserIO": False,
     "ed_wavelength_1": 1.053,
-    "entropy": False,
+    "entropy": False,  # Entropy fix for the Roe solver
     "eosModeInit": "dens_temp_gather",
     "eos_chamEosType": "eos_tab",
     "eos_chamSubType": "ionmix4",
@@ -82,7 +82,7 @@ PARAMS_1D = {
     "op_targFileName": "al-imx-003.cn4",
     "op_targFileType": "ionmix4",
     "op_targTrans": "op_tabro",
-    "order": 3,
+    "order": 3,  # Interpolation order (first/second/third/fifth order)
     "plotFileIntervalStep": 10,
     "plotFileNumber": 0,
     "plot_var_1": "dens",
@@ -111,7 +111,7 @@ PARAMS_1D = {
     "rt_mgdXlBoundaryType": "vacuum",
     "rt_mgdXrBoundaryType": "vacuum",
     "rt_useMGD": True,
-    "shockDetect": False,
+    "shockDetect": False,  # shock detection sensor (used by use_hybridOrder)
     "sim_rhoCham": 1e-06,
     "sim_rhoTarg": 2.7,
     "sim_targetHeight": 0.002,
@@ -123,7 +123,7 @@ PARAMS_1D = {
     "sim_tradCham": 290.11375,
     "sim_tradTarg": 290.11375,
     "sim_vacuumHeight": 0.014,
-    "slopeLimiter": "minmod",
+    "slopeLimiter": "minmod",  # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
     "smallt": 1.0,
     "smallx": 1e-99,
     "tmax": 1e-09,
@@ -134,11 +134,11 @@ PARAMS_1D = {
     "useHeatexchange": True,
     "useHydro": True,
     "useOpacity": True,
-    "use_avisc": True,
-    "use_flattening": False,
-    "use_hybridOrder": True,
-    "use_steepening": False,
-    "use_upwindTVD": False,
+    "use_avisc": True,  # use artificial viscosity (originally for PPM)
+    "use_flattening": False,  # use flattening (dissipative) (originally for PPM)
+    "use_hybridOrder": True,  # Enforce Riemann density jump
+    "use_steepening": False,  # use contact steepening (originally for PPM)
+    "use_upwindTVD": False,  # use upwind biased TVD slope for PPM (need nguard=6)
     "xl_boundary_type": "outflow",
     "xmax": 0.016,
     "xmin": 0.0,
@@ -147,14 +147,14 @@ PARAMS_1D = {
 
 # ── 2D 默认参数 (from example.par) ─────────────────
 PARAMS_2D = {
-    "LimitedSlopeBeta": 1.0,
-    "RiemannSolver": "hllc",
+    "LimitedSlopeBeta": 1.0,  # Slope parameter for the "limited" slope by Toro
+    "RiemannSolver": "hllc",  # Riemann solver (Roe, HLL, HLLC, LLF, Marquina, hybrid)
     "cfl": 0.4,
-    "charLimiting": True,
+    "charLimiting": True,  # Characteristic limiting vs. Primitive limiting
     "checkpointFileIntervalStep": 1000,
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
-    "cvisc": 0.1,
+    "cvisc": 0.1,  # coefficient for artificial viscosity
     "diff_eleFlCoef": 0.06,
     "diff_eleFlMode": "fl_larsen",
     "diff_eleXlBoundaryType": "neumann",
@@ -207,7 +207,7 @@ PARAMS_2D = {
     "ed_time_1_4": 1.1e-09,
     "ed_useLaserIO": True,
     "ed_wavelength_1": 1.053,
-    "entropy": False,
+    "entropy": False,  # Entropy fix for the Roe solver
     "eosModeInit": "dens_temp_gather",
     "eos_chamEosType": "eos_tab",
     "eos_chamSubType": "ionmix4",
@@ -238,7 +238,7 @@ PARAMS_2D = {
     "op_targFileName": "al-imx-003.cn4",
     "op_targFileType": "ionmix4",
     "op_targTrans": "op_tabro",
-    "order": 3,
+    "order": 3,  # Interpolation order (first/second/third/fifth order)
     "plotFileIntervalStep": 100,
     "plotFileIntervalTime": 1e-11,
     "plotFileNumber": 0,
@@ -272,7 +272,7 @@ PARAMS_2D = {
     "rt_mgdZlBoundaryType": "reflecting",
     "rt_mgdZrBoundaryType": "reflecting",
     "rt_useMGD": True,
-    "shockDetect": False,
+    "shockDetect": False,  # shock detection sensor (used by use_hybridOrder)
     "sim_rhoCham": 1e-06,
     "sim_rhoTarg": 2.7,
     "sim_targetHeight": 0.002,
@@ -284,7 +284,7 @@ PARAMS_2D = {
     "sim_tradCham": 290.11375,
     "sim_tradTarg": 290.11375,
     "sim_vacuumHeight": 0.006,
-    "slopeLimiter": "minmod",
+    "slopeLimiter": "minmod",  # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
     "smallt": 1.0,
     "smallx": 1e-99,
     "tmax": 2e-09,
@@ -295,11 +295,11 @@ PARAMS_2D = {
     "useHeatexchange": True,
     "useHydro": True,
     "useOpacity": True,
-    "use_avisc": True,
-    "use_flattening": False,
-    "use_hybridOrder": True,
-    "use_steepening": False,
-    "use_upwindTVD": False,
+    "use_avisc": True,  # use artificial viscosity (originally for PPM)
+    "use_flattening": False,  # use flattening (dissipative) (originally for PPM)
+    "use_hybridOrder": True,  # Enforce Riemann density jump
+    "use_steepening": False,  # use contact steepening (originally for PPM)
+    "use_upwindTVD": False,  # use upwind biased TVD slope for PPM (need nguard=6)
     "xl_boundary_type": "reflect",
     "xmax": 0.004,
     "xmin": 0.0,
@@ -314,15 +314,15 @@ PARAMS_2D = {
 
 # ── 3D 默认参数 (from example3d.par) ─────────────────
 PARAMS_3D = {
-    "LimitedSlopeBeta": 1.0,
-    "RiemannSolver": "hybrid",
+    "LimitedSlopeBeta": 1.0,  # Slope parameter for the "limited" slope by Toro
+    "RiemannSolver": "hybrid",  # Riemann solver (Roe, HLL, HLLC, LLF, Marquina, hybrid)
     "addThermalFlux": False,
     "cfl": 0.4,
-    "charLimiting": True,
+    "charLimiting": True,  # Characteristic limiting vs. Primitive limiting
     "checkpointFileIntervalStep": 10,
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
-    "cvisc": 0.1,
+    "cvisc": 0.1,  # coefficient for artificial viscosity
     "diff_eleFlCoef": 0.06,
     "diff_eleFlMode": "fl_larsen",
     "diff_eleXlBoundaryType": "neumann",
@@ -392,7 +392,7 @@ PARAMS_3D = {
     "ed_time_3_5": 3e-09,
     "ed_useLaserIO": True,
     "ed_wavelength_1": 1.053,
-    "entropy": False,
+    "entropy": False,  # Entropy fix for the Roe solver
     "eosMode": "dens_ie_recal_gather",
     "eosModeInit": "dens_temp_gather",
     "eos_chamEosType": "eos_tab",
@@ -431,7 +431,7 @@ PARAMS_3D = {
     "op_targFileName": "al-imx-003.cn4",
     "op_targFileType": "ionmix4",
     "op_targTrans": "op_tabro",
-    "order": 2,
+    "order": 2,  # Interpolation order (first/second/third/fifth order)
     "plotFileIntervalStep": 10,
     "plotFileNumber": 0,
     "plot_var_1": "dens",
@@ -461,7 +461,7 @@ PARAMS_3D = {
     "rt_mgdZlBoundaryType": "reflecting",
     "rt_mgdZrBoundaryType": "reflecting",
     "rt_useMGD": True,
-    "shockDetect": False,
+    "shockDetect": False,  # shock detection sensor (used by use_hybridOrder)
     "sim_rhoCham": 1e-05,
     "sim_rhoTarg": 2.7,
     "sim_targetHeight": 0.004,
@@ -473,7 +473,7 @@ PARAMS_3D = {
     "sim_tradCham": 290.11375,
     "sim_tradTarg": 290.11375,
     "sim_vacuumHeight": 0.002,
-    "slopeLimiter": "vanLeer",
+    "slopeLimiter": "vanLeer",  # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
     "smallt": 1.0,
     "smallx": 1e-99,
     "tmax": 3e-09,
@@ -483,11 +483,11 @@ PARAMS_3D = {
     "useEnergyDeposition": True,
     "useHeatexchange": True,
     "useOpacity": True,
-    "use_avisc": True,
-    "use_flattening": False,
-    "use_hybridOrder": True,
-    "use_steepening": False,
-    "use_upwindTVD": False,
+    "use_avisc": True,  # use artificial viscosity (originally for PPM)
+    "use_flattening": False,  # use flattening (dissipative) (originally for PPM)
+    "use_hybridOrder": True,  # Enforce Riemann density jump
+    "use_steepening": False,  # use contact steepening (originally for PPM)
+    "use_upwindTVD": False,  # use upwind biased TVD slope for PPM (need nguard=6)
     "xl_boundary_type": "reflect",
     "xmax": 0.004,
     "xmin": -0.004,
