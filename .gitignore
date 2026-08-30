@@ -58,6 +58,8 @@ wsl_run.log
 **/temp
 **/tmp
 
+*.mod
+
 #
 #脚本尽可能控制成py脚本、sh脚本
 #文档文件统一使用md，若有必要可以特殊html
@@ -76,7 +78,8 @@ wsl_run.log
 .codebuddy/
 **/collision_compression/
 **/plasma_preparation/
-**/SNBtest/
+**/SNBtest/**
+!**/SNBtest/*.py
 #**/private/
 
 # ================================================================
