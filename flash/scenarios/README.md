@@ -52,7 +52,9 @@ https://gitee.com/physimx/flash
 | `laserslab1d_hpc_demo` | `flash_demo/demo_hpc/` | `python -m` 直跑 | FLASH 1D LaserSlab 超算 (SLURM) 演示 |
 | `hello_flash` | `flash_demo/hello_flash/` | `python -m` 直跑 | FLASH 安装/部署冒烟测试 + 密度图 |
 | `layer_tracer_CH` | `private/tracer/layer_tracer_CH/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (CH)：cham(He)→samp(CH)→targ(CH)→samp(CH)，MGD 10 群辐射 |
-| `layer_tracer_CH_ml` | `private/tracer/layer_tracer_CH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种)：cham(He)→shld(V 0.1µm)→samp→tar1@1µm→samp→tar2@2µm→samp→tar3@3µm→samp→tar4@4µm→samp→tar6@6µm→samp(D=50µm) |
+| `VCH_ml` | `private/tracer/VCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, V 屏蔽层)：cham(He)→shld(V 0.1µm)→samp→tar1@1µm→samp→tar2@2µm→samp→tar3@3µm→samp→tar4@4µm→samp→tar6@6µm→samp(D=50µm) |
+| `OneCH_ml` | `private/tracer/OneCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, 纯 CH)：与 VCH_ml 唯一物理差异为 shld 材质 V→CH (ρ=1.0)，其余设置完全一致 |
+| `run_ml_suite` | `private/tracer/run_ml_suite.py` | `python run_ml_suite.py` | 一键顺序执行 OneCH_ml、VCH_ml 双场景仿真（tmax 可指定，默认 1e-11 验证） |
 | `layer_tracer_Ti` | `private/tracer/layer_tracer_Ti/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (Ti tracer)，CH 靶 + Ti 示踪层 X-ray 谱学诊断 |
 
 > ⚠️ **private/ 场景不随发布包分发**（.gitignore 排除），仅限内部使用；tracer 系列以
@@ -74,16 +76,21 @@ https://gitee.com/physimx/flash
 | **输出字段** | 7 个 (dens, tele, tion, trad, ye, sumy, pres) |
 | **备注** | 基于原始 FLASH LaserSlab 配置, EOS 表已替换为自研高分辨表 |
 
-#### layer_tracer_CH_ml (private, 多薄层)
+#### VCH_ml / OneCH_ml (private, 多薄层, 2026-08-30 由 layer_tracer_CH_ml 更名拆分)
 
 | 属性 | 值 |
 |------|-----|
-| **物理** | 1D 多薄层示踪靶, 8 物种 13 区: cham(He, ρ=1e-6) → shld(V 0.1µm, ρ=6.11) → samp(CH) → tar1(CH@1µm, 0.1µm) → samp → tar2(CH@2µm) → samp → tar3(CH@3µm) → samp → tar4(CH@4µm) → samp → tar6(CH@6µm) → samp(D=50µm) → cham |
+| **物理** | 1D 多薄层示踪靶, 8 物种 13 区: cham(He, ρ=1e-6) → shld(0.1µm) → samp(CH) → tar1(CH@1µm, 0.1µm) → samp → tar2(CH@2µm) → samp → tar3(CH@3µm) → samp → tar4(CH@4µm) → samp → tar6(CH@6µm) → samp(D=50µm) → cham |
+| **两场景差异** | **仅 shld 材质**: VCH_ml = V (ρ=6.11, V-BADGER-TOPS.cn4)；OneCH_ml = CH (ρ=1.0, CH-QC-1-001.cn4)。其余 F90/par/几何/物种标记完全一致 |
+| **目录结构** | 主脚本 `VCH_ml.py` / `OneCH_ml.py`；其余脚本收纳于 `VCH_ml/src/`（analysis=chk 分析, tools=par 对比, docs=差异文档） |
+| **一键批量** | `python run_ml_suite.py [tmax]` (tracer/ 下)：顺序执行 OneCH_ml → VCH_ml，tmax 缺省 1.0e-11 验证值 |
 | **仿真域** | x = [-0.04, 0.01] cm, 1D 笛卡尔, NXB=16, lrefine_max=9 |
-| **激光** | 单光束 0.351µm (透镜 x=-1.0, 靶 x=0), 82 点功率脉冲 (`_par_layers.CH_FLASH_PAR`) |
+| **激光** | 单光束 0.351µm (透镜 x=-1.0, 靶 x=0), 82 点功率脉冲 |
 | **初始状态** | 固体层常温 (290.11375 K) 固体密度; tar1/tar2/tar3/tar4/tar6 物质同为 CH, 独立物种标记 |
 | **tmax** | 规范值 1.6e-9 s; 搭建验证时可覆写为 1.0e-11 |
 | **输出分析** | dens 剖面 (全域 + [-5,10]µm 放大) + 8 物种分布图 + 物种时空图 + 预诊断图 (脉冲/初始分层) |
+| **与纯 CH 基准一致性** | 除几何/物质设置外与 `CH_CH_**um8.00e-02` 基准一致 (killdivb 段逐行一致, plotFileIntervalStep=2000 已对齐); 详见 `VCH_ml/src/docs/VCH与纯CH的差异.md` |
+| **历史运行** | 更名前快照保留在 `VCH_ml/flash_input/run_00000{1,4,5}/` (run_id 自动续接) |
 
 #### layer_tracer_CH (private)
 

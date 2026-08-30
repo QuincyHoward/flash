@@ -1,8 +1,12 @@
 """
-layer_tracer_CH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
+VCH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
 ═══════════════════════════════════════════════════════════════════
 
-由 layer_tracer_CH 模板派生：单一示踪薄层 → 多个示踪薄层。
+由 layer_tracer_CH 模板派生：单一示踪薄层 → 多个示踪薄层
+(原名 layer_tracer_CH_ml, 2026-08-30 更名 VCH_ml, 与 PureCH_ml 并列)。
+
+与并列场景 PureCH_ml 的唯一物理差异: 表面屏蔽层 shld 材质
+(V 6.11 g/cm^3 vs CH 1.0 g/cm^3), 其余设置完全一致。
 
   * 1D 笛卡尔域 x=[-0.04, 0.01] cm，FLASH_3T，NXB=16，MAXBLOCKS=4096
   * 单光束 0.351um 激光（透镜 x=-1.0，靶 x=0），82 点功率脉冲
@@ -31,7 +35,7 @@ layer_tracer_CH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) �
 
 用法:
   cd <flash 包目录>
-  python -m flash.scenarios.private.tracer.layer_tracer_CH_ml.layer_tracer_CH_ml
+  python -m flash.scenarios.private.tracer.VCH_ml.VCH_ml
 """
 
 import sys
@@ -80,15 +84,16 @@ config_constants = {
     "L6_um": 6.0,
     "D_um": 50.0,
     # 仿真结束时间 (s)。搭建验证阶段设为极小值; 正式物理运行时恢复 1.6e-9。
-    "tmax": 1.60e-09,
+    "tmax": 1.6e-9,
     # 仿真域 (cm)
     "xmin": -0.04,
     "xmax": 0.01,
     # 网格
     "nblockx": 8,
     "lrefine_max": 9,
-    # 输出频率（覆写规范参数的 2000，保证 dens 时空图有足够时间序列）
-    "plot_interval_step": 1000,
+    # 输出频率 (与纯 CH 基准 CH_CH_**um8.00e-02 保持一致: plotFileIntervalStep=2000;
+    # checkpointFileIntervalStep=400 与基准相同)
+    "plot_interval_step": 2000,
     "checkpoint_interval_step": 400,
     # 维度 (用于按装置×维度自动配置资源核数)
     "dimension": 1,
@@ -106,9 +111,9 @@ SETUP_FLAGS = (
     "ed_maxPulseSections=300 -maxblocks=4096"
 )
 
-# 仿真/对象/par 命名 (与模板 layer_tracer_CH 区分, 避免相互覆盖 objdir)
-SIM_NAME = "LaserSlab_CHml"
-PAR_FILENAME = "laserslab_chml.par"
+# 仿真/对象/par 命名 (与 PureCH_ml 区分, 避免相互覆盖 objdir)
+SIM_NAME = "LaserSlab_VCHml"
+PAR_FILENAME = "laserslab_vchml.par"
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
 from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
@@ -418,7 +423,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "flash_exe": "flash4", "build_cores": 32,
         "slurm_partition": cfg.get("slurm_partition", "v5_192"),
         "slurm_nodes": 1, "slurm_ntasks": slurm_ntasks,
-        "slurm_job_name": "layer_tracer_CH_ml", "slurm_walltime": "24:00:00",
+        "slurm_job_name": "VCH_ml", "slurm_walltime": "24:00:00",
         "slurm_modules": ["mpich/3.2-gcc9.3", "hdf5/1.8.18"],
         # srun 直启 oneAPI MPI 在本集群 PMI2 握手失败, 用 mpiexec 实测正常
         "slurm_mpi_runner": "mpiexec",
@@ -466,7 +471,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                   ("end", L6 + delta_cm + D)]
         DensityPlotter().plot_1d(
             xs, dens1d, region_boundaries=list(bounds),
-            title="Initial Density Layers (layer_tracer_CH_ml)",
+            title="Initial Density Layers (VCH_ml)",
             save_path=INPUT_DIR / "pre_diag_initial_density.png")
         log(f"    pre_diag_initial_density.png ✓")
         result["pre_diag_density"] = str(INPUT_DIR / "pre_diag_initial_density.png")
@@ -564,7 +569,7 @@ def plot_density_timespace(outdir: Path, save_path: Path) -> int:
     cbar.set_label(r"$\log_{10}(\rho)$ [g/cm$^3$]")
     ax.set_xlabel(r"x [$\mu$m]")
     ax.set_ylabel("t [ns]")
-    ax.set_title("Density x-t map (layer_tracer_CH_ml)")
+    ax.set_title("Density x-t map (VCH_ml)")
     fig.tight_layout()
     fig.savefig(str(save_path), dpi=150)
     plt.close(fig)
@@ -636,7 +641,7 @@ def plot_density_profiles(outdir: Path, save_path: Path,
         ax.grid(True, which="both", alpha=0.25, lw=0.8)
     # 图例只放右图 (时间条目相同, 避免重复)
     axes[1].legend(loc="upper left", fontsize=16, framealpha=0.9, ncol=2)
-    fig.suptitle("Density profiles at different times (layer_tracer_CH_ml)",
+    fig.suptitle("Density profiles at different times (VCH_ml)",
                  fontsize=24, fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -720,7 +725,7 @@ def plot_species_zoom(outdir: Path, save_path: Path,
                  f"{zoom_range[1]:.0f}] " + r"$\mu$m (linear y)")
     ax.grid(True, alpha=0.3, lw=0.8)
     ax.legend(loc="center right", fontsize=17, framealpha=0.9)
-    fig.suptitle("Species markers (layer_tracer_CH_ml)", fontsize=24,
+    fig.suptitle("Species markers (VCH_ml)", fontsize=24,
                  fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -807,7 +812,7 @@ def plot_species_timespace(outdir: Path, save_path: Path,
         cb = fig.colorbar(pc, ax=ax, pad=0.01)
         cb.set_label(f"{sp} fraction", fontsize=13)
     axes[-1].set_xlabel(r"x [$\mu$m]")
-    fig.suptitle("Species fraction x-t maps (layer_tracer_CH_ml, linear)",
+    fig.suptitle("Species fraction x-t maps (VCH_ml, linear)",
                  fontsize=18, fontweight="bold")
     fig.savefig(str(save_path), dpi=300)
     plt.close(fig)
@@ -841,14 +846,14 @@ def remote_analysis_cmd(outdir: str) -> str:
         "source /public1/soft/modules/module.sh >/dev/null 2>&1; "
         "module purge >/dev/null 2>&1; module load python/3.9.6 >/dev/null 2>&1; "
         "export PYTHONIOENCODING=utf-8 && "
-        f"python layer_tracer_CH_ml_remote_analysis.py "
+        f"python VCH_ml_remote_analysis.py "
         f"--outdir {outdir} --save dens_timespace.png --json summary.json 2>&1"
     )
 
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="layer_tracer_CH_ml (wsl/hpc 一键切换)")
+    ap = argparse.ArgumentParser(description="VCH_ml (wsl/hpc 一键切换)")
     ap.add_argument(
         "action", nargs="?", default=None,
         help="hpc 分阶段动作: all/upload/submit/monitor/analyze/download/status "
@@ -860,7 +865,7 @@ def main():
     args = ap.parse_args()
 
     print("\n" + "=" * 65)
-    print(" FLASH layer_tracer_CH_ml Simulation (multi-layer)")
+    print(" FLASH VCH_ml Simulation (multi-layer)")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
     cfg = dict(config_constants)
@@ -911,11 +916,11 @@ def main():
         return run_wsl(wsl_spec, cfg)
 
     hpc_spec = HpcSpec(
-        name="layer_tracer_CH_ml",
+        name="VCH_ml",
         input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR,
         objdir=f"{SIM_USER_DIR}/{SIM_NAME}", flash_home=user_flash_home(),
         work_base=f"{user_flash_home()}/AI/Aitemp",
-        remote_analysis_script="layer_tracer_CH_ml_remote_analysis.py",
+        remote_analysis_script="VCH_ml_remote_analysis.py",
         remote_analysis_cmd=remote_analysis_cmd,
     )
     runner = HpcRunner(hpc_spec)

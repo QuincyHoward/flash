@@ -345,7 +345,9 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
         in_snap.mkdir(parents=True, exist_ok=True)
         n_arch = 0
         for f in sorted(input_dir.iterdir()):
-            if f.is_file() and not f.name.startswith("run_"):
+            # is_file 已排除 run_* 目录; 不能按名字跳过 run_* 文件
+            # (run_flash.sh 也是 run_ 前缀, 漏掉会永久滞留根目录)
+            if f.is_file():
                 try:
                     shutil.copy2(f, in_snap / f.name)
                     f.unlink()

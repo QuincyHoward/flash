@@ -100,11 +100,11 @@ subroutine Simulation_initBlock(blockId)
   real :: tradActual
   real :: rho, tele, trad, tion, zbar, abar
 {bnd_decls}
-integer :: species
+  integer :: species
 {face_decls}
 
 {species_constants}
-   ! get the coordinate information for the current block from the database
+  ! get the coordinate information for the current block from the database
   call Grid_getBlkIndexLimits(blockId,blkLimits,blkLimitsGC)
 
   ! get the coordinate information for the current block from the database
@@ -141,6 +141,9 @@ integer :: species
 
 {if_3t}
            if (NSPECIES > 0) then
+              ! Fill mass fractions in solution array if we have any SPECIES defined.
+              ! We put nearly all the mass into either the Xe material if XE_SPEC is defined,
+              ! or else into the first species.
               do n = SPECIES_BEGIN,SPECIES_END
                  if (n==species) then
                     call Grid_putPointData(blockID, CENTER, n, EXTERIOR, axis, 1.0e0-(NSPECIES-1)*sim_smallX)
@@ -236,17 +239,22 @@ class BlockGenerator:
         
         # Face 变量声明
         if self.use_face_vars:
-            face_decls = textwrap.dedent("""\
-                real, pointer, dimension(:,:,:,:) :: facexData,faceyData
-                #if NDIM > 0
-                  real, pointer, dimension(:,:,:,:) :: facezData
-                #endif""")
-            face_init = textwrap.dedent("""\
-                  if (sim_killdivb) then
-                     call Grid_getBlkPtr(blockID,facexData,FACEX)
-                     call Grid_getBlkPtr(blockID,faceyData,FACEY)
-                     if (NDIM>2) call Grid_getBlkPtr(blockID,facezData,FACEZ)
-                  endif""")
+            # 与官方 LaserSlab 缩进一致: facexData/faceyData 声明 2 空格,
+            # #if/#endif 顶格, facezData 2 空格 (dedent 公共前缀为 0, 原样保留)
+            face_decls = (
+                "  real, pointer, dimension(:,:,:,:) :: facexData,faceyData\n"
+                "#if NDIM > 0\n"
+                "  real, pointer, dimension(:,:,:,:) :: facezData\n"
+                "#endif")
+            # 缩进与官方 LaserSlab 一致: if 2 空格 / 调用 5 空格。
+            # 注意: 不能用 textwrap.dedent — 它会剥离公共前缀使 if 顶格,
+            # 必须显式写出最终缩进 (模板占位 {face_init} 位于顶格上下文)。
+            face_init = (
+                "  if (sim_killdivb) then\n"
+                "     call Grid_getBlkPtr(blockID,facexData,FACEX)\n"
+                "     call Grid_getBlkPtr(blockID,faceyData,FACEY)\n"
+                "     if (NDIM>2) call Grid_getBlkPtr(blockID,facezData,FACEZ)\n"
+                "  endif")
             face_cleanup = textwrap.dedent("""\
                 #if NFACE_VARS > 0
                   if (sim_killdivb) then
