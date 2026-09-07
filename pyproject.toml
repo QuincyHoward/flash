@@ -89,6 +89,7 @@ exclude = [
     "flash/scenarios/collision_compression/thin_layer_sandwich/sim_input_*/**",
     "flash/scenarios/collision_compression/thin_layer_sandwich/**/*.cn4",
     "flash/scenarios/collision_compression/grad_dens_sandwich/**",
+    "flash/scenarios/sandwich/**/sim_input*/**",
     # === 运行产物 / 测试 / 缓存 ===
     "flash/**/runs_*/**",
     "flash/**/runs/**",
