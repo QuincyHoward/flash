@@ -79,7 +79,23 @@ wsl_run.log
 **/collision_compression/
 **/plasma_preparation/
 **/SNBtest/**
-!**/SNBtest/*.py
+#  白名单: 仅放行场景产出 Test/ 与自写文档 docs/
+#  ⚠️ src/SNB 为 FLASH 源码树快照 (License §3 禁止再分发) → 保持忽略
+!**/SNBtest/Test/
+!**/SNBtest/Test/**/
+!**/SNBtest/docs/
+!**/SNBtest/docs/*.md
+!**/SNBtest/Test/**/*.py
+!**/SNBtest/Test/**/*.md
+!**/SNBtest/Test/**/*.par
+!**/SNBtest/Test/**/*.F90
+!**/SNBtest/Test/**/*.f90
+!**/SNBtest/Test/**/Makefile
+!**/SNBtest/Test/**/Config
+!**/SNBtest/Test/**/*.cn4
+!**/SNBtest/Test/**/*.h
+!**/SNBtest/Test/**/*.sh
+!**/SNBtest/Test/**/*.bat
 #**/private/
 
 # ================================================================
@@ -310,6 +326,7 @@ flash/input_gen/gen_eos_op/ionmix/ionmix/eosop_pro/test/test_summary.json
 # gen_flash_inputs.py 从 sim_input_src.py / tables_imx.py / eos_op_data
 # 按需生成, 一律不入库
 # ================================================================
-flash/scenarios/sandwich/**/sim_input/
+flash/scenarios/sandwich/**/sim_input*/
+flash/scenarios/sandwich/**/sim_input*/**
 flash/scenarios/sandwich/**/wsl_*.log
 flash/scenarios/sandwich/**/*.png
