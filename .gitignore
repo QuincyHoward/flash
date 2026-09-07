@@ -304,3 +304,12 @@ flash/input_gen/gen_eos_op/ionmix/ionmix/eosop_pro/test/test_summary.json
 
 # 场景生成文件备份/遗留目录（不入库）
 **/flash_input_old/
+
+# ================================================================
+# sandwich 场景 (收录自 collision_compression): 非 py 输入文件由
+# gen_flash_inputs.py 从 sim_input_src.py / tables_imx.py / eos_op_data
+# 按需生成, 一律不入库
+# ================================================================
+flash/scenarios/sandwich/**/sim_input/
+flash/scenarios/sandwich/**/wsl_*.log
+flash/scenarios/sandwich/**/*.png

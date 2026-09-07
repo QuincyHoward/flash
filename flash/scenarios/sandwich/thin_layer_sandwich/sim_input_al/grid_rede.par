@@ -1,0 +1,216 @@
+run_comment = "grid_rede 1D Simulation - Auto-generated"
+log_file    = "lasslab.log"
+basenm      = "lasslab_"
+
+    # res_min=0.0549um (lref=8)
+    # res_max=7.0312um (lref=1)
+
+##############################
+#  I/O PARAMETERS
+##############################
+
+checkpointFileIntervalTime     = 1000
+checkpointFileIntervalStep     = 500
+plotFileIntervalStep           = 50
+plotFileNumber                 = 0
+restart                        = .false.
+checkpointFileNumber           = 0
+plot_var_1                     = dens
+plot_var_2                     = depo
+plot_var_3                     = tele
+plot_var_4                     = tion
+plot_var_5                     = trad
+plot_var_6                     = ye  
+plot_var_7                     = sumy
+plot_var_8                     = cham
+plot_var_9                     = targ
+plot_var_10                    = poly
+
+##############################
+#  RADIATION/OPACITY PARAMETERS
+##############################
+
+op_chamAbsorb                  = op_tabpa
+op_chamEmiss                   = op_tabpe
+op_chamFileName                = he-imx-005.cn4
+op_chamFileType                = ionmix4
+op_chamTrans                   = op_tabro
+op_targAbsorb                  = op_tabpa
+op_targEmiss                   = op_tabpe
+op_targFileName                = al-imx-003.cn4
+op_targFileType                = ionmix4
+op_targTrans                   = op_tabro
+rt_dtFactor                    = 0.02
+rt_mgdBounds_1                 = 0.1
+rt_mgdBounds_2                 = 1
+rt_mgdBounds_3                 = 10
+rt_mgdBounds_4                 = 100
+rt_mgdBounds_5                 = 1000
+rt_mgdBounds_6                 = 10000
+rt_mgdBounds_7                 = 100000
+rt_mgdFlCoef                   = 1
+rt_mgdFlMode                   = fl_harmonic
+rt_mgdNumGroups                = 6
+rt_mgdXlBoundaryType           = vacuum
+rt_mgdXrBoundaryType           = vacuum
+rt_useMGD                      = .true.
+op_polyAbsorb                  = op_tabpa
+op_polyEmiss                   = op_tabpe
+op_polyTrans                   = op_tabro
+op_polyFileType                = ionmix4
+op_polyFileName                = polystyrene-imx-008.cn4
+
+##############################
+#  LASER PARAMETERS / Energy Deposition
+##############################
+
+ed_crossSectionFunctionType_1  = uniform
+ed_gradOrder                   = 2
+ed_gridType_1                  = regular1D
+ed_gridnRadialTics_1           = 512
+ed_laserIOMaxNumberOfPositions = 10000
+ed_laserIOMaxNumberOfRays      = 128
+ed_maxRayCount                 = 10000
+ed_numberOfBeams               = 2
+ed_numberOfPulses              = 1
+ed_numberOfRays_1              = 1
+ed_numberOfSections_1          = 4
+ed_useLaserIO                  = .false.
+ed_time_1_1                    = 0
+ed_power_1_1                   = 0
+ed_time_1_2                    = 1e-10
+ed_power_1_2                   = 500000000000
+ed_time_1_3                    = 3e-09
+ed_power_1_3                   = 500000000000
+ed_time_1_4                    = 3.1e-09
+ed_power_1_4                   = 0
+ed_lensX_1                     = -0.1
+ed_targetX_1                   = 0
+ed_pulseNumber_1               = 1
+ed_wavelength_1                = 0.351
+ed_lensX_2                     = 0.1
+ed_targetX_2                   = 0
+ed_pulseNumber_2               = 1
+ed_wavelength_2                = 0.351
+ed_crossSectionFunctionType_2  = uniform
+ed_numberOfRays_2              = 1
+ed_gridType_2                  = regular1D
+ed_gridnRadialTics_2           = 512
+
+##############################
+#  CONDUCTION PARAMETERS
+##############################
+
+diff_eleFlCoef                 = 0.06
+diff_eleFlMode                 = fl_larsen
+diff_eleXlBoundaryType         = neumann
+diff_eleXrBoundaryType         = neumann
+diff_thetaImplct               = 1
+diff_useEleCond                = .true.
+
+##############################
+#  HEAT EXCHANGE PARAMETERS
+##############################
+
+useHeatexchange                = .true.
+hx_dtFactor                    = 1e+100
+
+##############################
+#  EOS PARAMETERS
+##############################
+
+eosModeInit                    = dens_temp_gather
+eos_chamEosType                = eos_gam
+eos_chamSubType                = ionmix4
+eos_chamTableFile              = he-imx-005.cn4
+eos_targEosType                = eos_tab
+eos_targSubType                = ionmix4
+eos_targTableFile              = al-imx-003.cn4
+eos_useLogTables               = .false.
+smallt                         = 1
+smallx                         = 1e-99
+eos_polyEosType                = eos_tab
+eos_polySubType                = ionmix4
+eos_polyTableFile              = polystyrene-imx-008.cn4
+
+##############################
+#  HYDRO PARAMETERS
+##############################
+
+useHydro                       = .true.
+order                          = 3
+slopeLimiter                   = minmod
+LimitedSlopeBeta               = 1
+charLimiting                   = .true.
+use_avisc                      = .true.
+cvisc                          = 0.1
+use_flattening                 = .false.
+use_steepening                 = .false.
+use_upwindTVD                  = .false.
+RiemannSolver                  = hllc
+entropy                        = .false.
+shockDetect                    = .true.
+use_hybridOrder                = .true.
+xl_boundary_type               = outflow
+xr_boundary_type               = outflow
+
+##############################
+#  INITIAL CONDITIONS
+##############################
+
+ms_chamA                       = 4.002602
+ms_chamZ                       = 2
+ms_targA                       = 26.9815
+ms_targZ                       = 13
+ms_targZMin                    = 0.02
+sim_teleCham                   = 290.11375
+sim_teleTarg                   = 290.11375
+sim_tionCham                   = 290.11375
+sim_tionTarg                   = 290.11375
+sim_tradCham                   = 290.11375
+sim_tradTarg                   = 290.11375
+sim_telePoly                   = 290.11375
+sim_tionPoly                   = 290.11375
+sim_tradPoly                   = 290.11375
+sim_rhoTarg                    = 2.7
+sim_rhoPoly                    = 1.05
+sim_rhoCham                    = 1e-06
+sim_targHeight                 = 2e-05
+sim_polyHeight                 = 0.0004
+ms_polyA                       = 6.5
+ms_polyZ                       = 3.5
+
+##############################
+#  TIME PARAMETERS
+##############################
+
+tstep_change_factor            = 1.1
+cfl                            = 0.2
+dt_diff_factor                 = 1e+100
+tmax                           = 3.2e-09
+dtmin                          = 1e-12
+dtinit                         = 1e-15
+dtmax                          = 3.36e-09
+nend                           = 10000000
+
+##############################
+#  MESH PARAMETERS
+##############################
+
+geometry                       = cartesian
+xmin                           = -0.045
+xmax                           = 0.045
+nblockx                        = 8
+lrefine_max                    = 8
+lrefine_min                    = 1
+refine_var_1                   = dens
+refine_var_2                   = tele
+
+##############################
+#  ADDITIONAL PARAMETERS
+##############################
+
+useConductivity                = .true.
+useDiffuse                     = .true.
+useEnergyDeposition            = .true.
+useOpacity                     = .true.
