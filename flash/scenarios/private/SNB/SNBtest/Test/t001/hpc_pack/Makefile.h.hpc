@@ -1,0 +1,132 @@
+# FLASH makefile definitions for x86-64 Linux (Intel oneAPI 2022.1 / NC-E+BSCC-T6)
+#----------------------------------------------------------------------------
+# HPC 版 Makefile.h — 基于 HPC 常规 FLASH4.8 已验证配置 (object/flash4 编译通过)
+# 工具链: oneAPI 2022.1 mpiifort/mpicc + HDF5 1.8.18 (intel 版)
+# FFLAGS 使用 ifort 语法 -r8 (gfortran 用 -fdefault-real-8, 不可混用!)
+# 差异: HYPRE_PATH 已清空 (SNB 场景不用 hypre; 本机路径不可移植)
+#----------------------------------------------------------------------------
+
+MPI_PATH   = /public1/soft/oneAPI/2022.1/mpi/latest
+HDF4_PATH  =
+HDF5_PATH  = /public1/soft/hdf5/1.8.18
+HYPRE_PATH =
+
+LIB_LAPACK = -llapack -lblas -lgfortran
+#LIB_LAPACK =
+
+ZLIB_PATH  =
+
+PAPI_PATH  =
+PAPI_FLAGS =
+
+NCMPI_PATH = /public1/soft/pnetcdf/1.11.1
+MPE_PATH   =
+
+#----------------------------------------------------------------------------
+# Compiler and linker commands
+#----------------------------------------------------------------------------
+
+FCOMP   = /public1/soft/oneAPI/2022.1/mpi/latest/bin/mpiifort
+CCOMP   = /public1/soft/oneAPI/2022.1/mpi/latest/bin/mpicc
+CPPCOMP = /public1/soft/oneAPI/2022.1/mpi/latest/bin/mpicxx
+LINK    = /public1/soft/oneAPI/2022.1/mpi/latest/bin/mpiifort
+
+# pre-processor flag
+PP      = -D
+
+#----------------------------------------------------------------------------
+# Compilation flags
+#----------------------------------------------------------------------------
+
+OPENMP = -fopenmp
+
+FFLAGS_OPT = -ggdb -c -O2 -r8 \
+-Wuninitialized
+
+FFLAGS_DEBUG = -ggdb -c -O0 -r8 \
+-pedantic -Wall -Waliasing \
+-Wsurprising -Wconversion -Wunderflow \
+-ffpe-trap=invalid,zero,overflow -fbounds-check \
+-fimplicit-none -fstack-protector-all
+
+FFLAGS_TEST = -ggdb -c -O0 -r8
+
+FFLAGS_HYPRE = -I${HYPRE_PATH}/include
+
+
+F90FLAGS =
+
+
+CFLAGS_OPT = -ggdb -c -O2 -Wuninitialized -D_FORTIFY_SOURCE=2
+
+CFLAGS_DEBUG = -ggdb -c -O0 -Wno-div-by-zero -Wundef \
+-Wconversion -Wstrict-prototypes -Wunreachable-code \
+-pedantic -Wall -Winit-self -ftree-vrp -Wfloat-equal \
+-Wunsafe-loop-optimizations -Wpadded -fstack-protector-all
+
+CFLAGS_TEST = -ggdb -O0 -c
+
+CFLAGS_HYPRE = -I${HYPRE_PATH}/include
+
+# if we are using HDF5, we need to specify the path to the include files
+CFLAGS_HDF5 = -I${HDF5_PATH}/include -DH5_USE_16_API
+CFLAGS_NCMPI = -I${NCMPI_PATH}/include
+
+#----------------------------------------------------------------------------
+# Linker flags
+#----------------------------------------------------------------------------
+
+LFLAGS_OPT   = -ggdb -o
+LFLAGS_DEBUG = -ggdb -O0 -o
+LFLAGS_TEST  = -ggdb -O0 -o
+
+
+#----------------------------------------------------------------------------
+# Library specific linking
+#----------------------------------------------------------------------------
+
+LIB_OPT   =
+LIB_DEBUG =
+LIB_TEST  =
+
+LIB_HDF4  =
+LIB_HDF5  = -L ${HDF5_PATH}/lib -lhdf5 -lz
+
+LIB_PAPI  =
+LIB_MATH  =
+
+LIB_MPI   =
+LIB_NCMPI = -L ${NCMPI_PATH}/lib -lpnetcdf
+LIB_MPE   =
+
+LIB_HYPRE = -L${HYPRE_PATH}/lib -lHYPRE
+
+# Uncomment the following line to use electic fence memory debugger.
+# export EF_ALLOW_MALLOC_0=1
+#CONFIG_LIB = -L/usr/lib64 -lefence
+
+#----------------------------------------------------------------------------
+# Additional machine-dependent object files
+#----------------------------------------------------------------------------
+
+MACHOBJ =
+
+#----------------------------------------------------------------------------
+# Additional commands
+#----------------------------------------------------------------------------
+
+MV = mv -f
+AR = ar -r
+RM = rm -f
+CD = cd
+RL = ranlib
+ECHO = echo
+
+
+#----------------------------------------------------------------------------
+# Fake existence of iso_c_bindings module to prevent unnecessary recompilations.
+#---------------------------------------------------------------------------- 
+#ifeq ($(FLASHBINARY),true)
+#iso_c_binding.mod :
+#	touch $@
+#endif

@@ -1,0 +1,476 @@
+run_comment = "NonLTConduct Simulation"
+log_file    = "NonLTConduct.log"
+basenm      = "NonLTConduct_2D_"
+############ unit system ###########
+
+UnitSystem  = "CGS"
+pc_unitsBase  = "CGS"
+
+# This particular parfile is used as an example of
+# SG3 prototype experiment in 2020.11
+
+##########################
+#                        #
+#     I/O PARAMETERS     #
+#                        #
+##########################
+
+### Checkpoint Options  ###
+#checkpointFileIntervalTime = 1e-11
+#checkpointFileIntervalStep = 1000
+
+### Plot Options ###
+#plotFileIntervalStep = 1
+plotFileIntervalTime = 1e-11
+plot_var_1           = "dens" # dens*ye*6.02e23
+plot_var_2           = "depo"
+plot_var_3           = "tele"
+plot_var_4           = "tion"
+plot_var_5           = "QESH"
+plot_var_6           = "QESX"
+plot_var_7           = "QESY"
+plot_var_8           = "GRQX"
+plot_var_9           = "GRAQ"
+plot_var_10          = "CORQ"
+plot_var_11          = "MFPE"
+plot_var_12          = "ye"
+plot_var_13          = "tar1"
+plot_var_14          = "tar2"
+plot_var_15          = "tar3"
+#plot_var_16          = "velx"
+#plot_var_17          = "vely"
+#plot_var_18          = "velz"
+
+### Restart Options ###
+restart              = .false.
+checkpointFileNumber = 0
+
+########################################
+#                                      #
+#     RADIATION/OPACITY PARAMETERS     #
+#                                      #
+########################################
+rt_useMGD       = .true.# Multi-Group Diffusion
+rt_mgdNumGroups = 10
+rt_mgdBounds_1  = 1.0e-01
+rt_mgdBounds_2  = 3.981e-01
+rt_mgdBounds_3  = 1.585e+00
+rt_mgdBounds_4  = 6.31e+00
+rt_mgdBounds_5  = 2.51e+01
+rt_mgdBounds_6  = 1.0e+02
+rt_mgdBounds_7  = 3.981e+02
+rt_mgdBounds_8  = 1.585e+03
+rt_mgdBounds_9  = 6.31e+03
+rt_mgdBounds_10 = 2.51e+04
+rt_mgdBounds_11 = 1.0e+05
+op_tableEnergyTolerance = 1e-2
+
+##### parameters can modifies Radiation Diffuse, coef is the ratio to FS. ##### 
+
+rt_mgdFlMode    = "fl_larsen"
+rt_mgdFlCoef    = 1.0
+
+rt_mgdXlBoundaryType = "vacuum"
+rt_mgdXrBoundaryType = "vacuum"
+rt_mgdYlBoundaryType = "vacuum"
+rt_mgdYrBoundaryType = "vacuum"
+rt_mgdZlBoundaryType = "vacuum"
+rt_mgdZrBoundaryType = "vacuum"
+
+##### opacity #####
+
+useOpacity     = .true.
+
+### SET CHAMBER (HELIUM) OPACITY OPTIONS ###
+op_chamAbsorb   = "op_tabpa"
+op_chamEmiss    = "op_tabpe"
+op_chamTrans    = "op_tabro"
+op_chamFileType = "ionmix4"
+#op_chamFileName = "he-imx-005.cn4"
+op_chamFileName = "He-BADGER-TOPS-Final.cn4"
+
+### SET TARGET (ALUMINUM) OPACITY OPTIONS ###
+op_tar1Absorb   = "op_tabpa"
+op_tar1Emiss    = "op_tabpe"
+op_tar1Trans    = "op_tabro"
+op_tar1FileType = "ionmix4"
+#op_targFileName = "al-imx-003.cn4"
+op_tar1FileName = "CH-BADGER-TOPS-Final.cn4"
+
+### SET TARGET (ALUMINUM) OPACITY OPTIONS ###
+op_tar2Absorb   = "op_tabpa"
+op_tar2Emiss    = "op_tabpe"
+op_tar2Trans    = "op_tabro"
+op_tar2FileType = "ionmix4"
+#op_targFileName = "al-imx-003.cn4"
+op_tar2FileName = "CH-BADGER-TOPS-Final.cn4"
+
+### SET TARGET (ALUMINUM) OPACITY OPTIONS ###
+op_tar3Absorb   = "op_tabpa"
+op_tar3Emiss    = "op_tabpe"
+op_tar3Trans    = "op_tabro"
+op_tar3FileType = "ionmix4"
+#op_targFileName = "al-imx-003.cn4"
+op_tar3FileName = "CH-BADGER-TOPS-Final.cn4"
+
+
+############################
+#                          #
+#     LASER PARAMETERS     #
+#                          #
+############################
+useEnergyDeposition = .true.
+ed_maxRayCount      = 10000
+ed_gradOrder        = 2
+
+# Activate 3D-in-2D ray trace:
+#ed_laser3Din2D           = .true.
+#ed_laser3Din2DwedgeAngle = 0.1
+
+
+### LASER IO OPTIONS ###
+ed_useLaserIO                  = .true.
+ed_laserIOMaxNumberOfPositions = 10000
+ed_laserIOMaxNumberOfRays      = 64
+
+### SETUP LASER PULSES ###
+ed_numberOfPulses = 1
+
+# Define Pulse 1:
+ed_numberOfSections_1 = 4
+ed_time_1_1  = 0.0
+ed_time_1_2  = 0.2e-09
+ed_time_1_3  = 0.99e-09
+ed_time_1_4  = 1.0e-09
+
+ed_power_1_1 = 0.0
+ed_power_1_2 = 1.5e+14
+ed_power_1_3 = 1.5e+14
+ed_power_1_4 = 0.0
+
+### SETUP LASER BEAM ###
+ed_numberOfBeams = 1
+
+
+# Setup Gaussian Beam:
+ed_lensX_1                    =  500.0e-04
+#ed_lensY_1                    =  0.0e-04
+#ed_lensZ_1                    =  0.0e-04
+#ed_lensSemiAxisMajor_1        =  30.0e-04
+ed_targetX_1                  =  0.0e-04
+#ed_targetY_1                  =  0.0e-04
+#ed_targetZ_1                  =  0.0e-04
+#ed_targetSemiAxisMajor_1      =  30.0e-04
+#ed_targetSemiAxisMinor_1      =  30.0e-04
+ed_pulseNumber_1              =  1
+ed_wavelength_1               =  0.351
+ed_crossSectionFunctionType_1 = "uniform"
+#ed_gaussianExponent_1         =  8.0
+#ed_gaussianRadiusMajor_1      =  60e-04
+#ed_gaussianRadiusMinor_1      =  60e-04
+ed_numberOfRays_1             =  1
+ed_gridType_1                 = "regular1D"
+ed_gridnRadialTics_1          =  512
+#ed_semiAxisMajorTorsionAngle_1=  0.0
+#ed_semiAxisMajorTorsionAxis_1 = "x"
+
+
+
+#ed_lensX_1                    =  100.0e-04
+#ed_lensY_1                    =  214.0e-04
+#ed_lensZ_1                    =  0.0e-04
+#ed_lensSemiAxisMajor_1        =  20.0e-04
+#ed_targetX_1                  =  0.0e-04
+#ed_targetY_1                  =  0.0e-04
+#ed_targetZ_1                  =  0.0e-04
+#ed_targetSemiAxisMajor_1      =  20.0e-04
+#ed_targetSemiAxisMinor_1      =  20.0e-04
+#ed_pulseNumber_1              =  1
+#ed_wavelength_1               =  0.351
+#ed_crossSectionFunctionType_1 = "gaussian1D"
+#ed_gaussianExponent_1         =  4.0
+#ed_gaussianRadiusMajor_1      =  20e-04
+#ed_gaussianRadiusMinor_1      =  20e-04
+#ed_numberOfRays_1             =  4096
+#ed_gridType_1                 = "regular1D"
+#ed_gridnRadialTics_1          =  64
+#ed_semiAxisMajorTorsionAngle_1=  0.0
+#ed_semiAxisMajorTorsionAxis_1 = "x"
+#
+#ed_lensX_2                    =  100.0e-04
+#ed_lensY_2                    =  -214.0e-04
+#ed_lensZ_2                    =  0.0e-04
+#ed_lensSemiAxisMajor_2        =  20.0e-04
+#ed_targetX_2                  =  0.0e-04
+#ed_targetY_2                  =  0.0e-04
+#ed_targetZ_2                  =  0.0e-04
+#ed_targetSemiAxisMajor_2      =  20.0e-04
+#ed_targetSemiAxisMinor_2      =  20.0e-04
+#ed_pulseNumber_2              =  1
+#ed_wavelength_2               =  0.351
+#ed_crossSectionFunctionType_2 = "gaussian1D"
+#ed_gaussianExponent_2         =  4.0
+#ed_gaussianRadiusMajor_2      =  20e-04
+#ed_gaussianRadiusMinor_2      =  20e-04
+#ed_numberOfRays_2             =  4096
+#ed_gridType_2                 = "regular1D"
+#ed_gridnRadialTics_2          =  64
+#ed_semiAxisMajorTorsionAngle_2=  0.0
+#ed_semiAxisMajorTorsionAxis_2 = "x"
+#
+#ed_lensX_3                    =  100e-04
+#ed_lensY_3                    =  119.0e-04
+#ed_lensZ_3                    =  0.0e-04
+#ed_lensSemiAxisMajor_3        =  30.0e-04
+#ed_targetX_3                  =  0.0e-04
+#ed_targetY_3                  =  0.0e-04
+#ed_targetZ_3                  =  0.0e-04
+#ed_targetSemiAxisMajor_3      =  30.0e-04
+#ed_targetSemiAxisMinor_3      =  30.0e-04
+#ed_pulseNumber_3              =  1
+#ed_wavelength_3               =  0.351
+#ed_crossSectionFunctionType_3 = "gaussian1D"
+#ed_gaussianExponent_3         =  4.0
+#ed_gaussianRadiusMajor_3      =  30e-04
+#ed_gaussianRadiusMinor_3      =  30e-04
+#ed_numberOfRays_3             =  4096
+#ed_gridType_3                 = "regular1D"
+#ed_gridnRadialTics_3          =  64
+#ed_semiAxisMajorTorsionAngle_3=  0.0
+#ed_semiAxisMajorTorsionAxis_3 = "x"
+#
+#ed_lensX_4                    =  100e-04
+#ed_lensY_4                    =  -119.0e-04
+#ed_lensZ_4                    =  0.0e-04
+#ed_lensSemiAxisMajor_4        =  30.0e-04
+#ed_targetX_4                  =  0.0e-04
+#ed_targetY_4                  =  0.0e-04
+#ed_targetZ_4                  =  0.0e-04
+#ed_targetSemiAxisMajor_4      =  30.0e-04
+#ed_targetSemiAxisMinor_4      =  30.0e-04
+#ed_pulseNumber_4              =  1
+#ed_wavelength_4               =  0.351
+#ed_crossSectionFunctionType_4 = "gaussian1D"
+#ed_gaussianExponent_4         =  4.0
+#ed_gaussianRadiusMajor_4      =  30e-04
+#ed_gaussianRadiusMinor_4      =  30e-04
+#ed_numberOfRays_4             =  4096
+#ed_gridType_4                 = "regular1D"
+#ed_gridnRadialTics_4          =  64
+#ed_semiAxisMajorTorsionAngle_4=  0.0
+#ed_semiAxisMajorTorsionAxis_4 = "x"
+
+
+#################################
+#                               #
+#     CONDUCTION PARAMETERS     #
+#                               #
+#################################
+useDiffuse      = .true.
+useDIffuseTherm = .true.
+useConductivity = .true.
+diff_useEleCond = .true.
+diff_eleFlMode  = "fl_harmonic"
+diff_eleFlCoef  = 0.06
+diff_thetaImplct = 1
+#diff_anisoCondForEle = .false.
+#diff_useCrossCond = .false.
+#diff_anisoCondForIon = .false.
+
+diff_eleXlBoundaryType = "neumann"
+diff_eleXrBoundaryType = "neumann"
+diff_eleYlBoundaryType = "neumann"
+diff_eleYrBoundaryType = "neumann"
+diff_eleZlBoundaryType = "neumann"
+diff_eleZrBoundaryType = "neumann"
+
+
+#useMagneticResistivity  = .false.
+#resistivity         = 1.0e-18 # magnetic Resistivity
+
+#useViscosity        = .false.
+
+
+####################################
+#                                  #
+#     HEAT EXCHANGE PARAMETERS     #
+#                                  #
+####################################
+useHeatexchange = .true.
+
+
+##########################
+#                        #
+#     EOS PARAMETERS     #
+#                        #
+##########################
+eosModeInit      = "dens_temp_gather"
+smallt           = 1.0
+smallx           = 1.0e-99
+eos_useLogTables = .false.
+eos_maxNewton    = 5000
+
+############################
+#                          #
+#     HYDRO PARAMETERS     #
+#                          #
+############################
+useHydro = .true.
+ 
+order            = 3        # Interpolation order (first/second/third/fifth order)
+slopeLimiter     = "minmod" # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
+LimitedSlopeBeta = 1.       # Slope parameter for the "limited" slope by Toro
+charLimiting     = .true.   # Characteristic limiting vs. Primitive limiting
+use_avisc        = .true.   # use artificial viscosity (originally for PPM)
+cvisc            = 0.1      # coefficient for artificial viscosity
+use_flattening   = .false.  # use flattening (dissipative) (originally for PPM)
+use_steepening   = .false.  # use contact steepening (originally for PPM)
+use_upwindTVD    = .false.  # use upwind biased TVD slope for PPM (need nguard=6)
+use_hybridOrder  = .true.   # enable an adaptively varying reconstruction order scheme
+RiemannSolver    = "HLL"   # Roe, HLL, HLLC, LLF, Marquina, hybrid
+entropy          = .false.  # Entropy fix for the Roe solver
+shockDetect      = .true.   # Shock Detect for numerical stability
+use_3dFullCTU    = .true.
+
+## add Biermann
+#use_Biermann      = .true.
+#use_Biermann3T    = .false.
+#hy_biermannSource = .true.
+## hy_biermethod     = 2
+#bierLimiter       = 0.001
+#useLimiter        = .true.
+## useHelicity       = .true.
+## hy_helicity       = 0.001
+#hy_avoidnegative3T = .true.
+#hy_writenegative3T = .false.
+
+#use_Hall = .false.
+#useThermalForce = .false.
+#hy_ThermalForceSource = .false.
+
+# Hydro boundary conditions:
+xl_boundary_type = "outflow"
+xr_boundary_type = "outflow"
+yl_boundary_type = "outflow"
+yr_boundary_type = "outflow"
+zl_boundary_type = "outflow"
+zr_boundary_type = "outflow"
+
+
+##############################
+#                            #
+#     INITIAL CONDITIONS     #
+#                            #
+##############################
+
+#sim_targetRadius = 200.0e-04
+#sim_targetHeight = 20.0e-04
+#sim_vacuumHeight = 60.0e-04
+
+# Target material defaults set for Aluminum at room temperature:
+#sim_rhoTar1  = 1.04
+#sim_teleTar1 = 290.11375
+#sim_tionTar1 = 290.11375
+#sim_tradTar1 = 290.11375
+#ms_tar1A = 6.5
+#ms_tar1Z = 3.5
+#ms_tar1ZMin = 0.02
+#eos_tar1EosType = "eos_tab"
+#eos_tar1SubType = "ionmix4"
+#eos_targTableFile = "al-imx-003.cn4"
+#eos_tar1TableFile = "CH-BADGER-TOPS-Final.cn4"
+
+sim_rhoTar1  = 1.04
+sim_teleTar1 = 290.11375
+sim_tionTar1 = 290.11375
+sim_tradTar1 = 290.11375
+ms_tar1A = 6.5
+ms_tar1Z = 3.5
+ms_tar1ZMin = 0.02
+eos_tar1EosType = "eos_tab"
+eos_tar1SubType = "ionmix4"
+#eos_targTableFile = "al-imx-003.cn4"
+eos_tar1TableFile = "CH-BADGER-TOPS-Final.cn4"
+
+sim_rhoTar2  = 1.04
+sim_teleTar2 = 290.11375
+sim_tionTar2 = 290.11375
+sim_tradTar2 = 290.11375
+ms_tar2A = 6.5
+ms_tar2Z = 3.5
+ms_tar2ZMin = 0.02
+eos_tar2EosType = "eos_tab"
+eos_tar2SubType = "ionmix4"
+#eos_targTableFile = "al-imx-003.cn4"
+eos_tar2TableFile = "CH-BADGER-TOPS-Final.cn4"
+
+sim_rhoTar3  = 1.04
+sim_teleTar3 = 290.11375
+sim_tionTar3 = 290.11375
+sim_tradTar3 = 290.11375
+ms_tar3A = 6.5
+ms_tar3Z = 3.5
+ms_tar3ZMin = 0.02
+eos_tar3EosType = "eos_tab"
+eos_tar3SubType = "ionmix4"
+#eos_targTableFile = "al-imx-003.cn4"
+eos_tar3TableFile = "CH-BADGER-TOPS-Final.cn4"
+
+
+# Chamber material defaults set for Helium at pressure 1.6 mbar:
+sim_rhoCham  = 1.0e-6
+sim_teleCham = 290.11375
+sim_tionCham = 290.11375
+sim_tradCham = 290.11375
+ms_chamA = 4.002602
+ms_chamZ = 2.0
+eos_chamEosType = "eos_tab"
+eos_chamSubType = "ionmix4"
+#eos_chamTableFile = "he-imx-005.cn4"
+eos_chamTableFile = "He-BADGER-TOPS-Final.cn4"
+
+###########################
+#                         #
+#     TIME PARAMETERS     #
+#                         #
+###########################
+tstep_change_factor = 1.10
+cfl            = 0.2
+dt_diff_factor = 1.0e+100 # Disable diffusion dt
+rt_dtFactor    = 1.0e+100
+hx_dtFactor    = 1.0e+100
+tmax           = 1.0e-11
+dtmin          = 1.0e-16
+dtinit         = 1.0e-15
+dtmax          = 2.0e-12
+nend           = 10000000
+
+
+###########################
+#                         #
+#     MESH PARAMETERS     #
+#                         #
+###########################
+geometry = "cartesian"
+
+# Domain size:
+xmin = -50e-4
+xmax = 250e-4
+
+#gr_hypreSolverType = "HYPRE_PCG"
+#gr_hyprePcType =  "HYPRE_ILU"
+#gr_hypreMaxIter = 5000
+#gr_hypreRelTol = 1.0e-8
+gr_hypreUseFloor = .false.
+# Total number of blocks:
+nblockx = 5
+
+lrefine_max = 6
+lrefine_min = 6
+lrefine_min_init = 6
+refine_var_1 = "dens"
+refine_var_2 = "tele"
+
+iProcs = 4
+#jProcs = 4
+#kProcs = 1

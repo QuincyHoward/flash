@@ -330,3 +330,14 @@ flash/scenarios/sandwich/**/sim_input*/
 flash/scenarios/sandwich/**/sim_input*/**
 flash/scenarios/sandwich/**/wsl_*.log
 flash/scenarios/sandwich/**/*.png
+
+# ================================================================
+# SNBtest 场景例外 (置于文件尾部, 覆盖 flash_input/、physics/ 等全局规则)
+# 仅放行场景运行必需输入; source_patches(F90 补丁) 与 src/(FLASH 源码)
+# 属 FLASH 派生内容, License §3 禁止再分发 → 保持忽略 (修改记录见 md 文档)
+# ================================================================
+!flash/scenarios/private/SNB/SNBtest/Test/t001/flash_input/
+!flash/scenarios/private/SNB/SNBtest/Test/t001/flash_input/*.par
+!flash/scenarios/private/SNB/SNBtest/Test/t001/hpc_pack/
+!flash/scenarios/private/SNB/SNBtest/Test/t001/hpc_pack/Makefile.h.hpc
+!**/SNBtest/Test/**/*.hpc
