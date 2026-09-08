@@ -1,4 +1,4 @@
-"""thin_layer_sandwich — Si/CH/He 与 Al/CH/He 三层靶场景
+"""thin_layer_sandwich — Si/CH/He 三层靶场景
 
 完全自包含, 不依赖 flash_demo/。
 """
@@ -27,7 +27,6 @@ def _load_defaults(filename):
     return mod
 
 _DSI = _load_defaults("defaults_si.py")
-_DAL = _load_defaults("defaults_al.py")
 
 # 本地共享模块 (par_builder 从本目录找 defaults.py)
 sys.path.insert(0, str(_HERE))
@@ -243,45 +242,5 @@ scenario_si = _make_auto_gen_cls('si')(
     interpolate=_make_interpolate(),
 )
 
-# ------ Al 场景 ------
-
-scenario_al = _make_auto_gen_cls('al')(
-    name="thin_layer_sandwich_al",
-    description="Al/CH/He 三层靶 5e11 W/cm² 激光烧蚀 (原始 EOS 表)",
-    run_dir_name="runs_thin_layer_sandwich_al",
-    scenario_dir=_HERE,
-    sim_input_dir=_HERE / "sim_input_al",
-    sim_name=_DAL.SIM_NAME,
-    flash_setup_args=THIN_LAYER_SETUP,
-    default_params={
-        "sim_polyHeight": _DAL.DEFAULT_POLY_HEIGHT,
-        "sim_rhoPoly": _DAL.DEFAULT_RHO_POLY,
-        "sim_targHeight": _DAL.DEFAULT_TARG_HEIGHT,
-        "sim_rhoTarg": _DAL.DEFAULT_RHO_TARG,
-        "sim_rhoCham": _DAL.DEFAULT_RHO_CHAM,
-        "laser_wavelength": _DAL.DEFAULT_WAVELENGTH,
-        "laser_times": [t for t, _ in _DAL.DEFAULT_LASER_PULSE],
-        "laser_powers": [p for _, p in _DAL.DEFAULT_LASER_PULSE],
-        "tmax": _DAL.DEFAULT_TMAX,
-        "dtinit": _DAL.DEFAULT_DTINIT,
-        "dtmin": _DAL.DEFAULT_DTMIN,
-        "xmin_cm": _DAL.XMIN_CM,
-        "xmax_cm": _DAL.XMAX_CM,
-        "nblockx": _DAL.NBX,
-        "lrefine_max": _DAL.LR8,
-        "lrefine_min": _DAL.LR1,
-        "output_t_min": _DAL.OUTPUT_T_MIN,
-        "output_t_max": _DAL.OUTPUT_T_MAX,
-        "output_t_step": _DAL.OUTPUT_T_STEP,
-        "plot_interval_step": _DAL.DEFAULT_PLOT_INTERVAL_STEP,
-    },
-    default_output_fields=DEFAULT_OUTPUT_FIELDS,
-    build_par=_make_build_par(_DAL),
-    build_grid=_make_build_grid(_DAL),
-    interpolate=_make_interpolate(),
-)
-
 register("thin_layer_sandwich_si",
          "flash.scenarios.sandwich.thin_layer_sandwich", "scenario_si")
-register("thin_layer_sandwich_al",
-         "flash.scenarios.sandwich.thin_layer_sandwich", "scenario_al")
