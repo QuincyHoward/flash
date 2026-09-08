@@ -11,7 +11,7 @@ SSH 多路由延迟测试与自动选择最佳线路
   1. 测试所有路由的 TCP 连接延迟 (SYN-ACK)
   2. 自动选择延迟最低的线路
   3. 缓存最佳路由结果
-  4. 支持 scfa2696 和 sch0348 两个账号的多路由列表
+  4. 支持多账户多路由列表 (账户信息读取自 ~/.physimx/flash/hpc_accounts.json)
 
 用法:
     from flash.flash_run.remote.route_tester import (
@@ -329,17 +329,17 @@ class RouteTester:
           1. 凭据数据中的 route_key (由 _config.py 元数据设定)
           2. 凭据名称中的关键字匹配
         """
-        # 1. 优先使用凭据中存储的 route_key
+        # 1. 优先使用凭据中存储的 route_key (兼容历史账号名)
         if cred_data:
             rk = cred_data.get("route_key", "")
-            if rk == "scfa2696":
+            if rk in ("nc_e", "scfa2696"):
                 return ROUTES_SCFA2696
-            elif rk == "sch0348":
+            elif rk in ("bscc_t6", "sch0348"):
                 return ROUTES_SCH0348
 
         # 2. 按名称模式匹配
         name_lower = cred_name.lower()
-        if "scfa2696" in name_lower or "nc-e" in name_lower:
+        if "nc-e" in name_lower:
             return ROUTES_SCFA2696
         # flash_ssh (第一个账户) → NC-E
         if cred_name == "flash_ssh":
@@ -352,31 +352,40 @@ class RouteTester:
         """解析凭据对应的路由 key。
 
         Returns:
-            "scfa2696" 或 "sch0348"
+            "nc_e" 或 "bscc_t6" (历史 "scfa2696"/"sch0348" 自动归一化)
         """
         if cred_data:
             rk = cred_data.get("route_key", "")
-            if rk in ("scfa2696", "sch0348"):
-                return rk
-        if cred_name == "flash_ssh" or "scfa2696" in cred_name.lower() or "nc-e" in cred_name.lower():
-            return "scfa2696"
-        return "sch0348"
+            if rk in ("scfa2696", "nc_e"):
+                return "nc_e"
+            if rk in ("sch0348", "bscc_t6"):
+                return "bscc_t6"
+        if cred_name == "flash_ssh" or "nc-e" in cred_name.lower():
+            return "nc_e"
+        return "bscc_t6"
 
     @staticmethod
     def account_label(cred_name: str, cred_data: Optional[Dict[str, Any]] = None) -> str:
-        """返回账户的人类可读标签。"""
-        rk = RouteTester.resolve_route_key(cred_name, cred_data)
-        if rk == "scfa2696":
-            return "scfa2696@NC-E"
-        return "sch0348@BSCC-T6"
+        """返回账户的人类可读标签 (用户名来自凭据/明文 JSON, 不再硬编码)。"""
+        username = (cred_data or {}).get("ssh_username", "")
+        if not username:
+            try:
+                from flash._core.credentials._config import get_ssh_username
+                username = get_ssh_username(cred_name)
+            except Exception:  # noqa: BLE001
+                username = cred_name
+        return username or cred_name
 
     @staticmethod
     def routes_for_username(username: str) -> List[Dict[str, Any]]:
-        """根据用户名返回对应的预定义路由列表。"""
-        if "scfa2696" in username:
-            return ROUTES_SCFA2696
-        elif "sch0348" in username:
-            return ROUTES_SCH0348
+        """根据用户名返回对应的预定义路由列表 (按用户名匹配 JSON 账户)。"""
+        try:
+            from flash._core.credentials.hpc_config import load_hpc_accounts
+            for acct in load_hpc_accounts()["accounts"].values():
+                if acct.get("ssh_username") == username and acct.get("routes"):
+                    return [dict(r) for r in acct["routes"]]
+        except Exception:  # noqa: BLE001
+            pass
         return []
 
 
@@ -430,12 +439,10 @@ def main():
 
     if len(_sys.argv) > 1:
         target = _sys.argv[1].lower()
-        if "sch0348" in target or "bscc" in target:
-            routes = ROUTES_SCH0348
-            label = "sch0348@BSCC-T6"
+        if "bscc" in target or "bscc_t6" in target:
+            routes, label = ROUTES_SCH0348, "BSCC-T6"
         else:
-            routes = ROUTES_SCFA2696
-            label = "scfa2696@NC-E"
+            routes, label = ROUTES_SCFA2696, "NC-E"
 
         print(f"测试 {label} 的路由...")
         best = test_and_select_best_route(target if "@" in target else label, routes)
@@ -449,17 +456,28 @@ def main():
         print("测试所有 SSH 路由 (TCP 连接延迟)...")
         print("=" * 60)
 
-        print("\n[账号 1: scfa2696@NC-E]")
-        best1 = test_and_select_best_route("scfa2696@NC-E", ROUTES_SCFA2696)
+        # 账户基础信息来自明文 JSON (~/.physimx/flash/hpc_accounts.json)
+        from flash._core.credentials.hpc_config import load_hpc_accounts
 
-        print("\n[账号 2: sch0348@BSCC-T6]")
-        best2 = test_and_select_best_route("sch0348@BSCC-T6", ROUTES_SCH0348)
+        accounts = load_hpc_accounts().get("accounts", {})
+        names = list(accounts.keys())
+        report: List[Tuple[str, Optional[Dict[str, Any]]]] = []
+        for name in names:
+            meta = accounts.get(name, {})
+            routes = RouteTester.routes_for_account(name, None) or ROUTES_SCFA2696
+            print(f"\n[{name}: {meta.get('ssh_username', '')}]")
+            best = test_and_select_best_route(
+                meta.get("ssh_username") or name, routes
+            )
+            report.append((name, best))
 
         print("\n" + "=" * 60)
-        if best1:
-            print(f"  scfa2696 最佳: {best1['username']}@{best1['host']}:{best1['port']}  ({best1['latency_ms']:.0f}ms TCP)")
-        if best2:
-            print(f"  sch0348 最佳: {best2['username']}@{best2['host']}:{best2['port']}  ({best2['latency_ms']:.0f}ms TCP)")
+        for name, best in report:
+            if best:
+                print(
+                    f"  {name} 最佳: {best['username']}@{best['host']}:"
+                    f"{best['port']}  ({best['latency_ms']:.0f}ms TCP)"
+                )
 
 
 if __name__ == "__main__":

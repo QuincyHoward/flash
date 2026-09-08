@@ -2,6 +2,12 @@
 Flash 凭据管理 -- 配置定义
 ============================
 定义所有凭据模板及其默认值。
+
+安全性设计:
+  超算账户基础信息 (SSH 用户名/主机/端口/线路) 不再硬编码于包内,
+  统一存放于明文 ``~/.physimx/flash/hpc_accounts.json`` (见 hpc_config.py);
+  本模块读取时 JSON 优先, ENTRIES 仅保留字段结构与非敏感中性默认值。
+  密码始终加密存储 (credentials.enc)。
 """
 
 from typing import Any, Dict, List, Tuple
@@ -18,8 +24,9 @@ DEFAULT_PASSWORD = "123"
 
 # ── 凭据条目定义 ──────────────────────────────────
 
-# 所有 ParaCloud 可用线路 (host, port)
-ROUTES_ALL: List[Dict[str, Any]] = [
+# 旧版包内线路表 (仅用于 hpc_config extract 一次性提取到明文 JSON;
+# 运行时一律从 hpc_accounts.json 读取, 不再作为默认值分发)
+LEGACY_PACKAGE_ROUTES: List[Dict[str, Any]] = [
     {"host": "ssh.cn-zhongwei-1.paracloud.com",      "port": 8443, "label": "中卫-1 :8443"},
     {"host": "ssh.cn-hongkong-1.paracloud.com",       "port": 22,   "label": "香港-1 :22"},
     {"host": "ssh.cn-zhongwei-1.paracloud.com",       "port": 22,   "label": "中卫-1 :22"},
@@ -40,13 +47,12 @@ ENTRIES: List[EntryDef] = [
             ("connection_mode", "连接模式 [auto/manual]", "auto"),
             ("password", "密码", "123"),
         ],
-        "route_key": "scfa2696",
+        "route_key": "nc_e",
         "manual_fields": [
-            ("host",     "SSH 主机", "ssh.cn-zhongwei-1.paracloud.com"),
+            ("host",     "SSH 主机", ""),
             ("port",     "SSH 端口", 22),
-            ("username", "用户名",   "scfa2696@NC-E"),
+            ("username", "用户名",   ""),
         ],
-        "routes": ROUTES_ALL,
     },
     {
         "name": "flash_ssh_2",
@@ -55,13 +61,12 @@ ENTRIES: List[EntryDef] = [
             ("connection_mode", "连接模式 [auto/manual]", "auto"),
             ("password", "密码", "123"),
         ],
-        "route_key": "sch0348",
+        "route_key": "bscc_t6",
         "manual_fields": [
-            ("host",     "SSH 主机", "ssh.cn-zhongwei-1.paracloud.com"),
+            ("host",     "SSH 主机", ""),
             ("port",     "SSH 端口", 22),
-            ("username", "用户名",   "sch0348@BSCC-T6"),
+            ("username", "用户名",   ""),
         ],
-        "routes": ROUTES_ALL,
     },
 
     # Gitee 凭据
@@ -154,23 +159,30 @@ def _get_field(entry: EntryDef, key: str, default=None):
 
 
 def get_ssh_username(name: str) -> str:
-    """获取 SSH 账户的用户名 (从预配置读取, 未找到则返回 name 本身)。"""
+    """获取 SSH 账户的用户名。
+
+    优先级: hpc_accounts.json (明文, 用户可编辑) → ENTRIES 兜底。
+    """
+    from .hpc_config import get_hpc_ssh_username
+    user = get_hpc_ssh_username(name)
+    if user:
+        return user
     entry = ENTRIES_BY_NAME.get(name)
     if entry:
-        return _get_field(entry, "username", name)
+        return _get_field(entry, "username", "") or name
     return name
 
 
 def get_ssh_routes(name: str) -> List[Dict[str, Any]]:
-    """获取 SSH 账户的线路列表 (从预配置读取)。"""
+    """获取 SSH 账户的线路列表 (hpc_accounts.json 优先)。"""
+    from .hpc_config import get_hpc_routes
+    routes = get_hpc_routes(name)
+    if routes:
+        return routes
     entry = ENTRIES_BY_NAME.get(name)
     if not entry:
         return []
-    # 优先使用 entry 的 routes 字段（多线路）
-    routes = entry.get("routes")
-    if routes:
-        return list(routes)
-    # fallback: 从 manual_fields 构建单条线路
+    # fallback: 从 manual_fields 构建单条线路 (仅在用户已手工填写 host 时)
     host = _get_field(entry, "host")
     port = _get_field(entry, "port", 22)
     if not host:
@@ -179,7 +191,9 @@ def get_ssh_routes(name: str) -> List[Dict[str, Any]]:
     return [{"host": host, "port": int(port), "label": label}]
 
 
-# PRECONFIGURED_SSH: 从 ENTRES 自动构建
+# PRECONFIGURED_SSH: 从 ENTRIES + hpc_accounts.json 动态构建
+# (注意: 这里是模块导入期快照; 交互流程中应改用 get_ssh_username/get_ssh_routes
+#  实时读取, 以反映用户对 JSON 的手工编辑)
 PRECONFIGURED_SSH: List[Dict[str, Any]] = [
     {
         "name": e["name"],

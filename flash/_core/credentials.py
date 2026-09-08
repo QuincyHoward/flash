@@ -718,11 +718,11 @@ def add_account() -> bool:
 
     # 确定账户类型
     if num == 1:
-        route_key = "scfa2696"
-        label = "scfa2696@NC-E"
+        route_key = "nc_e"
+        label = "NC-E"
     else:
-        route_key = "sch0348"
-        label = "sch0348@BSCC-T6"
+        route_key = "bscc_t6"
+        label = "BSCC-T6"
 
     print(f"\n  添加新超算账户: {name} ({label})")
     print(f"  连接模式: auto=自动选路, manual=手动指定")
@@ -976,7 +976,7 @@ def _route_test_menu(cm, accounts):
         print(f"\n  [{cred_name}] {label}:")
         # 使用 route_key 确定路由列表
         route_key = RouteTester.resolve_route_key(cred_name, cred)
-        if route_key == "scfa2696":
+        if route_key in ("nc_e", "scfa2696"):
             from flash.flash_run.remote.route_tester import ROUTES_SCFA2696 as routes
         else:
             from flash.flash_run.remote.route_tester import ROUTES_SCH0348 as routes

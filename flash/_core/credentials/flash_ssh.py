@@ -50,6 +50,54 @@ from ._core import (
     ssh_account_name,
 )
 from ._config import PRECONFIGURED_SSH, get_ssh_username, get_ssh_routes
+from .hpc_config import (
+    ensure_hpc_accounts_file,
+    set_hpc_account_basics,
+)
+
+
+# ── 明文基础信息交互补全 (hpc_accounts.json) ─────────────
+
+def _ask_routes_interactive() -> List[Dict[str, Any]]:
+    """交互式录入 SSH 线路 (host/port), 空行结束。"""
+    routes: List[Dict[str, Any]] = []
+    print("  录入 SSH 线路 (直接回车跳过; 这些信息将明文保存到 hpc_accounts.json):")
+    while True:
+        host = input(f"  {'SSH 主机':12s} [{'(结束录入)' if routes else ''}]: ").strip()
+        if not host:
+            break
+        port_s = input(f"  {'SSH 端口':12s} [22]: ").strip()
+        try:
+            port = int(port_s) if port_s else 22
+        except ValueError:
+            port = 22
+        routes.append({"host": host, "port": port, "label": f"{host}:{port}"})
+    return routes
+
+
+def _ensure_account_basics(name: str) -> tuple:
+    """确保账户基础信息 (ssh_username/routes) 就绪: JSON 优先, 缺失则交互补全。
+
+    Returns:
+        (ssh_username, routes) — 基础信息已回写明文 JSON (密码除外)。
+    """
+    from ._config import get_ssh_username, get_ssh_routes  # JSON 优先
+    ssh_username = get_ssh_username(name)
+    if ssh_username == name:  # 未配置时 get_ssh_username 回退为 name 本身
+        ssh_username = ""
+    routes = get_ssh_routes(name)
+
+    if not ssh_username:
+        while not ssh_username:
+            ssh_username = input(f"  {'SSH 用户名':12s} (如 user@cluster): ").strip()
+        set_hpc_account_basics(name, ssh_username=ssh_username)
+        print(f"  ✅ SSH 用户名已明文保存到 hpc_accounts.json")
+    if not routes:
+        routes = _ask_routes_interactive()
+        if routes:
+            set_hpc_account_basics(name, routes=routes)
+            print(f"  ✅ {len(routes)} 条线路已明文保存到 hpc_accounts.json")
+    return ssh_username, routes
 
 
 # ── 线路测试 ──────────────────────────────────────────
@@ -142,18 +190,12 @@ def add_account(cm, number: int = None, interactive: bool = False) -> None:
         number = next_ssh_number(cm)
     name = ssh_account_name(number)
     
-    # 尝试从预配置获取
-    ssh_username = get_ssh_username(name)
-    routes = get_ssh_routes(name)
-    
-    # 如果是手动添加（不在预配置中），询问用户名
-    if ssh_username == name:
-        print(f"\n  --- {'添加新' if not cm.get(name) else '修改'} SSH 账户: {name} ---")
-        ssh_username = ask_one("  SSH 用户名", name)
-        routes = []
-    else:
-        print(f"\n  --- {'添加新' if not cm.get(name) else '修改'} SSH 账户: {name} ---")
-        print(f"  SSH 用户名: {ssh_username}")
+    ensure_hpc_accounts_file()
+
+    # 基础信息: hpc_accounts.json 优先, 缺失时交互补全 (回写 JSON, 明文)
+    print(f"\n  --- {'添加新' if not cm.get(name) else '修改'} SSH 账户: {name} ---")
+    ssh_username, routes = _ensure_account_basics(name)
+    print(f"  SSH 用户名: {ssh_username}")
 
     # 设置密码
     default_pwd = get_default_password()
@@ -334,10 +376,23 @@ def _add_preconfigured(cm, idx: int) -> None:
     pre = PRECONFIGURED_SSH[idx]
     name = pre["name"]
     title = pre["title"]
-    ssh_username = pre["ssh_username"]
-    routes = pre["routes"]
 
     print(f"\n  ─── 添加预配置账户: {title} ──────────────────")
+
+    # 基础信息: hpc_accounts.json 优先 (实时读取), 缺失时交互补全
+    from ._config import get_ssh_username as _gsu, get_ssh_routes as _gsr
+    ssh_username = _gsu(name) if _gsu(name) != name else ""
+    if not ssh_username:
+        while not ssh_username:
+            ssh_username = input(f"  {'SSH 用户名':12s} (如 user@cluster): ").strip()
+        set_hpc_account_basics(name, title=title, ssh_username=ssh_username)
+        print(f"  ✅ SSH 用户名已明文保存到 hpc_accounts.json")
+    routes = _gsr(name)
+    if not routes:
+        routes = _ask_routes_interactive()
+        if routes:
+            set_hpc_account_basics(name, routes=routes)
+
     print(f"  SSH 用户名: {ssh_username}")
     print(f"  可用线路: {len(routes)} 条")
     print()

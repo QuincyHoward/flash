@@ -152,7 +152,7 @@ class FlashRemoteDeploy:
         route_key = self._credential.get("route_key", "")
         password = self._credential.get("password", "")
 
-        if route_key == "scfa2696":
+        if route_key in ("scfa2696", "nc_e"):
             routes = ROUTES_SCFA2696
         else:
             routes = ROUTES_SCH0348
