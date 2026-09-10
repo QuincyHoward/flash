@@ -852,6 +852,26 @@ def remote_analysis_cmd(outdir: str) -> str:
     )
 
 
+def _par_tmax_ok(tmax: float) -> bool:
+    """检查已生成 par 的 tmax 与当前 cfg 一致 (相对容差 1e-12)。
+
+    用于 --tmax 覆盖后的再生成判定: 文件齐全但 tmax 不符时也必须重新
+    生成 (批量统一控制时间的关键 — 否则旧 par 的 tmax 会静默生效)。
+    """
+    import re as _re
+    p = INPUT_DIR / PAR_FILENAME
+    if not p.exists():
+        return False
+    for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+        m = _re.match(r"^\s*tmax\s*=\s*([0-9.eE+-]+)", line.split("#")[0])
+        if m:
+            try:
+                return abs(float(m.group(1)) - tmax) <= 1e-12 * abs(tmax)
+            except ValueError:
+                return False
+    return False
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description="OneCH_ml (wsl/hpc 一键切换)")
@@ -863,6 +883,10 @@ def main():
     ap.add_argument(
         "--wait", type=int, default=0, help="hpc monitor 等待秒数 (默认不阻塞轮询一次)",
     )
+    ap.add_argument(
+        "--tmax", type=float, default=None,
+        help="覆盖仿真结束时间 (s); 默认用 config_constants 中的规范值",
+    )
     args = ap.parse_args()
 
     print("\n" + "=" * 65)
@@ -870,6 +894,9 @@ def main():
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
     cfg = dict(config_constants)
+    if args.tmax is not None:
+        cfg["tmax"] = args.tmax
+        log(f"tmax 覆盖: {cfg['tmax']:.3e} s", "OK")
     print(f"\n  参数配置:")
     print(f"    域: [{cfg['xmin']}, {cfg['xmax']}] cm")
     print(f"    分层: shld[CH 0.1um] | samp | tar1@{cfg['L1_um']}um | samp | "
@@ -883,8 +910,11 @@ def main():
     try:
         from flash.input_gen.gen_checker import DependencyChecker
         missing = DependencyChecker(INPUT_DIR).missing_standard()
-        if missing:
-            log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
+        if missing or not _par_tmax_ok(cfg["tmax"]):
+            if missing:
+                log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
+            else:
+                log("par 中 tmax 与当前配置不符, 重新生成输入文件", "INFO")
             log("调用 input_gen 生成器生成必须文件 ...", "INFO")
             generate_input_files(cfg)
         else:

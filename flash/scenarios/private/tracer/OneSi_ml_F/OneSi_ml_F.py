@@ -1,12 +1,15 @@
 """
-VCH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
+OneSi_ml_F 场景 — 1D 多薄层单一纯材料 (硅 Si) 示踪靶烧蚀仿真
 ═══════════════════════════════════════════════════════════════════
 
-由 layer_tracer_CH 模板派生：单一示踪薄层 → 多个示踪薄层
-(原名 layer_tracer_CH_ml, 2026-08-30 更名 VCH_ml, 与 PureCH_ml 并列)。
+由 OneSi_ml 场景派生 (2026-09-02)：结构/物种/几何完全一致, 唯一物理差异是
+**全部固体层 (shld/samp/tar1/tar2/tar3/tar4/tar6) 为同一种纯材料 Si**
+(密度 2.329 g/cm^3 常温固体密度, EOS/不透明度表 Z14_1.00-20260708_0850.cn4,
+A=28.0855, Z=14) — 单一纯材料烧蚀仿真, shld/tar* 物种标记仅用于
+诊断追踪不同深度的材料运动 (无成分界面, 只有物种标记界面)。
 
-与并列场景 PureCH_ml 的唯一物理差异: 表面屏蔽层 shld 材质
-(V 6.11 g/cm^3 vs CH 1.0 g/cm^3), 其余设置完全一致。
+与 OneCH_ml 的唯一物理差异: 固体层材质 CH → Si (含 shld/samp/tar* 全部
+固体物种); 腔室 cham 仍为稀氦 He (1e-6 g/cm^3)。
 
   * 1D 笛卡尔域 x=[-0.04, 0.01] cm，FLASH_3T，NXB=16，MAXBLOCKS=4096
   * 单光束 0.351um 激光（透镜 x=-1.0，靶 x=0），82 点功率脉冲
@@ -14,28 +17,31 @@ VCH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
     L6=6um, D=50um; 示踪层间距均为 samp）:
 
       x < 0                        cham [氦 He, 1e-6 g/cm^3]
-      0        < x < delta         shld [钒 V,  6.11 g/cm^3]
-      delta    < x < L1            samp [碳氢 CH, 1.0 g/cm^3]
-      L1       < x < L1+delta      tar1 [碳氢 CH]  ← 示踪薄层 1
-      L1+delta < x < L2            samp [碳氢 CH]
-      L2       < x < L2+delta      tar2 [碳氢 CH]  ← 示踪薄层 2
-      L2+delta < x < L3            samp [碳氢 CH]
-      L3       < x < L3+delta      tar3 [碳氢 CH]  ← 示踪薄层 3
-      L3+delta < x < L4            samp [碳氢 CH]
-      L4       < x < L4+delta      tar4 [碳氢 CH]  ← 示踪薄层 4
-      L4+delta < x < L6            samp [碳氢 CH]
-      L6       < x < L6+delta      tar6 [碳氢 CH]  ← 示踪薄层 6
-      L6+delta < x < L6+delta+D    samp [碳氢 CH]
+      0        < x < delta         shld [硅 Si, 2.33 g/cm^3]  ← 表面层标记
+      delta    < x < L1            samp [硅 Si, 2.33 g/cm^3]
+      L1       < x < L1+delta      tar1 [硅 Si]  ← 示踪薄层 1
+      L1+delta < x < L2            samp [硅 Si]
+      L2       < x < L2+delta      tar2 [硅 Si]  ← 示踪薄层 2
+      L2+delta < x < L3            samp [硅 Si]
+      L3       < x < L3+delta      tar3 [硅 Si]  ← 示踪薄层 3
+      L3+delta < x < L4            samp [硅 Si]
+      L4       < x < L4+delta      tar4 [硅 Si]  ← 示踪薄层 4
+      L4+delta < x < L6            samp [硅 Si]
+      L6       < x < L6+delta      tar6 [硅 Si]  ← 示踪薄层 6
+      L6+delta < x < L6+delta+D    samp [硅 Si]
       其余 (x<-0.04 域外 / x>56.1um)  cham [氦 He]
 
   * 8 物种标记: cham/shld/samp/tar1/tar2/tar3/tar4/tar6。固体层初始均为
-    常温 (290.11375 K) 固体密度 (V 6.11, CH 1.0); tar1/tar2/tar3/tar4/tar6
-    物质同为 CH 但用独立物种标记以便诊断追踪。
-  * MGD 10 能群辐射，tabular EOS/opacity (ionmix4)
+    常温 (290.11375 K) 密度 2.33 g/cm^3 纯 Si; 各标记层物质相同, 用独立
+    物种标记以便诊断追踪 (材质单一 → 烧蚀过程无材料界面)。
+  * 辐射: 关闭 (F 变体: rt_useMGD/useOpacity/useRadTrans 均 .false.)
+  * 时间: 默认 tmax=1.0e-11 s (极短验证); 正式物理运行手动改 1.6e-9
+    或用 --tmax 覆盖。
 
 用法:
   cd <flash 包目录>
-  python -m flash.scenarios.private.tracer.VCH_ml.VCH_ml
+  python -m flash.scenarios.private.tracer.OneSi_ml_F.OneSi_ml_F   # 默认 tmax=1.0e-11
+  python flash/scenarios/private/tracer/OneSi_ml_F/OneSi_ml_F.py --tmax 1.6e-9
 """
 
 import sys
@@ -50,6 +56,16 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
+
+# ── BEGIN SCENE VARS (家族各脚本仅此块+docstring 不同; build_sic_family.py 换块生成) ──
+SCENE_NAME = "OneSi_ml_F" # 场景名 → SIM_NAME/par 文件名/图题/SLURM 作业名
+MAT_LABEL = "Si"  # 固体材料标签 (硅)
+MAT_TABLE = "Z14_1.00-20260708_0850.cn4"   # EOS/不透明度表 (表名 1.00 为生成标称密度)
+MAT_RHO = 2.329        # 固体密度 g/cm^3 (常温固体密度; 表内密度网格为离子数密度, 覆盖充足)
+MAT_A = 28.0855      # 摩尔质量 g/mol
+MAT_Z = 14             # 核电荷数
+RADIATION_OFF = True # True=关闭辐射输运 (F 变体: 三开关 .false.)
+# ── END SCENE VARS ──────────────────────────────────────────────────────────
 
 # ── Bootstrap: 定位 flash 包根目录 ─────────────────────────
 _ROOT = Path(__file__).resolve().parent
@@ -83,16 +99,16 @@ config_constants = {
     "L4_um": 4.0,
     "L6_um": 6.0,
     "D_um": 50.0,
-    # 仿真结束时间 (s)。搭建验证阶段设为极小值; 正式物理运行时恢复 1.6e-9。
-    "tmax": 1.6e-9,
+    # 仿真结束时间 (s)。验证阶段为极短值 1.0e-11 (脚本默认);
+    # 正式物理运行手动改回 1.6e-9 或用 --tmax 1.6e-9 覆盖。
+    "tmax": 1.0e-11,
     # 仿真域 (cm)
     "xmin": -0.04,
     "xmax": 0.01,
     # 网格
     "nblockx": 8,
     "lrefine_max": 9,
-    # 输出频率 (与纯 CH 基准 CH_CH_**um8.00e-02 保持一致: plotFileIntervalStep=2000;
-    # checkpointFileIntervalStep=400 与基准相同)
+    # 输出频率 (与基准一致: plotFileIntervalStep=2000, checkpointFileIntervalStep=400)
     "plot_interval_step": 2000,
     "checkpoint_interval_step": 400,
     # 维度 (用于按装置×维度自动配置资源核数)
@@ -105,15 +121,16 @@ config_constants = {
 }
 
 # FLASH setup 标志 (wsl/hpc 共用) — 8 物种
+# 注: 关辐射 (_F 变体) 为纯运行时 .par 开关, setup/编译完全不变 (+mgd 保留)
 SETUP_FLAGS = (
     "-1d +cartesian -nxb=16 +hdf5typeio species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6 "
     "+mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 "
     "ed_maxPulseSections=300 -maxblocks=4096"
 )
 
-# 仿真/对象/par 命名 (与 PureCH_ml 区分, 避免相互覆盖 objdir)
-SIM_NAME = "LaserSlab_VCHml"
-PAR_FILENAME = "laserslab_vchml.par"
+# 仿真/对象/par 命名 (各场景唯一, 避免相互覆盖 objdir)
+SIM_NAME = f"LaserSlab_{SCENE_NAME}"
+PAR_FILENAME = f"laserslab_{SCENE_NAME.lower()}.par"
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
 from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
@@ -127,18 +144,26 @@ PLOTS_DIR = OUTPUT_DIR / "plots"
 # 物种列表 (绘图/生成器共用, 顺序即 FLASH 物种常量顺序)
 SPECIES_LIST = ["cham", "shld", "samp", "tar1", "tar2", "tar3", "tar4", "tar6"]
 
+# 腔室 He 表: Gen_eos_op_data 族 6 能群表 (与固体层 Si/C 表群结构一致)。
+# 注意: BADGER 族 He 表 (He-BADGER-TOPS-Final.cn4) 为 10 能群, 与 6 群的
+# Si/C 表混用会触发 op_readIonmix4Tables "bad size of IONMIX4 energy group
+# grid" abort — FLASH 要求全部物种不透明度表能群数一致。
+# 同族 6 群 He 表 Z02_1.00-20260708_0851.cn4 与 ch_center 场景先例一致。
+CHAM_TABLE = "Z02_1.00-20260708_0851.cn4"
+
 
 def log(msg: str, level: str = "INFO"):
     tag = {"INFO": "[i]", "OK": "[OK]", "WARN": "[!]", "ERROR": "[X]", "STEP": "[-]"}.get(level, "[i]")
     print(f"  {tag} {msg}")
 
 
-# ── 物种定义 (CH 多薄层场景) ───────────────────────────────
+# ── 物种定义 (单一纯材料多薄层场景) ─────────────────────────
 def build_species_defs(delta_cm: float, L1: float, L2: float, L3: float,
                        L4: float, L6: float, D: float) -> List[dict]:
-    """构建 8 物种定义：cham=He, shld=V, samp/tar1/tar2/tar3/tar4/tar6=CH (同一张表)。
+    """构建 8 物种定义：cham=He, shld/samp/tar1/tar2/tar3/tar4/tar6=同一纯材料。
 
-    固体层初始均为常温 (290.11375 K) 固体密度 (V 6.11, CH 1.0)。
+    单一纯材料烧蚀场景: 全部固体层 (shld/samp/tar*) 材质相同 (MAT_TABLE,
+    密度 MAT_RHO), 物种标记仅用于诊断追踪不同深度的材料运动。
     几何经 radius/height (+ radius_param/height_param) 声明为 FLASH
     运行时参数 (Config 默认值 + Simulation_data 声明 + Simulation_init
     读取), Simulation_initBlock 的区域边界引用这些参数表达式 —
@@ -152,29 +177,27 @@ def build_species_defs(delta_cm: float, L1: float, L2: float, L3: float,
         sim_tar6Radius = L6
         sim_sampHeight = D       (尾部 samp 厚度)
     """
-    he_file = "He-BADGER-TOPS-Final.cn4"
-    v_file = "V-BADGER-TOPS.cn4"
-    ch_file = "CH-QC-1-001.cn4"
+    he_file = CHAM_TABLE
     return [
         # 腔室: 稀氦 (区域外默认物种)
         {"name": "cham", "file": he_file, "rho": 1.0e-6, "A": 4.002602, "Z": 2.0},
-        # 屏蔽层: 钒 V (厚度 = delta, 固体密度)
-        {"name": "shld", "file": v_file, "rho": 6.11, "A": 50.9415, "Z": 23,
-         "radius": delta_cm},
-        # 基体层: CH (samp 多次出现; height = 尾部 samp 厚度 D)
-        {"name": "samp", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "height": D},
-        # 示踪薄层 1-4, 6: CH 标记 (radius = 累积外边界 L1/L2/L3/L4/L6)
-        {"name": "tar1", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L1, "radius_param": "sim_tar1Radius"},
-        {"name": "tar2", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L2, "radius_param": "sim_tar2Radius"},
-        {"name": "tar3", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L3, "radius_param": "sim_tar3Radius"},
-        {"name": "tar4", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L4, "radius_param": "sim_tar4Radius"},
-        {"name": "tar6", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L6, "radius_param": "sim_tar6Radius"},
+        # 表面层: 纯材料 (厚度 = delta)
+        {"name": "shld", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": delta_cm},
+        # 基体层: 纯材料 (samp 多次出现; height = 尾部 samp 厚度 D)
+        {"name": "samp", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "height": D},
+        # 示踪薄层 1-4, 6: 纯材料标记 (radius = 累积外边界 L1/L2/L3/L4/L6)
+        {"name": "tar1", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": L1, "radius_param": "sim_tar1Radius"},
+        {"name": "tar2", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": L2, "radius_param": "sim_tar2Radius"},
+        {"name": "tar3", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": L3, "radius_param": "sim_tar3Radius"},
+        {"name": "tar4", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": L4, "radius_param": "sim_tar4Radius"},
+        {"name": "tar6", "file": MAT_TABLE, "rho": MAT_RHO, "A": MAT_A,
+         "Z": MAT_Z, "radius": L6, "radius_param": "sim_tar6Radius"},
     ]
 
 
@@ -209,7 +232,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     result: Dict[str, str] = {}
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 物种/几何覆写）──
+    # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 物种/几何/材质覆写）──
     log("  [1/9] 生成 .par 文件...", "STEP")
     tmp_params = dict(CH_FLASH_PAR)
     # 新场景无 targ 物种且 samp 不声明几何参数: 显式剔除 targ 物种专属键。
@@ -224,12 +247,19 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                 or k == "sim_sampRadius" \
                 or k.startswith("plot_var"):
             del tmp_params[k]
+    # Gen_eos_op_data 表族 (Z14/Z06_*) 为 6 能群结构 (表第 4 行 nEnergyGroups=6,
+    # 表内不存边界, FLASH 仅校验群数), par 必须用 6 群 MGD 结构 — 否则
+    # op_readIonmix4Tables "bad size of IONMIX4 energy group grid" abort。
+    # 先清除 CH_FLASH_PAR 的 10 群边界 rt_mgdBounds_8..11 (bounds_1..7 随后覆写)。
+    for k in ("rt_mgdBounds_8", "rt_mgdBounds_9", "rt_mgdBounds_10",
+              "rt_mgdBounds_11"):
+        tmp_params.pop(k, None)
     par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
     # 清除维度默认参数，仅保留规范参数 + 下方覆写，避免未注册参数混入 par
     par_gen._params.clear()
     for k, v in tmp_params.items():
         par_gen.set(k, v)
-    # 覆写: 几何与材料 (shld 从零宽 CH 占位 → 0.1um V 实体层)
+    # 覆写: 几何 (与 OneCH_ml 完全一致的 12 区分层)
     # 分层几何全部经运行时参数控制 (Simulation_initBlock 引用这些参数),
     # 只改 .par 中以下 7 个值即可改变场景几何, 无需改代码:
     #   [0, shldR] shld | [shldR, tar1R] samp | [tar1R, tar1R+shldR] tar1 |
@@ -245,26 +275,57 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    par_gen.set("sim_rhoShld", 6.11)   # 模板占位值为 1 (CH), V 真实密度 6.11 g/cm^3
-    # 覆写: shld 表绑定 CH → V
-    par_gen.set("eos_shldTableFile", "V-BADGER-TOPS.cn4")
-    par_gen.set("op_shldFileName", "V-BADGER-TOPS.cn4")
-    # 新增: tar1-tar4/tar6 表绑定 (CH, 与 samp 同表)
+    # 覆写: 腔室 He 表 → 同族 6 能群表 (CH_FLASH_PAR 默认 BADGER 10 群表)
+    par_gen.set("eos_chamTableFile", CHAM_TABLE)
+    par_gen.set("op_chamFileName", CHAM_TABLE)
+    # 覆写: 材质 — 全部固体层单一纯材料 (CH_FLASH_PAR 中 shld/samp 默认为
+    # CH 的 ms_*/eos_*/op_* 值, 必须逐项覆写; tar* 无 par 默认, 由 Config
+    # 按 species_defs 生成 ms_tarXA/ms_tarZ/sim_rhoTarX 默认, 此处显式
+    # 覆写 sim_rhoTarX 以自文档化)
+    par_gen.set("sim_rhoShld", MAT_RHO)
+    par_gen.set("ms_shldA", MAT_A)                      # 默认 6.509 (CH) → MAT_A
+    par_gen.set("ms_shldZ", MAT_Z)                      # 默认 3.5 (CH) → MAT_Z
+    par_gen.set("eos_shldTableFile", MAT_TABLE)
+    par_gen.set("op_shldFileName", MAT_TABLE)
+    par_gen.set("sim_rhoSamp", MAT_RHO)
+    par_gen.set("ms_sampA", MAT_A)                      # 默认 6.509 (CH) → MAT_A
+    par_gen.set("ms_sampZ", MAT_Z)                      # 默认 3.5 (CH) → MAT_Z
+    par_gen.set("eos_sampTableFile", MAT_TABLE)
+    par_gen.set("op_sampFileName", MAT_TABLE)
     for tar in ("tar1", "tar2", "tar3", "tar4", "tar6"):
+        par_gen.set(f"sim_rho{tar.capitalize()}", MAT_RHO)
         par_gen.set(f"eos_{tar}EosType", "eos_tab")
         par_gen.set(f"eos_{tar}SubType", "ionmix4")
-        par_gen.set(f"eos_{tar}TableFile", "CH-QC-1-001.cn4")
+        par_gen.set(f"eos_{tar}TableFile", MAT_TABLE)
         par_gen.set(f"op_{tar}Absorb", "op_tabpa")
         par_gen.set(f"op_{tar}Emiss", "op_tabpe")
         par_gen.set(f"op_{tar}Trans", "op_tabro")
         par_gen.set(f"op_{tar}FileType", "ionmix4")
-        par_gen.set(f"op_{tar}FileName", "CH-QC-1-001.cn4")
+        par_gen.set(f"op_{tar}FileName", MAT_TABLE)
+    # 覆写: MGD 能群结构 — 匹配 Gen_eos_op_data 表族 6 能群
+    # (十倍程边界 0.1 eV → 1e5 eV, 与 ch_center 场景对同族表的先例一致;
+    #  _F 变体 useOpacity=.false. 不读表, 此结构无害保留)
+    par_gen.set("rt_mgdNumGroups", 6)
+    for _i, _b in enumerate((0.1, 1.0, 10.0, 100.0, 1000.0, 1.0e4, 1.0e5),
+                            start=1):
+        par_gen.set(f"rt_mgdBounds_{_i}", _b)
+    # 覆写: 关辐射 (_F 变体)
+    # ReDo042sp_CH042sp*umF8.00e-02 vs *umL8.00e-02 对比: 源码/setup/编译
+    # 完全不变 (Makefile/全部 F90 逐字节相同), 纯运行时关闭三处开关:
+    #   rt_useMGD  .true. → .false.   (MGD 多群辐射输运)
+    #   useOpacity .true. → .false.   (不透明度)
+    #   useRadTrans 补充置 .false.    (辐射输运总开关)
+    # 其余 rt_mgd*/op_* 参数原样保留 (关闭后不生效, 与基准 par 一致)。
+    if RADIATION_OFF:
+        par_gen.set("rt_useMGD", False)
+        par_gen.set("useOpacity", False)
+        par_gen.set("useRadTrans", False)
     # 覆写: 运行控制
     par_gen.set("tmax", cfg["tmax"])
     par_gen.set("plotFileIntervalStep", cfg["plot_interval_step"])
     par_gen.set("checkpointFileIntervalStep", cfg["checkpoint_interval_step"])
     # 覆写: plotfile 输出变量白名单 (模板为 4 物种旧列表且含已删除的 targ;
-    # FLASH 只输出 plot_var_N 白名单内的变量, 必须与 6 物种对齐)
+    # FLASH 只输出 plot_var_N 白名单内的变量, 必须与 8 物种对齐)
     _PLOT_VARS = ["dens", "depo", "tele", "tion", "trad", "ye", "sumy",
                   "cham", "shld", "samp", "tar1", "tar2", "tar3", "tar4",
                   "tar6", "fllm"]
@@ -305,7 +366,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                              tion=290.11375, trad=290.11375)
     # 分层边界: 数值 x_range 供采样/预诊断; x_expr (参数表达式) 供
     # Simulation_initBlock 代码生成 — 几何由 .par 运行时参数控制。
-    # 未命中区域 → cham 兜底 (x<0 与 x>L3+delta+D)。
+    # 未命中区域 → cham 兜底 (x<0 与 x>L6+delta+D)。
     builder.add_region(
         "shld", species="shld", x_range=(0.0, delta_cm),
         x_expr=("0.0", "sim_shldRadius"))
@@ -359,6 +420,8 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         """按 注册表别名 → eos_op_data 递归 → 旧仓库兜底 的顺序复制 .cn4。
 
         注意: copy_eos_file 源缺失时返回 None 而非抛异常, 必须显式校验。
+        Si/C 表 (Z14/Z06_*) 位于 eos_op_data/Gen_eos_op_data/ 子目录,
+        未收录注册表 — 走 rglob 按文件名递归查找 (别名占位必失败后兜底)。
         """
         from flash.input_gen.gen_eos_op import EOSOpacityGenerator
         # 1) 注册表别名路径 (注册表与数据布局一致时直接命中)
@@ -383,9 +446,8 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     ok_all = True
     for filename, aliases in (
-        ("He-BADGER-TOPS-Final.cn4", ("he_badger",)),
-        ("V-BADGER-TOPS.cn4", ("v_badger",)),
-        ("CH-QC-1-001.cn4", ("ch_qc",)),
+        (CHAM_TABLE, (CHAM_TABLE,)),
+        (MAT_TABLE, (MAT_TABLE,)),
     ):
         if not _copy_cn4(filename, aliases):
             ok_all = False
@@ -423,7 +485,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "flash_exe": "flash4", "build_cores": 32,
         "slurm_partition": cfg.get("slurm_partition", "v5_192"),
         "slurm_nodes": 1, "slurm_ntasks": slurm_ntasks,
-        "slurm_job_name": "VCH_ml", "slurm_walltime": "24:00:00",
+        "slurm_job_name": SCENE_NAME, "slurm_walltime": "24:00:00",
         "slurm_modules": ["mpich/3.2-gcc9.3", "hdf5/1.8.18"],
         # srun 直启 oneAPI MPI 在本集群 PMI2 握手失败, 用 mpiexec 实测正常
         "slurm_mpi_runner": "mpiexec",
@@ -471,7 +533,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                   ("end", L6 + delta_cm + D)]
         DensityPlotter().plot_1d(
             xs, dens1d, region_boundaries=list(bounds),
-            title="Initial Density Layers (VCH_ml)",
+            title=f"Initial Density Layers ({SCENE_NAME}, pure {MAT_LABEL})",
             save_path=INPUT_DIR / "pre_diag_initial_density.png")
         log(f"    pre_diag_initial_density.png ✓")
         result["pre_diag_density"] = str(INPUT_DIR / "pre_diag_initial_density.png")
@@ -569,7 +631,7 @@ def plot_density_timespace(outdir: Path, save_path: Path) -> int:
     cbar.set_label(r"$\log_{10}(\rho)$ [g/cm$^3$]")
     ax.set_xlabel(r"x [$\mu$m]")
     ax.set_ylabel("t [ns]")
-    ax.set_title("Density x-t map (VCH_ml)")
+    ax.set_title(f"Density x-t map ({SCENE_NAME})")
     fig.tight_layout()
     fig.savefig(str(save_path), dpi=150)
     plt.close(fig)
@@ -641,7 +703,7 @@ def plot_density_profiles(outdir: Path, save_path: Path,
         ax.grid(True, which="both", alpha=0.25, lw=0.8)
     # 图例只放右图 (时间条目相同, 避免重复)
     axes[1].legend(loc="upper left", fontsize=16, framealpha=0.9, ncol=2)
-    fig.suptitle("Density profiles at different times (VCH_ml)",
+    fig.suptitle(f"Density profiles at different times ({SCENE_NAME})",
                  fontsize=24, fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -725,7 +787,7 @@ def plot_species_zoom(outdir: Path, save_path: Path,
                  f"{zoom_range[1]:.0f}] " + r"$\mu$m (linear y)")
     ax.grid(True, alpha=0.3, lw=0.8)
     ax.legend(loc="center right", fontsize=17, framealpha=0.9)
-    fig.suptitle("Species markers (VCH_ml)", fontsize=24,
+    fig.suptitle(f"Species markers ({SCENE_NAME}, pure {MAT_LABEL})", fontsize=24,
                  fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -812,7 +874,7 @@ def plot_species_timespace(outdir: Path, save_path: Path,
         cb = fig.colorbar(pc, ax=ax, pad=0.01)
         cb.set_label(f"{sp} fraction", fontsize=13)
     axes[-1].set_xlabel(r"x [$\mu$m]")
-    fig.suptitle("Species fraction x-t maps (VCH_ml, linear)",
+    fig.suptitle(f"Species fraction x-t maps ({SCENE_NAME}, linear)",
                  fontsize=18, fontweight="bold")
     fig.savefig(str(save_path), dpi=300)
     plt.close(fig)
@@ -846,7 +908,7 @@ def remote_analysis_cmd(outdir: str) -> str:
         "source /public1/soft/modules/module.sh >/dev/null 2>&1; "
         "module purge >/dev/null 2>&1; module load python/3.9.6 >/dev/null 2>&1; "
         "export PYTHONIOENCODING=utf-8 && "
-        f"python VCH_ml_remote_analysis.py "
+        f"python {SCENE_NAME}_remote_analysis.py "
         f"--outdir {outdir} --save dens_timespace.png --json summary.json 2>&1"
     )
 
@@ -873,7 +935,8 @@ def _par_tmax_ok(tmax: float) -> bool:
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="VCH_ml (wsl/hpc 一键切换)")
+    ap = argparse.ArgumentParser(
+        description=f"{SCENE_NAME} (纯{MAT_LABEL}多薄层, wsl/hpc 一键切换)")
     ap.add_argument(
         "action", nargs="?", default=None,
         help="hpc 分阶段动作: all/upload/submit/monitor/analyze/download/status "
@@ -884,12 +947,12 @@ def main():
     )
     ap.add_argument(
         "--tmax", type=float, default=None,
-        help="覆盖仿真结束时间 (s); 默认用 config_constants 中的规范值",
+        help="覆盖仿真结束时间 (s); 默认用 config_constants 中的规范值 (1.0e-11 极短验证)",
     )
     args = ap.parse_args()
 
     print("\n" + "=" * 65)
-    print(" FLASH VCH_ml Simulation (multi-layer)")
+    print(f" FLASH {SCENE_NAME} Simulation (pure {MAT_LABEL} multi-layer)")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
     cfg = dict(config_constants)
@@ -898,10 +961,13 @@ def main():
         log(f"tmax 覆盖: {cfg['tmax']:.3e} s", "OK")
     print(f"\n  参数配置:")
     print(f"    域: [{cfg['xmin']}, {cfg['xmax']}] cm")
-    print(f"    分层: shld[V 0.1um] | samp | tar1@{cfg['L1_um']}um | samp | "
+    print(f"    材质: 全固体层纯 {MAT_LABEL} (表 {MAT_TABLE}, rho={MAT_RHO}, "
+          f"A={MAT_A}, Z={MAT_Z})")
+    print(f"    分层: shld[0.1um] | samp | tar1@{cfg['L1_um']}um | samp | "
           f"tar2@{cfg['L2_um']}um | samp | tar3@{cfg['L3_um']}um | samp | "
           f"tar4@{cfg['L4_um']}um | samp | tar6@{cfg['L6_um']}um | samp D={cfg['D_um']}um")
-    print(f"    物种(8): cham,shld,samp,tar1,tar2,tar3,tar4,tar6; 固体层常温固体密度")
+    print(f"    物种(8): cham(He),shld,samp,tar1,tar2,tar3,tar4,tar6 (全 {MAT_LABEL} "
+          f"{MAT_RHO}); 辐射: {'关' if RADIATION_OFF else '开'}")
     print(f"    维度: {cfg['dimension']}D, tmax={cfg['tmax']:.1e} s")
     print("=" * 65)
 
@@ -946,11 +1012,11 @@ def main():
         return run_wsl(wsl_spec, cfg)
 
     hpc_spec = HpcSpec(
-        name="VCH_ml",
+        name=SCENE_NAME,
         input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR,
         objdir=f"{SIM_USER_DIR}/{SIM_NAME}", flash_home=user_flash_home(),
         work_base=f"{user_flash_home()}/AI/Aitemp",
-        remote_analysis_script="VCH_ml_remote_analysis.py",
+        remote_analysis_script=f"{SCENE_NAME}_remote_analysis.py",
         remote_analysis_cmd=remote_analysis_cmd,
     )
     runner = HpcRunner(hpc_spec)

@@ -1,8 +1,7 @@
 # gen_checker — 依赖检查器说明文档
 
 **模块**: `flash/input_gen/gen_checker`
-**维护**: PhySimX Team
-**合并说明**: 本文档由 `GEN_CHECKER_GUIDE.md`（模块总览）与 `CHECK_RELATIONS.md`（关联检查设计与验证报告）合并而成（2026-08-28）。
+**维护**: PhySimX Team（2026-08-28）
 
 ## 概述
 

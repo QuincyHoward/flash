@@ -128,11 +128,9 @@ def _resolve_route_and_credential(credential_name: Optional[str] = None) -> Dict
         }
 
     # 自动模式: 使用 route_tester 选择最佳路由
-    route_key = cred.get("route_key", "")
-    if route_key == "scfa2696":
-        routes = ROUTES_SCFA2696
-    else:
-        routes = ROUTES_SCH0348
+    # (routes_for_account 认得凭据记录里的 route_key="nc_e"/"bscc_t6";
+    #  旧的裸比较 route_key=="scfa2696" 永不匹配 → flash_ssh 被误路由到 BSCC)
+    routes = RouteTester.routes_for_account(credential_name or "flash_ssh", cred)
 
     best = test_and_select_best_route(
         RouteTester.account_label(credential_name or "flash_ssh", cred),

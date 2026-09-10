@@ -1,12 +1,12 @@
 """
-VCH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
+CHTi1_F 场景 — 1D 多薄层示踪靶 (纯 CH 基体 (无屏蔽层)) 仿真
 ═══════════════════════════════════════════════════════════════════
 
-由 layer_tracer_CH 模板派生：单一示踪薄层 → 多个示踪薄层
-(原名 layer_tracer_CH_ml, 2026-08-30 更名 VCH_ml, 与 PureCH_ml 并列)。
-
-与并列场景 PureCH_ml 的唯一物理差异: 表面屏蔽层 shld 材质
-(V 6.11 g/cm^3 vs CH 1.0 g/cm^3), 其余设置完全一致。
+由 CHTi1 模板 (源出 OneCH_ml) 经 tracer/build_family.py 生成。
+家族: CHTi1/CHTi2/CHTi3 仅 Ti 层深度不同 (tar1@1um/tar2@2um/tar3@3um);
+* _F 后缀 = 关辐射变体 (RADIATION_OFF=True, 机制同参考 ReDo042sp_*umF);
+VCH_ml_F = V 屏蔽层 + 关辐射。
+本脚本: shld=CH, Ti 层=tar1 (Ti-BADGER-TOPS.cn4, rho 4.54 g/cm^3), 辐射: 关闭 (F 变体: rt_useMGD/useOpacity/useRadTrans 均 .false.)。
 
   * 1D 笛卡尔域 x=[-0.04, 0.01] cm，FLASH_3T，NXB=16，MAXBLOCKS=4096
   * 单光束 0.351um 激光（透镜 x=-1.0，靶 x=0），82 点功率脉冲
@@ -14,29 +14,32 @@ VCH_ml 场景 — 1D 多薄层示踪靶 (CH 基体 + V 屏蔽层) 仿真
     L6=6um, D=50um; 示踪层间距均为 samp）:
 
       x < 0                        cham [氦 He, 1e-6 g/cm^3]
-      0        < x < delta         shld [钒 V,  6.11 g/cm^3]
+      0        < x < delta         shld [碳氢 CH, 1.0]  (无 V 屏蔽层)
       delta    < x < L1            samp [碳氢 CH, 1.0 g/cm^3]
-      L1       < x < L1+delta      tar1 [碳氢 CH]  ← 示踪薄层 1
+      L1       < x < L1+delta      tar1 [钛 Ti, 4.54]  ← Ti 示踪层 @1.0um
       L1+delta < x < L2            samp [碳氢 CH]
-      L2       < x < L2+delta      tar2 [碳氢 CH]  ← 示踪薄层 2
+      L2       < x < L2+delta      tar2 [碳氢 CH]
       L2+delta < x < L3            samp [碳氢 CH]
-      L3       < x < L3+delta      tar3 [碳氢 CH]  ← 示踪薄层 3
+      L3       < x < L3+delta      tar3 [碳氢 CH]
       L3+delta < x < L4            samp [碳氢 CH]
-      L4       < x < L4+delta      tar4 [碳氢 CH]  ← 示踪薄层 4
+      L4       < x < L4+delta      tar4 [碳氢 CH]
       L4+delta < x < L6            samp [碳氢 CH]
-      L6       < x < L6+delta      tar6 [碳氢 CH]  ← 示踪薄层 6
+      L6       < x < L6+delta      tar6 [碳氢 CH]
       L6+delta < x < L6+delta+D    samp [碳氢 CH]
       其余 (x<-0.04 域外 / x>56.1um)  cham [氦 He]
 
   * 8 物种标记: cham/shld/samp/tar1/tar2/tar3/tar4/tar6。固体层初始均为
-    常温 (290.11375 K) 固体密度 (V 6.11, CH 1.0); tar1/tar2/tar3/tar4/tar6
-    物质同为 CH 但用独立物种标记以便诊断追踪。
-  * MGD 10 能群辐射，tabular EOS/opacity (ionmix4)
+    常温 (290.11375 K) 固体密度 (Ti 4.54, V 6.11, CH 1.0); tar* 用独立
+    物种标记以便诊断追踪。
+  * 辐射: 关闭 (F 变体: rt_useMGD/useOpacity/useRadTrans 均 .false.)；tabular EOS/opacity (ionmix4)
 
 用法:
   cd <flash 包目录>
-  python -m flash.scenarios.private.tracer.VCH_ml.VCH_ml
+  python flash/scenarios/private/tracer/CHTi_F/CHTi1_F.py               # 默认 tmax=1.0e-11
+  python flash/scenarios/private/tracer/CHTi_F/CHTi1_F.py --tmax 1.6e-9 # 正式运行
+  # 或 python -m flash.scenarios.private.tracer.CHTi_F.CHTi1_F
 """
+
 
 import sys
 import os
@@ -83,8 +86,9 @@ config_constants = {
     "L4_um": 4.0,
     "L6_um": 6.0,
     "D_um": 50.0,
-    # 仿真结束时间 (s)。搭建验证阶段设为极小值; 正式物理运行时恢复 1.6e-9。
-    "tmax": 1.6e-9,
+    # 仿真结束时间 (s)。默认极短验证值 1.0e-11 (单独执行即测试值);
+    # 正式物理运行用 --tmax 1.6e-9 覆盖或改此处。
+    "tmax": 1.0e-11,
     # 仿真域 (cm)
     "xmin": -0.04,
     "xmax": 0.01,
@@ -105,15 +109,24 @@ config_constants = {
 }
 
 # FLASH setup 标志 (wsl/hpc 共用) — 8 物种
+# 注意: F 变体 (关辐射) 的 setup 标志与本款完全相同 (+mgd 保留) —
+# 关辐射是纯运行时 par 修改 (机制同参考 ReDo042sp_*umF: Makefile 逐字节不变)。
 SETUP_FLAGS = (
     "-1d +cartesian -nxb=16 +hdf5typeio species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6 "
     "+mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 "
     "ed_maxPulseSections=300 -maxblocks=4096"
 )
 
-# 仿真/对象/par 命名 (与 PureCH_ml 区分, 避免相互覆盖 objdir)
-SIM_NAME = "LaserSlab_VCHml"
-PAR_FILENAME = "laserslab_vchml.par"
+# ── BEGIN SCENE VARS (CHTi 家族各脚本仅此块不同; build_family.py 换块生成) ──
+SCENE_NAME = "CHTi1_F"      # 场景名 → SIM_NAME/par 文件名/图题/SLURM 作业名
+SHLD_MATERIAL = "CH"       # "CH"=无屏蔽层 (纯 CH, OneCH 系); "V"=钒屏蔽层 (VCH 系)
+TI_LAYER = "tar1"       # Ti 示踪层所在物种; None=无 Ti 层 (tar* 全 CH)
+RADIATION_OFF = True    # True=关闭辐射输运 (F 变体)
+# ── END SCENE VARS─────────────────────────────────────────────────────────────────
+
+# 仿真/对象/par 命名 (各场景唯一, 避免相互覆盖 objdir)
+SIM_NAME = f"LaserSlab_{SCENE_NAME}"
+PAR_FILENAME = f"laserslab_{SCENE_NAME.lower()}.par"
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
 from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
@@ -133,48 +146,58 @@ def log(msg: str, level: str = "INFO"):
     print(f"  {tag} {msg}")
 
 
-# ── 物种定义 (CH 多薄层场景) ───────────────────────────────
+# ── 物种定义 (CH/Ti 多薄层场景) ────────────────────────────
 def build_species_defs(delta_cm: float, L1: float, L2: float, L3: float,
                        L4: float, L6: float, D: float) -> List[dict]:
-    """构建 8 物种定义：cham=He, shld=V, samp/tar1/tar2/tar3/tar4/tar6=CH (同一张表)。
+    """构建 8 物种定义 (材质由场景常量 SHLD_MATERIAL / TI_LAYER 决定)。
 
-    固体层初始均为常温 (290.11375 K) 固体密度 (V 6.11, CH 1.0)。
+    cham=He; shld=CH (SHLD_MATERIAL="CH", 无屏蔽层) 或 V 6.11 ("V", VCH 系);
+    samp=CH; tar* = CH 标记, 其中 TI_LAYER 指定的一层为 Ti 示踪层
+    (Ti-BADGER-TOPS.cn4, rho 4.54 g/cm^3 — 同参考 ReDo042sp sim_rhoTarg,
+    A=47.867, Z=22)。
+
+    固体层初始均为常温 (290.11375 K) 固体密度。密度/EOS 表经 species_defs
+    写入 Config PARAMETER 默认值; .par 可覆写 (generate_input_files 中对
+    TI_LAYER 显式覆写 sim_rho*/eos_*/op_* 三处运行时绑定)。
     几何经 radius/height (+ radius_param/height_param) 声明为 FLASH
-    运行时参数 (Config 默认值 + Simulation_data 声明 + Simulation_init
-    读取), Simulation_initBlock 的区域边界引用这些参数表达式 —
+    运行时参数, Simulation_initBlock 的区域边界引用这些参数表达式 —
     **只改 .par 中的参数值即可改变场景几何, 无需改代码**:
 
         sim_shldRadius = delta   (屏蔽层/示踪薄层厚度)
-        sim_tar1Radius = L1      (tar1 层外边界累积位置)
-        sim_tar2Radius = L2
-        sim_tar3Radius = L3
-        sim_tar4Radius = L4
-        sim_tar6Radius = L6
+        sim_tarXRadius = LX      (示踪层外边界累积位置)
         sim_sampHeight = D       (尾部 samp 厚度)
     """
     he_file = "He-BADGER-TOPS-Final.cn4"
-    v_file = "V-BADGER-TOPS.cn4"
     ch_file = "CH-QC-1-001.cn4"
+    ti_file = "Ti-BADGER-TOPS.cn4"
+    v_file = "V-BADGER-TOPS.cn4"
+    # 屏蔽层材质 (VCH 系: 钒 V; 纯 CH 系: CH)
+    if SHLD_MATERIAL == "V":
+        shld_def = {"name": "shld", "file": v_file, "rho": 6.11,
+                    "A": 50.9415, "Z": 23, "radius": delta_cm}
+    else:
+        shld_def = {"name": "shld", "file": ch_file, "rho": 1.0,
+                    "A": 6.509, "Z": 3.5, "radius": delta_cm}
+    # 示踪薄层 1-4, 6: CH 标记; TI_LAYER 层为 Ti
+    Lmap = {"tar1": L1, "tar2": L2, "tar3": L3, "tar4": L4, "tar6": L6}
+    tar_defs = []
+    for name in ("tar1", "tar2", "tar3", "tar4", "tar6"):
+        if TI_LAYER is not None and name == TI_LAYER:
+            tar_defs.append({"name": name, "file": ti_file, "rho": 4.54,
+                             "A": 47.867, "Z": 22, "radius": Lmap[name],
+                             "radius_param": f"sim_{name}Radius"})
+        else:
+            tar_defs.append({"name": name, "file": ch_file, "rho": 1.0,
+                             "A": 6.509, "Z": 3.5, "radius": Lmap[name],
+                             "radius_param": f"sim_{name}Radius"})
     return [
         # 腔室: 稀氦 (区域外默认物种)
         {"name": "cham", "file": he_file, "rho": 1.0e-6, "A": 4.002602, "Z": 2.0},
-        # 屏蔽层: 钒 V (厚度 = delta, 固体密度)
-        {"name": "shld", "file": v_file, "rho": 6.11, "A": 50.9415, "Z": 23,
-         "radius": delta_cm},
+        shld_def,
         # 基体层: CH (samp 多次出现; height = 尾部 samp 厚度 D)
         {"name": "samp", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
          "height": D},
-        # 示踪薄层 1-4, 6: CH 标记 (radius = 累积外边界 L1/L2/L3/L4/L6)
-        {"name": "tar1", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L1, "radius_param": "sim_tar1Radius"},
-        {"name": "tar2", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L2, "radius_param": "sim_tar2Radius"},
-        {"name": "tar3", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L3, "radius_param": "sim_tar3Radius"},
-        {"name": "tar4", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L4, "radius_param": "sim_tar4Radius"},
-        {"name": "tar6", "file": ch_file, "rho": 1.0, "A": 6.509, "Z": 3.5,
-         "radius": L6, "radius_param": "sim_tar6Radius"},
+        *tar_defs,
     ]
 
 
@@ -229,8 +252,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen._params.clear()
     for k, v in tmp_params.items():
         par_gen.set(k, v)
-    # 覆写: 几何与材料 (shld 从零宽 CH 占位 → 0.1um V 实体层)
-    # 分层几何全部经运行时参数控制 (Simulation_initBlock 引用这些参数),
+    # 覆写: 几何 (分层全部经运行时参数控制, Simulation_initBlock 引用)
     # 只改 .par 中以下 7 个值即可改变场景几何, 无需改代码:
     #   [0, shldR] shld | [shldR, tar1R] samp | [tar1R, tar1R+shldR] tar1 |
     #   [tar1R+shldR, tar2R] samp | [tar2R, tar2R+shldR] tar2 |
@@ -245,10 +267,12 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    par_gen.set("sim_rhoShld", 6.11)   # 模板占位值为 1 (CH), V 真实密度 6.11 g/cm^3
-    # 覆写: shld 表绑定 CH → V
-    par_gen.set("eos_shldTableFile", "V-BADGER-TOPS.cn4")
-    par_gen.set("op_shldFileName", "V-BADGER-TOPS.cn4")
+    # 覆写: 屏蔽层材质绑定 (VCH 系: shld=V 6.11 + V 表; 纯 CH 系: 模板默认
+    # sim_rhoShld=1 + CH 表已正确, 无需覆写)
+    if SHLD_MATERIAL == "V":
+        par_gen.set("sim_rhoShld", 6.11)   # V 真实密度 (模板占位 1 为 CH)
+        par_gen.set("eos_shldTableFile", "V-BADGER-TOPS.cn4")
+        par_gen.set("op_shldFileName", "V-BADGER-TOPS.cn4")
     # 新增: tar1-tar4/tar6 表绑定 (CH, 与 samp 同表)
     for tar in ("tar1", "tar2", "tar3", "tar4", "tar6"):
         par_gen.set(f"eos_{tar}EosType", "eos_tab")
@@ -259,12 +283,30 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         par_gen.set(f"op_{tar}Trans", "op_tabro")
         par_gen.set(f"op_{tar}FileType", "ionmix4")
         par_gen.set(f"op_{tar}FileName", "CH-QC-1-001.cn4")
+    # Ti 示踪层绑定: TI_LAYER 物种材质 CH → Ti (深度见 docstring, 厚度 delta)。
+    # 密度 4.54 g/cm^3 同参考 ReDo042sp (sim_rhoTarg); A/Z 经 Config 由
+    # species_defs 自动注册, 此处覆写运行时三处绑定 (密度/EOS 表/不透明度表)。
+    if TI_LAYER is not None:
+        par_gen.set(f"sim_rho{TI_LAYER.capitalize()}", 4.54)
+        par_gen.set(f"eos_{TI_LAYER}TableFile", "Ti-BADGER-TOPS.cn4")
+        par_gen.set(f"op_{TI_LAYER}FileName", "Ti-BADGER-TOPS.cn4")
+    # 关闭辐射输运 (F 变体, RADIATION_OFF=True) — 机制学习自参考
+    # ReDo042sp_CH042sp*umF8.00e-02 vs *umL8.00e-02 对比: 源码/setup/编译
+    # 完全不变 (Makefile/全部 F90 逐字节相同), 纯运行时关闭三处开关:
+    #   rt_useMGD  .true. → .false.   (MGD 多群辐射输运)
+    #   useOpacity .true. → .false.   (不透明度)
+    #   useRadTrans 补充置 .false.    (辐射输运总开关)
+    # 其余 rt_mgd*/op_* 参数原样保留 (关闭后不生效, 与基准 par 一致)。
+    if RADIATION_OFF:
+        par_gen.set("rt_useMGD", False)
+        par_gen.set("useOpacity", False)
+        par_gen.set("useRadTrans", False)
     # 覆写: 运行控制
     par_gen.set("tmax", cfg["tmax"])
     par_gen.set("plotFileIntervalStep", cfg["plot_interval_step"])
     par_gen.set("checkpointFileIntervalStep", cfg["checkpoint_interval_step"])
     # 覆写: plotfile 输出变量白名单 (模板为 4 物种旧列表且含已删除的 targ;
-    # FLASH 只输出 plot_var_N 白名单内的变量, 必须与 6 物种对齐)
+    # FLASH 只输出 plot_var_N 白名单内的变量, 必须与 8 物种对齐)
     _PLOT_VARS = ["dens", "depo", "tele", "tion", "trad", "ye", "sumy",
                   "cham", "shld", "samp", "tar1", "tar2", "tar3", "tar4",
                   "tar6", "fllm"]
@@ -305,7 +347,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                              tion=290.11375, trad=290.11375)
     # 分层边界: 数值 x_range 供采样/预诊断; x_expr (参数表达式) 供
     # Simulation_initBlock 代码生成 — 几何由 .par 运行时参数控制。
-    # 未命中区域 → cham 兜底 (x<0 与 x>L3+delta+D)。
+    # 未命中区域 → cham 兜底 (x<0 与 x>L6+delta+D)。
     builder.add_region(
         "shld", species="shld", x_range=(0.0, delta_cm),
         x_expr=("0.0", "sim_shldRadius"))
@@ -381,12 +423,16 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         log(f"    {filename} 缺失 (注册表/数据目录/旧仓库均未找到)", "ERROR")
         return False
 
-    ok_all = True
-    for filename, aliases in (
+    tables = [
         ("He-BADGER-TOPS-Final.cn4", ("he_badger",)),
-        ("V-BADGER-TOPS.cn4", ("v_badger",)),
         ("CH-QC-1-001.cn4", ("ch_qc",)),
-    ):
+    ]
+    if TI_LAYER is not None:
+        tables.append(("Ti-BADGER-TOPS.cn4", ("ti_badger",)))
+    if SHLD_MATERIAL == "V":
+        tables.append(("V-BADGER-TOPS.cn4", ("v_badger",)))
+    ok_all = True
+    for filename, aliases in tables:
         if not _copy_cn4(filename, aliases):
             ok_all = False
     if not ok_all:
@@ -423,7 +469,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "flash_exe": "flash4", "build_cores": 32,
         "slurm_partition": cfg.get("slurm_partition", "v5_192"),
         "slurm_nodes": 1, "slurm_ntasks": slurm_ntasks,
-        "slurm_job_name": "VCH_ml", "slurm_walltime": "24:00:00",
+        "slurm_job_name": SCENE_NAME, "slurm_walltime": "24:00:00",
         "slurm_modules": ["mpich/3.2-gcc9.3", "hdf5/1.8.18"],
         # srun 直启 oneAPI MPI 在本集群 PMI2 握手失败, 用 mpiexec 实测正常
         "slurm_mpi_runner": "mpiexec",
@@ -471,7 +517,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
                   ("end", L6 + delta_cm + D)]
         DensityPlotter().plot_1d(
             xs, dens1d, region_boundaries=list(bounds),
-            title="Initial Density Layers (VCH_ml)",
+            title=f"Initial Density Layers ({SCENE_NAME})",
             save_path=INPUT_DIR / "pre_diag_initial_density.png")
         log(f"    pre_diag_initial_density.png ✓")
         result["pre_diag_density"] = str(INPUT_DIR / "pre_diag_initial_density.png")
@@ -569,7 +615,7 @@ def plot_density_timespace(outdir: Path, save_path: Path) -> int:
     cbar.set_label(r"$\log_{10}(\rho)$ [g/cm$^3$]")
     ax.set_xlabel(r"x [$\mu$m]")
     ax.set_ylabel("t [ns]")
-    ax.set_title("Density x-t map (VCH_ml)")
+    ax.set_title(f"Density x-t map ({SCENE_NAME})")
     fig.tight_layout()
     fig.savefig(str(save_path), dpi=150)
     plt.close(fig)
@@ -641,7 +687,7 @@ def plot_density_profiles(outdir: Path, save_path: Path,
         ax.grid(True, which="both", alpha=0.25, lw=0.8)
     # 图例只放右图 (时间条目相同, 避免重复)
     axes[1].legend(loc="upper left", fontsize=16, framealpha=0.9, ncol=2)
-    fig.suptitle("Density profiles at different times (VCH_ml)",
+    fig.suptitle(f"Density profiles at different times ({SCENE_NAME})",
                  fontsize=24, fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -725,7 +771,7 @@ def plot_species_zoom(outdir: Path, save_path: Path,
                  f"{zoom_range[1]:.0f}] " + r"$\mu$m (linear y)")
     ax.grid(True, alpha=0.3, lw=0.8)
     ax.legend(loc="center right", fontsize=17, framealpha=0.9)
-    fig.suptitle("Species markers (VCH_ml)", fontsize=24,
+    fig.suptitle(f"Species markers ({SCENE_NAME})", fontsize=24,
                  fontweight="bold")
     fig.savefig(str(save_path), dpi=450)
     plt.close(fig)
@@ -812,7 +858,7 @@ def plot_species_timespace(outdir: Path, save_path: Path,
         cb = fig.colorbar(pc, ax=ax, pad=0.01)
         cb.set_label(f"{sp} fraction", fontsize=13)
     axes[-1].set_xlabel(r"x [$\mu$m]")
-    fig.suptitle("Species fraction x-t maps (VCH_ml, linear)",
+    fig.suptitle(f"Species fraction x-t maps ({SCENE_NAME}, linear)",
                  fontsize=18, fontweight="bold")
     fig.savefig(str(save_path), dpi=300)
     plt.close(fig)
@@ -846,7 +892,7 @@ def remote_analysis_cmd(outdir: str) -> str:
         "source /public1/soft/modules/module.sh >/dev/null 2>&1; "
         "module purge >/dev/null 2>&1; module load python/3.9.6 >/dev/null 2>&1; "
         "export PYTHONIOENCODING=utf-8 && "
-        f"python VCH_ml_remote_analysis.py "
+        f"python {SCENE_NAME}_remote_analysis.py "
         f"--outdir {outdir} --save dens_timespace.png --json summary.json 2>&1"
     )
 
@@ -873,7 +919,7 @@ def _par_tmax_ok(tmax: float) -> bool:
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="VCH_ml (wsl/hpc 一键切换)")
+    ap = argparse.ArgumentParser(description=f"{SCENE_NAME} (wsl/hpc 一键切换)")
     ap.add_argument(
         "action", nargs="?", default=None,
         help="hpc 分阶段动作: all/upload/submit/monitor/analyze/download/status "
@@ -884,12 +930,12 @@ def main():
     )
     ap.add_argument(
         "--tmax", type=float, default=None,
-        help="覆盖仿真结束时间 (s); 默认用 config_constants 中的规范值",
+        help="覆盖仿真结束时间 (s); 默认用 config_constants 中的 1.0e-11 极短验证值",
     )
     args = ap.parse_args()
 
     print("\n" + "=" * 65)
-    print(" FLASH VCH_ml Simulation (multi-layer)")
+    print(f" FLASH {SCENE_NAME} Simulation (multi-layer)")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
     cfg = dict(config_constants)
@@ -898,26 +944,22 @@ def main():
         log(f"tmax 覆盖: {cfg['tmax']:.3e} s", "OK")
     print(f"\n  参数配置:")
     print(f"    域: [{cfg['xmin']}, {cfg['xmax']}] cm")
-    print(f"    分层: shld[V 0.1um] | samp | tar1@{cfg['L1_um']}um | samp | "
+    print(f"    分层: shld[{SHLD_MATERIAL} 0.1um] | samp | tar1@{cfg['L1_um']}um | samp | "
           f"tar2@{cfg['L2_um']}um | samp | tar3@{cfg['L3_um']}um | samp | "
           f"tar4@{cfg['L4_um']}um | samp | tar6@{cfg['L6_um']}um | samp D={cfg['D_um']}um")
-    print(f"    物种(8): cham,shld,samp,tar1,tar2,tar3,tar4,tar6; 固体层常温固体密度")
+    print(f"    物种(8): cham,shld,samp,tar1,tar2,tar3,tar4,tar6; "
+          f"shld={SHLD_MATERIAL}, Ti层={TI_LAYER or '无'}"
+          + (f"@{cfg['L' + TI_LAYER[-1] + '_um']}um" if TI_LAYER else "")
+          + f", 辐射={'关闭(F)' if RADIATION_OFF else 'MGD 10 群'}")
     print(f"    维度: {cfg['dimension']}D, tmax={cfg['tmax']:.1e} s")
     print("=" * 65)
 
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        from flash.input_gen.gen_checker import DependencyChecker
-        missing = DependencyChecker(INPUT_DIR).missing_standard()
-        if missing or not _par_tmax_ok(cfg["tmax"]):
-            if missing:
-                log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
-            else:
-                log("par 中 tmax 与当前配置不符, 重新生成输入文件", "INFO")
-            log("调用 input_gen 生成器生成必须文件 ...", "INFO")
-            generate_input_files(cfg)
-        else:
-            log("FLASH 仿真必须文件已就绪，无需重新生成", "OK")
+        # 同目录多脚本共享 flash_input (CHTi1/2/3), 必须全量重新生成,
+        # 避免上一脚本的 F90/Config/par 残留串味。
+        log("全量重新生成输入文件 (同目录多脚本共享 flash_input)", "INFO")
+        generate_input_files(cfg)
     except Exception as e:
         log(f"输入文件检查/生成失败: {e}", "ERROR")
         import traceback
@@ -946,11 +988,11 @@ def main():
         return run_wsl(wsl_spec, cfg)
 
     hpc_spec = HpcSpec(
-        name="VCH_ml",
+        name=SCENE_NAME,
         input_dir=INPUT_DIR, output_dir=OUTPUT_DIR, plots_dir=PLOTS_DIR,
         objdir=f"{SIM_USER_DIR}/{SIM_NAME}", flash_home=user_flash_home(),
         work_base=f"{user_flash_home()}/AI/Aitemp",
-        remote_analysis_script="VCH_ml_remote_analysis.py",
+        remote_analysis_script=f"{SCENE_NAME}_remote_analysis.py",
         remote_analysis_cmd=remote_analysis_cmd,
     )
     runner = HpcRunner(hpc_spec)

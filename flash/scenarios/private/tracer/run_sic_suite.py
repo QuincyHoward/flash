@@ -1,25 +1,27 @@
 """
-run_ml_suite — 一键顺序执行 tracer/ 全部 ml 系列场景
+run_sic_suite — 一键顺序执行单一纯材料 (Si/C) 示踪烧蚀场景家族
 ═══════════════════════════════════════════════════════════════════
 
-场景矩阵 (9 个, 顺序即执行顺序):
-  OneCH_ml / VCH_ml           纯 CH / V 屏蔽层基线 (辐射开)
-  CHTi1 / CHTi2 / CHTi3       Ti 示踪层 @1/2/3um, shld=CH (辐射开)
-  VCH_ml_F                    V 屏蔽层, 辐射关
-  CHTi1_F / CHTi2_F / CHTi3_F Ti @1/2/3um, 辐射关
+场景矩阵 (4 个, 顺序即执行顺序):
+  OneSi_ml      纯 Si  (Z14_1.00-20260708_0850.cn4), 辐射开
+  OneSi_ml_F    纯 Si,  辐射关 (F 变体)
+  OneC_ml       纯 C   (Z06_1.00-20260902_2228.cn4),  辐射开
+  OneC_ml_F     纯 C,   辐射关 (F 变体)
+
+  全部固体层 (shld/samp/tar1/2/3/4/6) 为同一种纯材料 — 单一纯材料烧蚀
+  仿真; 腔室 cham 为稀氦 He; 几何与 OneCH_ml 一致 (8 物种 12 区)。
 
 时间控制:
   --tmax X  统一覆盖所有场景的仿真结束时间 (传给各脚本 --tmax 参数)。
-            默认 1.0e-11 (极短验证)。正式物理运行: --tmax 1.6e-9。
-  各场景脚本单独执行时: CHTi 家族默认 tmax=1.0e-11 (config_constants),
-  OneCH_ml/VCH_ml 默认规范值 1.6e-9, 均可用 --tmax 覆盖 (par 中 tmax 不符
-  时自动重新生成输入文件, 不会静默沿用旧值)。
+            默认 1.0e-11 (极短验证, 与各场景脚本 config_constants 默认一致)。
+            正式物理运行: --tmax 1.6e-9。
+  各场景脚本单独执行时: 默认 tmax=1.0e-11 (config_constants), 可用 --tmax
+  覆盖 (par 中 tmax 不符时自动重新生成输入文件, 不会静默沿用旧值)。
 
-夜间执行示例 (Windows, 项目 venv):
+验证测试 (当前阶段, Windows, 项目 venv):
   E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\.venv\\Scripts\\python.exe ^
-      E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\scenarios\\private\\tracer\\run_ml_suite.py
-  # 全部 9 场景 @1e-11 约 15-20 min; 只跑新场景:
-  #   ... run_ml_suite.py --only CHTi1,CHTi2,CHTi3,VCH_ml_F,CHTi1_F,CHTi2_F,CHTi3_F
+      flash\\scenarios\\private\\tracer\\run_sic_suite.py
+  # 4 场景 @1e-11 约 5-6 min
 
 行为:
   1. 顺序运行 (子进程, 实时透传输出);
@@ -43,24 +45,19 @@ HERE = Path(__file__).resolve().parent
 
 # (显示名, 主脚本路径) — 顺序即执行顺序
 SCENARIOS = [
-    ("VCH_ml_F", HERE / "VCH_ml_F" / "VCH_ml_F.py"),
-    ("CHTi1", HERE / "CHTi" / "CHTi1.py"),
-    ("CHTi1_F", HERE / "CHTi_F" / "CHTi1_F.py"),
-    ("CHTi2", HERE / "CHTi" / "CHTi2.py"),
-    ("CHTi2_F", HERE / "CHTi_F" / "CHTi2_F.py"),
-    ("CHTi3", HERE / "CHTi" / "CHTi3.py"),
-    ("CHTi3_F", HERE / "CHTi_F" / "CHTi3_F.py"),
-    # ("OneCH_ml", HERE / "OneCH_ml" / "OneCH_ml.py"),
-    # ("VCH_ml", HERE / "VCH_ml" / "VCH_ml.py"),
+    ("OneSi_ml", HERE / "OneSi_ml" / "OneSi_ml.py"),
+    ("OneSi_ml_F", HERE / "OneSi_ml_F" / "OneSi_ml_F.py"),
+    ("OneC_ml", HERE / "OneC_ml" / "OneC_ml.py"),
+    ("OneC_ml_F", HERE / "OneC_ml_F" / "OneC_ml_F.py"),
 ]
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="ml 系列场景一键批量运行")
+    ap = argparse.ArgumentParser(description="Si/C 单一纯材料场景一键批量运行")
     ap.add_argument("--tmax", type=float, default=1.6e-9,
                     help="统一覆盖各场景仿真结束时间 (s), 默认 1.0e-11 极短验证")
     ap.add_argument("--only", type=str, default=None,
-                    help="逗号分隔的场景名筛选 (如 CHTi1,CHTi2); 默认全部")
+                    help="逗号分隔的场景名筛选 (如 OneSi_ml,OneC_ml_F); 默认全部")
     args = ap.parse_args()
 
     selected = SCENARIOS
@@ -75,7 +72,7 @@ def main() -> int:
         return 1
 
     print("\n" + "=" * 65)
-    print(f" FLASH ml-suite batch runner: {len(selected)} scenario(s)")
+    print(f" FLASH Si/C-suite batch runner: {len(selected)} scenario(s)")
     print(f" tmax = {args.tmax:.3e} s (统一覆盖)")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)

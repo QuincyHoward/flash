@@ -54,7 +54,19 @@ https://gitee.com/physimx/flash
 | `layer_tracer_CH` | `private/tracer/layer_tracer_CH/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (CH)：cham(He)→samp(CH)→targ(CH)→samp(CH)，MGD 10 群辐射 |
 | `VCH_ml` | `private/tracer/VCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, V 屏蔽层)：cham(He)→shld(V 0.1µm)→samp→tar1@1µm→samp→tar2@2µm→samp→tar3@3µm→samp→tar4@4µm→samp→tar6@6µm→samp(D=50µm) |
 | `OneCH_ml` | `private/tracer/OneCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, 纯 CH)：与 VCH_ml 唯一物理差异为 shld 材质 V→CH (ρ=1.0)，其余设置完全一致 |
-| `run_ml_suite` | `private/tracer/run_ml_suite.py` | `python run_ml_suite.py` | 一键顺序执行 OneCH_ml、VCH_ml 双场景仿真（tmax 可指定，默认 1e-11 验证） |
+| `CHTi` | `private/tracer/CHTi/` (CHTi1/2/3.py) | `python CHTi1.py` (wsl/hpc 一键切换) | 1D 多薄层示踪靶 + **Ti 示踪层** (shld=CH 无屏蔽层)：tar1/tar2/tar3 之一为 Ti (Ti-BADGER-TOPS.cn4, ρ=4.54, A=47.867, Z=22)，其余 tar*/samp 仍为 CH |
+| `CHTi_F` | `private/tracer/CHTi_F/` (CHTi1_F/2_F/3_F.py) | `python CHTi1_F.py` | CHTi 的**关辐射**变体：`rt_useMGD=.false.` + `useOpacity=.false.` + `useRadTrans=.false.` (纯运行时开关, 源码/setup 不变) |
+| `VCH_ml_F` | `private/tracer/VCH_ml_F/VCH_ml_F.py` | `python VCH_ml_F.py` | VCH_ml 的**关辐射**变体 (V 屏蔽层保留)：同上三开关 |
+| `TiTi` | `private/tracer/TiTi/` (TiTi1/2/3.py) | `python TiTi1.py` (wsl/hpc 一键切换) | 1D 多薄层示踪靶 + **Ti 屏蔽层** (由 CHTi 派生, shld 材质 CH→Ti, ρ=4.54 与 Ti 示踪层同材质)：tar1/tar2/tar3 之一为 Ti 示踪层 @1/2/3µm, 其余 tar*/samp 仍为 CH, 辐射开 |
+| `build_family` | `private/tracer/build_family.py` | `python build_family.py` | CHTi 家族生成器：由模板 CHTi1.py 派生其余 6 个变体脚本 (仅 docstring + SCENE VARS 块不同) |
+| `run_ml_suite` | `private/tracer/run_ml_suite.py` | `python run_ml_suite.py [--only 名单] [--tmax v]` | 一键顺序执行 9 场景 (OneCH_ml, VCH_ml, CHTi1/2/3, VCH_ml_F, CHTi1_F/2_F/3_F)，tmax 统一覆盖，默认 1e-11 验证 |
+| `OneSi_ml` | `private/tracer/OneSi_ml/OneSi_ml.py` | `python OneSi_ml.py` | 1D 多薄层**单一纯材料烧蚀** (Si, Z14_1.00-20260708_0850.cn4, ρ=1.00)：shld/tar*/samp 全 Si，cham=He (6 群 Z02 表)，MGD 6 能群 |
+| `OneSi_ml_F` | `private/tracer/OneSi_ml_F/OneSi_ml_F.py` | `python OneSi_ml_F.py` | OneSi_ml 的**关辐射**变体 (三开关 .false.) |
+| `OneC_ml` | `private/tracer/OneC_ml/OneC_ml.py` | `python OneC_ml.py` | 同 OneSi_ml，材质换 C (Z06_1.00-20260902_2228.cn4, A=12.011, Z=6) |
+| `OneC_ml_F` | `private/tracer/OneC_ml_F/OneC_ml_F.py` | `python OneC_ml_F.py` | OneC_ml 的**关辐射**变体 |
+| `build_sic_family` | `private/tracer/build_sic_family.py` | `python build_sic_family.py` | OneSi/OneC 家族生成器：由模板 OneSi_ml.py 派生 OneSi_ml_F/OneC_ml/OneC_ml_F |
+| `build_titi_family` | `private/tracer/build_titi_family.py` | `python build_titi_family.py` | TiTi 家族生成器：由模板 TiTi1.py 派生 TiTi2/TiTi3 (仅 docstring + SCENE VARS 块不同) |
+| `run_sic_suite` | `private/tracer/run_sic_suite.py` | `python run_sic_suite.py [--only 名单] [--tmax v]` | 一键顺序执行 OneSi_ml/OneSi_ml_F/OneC_ml/OneC_ml_F，默认 tmax=1.0e-11 |
 | `layer_tracer_Ti` | `private/tracer/layer_tracer_Ti/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (Ti tracer)，CH 靶 + Ti 示踪层 X-ray 谱学诊断 |
 
 > ⚠️ **private/ 场景不随发布包分发**（.gitignore 排除），仅限内部使用；tracer 系列以
@@ -91,6 +103,42 @@ https://gitee.com/physimx/flash
 | **输出分析** | dens 剖面 (全域 + [-5,10]µm 放大) + 8 物种分布图 + 物种时空图 + 预诊断图 (脉冲/初始分层) |
 | **与纯 CH 基准一致性** | 除几何/物质设置外与 `CH_CH_**um8.00e-02` 基准一致 (killdivb 段逐行一致, plotFileIntervalStep=2000 已对齐); 详见 `VCH_ml/src/docs/VCH与纯CH的差异.md` |
 | **历史运行** | 更名前快照保留在 `VCH_ml/flash_input/run_00000{1,4,5}/` (run_id 自动续接) |
+
+#### CHTi / CHTi_F / VCH_ml_F (private, Ti 示踪 + 关辐射家族, 2026-08-31)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | CHTi1/2/3 (tar1/tar2/tar3 = Ti, shld=CH, 辐射开) + CHTi1_F/2_F/3_F (同上, 辐射关) + VCH_ml_F (shld=V, 无 Ti, 辐射关)，共 7 脚本 4 目录 |
+| **模板架构** | 全部脚本由 `CHTi/CHTi1.py` 模板 + `build_family.py` 派生，仅 docstring + SCENE VARS 块 (`SCENE_NAME`/`SHLD_MATERIAL`/`TI_LAYER`/`RADIATION_OFF`) 不同 |
+| **Ti 材质** | Ti-BADGER-TOPS.cn4, ρ=4.54 g/cm³ (同参考 ReDo042sp sim_rhoTarg), A=47.867, Z=22 |
+| **关辐射机制** | 纯运行时三开关：`rt_useMGD=.false.` + `useOpacity=.false.` + `useRadTrans=.false.`；源码/Makefile/setup 编译完全不变 (学习自参考 ReDo042sp_*L/*F 对比) |
+| **tmax 控制** | 每脚本 `--tmax` 参数 (默认 1.0e-11) + `_par_tmax_ok()` 再生守卫 (par 与配置不符时自动重生成输入)；套件 `--tmax` 统一覆盖 |
+| **共享目录防串味** | CHTi1/2/3 共享 `CHTi/flash_input`、CHTi*_F 共享 `CHTi_F/flash_input` → 家族脚本 main() 无条件全量重生成输入文件 |
+| **2026-08-31 测试** | 7 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0)；VCH_ml_F 首跑曾因模板漏复制 V-BADGER-TOPS.cn4 abort，修复模板后重跑 PASS；初始帧 9 场景快检 (`check_suite_initial.py`) 全 PASS (Ti 层 4.54 位置正确、shld 1.0/6.11、8 物种 0/1 阶跃) |
+
+#### TiTi (private, Ti 屏蔽层家族, 2026-09-08)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | TiTi1/2/3 (tar1/tar2/tar3 = Ti 示踪层 @1/2/3µm, shld=Ti, 辐射开)，共 3 脚本 1 目录 |
+| **物理设计** | 由 CHTi 派生，**唯一物理差异为 shld 层材质 CH → Ti** (Ti-BADGER-TOPS.cn4, ρ=4.54 g/cm³, A=47.867, Z=22，与 Ti 示踪层同材质同密度)；几何/物种标记/激光/MGD 10 群辐射与 CHTi 完全一致 |
+| **模板架构** | 主模板 `TiTi/TiTi1.py` + `build_titi_family.py` 派生 TiTi2/TiTi3，仅 docstring + SCENE VARS 块 (`SCENE_NAME`/`SHLD_MATERIAL="Ti"`/`TI_LAYER`/`RADIATION_OFF`) 不同；模板 `build_species_defs`/par 覆写/tables 清单相对 CHTi1 新增 "Ti" 分支 |
+| **Ti 材质绑定** | shld 与 Ti 示踪层同 3 键运行时覆写 (`sim_rhoShld=4.54` + `eos_shldTableFile` + `op_shldFileName` → Ti-BADGER-TOPS.cn4)，A/Z 经 species_defs 写入 Config 默认 (与 CHTi Ti 示踪层同约定) |
+| **tmax 控制** | 每脚本 `--tmax` 参数 (默认 1.0e-11) + `_par_tmax_ok()` 再生守卫；TiTi1/2/3 共享 `TiTi/flash_input` → main() 无条件全量重生成输入 |
+| **2026-09-08 测试** | 3 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0, 无 DRIVER_ABORT, 各 run plt=2/chk=2)；初始帧快检 (`check_suite_initial.py TiTi1 TiTi2 TiTi3`) 3/3 PASS (shld/Ti 层 4.5400、samp 1.0000、8 物种 0/1 阶跃 out-max=1e-99) |
+
+#### OneSi_ml / OneC_ml (private, 单一纯材料烧蚀家族, 2026-09-02)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | OneSi_ml / OneSi_ml_F / OneC_ml / OneC_ml_F 共 4 脚本 4 目录；仿 OneCH_ml (L) 与 VCH_ml_F (F) 结构 |
+| **物理设计** | shld/tar1/2/3/4/6/samp **全部同一纯材料** (Si ρ=2.329 或 C 金刚石 ρ=3.515 g/cm³, 常温固体密度, 无 Ti 层) —— 单一材料烧蚀仿真；cham = He 填充 |
+| **材质表** | Si = `Z14_1.00-20260708_0850.cn4` (A=28.0855, Z=14)；C = `Z06_1.00-20260902_2228.cn4` (A=12.011, Z=6)；均在 `Gen_eos_op_data/` (表名 1.00 为生成标称密度; IONMIX4 密度网格为离子数密度 [1e16, 2e25] ions/cm³, 两种固体密度均覆盖) |
+| **★ MGD 能群结构** | Gen_eos_op_data 族表为 **6 群** (BADGER 族为 10 群)，FLASH 要求全物种表群数一致 → `rt_mgdNumGroups=6` + `rt_mgdBounds_1..7 = 0.1/1/10/100/1e3/1e4/1e5 eV` (十倍程，同 ch_center)，cham He 表用 6 群的 `Z02_1.00-20260708_0851.cn4`；混用 6/10 群表 → `op_readIonmix4Tables: bad size of IONMIX4 energy group grid` |
+| **模板架构** | 主模板 `OneSi_ml/OneSi_ml.py` + `build_sic_family.py` 派生 3 变体，仅 docstring + SCENE VARS (`SCENE_NAME`/`MAT_LABEL`/`MAT_TABLE`/`MAT_RHO`/`MAT_A`/`MAT_Z`/`RADIATION_OFF`) 不同 |
+| **一键批量** | `python run_sic_suite.py [--only 名单] [--tmax v]` (tracer/ 下)，默认 tmax=1.0e-11 |
+| **2026-09-02 测试** | 4 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0)；初始帧快检 (`check_sic_initial.py`) 4/4 PASS (各标记层 dens=1.0000、物种 0/1 阶跃 out-max=1e-99)。调试轮次：①能群 6/10 不匹配 (L 全 FAIL) ②He 表仍 10 群 (10/6) + Windows 页面文件不足假 FAIL ③cham→Z02 后 3/4，OneSi_ml 因 objdir flash.par=0 字节瞬时故障单独重跑 PASS |
+| **2026-09-03 密度修正** | MAT_RHO 改常温固体密度 (Si 2.329 / C 金刚石 3.515 g/cm³) + 套件默认 tmax 改回 1.0e-11；重跑 4/4 PASS，快检 4/4 PASS (Si 层 2.3290、C 层 3.5150) |
 
 #### layer_tracer_CH (private)
 
