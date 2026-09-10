@@ -47,7 +47,7 @@ Python 标准库，不导入也不搜索任何外部 FLYCHK Python 包，便于 
 4. 列组合: rho / ne / ni 三选一，size / ti / tr 可选，列序可自定义
 5. size 策略: extent / scale_length_ne / scale_length_te / fixed
 6. 时间: 单位换算 / 步长抽稀 / 上限抽稀 / 时间窗裁剪 / 非正时间剔除
-7. 输出: flat / batch 布局，manifest.json，表文本，预诊断图，交叉验证
+7. 输出: flat / batch 布局，manifest.json，表文本，预诊断图，zipfiles 中转
 8. 自检: 写出后回读 zip 与表内容逐字符核对 (``self_check=True``)，
    结论写入 manifest (`zip_integrity`)
 """
@@ -434,7 +434,7 @@ def describe_interfaces() -> str:
         f"[size]    {list(SIZE_MODES)}",
         f"[时间]    time_unit / time_stride / n_time_max / tmin / tmax / "
         f"drop_nonpositive_time",
-        f"[输出]    layout=flat|batch, manifest.json, 表文本, 预诊断图, 交叉验证, "
+        f"[输出]    layout=flat|batch, manifest.json, 表文本, 预诊断图, "
         f"zipfiles 中转",
         f"[写出]    自包含 zip 写出器 (zip_writer, 仅标准库) + 回读自检 self_check\n"
         f"          格式契约: {FORMAT_CONTRACT_ID} (FLYCHK history 模式)",
