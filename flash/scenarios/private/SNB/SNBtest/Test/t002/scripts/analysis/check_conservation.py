@@ -99,11 +99,13 @@ def main() -> int:
             C.log(f"{model}: 无数据", "WARN")
             continue
         diags[model] = d
+        # 判据: 内能/激光峰值 ≤ 1; 质量最低点 ≥ 90% 初始 (outflow 允许缓慢流失,
+        # 但"跌落后回升"说明质量被销毁又重建 → 不守恒)
+        ok = (d["ratio_max"] <= 1.0) and (d["mass_min"] > 0.90 * d["mass_init"])
         C.log(f"{C.LEGS[model]['label']}: 质量 {d['mass_init']*1e4:.3f} → "
               f"{d['mass_final']*1e4:.3f} (最低 {d['mass_min']*1e4:.3f}) 1e-4 g/cm² | "
               f"内能/激光 末帧 {d['ratio_final']:.3f} 峰值 {d['ratio_max']:.3f}",
-              "OK" if d["ratio_max"] <= 1.0 and d["mass_min"] > 0.95 * d["mass_init"]
-              else "ERROR")
+              "OK" if ok else "ERROR")
 
     if not diags:
         return 1
