@@ -1,0 +1,6 @@
+# gen_flychk_his 测试的可再生产物 (由 make_test_data.py / run_test.py 生成)
+data/
+out/
+
+# 生成物保留占位说明文件, 其余忽略
+!README.md

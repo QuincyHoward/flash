@@ -16,6 +16,7 @@
 6. [子模块详细说明](#子模块详细说明)
 7. [测试覆盖](#测试覆盖)
 8. [常见问题](#常见问题)
+9. [扩展阅读: 让 FLASH 输出新物理量](#扩展阅读-让-flash-输出新物理量)
 
 ---
 
@@ -58,6 +59,7 @@ input_gen/
 ├── gen_Grid_markRefineDerefine/  # AMR 网格细化参考示例
 ├── gen_otherf90s/        # 其他 Fortran 文件参考库
 ├── gen_newpara/           # 多区密度剖面生成器
+├── gen_flychk_his/        # FLASH 数据 → FLYCHK history 输入 zip
 ├── gen_f90/              # (预留)
 │
 └── test/                 # 测试套件
@@ -93,6 +95,7 @@ create_input_files()
 | `gen_shell_script` | `ShellScriptGenerator` | `run_flash.*` | ✅ 完整 | 资源配置驱动 |
 | `gen_checker` | `DependencyChecker` | (无生成) | ✅ 完整 | 依赖检查 + 绘图 |
 | `gen_newpara` | `NewParaGenerator` | 多区剖面文件 | ✅ 完整 | 5 种密度剖面 |
+| `gen_flychk_his` | `FlychkHistoryGenerator` | FLYCHK 输入 `*.zip` | ✅ 完整 | 由 FLASH 剖面生成 FLYCHK history 输入 |
 | `gen_Grid_markRefineDerefine` | (无) | (手动复制) | ⚠️ 参考 | 277 个参考文件 |
 | `gen_otherf90s` | (无) | (手动复制) | ⚠️ 参考 | AMR 细化条件参考 |
 | `gen_f90` | (无) | (无) | ⚠️ 预留 | 空模块 |
@@ -518,6 +521,18 @@ Config → Simulation_data.F90 → Simulation_init.F90 → Simulation_initBlock.
 3. **Simulation_init.F90** — 用 `RuntimeParameters_get` 读取
 4. **Simulation_initBlock.F90** — 在初始条件中使用
 5. **.par 文件** — 设置参数初始值
+
+---
+
+## 扩展阅读: 让 FLASH 输出新物理量
+
+若需要在 plt 输出中增加新的物理量（如 SNB 场景的 QESH/QENL 等非局域热传导
+诊断变量），涉及 **Config VARIABLE 声明 → 源代码写入 unk → setup 生成索引
+(Flash.h) → par plot_var 白名单 → plt 验证** 五步链路。完整流程、实测示例
+与常见坑见专题文档：
+
+> **[FLASH输出新变量的设置.md](./FLASH输出新变量的设置.md)** — 以 SNB 为例
+> （18 个 VARIABLE、plot_var 白名单、Flash.h 索引实测、5 步实操记录）。
 
 ---
 

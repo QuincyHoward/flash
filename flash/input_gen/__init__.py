@@ -15,6 +15,8 @@ FLASH 仿真输入文件生成器 v2.0 (自包含)
   gen_shell_script/   - 平台运行脚本 (ShellScriptGenerator)
   gen_checker/        - 依赖检查 (DependencyChecker)
   gen_checker/ploter/ - 绘图 (PulsePlotter, DensityPlotter, RayPlotter)
+  gen_flychk_his/     - FLASH 剖面 → FLYCHK history 输入 zip
+                        (FlychkHistoryGenerator, 多区域/多数据源)
 
 统一接口:
   create_input_files(): 一键生成所有 FLASH 输入文件
