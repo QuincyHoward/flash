@@ -22,7 +22,6 @@
 """
 
 import argparse
-import base64
 import subprocess
 import sys
 import time
@@ -41,39 +40,70 @@ else:
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from flash._core.credentials import get_credential_manager  # noqa: E402
+# ★ 依赖自检: 凭据库是 Fernet 加密存储, 需要 cryptography。该包**惰性导入**
+#   (在 get_credential_manager() 内部), 必须显式探测, 否则只会看到调用深处的裸 ImportError。
+try:
+    from flash._core.credentials import get_credential_manager
+    import cryptography  # noqa: F401
+except ModuleNotFoundError as _exc:
+    if "cryptography" in str(_exc):
+        sys.exit(
+            "\n  [X] 当前解释器缺少依赖 cryptography (凭据库为 Fernet 加密存储)。\n"
+            f"      正在使用的解释器: {sys.executable}\n"
+            f'      请改用含该依赖的解释器, 或安装: "{sys.executable}" -m pip install cryptography\n'
+        )
+    raise
+
+# 父目录的认证工具: credential helper 统一入口 (与 git_push/pull 共用一份实现)
+_PARENT = Path(__file__).resolve().parent.parent
+if str(_PARENT) not in sys.path:
+    sys.path.insert(0, str(_PARENT))
+from _git_auth import auth_prefix  # noqa: E402
 
 # 私有目标仓 (全包唯一 quincyhoward 位置)
 PRIVATE_REPO = "https://gitee.com/quincyhoward/flash.git"
 
 
-def _git_auth_cmd(args: str) -> str:
-    """构造带 token 认证前缀的 git 命令 (credential helper 全禁用)。"""
-    cred = get_credential_manager().get("gitee")
-    if not cred:
-        raise RuntimeError("未找到 Gitee 凭据, 请先运行: python scripts/03_git_publish/git_push.py --setup")
-    token = cred.get("token", "")
-    login = cred.get("login") or cred.get("username", "")
-    if not token or not login:
-        raise RuntimeError("Gitee 凭据缺少 token/login 字段")
-    b64 = base64.b64encode(f"{login}:{token}".encode("utf-8")).decode("ascii")
-    return (
-        f'git -c credential.helper= -c core.askPass= '
-        f'-c http.extraHeader="Authorization: Basic {b64}" {args}'
-    )
+def _git_auth_prefix() -> list[str]:
+    """返回 credential helper 认证前缀 (§见父目录 _git_auth.py)。
+
+    ★ 凭据由 helper 从加密库读取、经**管道**交给 git —— 既不写 .git/config、
+      也不出现在命令行 argv 里。
+      历史实现用 `-c http.extraHeader="Authorization: Basic <base64>"`：
+      token 的 base64 会进 argv (`ps` 可见) 且 base64 可逆解码，已修正。
+    """
+    prefix = auth_prefix()
+    if not prefix:
+        raise RuntimeError(
+            "未找到 credential helper —— 期望文件: "
+            f"{Path(__file__).resolve().parent.parent / '_git_auth.py'}"
+        )
+    return prefix
 
 
-def run_git(args: str, cwd: Path, check: bool = True, auth: bool = True):
-    if args.startswith("git "):
-        args = args[4:]
-    cmd = _git_auth_cmd(args) if auth else args
+def run_git(args, cwd: Path, check: bool = True, auth: bool = True):
+    """运行 git 命令。
+
+    ★ 一律 `shell=False` + 参数列表：避免经 cmd.exe/sh 拼接字符串带来的
+      引号歧义与注入风险（历史实现用 shell=True 拼 `git commit -m "<msg>"`）。
+      传入字符串时用 shlex 切分（能正确处理双引号包裹的段落）。
+    """
+    if isinstance(args, str):
+        import shlex
+        args = shlex.split(args)
+    if args and args[0] == "git":
+        args = args[1:]
+    full = ["git"]
+    if auth:
+        full += _git_auth_prefix()
+    full += ["-c", "core.askPass="] + list(args)
     result = subprocess.run(
-        cmd, shell=True, cwd=cwd,
+        full, shell=False, cwd=cwd,
         capture_output=True, text=True,
         encoding="utf-8", errors="replace",
     )
     if check and result.returncode != 0:
-        sys.stderr.write(f"[X] git 失败: {args}\n")
+        sys.stderr.write(f"[X] git 失败: {' '.join(list(args)[:6])}\n")
         sys.stderr.write(f"    {(result.stderr or result.stdout or '').strip()}\n")
         sys.exit(1)
     return result
@@ -138,7 +168,7 @@ def push_private(branch, force, commit_msg, dry_run, project_root):
             msg = commit_msg or auto_commit_message(project_root)
             print(f"提交: {msg}")
             run_git("git add -A", project_root)
-            run_git(f'git commit -m "{msg}"', project_root)
+            run_git(["commit", "-m", msg], project_root)
     else:
         print("无未提交变更")
 

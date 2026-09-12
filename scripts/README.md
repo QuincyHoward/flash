@@ -33,6 +33,12 @@ scripts/
 ├── 03_git_publish/               # Git 推送 / 发布 / 版本管理
 │   ├── git_push.py               #   ★ 核心: 统一 Git 推送脚本 (双击可用)
 │   ├── git_push.bat              #   Windows 批处理包装 (双击入口)
+│   ├── git_pull.py               #   一键拉取 (--ff-only, 可 --rebase/--stash)
+│   ├── git_pull.bat              #   Windows 批处理包装 (双击入口)
+│   ├── _git_auth.py              #   ★ 认证统一入口: credential helper 参数拼装
+│   ├── _git_credential_helper.py #   ★ git credential helper 协议实现 (只服务 gitee.com)
+│   ├── private/git_push_private.py # 私有备份仓推送 (独立目标, 不改公开 remote)
+│   ├── git_size_report.py        #   Gitee 分支文件大小统计 (xlsx 报告)
 │   ├── install-git-hooks.sh      #   安装 Git 钩子 (pre-commit / pre-push)
 │   ├── git-tag-with-test.sh      #   打标签前运行全局测试
 │   ├── tag-release.sh            #   完整发布流程 (格式检查 + 测试 + 构建 + 标签)
@@ -229,6 +235,30 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 支持的凭据类型: Gitee Token、FLASH SSH (超算账户 × 多条线路)、DeepSeek API Key。
 默认用户名 `hello`（`DEFAULT_USER_NAME`，可用 `manage.py` 修改）。
 
+### 凭据如何交给 git（HTTPS 认证机制）
+
+**统一走 git credential helper，token 既不落盘、也不进命令行参数。**
+
+调用链：`git_push.py` / `git_pull.py` / `git_size_report.py` / `private/git_push_private.py`
+→ `_git_auth.py::auth_prefix()` 拼出 `-c credential.helper=!"<python>" "<helper.py>"`
+→ git 调用 `_git_credential_helper.py`，它从加密库取凭据后经 **stdin/stdout 管道**回给 git。
+
+三种做法的对比（前两种均已废弃）：
+
+| 做法 | token 落 `.git/config` | token 进 `argv`（`ps` 可见） |
+|------|:---:|:---:|
+| 认证 URL 写进 remote（`https://user:token@…`） | ❌ 明文长期落盘 | — |
+| 认证 URL / base64 头当命令行参数 | ✅ | ❌ |
+| **credential helper（当前）** | ✅ | ✅ |
+
+要点：
+- `auth_prefix()` 先写一个空的 `credential.helper=` 来**清空** git 已有的 helper 列表，
+  保证只有本项目这一个 helper 生效（系统 GCM 不会抢答、也不会弹窗）。
+- helper 只服务 `gitee.com`（主机名不匹配时返回空），避免凭据被喂给其它远端。
+- helper 用 `sys.executable` 启动，与调用脚本的解释器一致。
+- ⚠ 凭据库依赖 `cryptography`；该包是**惰性导入**，因此各脚本在启动时显式探测，
+  缺失时直接给出「换解释器 / 安装依赖」的可操作提示，而不是抛出深层 ImportError。
+
 ---
 
 ## 故障排除
@@ -236,6 +266,7 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 | 问题 | 解决 |
 |------|------|
 | Gitee 推送 403 | Token 失效，运行 `python scripts/03_git_publish/git_push.py --setup` 重新设置 |
+| `ModuleNotFoundError: cryptography` | 当前解释器缺依赖，改用含该依赖的解释器，或 `"<该解释器>" -m pip install cryptography` |
 | Git 钩子不触发 | 运行 `bash scripts/03_git_publish/install-git-hooks.sh` 重新安装 |
 | 双重模式导入失败 | 运行 `python scripts/01_env_diagnose/test_dual_mode.py` 诊断 |
 | usb_backup 路径不存在 | 检查 U 盘盘符是否正确 |

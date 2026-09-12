@@ -820,8 +820,12 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   (ParaCloud), with SLURM/SBATCH support.
 - **Credential Management** (`_core/credentials/`): encrypted storage for Gitee
   tokens, SSH accounts and API keys (read-only for agents; user-managed).
-- **No-Prompt Gitee Integration**: direct HTTPS auth via login+token URLs with
-  credential helpers disabled — `git push` never pops a dialog.
+- **No-Prompt Gitee Integration**: HTTPS auth through a **git credential helper**
+  (`scripts/03_git_publish/_git_auth.py` + `_git_credential_helper.py`) that reads
+  the encrypted store at push time and hands the token to git over a **pipe** —
+  the token never lands in `.git/config` and never shows up in `argv`
+  (invisible to `ps`). All other credential helpers and askpass are cleared, so
+  `git push` never pops a dialog.
 - **Dual Mode**: standalone Python package (`flash.*`) or PhySimX plugin
   (`physimx_sim.flash.*`).
 
