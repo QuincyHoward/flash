@@ -20,12 +20,20 @@
   python git_push.py -b main      # 推送到指定分支
   python git_push.py -f           # 强制推送
   python git_push.py -n           # dry-run (只展示不执行)
+  python git_push.py --allow-deletes  # 允许提交删除 (默认拦截, 见下)
   python git_push.py --status     # 查看 git 状态 (不推送)
   python git_push.py --setup      # 进入凭据设置界面 (唯一需要交互的选项)
 
 钩子机制 (通过 git 命令自动触发):
   - git commit → pre-commit: Black 格式检查 + 导入检查
   - git push   → pre-push:   框架 pytest 测试
+
+★ 删除护栏 (默认开启):
+  git add -A 会把"文件此刻不可见"误当成"已删除"一起提交 —— 本机 E: 盘存在
+  文件间歇性不可见的过滤驱动问题，2026-09-12 曾因此把整个
+  tracer/SNB/SNBOneCH_ml/ 目录（10 文件 / 2835 行）提交为删除。
+  现在 commit 之前会检查已暂存的删除：默认**中止**并列出文件，
+  确属有意删除时加 --allow-deletes 重跑。
 """
 
 import argparse
@@ -204,6 +212,25 @@ def has_changes(cwd: Path) -> bool:
     return bool(r.stdout.strip())
 
 
+def staged_deletions(cwd: Path) -> list[str]:
+    """返回**已暂存**的删除（相对 HEAD）的文件路径列表。
+
+    ★ 为什么需要它：本机 E: 盘的过滤驱动会让文件**间歇性不可见**
+      （同类现象已见于 `.git/refs/remotes/**` 凭空消失）。`git add -A` 会把
+      "这一刻看不见"误判成"已被删除"，从而让一次推送悄悄提交成百上千行删除
+      —— 2026-09-12 就因此把 `tracer/SNB/SNBOneCH_ml/` 整个目录（10 文件 /
+      2835 行）提交为删除。此护栏让删除**必须显式确认**才能提交。
+    """
+    r = run_git(["diff", "--cached", "--name-status", "--diff-filter=D"],
+                cwd=cwd, check=False)
+    paths: list[str] = []
+    for line in (r.stdout or "").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[0].strip().startswith("D"):
+            paths.append(parts[-1])
+    return paths
+
+
 def count_ahead(cwd: Path, branch: str) -> int:
     r = run_git(["rev-list", "--count", f"origin/{branch}..HEAD"], cwd=cwd, check=False)
     if r.returncode == 0 and r.stdout.strip():
@@ -268,7 +295,7 @@ def input_with_timeout(prompt: str, timeout: float = 5.0) -> str | None:
 # ============================================================================
 
 def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
-                  project_root: Path | None = None):
+                  project_root: Path | None = None, allow_deletes: bool = False):
     if project_root is None:
         project_root = find_git_root(Path(__file__).resolve().parent)
 
@@ -324,6 +351,25 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
             msg = commit_msg if commit_msg else auto_commit_message(project_root)
             info(f"提交信息: {msg}")
             run_git(["add", "-A"], cwd=project_root)
+
+            # ★★ 删除护栏。`git add -A` 遇"文件此刻不可见"会当作删除一起提交，
+            #    且**不报错**。这里在 commit 之前强制检查，默认拒绝。
+            dels = staged_deletions(project_root)
+            if dels and not allow_deletes:
+                run_git(["reset"], cwd=project_root, check=False)  # 撤回暂存, 工作区不动
+                fail(f"检测到 {len(dels)} 个**已跟踪文件将被删除**，已中止提交：")
+                for p in dels[:15]:
+                    eprint(f"        D {p}")
+                if len(dels) > 15:
+                    eprint(f"        ... 另有 {len(dels) - 15} 个")
+                eprint()
+                warn("这些删除可能不是你的本意（本机 E: 盘存在文件间歇性不可见的问题）。")
+                warn("若文件其实还在磁盘上，用下面这条命令从 HEAD 恢复（只影响这些路径）：")
+                eprint(f"        git checkout HEAD -- {' '.join(dels[:3])}"
+                       + (" ..." if len(dels) > 3 else ""))
+                warn("若确属有意删除，请显式加 --allow-deletes 重跑。")
+                sys.exit(2)
+
             run_git(["commit", "-m", msg], cwd=project_root)
             ok("提交成功!")
     else:
@@ -418,6 +464,8 @@ def main():
     parser.add_argument("-m", "--message", default=None, help="自定义提交信息 (默认: 自动生成)")
     parser.add_argument("-f", "--force", action="store_true", help="强制推送")
     parser.add_argument("-n", "--dry-run", action="store_true", help="试运行 (只展示不执行)")
+    parser.add_argument("--allow-deletes", action="store_true",
+                        help="允许提交文件删除 (默认拦截: 防本机文件系统异常导致误删)")
     parser.add_argument("--setup", action="store_true", help="进入凭据设置界面 (有交互)")
     parser.add_argument("--status", action="store_true", help="查看当前 git 状态 (不推送)")
     parser.add_argument("-r", "--root", default=None, help="项目根目录 (含 .git)")
@@ -438,6 +486,7 @@ def main():
         commit_msg=args.message,
         dry_run=args.dry_run,
         project_root=root,
+        allow_deletes=args.allow_deletes,
     )
 
 
