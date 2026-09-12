@@ -272,7 +272,12 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
     if dry_run:
         warn("DRY-RUN 模式 — 仅展示将要执行的操作\n")
 
-    # ── 2. 配置 remote (token 认证, 不持久化明文) ──
+    # ── 2. 配置 remote：origin **始终指向不含凭据的干净 URL** ──
+    #   ★★ 认证 URL（含 login:token）**只在第 4 步的 push 命令里现拼现用**，
+    #      **绝不写进 .git/config** —— 否则 token 会以明文长期落盘。
+    #      这与本文件头"认证 URL 仅在运行时由凭据动态拼装"的设计意图一致。
+    #      （历史实现曾在此执行 `git remote set-url origin <user>:<token>@…`，
+    #        导致每次推送都把明文 token 写进配置；已修正。）
     if "://" in repo_url:
         scheme, rest = repo_url.split("://", 1)
         auth_url = f"{scheme}://{auth_username}:{token}@{rest}"
@@ -281,13 +286,14 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
 
     r = run_git(["remote", "-v"], cwd=project_root, check=False)
     if "origin" not in r.stdout:
-        info("添加远程仓库 origin")
+        info("添加远程仓库 origin（不含凭据）")
         if not dry_run:
-            run_git(["remote", "add", "origin", auth_url], cwd=project_root)
+            run_git(["remote", "add", "origin", repo_url], cwd=project_root)
     else:
-        info("更新远程仓库 URL (token 认证)")
+        # 幂等地把 origin 复位成干净 URL：既能预防，也能清掉历史遗留的内嵌 token
+        info("确保 origin 指向不含凭据的 URL（清除历史内嵌 token）")
         if not dry_run:
-            run_git(["remote", "set-url", "origin", auth_url], cwd=project_root)
+            run_git(["remote", "set-url", "origin", repo_url], cwd=project_root)
 
     # ── 3. 自动提交 ──
     if has_changes(project_root):
@@ -315,15 +321,21 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
         ok("完成!")
         return
 
-    push_args = ["push", "origin", branch]
+    # ★ 推送目标用"运行时认证 URL"，**不用 origin**：
+    #   这样 token 只出现在本次进程的命令行里，**不写入 .git/config**。
+    #   （配合第 2 步把 origin 复位为干净 URL，配置文件里不再有明文凭据。）
+    push_target = auth_url if auth_url != repo_url else "origin"
+    push_args = ["push", push_target, branch]
     if force:
         push_args.append("--force")
         warn("强制推送模式!")
 
     if dry_run:
-        warn(f"[DRY-RUN] 将执行: git {' '.join(push_args)}")
+        warn(f"[DRY-RUN] 将执行: git push <认证URL> {branch}"
+             + (" --force" if force else ""))
     else:
-        info(f"执行: git {' '.join(push_args)}")
+        info(f"执行: git push origin {branch}"
+             + (" --force" if force else "") + "   (认证 URL 仅本次生效)")
         r = run_git(push_args, cwd=project_root, check=False)
         if r.returncode == 0:
             ok(f"推送成功! ({branch})")
