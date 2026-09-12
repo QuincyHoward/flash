@@ -27,6 +27,21 @@ from ._core import (
 from ._config import DEFAULT_USER_NAME, DEFAULT_PASSWORD, ENTRIES
 
 
+def _api_request(url: str, token: str = "", timeout: int = 15):
+    """构造带鉴权头的 Gitee API 请求。
+
+    ★ 鉴权用 `Authorization: token <token>` **请求头**，**不**把 token 放进 URL
+      查询串（`?access_token=…`）—— URL 会被写进日志、异常信息、代理访问记录
+      与终端历史；请求头不会。Gitee API v5 两种方式均支持（已实测均返回 200）。
+    """
+    import urllib.request
+
+    headers = {"User-Agent": "flash-credentials"}
+    if token:
+        headers["Authorization"] = f"token {token}"
+    return urllib.request.Request(url, headers=headers)
+
+
 def setup_gitee() -> bool:
     """设置 Gitee 凭据。"""
     cm = get_credential_manager()
@@ -77,8 +92,7 @@ def _query_gitee_login(token: str) -> str:
     import urllib.error
     import urllib.request
     try:
-        url = f"https://gitee.com/api/v5/user?access_token={token}"
-        req = urllib.request.Request(url)
+        req = _api_request("https://gitee.com/api/v5/user", token)
         with urllib.request.urlopen(req, timeout=15) as resp:
             user_info = json.loads(resp.read().decode("utf-8"))
         return str(user_info.get("login", ""))
@@ -163,9 +177,8 @@ def test_gitee() -> bool:
     import json
 
     try:
-        # 获取用户信息
-        url = f"https://gitee.com/api/v5/user?access_token={token}"
-        req = urllib.request.Request(url)
+        # 获取用户信息 (token 走请求头, 不进 URL)
+        req = _api_request("https://gitee.com/api/v5/user", token, timeout=10)
         with urllib.request.urlopen(req, timeout=10) as resp:
             user_info = json.loads(resp.read().decode("utf-8"))
 
@@ -186,8 +199,8 @@ def test_gitee() -> bool:
     # 测试 2: 验证仓库访问
     print(f"\n  [2/2] 验证仓库访问...")
     try:
-        url = f"https://gitee.com/api/v5/repos/{owner}/{repo}?access_token={token}"
-        req = urllib.request.Request(url)
+        req = _api_request(
+            f"https://gitee.com/api/v5/repos/{owner}/{repo}", token, timeout=10)
         with urllib.request.urlopen(req, timeout=10) as resp:
             repo_info = json.loads(resp.read().decode("utf-8"))
 

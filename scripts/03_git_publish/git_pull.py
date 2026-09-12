@@ -138,8 +138,12 @@ def resolve_login(token: str, fallback: str) -> str:
     import json
     import urllib.request
     try:
-        url = f"https://gitee.com/api/v5/user?access_token={token}"
-        req = urllib.request.Request(url, headers={"User-Agent": "flash-git-pull"})
+        # ★ 鉴权走请求头，token 不进 URL（URL 会留在日志/异常信息里）
+        url = "https://gitee.com/api/v5/user"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "flash-git-pull",
+            "Authorization": f"token {token}",
+        })
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         login = data.get("login")

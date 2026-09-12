@@ -151,13 +151,21 @@ def parse_repo_slug(repo_url: str, username: str):
 #  Gitee API 访问 (stdlib urllib, 带重试)
 # ============================================================================
 
-def api_get(url: str, retries: int = 3, timeout: int = 30):
-    """GET 一个 Gitee API URL, 返回解析后的 JSON; 失败重试。"""
+def api_get(url: str, token: str = "", retries: int = 3, timeout: int = 30):
+    """GET 一个 Gitee API URL, 返回解析后的 JSON; 失败重试。
+
+    ★ 鉴权走 `Authorization: token <token>` **请求头**，不放进 URL 查询串。
+      查询串形式（`?access_token=…`）会把 token 留在 URL 里，而 URL 常被写进
+      日志、异常信息、代理访问记录与浏览器历史。实测 Gitee API v5 对这两种
+      方式均返回 200，故取请求头（token 不出现在任何 URL 中）。
+    """
+    headers = {"User-Agent": "flash-git-size-report"}
+    if token:
+        headers["Authorization"] = f"token {token}"
     last_exc = None
     for attempt in range(1, retries + 1):
         try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "flash-git-size-report"})
+            req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as exc:  # noqa: BLE001
@@ -170,10 +178,9 @@ def api_get(url: str, retries: int = 3, timeout: int = 30):
 
 def fetch_commit_info(token: str, owner: str, repo: str, branch: str):
     """获取分支 tip 的 commit sha / message / author / date (用于报告表头)。"""
-    url = (f"https://gitee.com/api/v5/repos/{owner}/{repo}/branches/{branch}"
-           f"?access_token={token}")
+    url = f"https://gitee.com/api/v5/repos/{owner}/{repo}/branches/{branch}"
     try:
-        data = api_get(url)
+        data = api_get(url, token=token)
         c = data.get("commit", {}) or {}
         cc = c.get("commit", {}) or {}
         author = (cc.get("author", {}) or {}).get("name", "")
@@ -194,8 +201,8 @@ def fetch_tree_api(token: str, owner: str, repo: str, branch: str):
     返回 (files, truncated): files = [(path, size_bytes), ...] 仅 blob。
     """
     url = (f"https://gitee.com/api/v5/repos/{owner}/{repo}/git/trees/{branch}"
-           f"?recursive=1&access_token={token}")
-    data = api_get(url)
+           f"?recursive=1")
+    data = api_get(url, token=token)
     tree = data.get("tree", []) or []
     truncated = bool(data.get("truncated", False))
     files, missing_size = [], 0
