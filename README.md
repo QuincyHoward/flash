@@ -754,6 +754,12 @@ code. It provides an end-to-end workflow: physics scenario design → `.par` fil
 generation → FLASH compile & run → HDF5 output processing → adaptive visualization
 (1D/2D/3D) and physical analysis.
 
+> **Status**: the release package passes the global test suite
+> (**236 passed / 1 skipped**: framework 132 / input_gen 78 / output_processors 26)
+> and the FLASH license-compliance check.
+> **Scope note**: this package does **not** redistribute any FLASH source,
+> binaries, distributed EOS/opacity tables or IONMIX/MultiEOS data (FLASH License §3).
+
 ## Repository
 
 Hosted on **Gitee (Chinese GitHub-equivalent platform)**:
@@ -770,8 +776,14 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   a registry (`get_scenario()` / `list_scenarios()`), and a unified
   `FlashSimulatorEngine` that integrates WSL/remote execution, checkpoint
   collection, interpolation and result output.
-  Built-in scenarios: `ch_center`, `grad_dens_sandwich`,
+  Built-in (distributed) scenarios: `ch_center`, `grad_dens_sandwich`,
   `thin_layer_sandwich_si`, `thin_layer_sandwich_al`.
+- **Research scenario families** (private, not distributed): the **SNB
+  non-local electron-transport line** (`scenarios/private/SNB/`, a shareable
+  method/tooling module + `SNBtest/Test/t001…t006`) and the **tracer line**
+  (`scenarios/private/tracer/`: `layer_tracer_CH`, `VCH_ml`, `OneCH_ml`,
+  `CHTi`, `TiTi`, `OneSi_ml`, `OneC_ml` and their no-radiation `_F` variants,
+  plus `tracer/SNB/SNBOneCH{,_ml}` as local-vs-nonlocal counterparts).
 - **Generated Scenario Inputs** (no static `flash_input/` in the repo): FLASH
   source files (`.par` / `Config` / `Makefile` / `*.F90` / EOS `.cn4` tables)
   are produced on demand by `gen_flash_inputs.py` (powered by the `input_gen`
@@ -782,15 +794,28 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   **automatically rebuilds from scratch when unhealthy**, re-runs the global
   test suites if pytest crashes at startup, and writes an
   `INSTALL_TEST_REPORT.txt` including a **dependency version snapshot**.
-- **Input Generation** (`input_gen/`): parameter-file editor/calculator, EOS &
-  opacity table tooling (`gen_eos_op` hosts the self-generated `*.cn4` tables),
-  Makefile generation, shell-script generation, and a dependency checker
-  (`gen_checker`).
+- **Input Generation** (`input_gen/`): a family of generators
+  (`gen_par` / `gen_config` / `gen_makefile` / `gen_sim_data` / `gen_sim_init` /
+  `gen_sim_initblock` / `gen_shell_script`), EOS & opacity table tooling
+  (`gen_eos_op` hosts the self-generated `*.cn4` tables), multi-zone density
+  profiles (`gen_newpara`), FLYCHK-history input generation
+  (`gen_flychk_his`), and a dependency checker (`gen_checker`).
 - **Output Processing** (`output_processors/`): HDF5 loading (1D/2D/3D) that is
   byte-compatible with real FLASH files (incl. WSL `(n,1)` `unknown names`
-  layout), derived variables, unit conversion, batch/lazy loading, AMR
-  visualization. Test data is synthesized at session start and auto-cleaned
-  after a green run.
+  layout), derived variables (`nele = ye·dens·N_A`, `nion`, `zbar`, gradient
+  scale lengths …), unit conversion, batch/lazy/parallel loading, AMR
+  visualization, and **space-time (x-t) maps** (`FlashPlotter.plot_xt_map` /
+  `collect_xt` / `time_uniformity`).
+  ⚠ x-t maps are rendered with `pcolormesh` using the **true per-frame times**
+  — FLASH checkpoints are written every *N steps*, so their Δt is often highly
+  non-uniform (measured 52.7× on an AMR run) and `imshow` would distort the
+  time axis.
+- **Share-safety gate** (`scenarios/private/SNB/SNB/scripts/check_share_safety.py`):
+  a mandatory pre-publish check with three gates — file type, protected
+  directories, and content (source/binary **blacklist** scan over the *staged ∪
+  untracked ∪ modified* set; fails closed if git cannot be queried). It keeps
+  FLASH source, F90-emitting scripts, algorithm fragments and credentials out
+  of any public release.
 - **Multi-Environment Execution**: local WSL (Ubuntu) and HPC clusters over SSH
   (ParaCloud), with SLURM/SBATCH support.
 - **Credential Management** (`_core/credentials/`): encrypted storage for Gitee
