@@ -360,6 +360,39 @@ print(f"共保存 {len(saved)} 张图")
 
 ---
 
+### 7.4 时空（x-t）图 —— 多文件堆叠（2026-09-12 新增）
+
+`plot_folder` 是**逐帧各出一张图**；要看**随时间的演化**需要时空图：
+
+```python
+from flash.output_processors.plotter import FlashPlotter
+
+# 一张图 = 整个文件夹的所有帧沿时间堆叠
+FlashPlotter.plot_xt_map(
+    "output/run_000001/",      # 含 chk 的目录
+    var_name="nele",
+    save_path="xt_nele.png",
+    pattern="*chk*",
+    xlim=(-60, 60),            # µm（可选）
+    ylim=(0, 1.6),             # ns（可选）
+)
+
+# 若只想拿数据自己画
+times, x, Z = FlashPlotter.collect_xt("output/run_000001/", "dens")
+print(times[:3], x.shape, Z.shape)
+
+# 先检查帧时间间隔是否均匀（决定能否用 imshow 类渲染）
+u = FlashPlotter.time_uniformity(times)
+print(u["ratio"], u["uniform"])     # e.g. 52.7  False
+```
+
+> ★★ **必须用 `pcolormesh` + 真实逐帧时间坐标，不要用 `imshow`。**
+> FLASH 的 chk 由 `checkpointFileIntervalStep` 触发 → Δt 随 dt 变化，
+> **帧在时间轴上高度不均匀**（实测 AMR 腿 `1.36e-12`…`7.19e-11`，**52.7×**）。
+> `imshow(..., extent=(x0,x1,t0,t1))` 会把各行**按等间距铺开**，时间轴局部拉偏
+> 可达数千个百分点，让**同一物理运动在不同算例上显得前沿速度不同**。
+> `plot_xt_map` 已按真实时间坐标渲染，并在 Δt 非均匀时打印警告。
+
 ## 8. 完整工作流示例
 
 ### 8.1 1D 仿真数据分析
@@ -593,4 +626,4 @@ pip install h5py numpy matplotlib --user
 ---
 
 **维护者**: WorkBuddy AI
-**最后更新**: 2026-07-04
+**最后更新**: 2026-09-12  (新增时空图 API: plot_xt_map / collect_xt / time_uniformity)

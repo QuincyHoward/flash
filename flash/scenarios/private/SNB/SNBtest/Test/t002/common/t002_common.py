@@ -135,9 +135,20 @@ PARAMS: Dict[str, Any] = {
         "dtmax": 2.0e-12,
     },
     # 输出
+    # ★ 数据源策略 (2026-09-10 用户指定): **绘图一律用 chk, plt 弃用**。
+    #   chk 是 FLASH 的完整重启快照, 变量覆盖度远高于 plt:
+    #     实测 chk 含 71 键 (含 pion/eele/ye/sumy/gamc/game/mfpe/qenl/...),
+    #     而 plt 受 plot_var 12 项上限约束只有 ~25 键。
+    #   → chk 每帧约 0.6 MB (512 格), 完整 1.2 ns 跑 ~13 帧 ≈ 8 MB/腿, 可接受。
+    #
+    #   时间网格设计 (全脉冲 tmax_full = 1.20e-9 s, 含 50 ps 下降沿后余辉):
+    #     checkpointFileIntervalTime = 8.0e-11 s → ⌊1.20e-9/8e-11⌋+1 = 16 帧
+    #       (10 时刻剖面需求 ≥10 帧; 16 帧给等间隔抽样留出余量)
+    #     plotFileIntervalTime      = 6.0e-10 s → 仅 3 帧, 只作启动健全性检查
+    #   ★ 注意: chk 的步间开销 + IO 本身会影响墙钟, 但 chk 写盘 <1 s/帧, 可忽略。
     "output": {
-        "plotFileIntervalTime": 5.0e-11,
-        "checkpointFileIntervalTime": 5.0e-10,
+        "plotFileIntervalTime": 6.0e-10,
+        "checkpointFileIntervalTime": 8.0e-11,
     },
     # 边界条件
     "bc": {
@@ -219,15 +230,25 @@ TREE_PATCHES = (
 )
 
 # plot_var 白名单
-# ★ 铁律: FLASH 的 IO/IOMain/Config 只声明 `PARAMETER plot_var_1..12`
+# ★ 铁律 1: FLASH 的 IO/IOMain/Config 只声明 `PARAMETER plot_var_1..12`
 #   (两棵树实测均为 12), 超过 12 的条目会被静默忽略 ("ignoring unknown
 #   parameter") —— 因此白名单**最多 12 项**, 且必须从 1 连续编号。
-#   两腿共享 9 项 (含 cond: 由 DiffuseMain/Unsplit/Config 声明, 用于由
-#   plt 反算电子热流 q = -kappa*gradT); SNB 腿再占 3 项 SNB 专属诊断。
-PLOT_VARS_COMMON = ["dens", "tele", "tion", "trad", "depo", "cham", "targ",
-                    "cond", "fllm"]
+# ★ 铁律 2: plot_var 是**纯运行时参数** (IO_init.F90:240 经 RuntimeParameters_get
+#   读取), 改白名单**无需重新 setup/make** —— 只要 PELE_VAR/PRES_VAR 已在
+#   objdir/Flash.h 中定义 (两腿均满足: FL-SH 18/19/22, SNB 29/30/33)。
+#
+# 白名单设计 (面向绘图需求: tele/tion/trad/dens/pele/pres/nele)
+#   nele **不入白名单**, 一律离线推导: nele = Ye·6.02e23·dens,
+#     其中 Ye = zbarFrac/abarInv, abarInv = Σ_s X_s/A_s,
+#          zbarFrac = Σ_s X_s·Z_s/A_s   (FLASH_MULTISPECIES 路径, 见
+#          Eos_getAbarZbar.F90:130-152 与 SNB 源码 diff_advanceTherm.F90:432)
+#   原因: FL-SH 腿无 NELE_VAR, 若只为 SNB 腿引入原生 nele 会让两腿**量纲口径
+#   不一致** (SNB 原生 nele 在特定分支才更新)。离线推导对两腿完全同源。
+#   交叉校验证据: SNB 腿原生 NELE 与离线推导 rel diff < 1e-6 (实测)。
+PLOT_VARS_COMMON = ["dens", "tele", "tion", "trad", "pele", "pres", "depo",
+                    "cham", "targ", "cond", "fllm"]
 PLOT_VARS_BASE = PLOT_VARS_COMMON
-PLOT_VARS_SNB = PLOT_VARS_COMMON + ["QESX", "CORQ", "MFPE"]
+PLOT_VARS_SNB = PLOT_VARS_COMMON + ["QESX"]   # 12 项上限
 
 
 # ══════════════════════════════════════════════════════════════

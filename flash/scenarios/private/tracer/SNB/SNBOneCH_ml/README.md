@@ -1,3 +1,7 @@
+
+# SNB模型还有问题，不可信
+
+
 # SNBOneCH_ml — OneCH_ml 几何/材料 + SNB 非局域热传导模型
 
 > 创建：2026-09-08
@@ -132,8 +136,8 @@ cfl=0.1 试跑无效 → 时间确定性物理失稳，SNB+细网格临界稳定
 | 机器 | 核数（探测推荐） | 墙钟 | 相对速度 |
 |------|------|------|------|
 | WSL (Ubuntu-22.04) | 4（4.0s） | **39.8 s** | 1.00x |
-| NC-E (scfa2696, v5_192) | 8（9.1s） | 59.9 s | 0.66x |
-| BSCC-T6 (sch0348, v6_384) | 16（7.1s） | 84.3 s | 0.47x |
+| NC-E (<超算账号>, v5_192) | 8（9.1s） | 59.9 s | 0.66x |
+| BSCC-T6 (<超算账号>, v6_384) | 16（7.1s） | 84.3 s | 0.47x |
 
 一致性（forced plt @ t=1.0012e-11，dens/tele/tion/qenl 逐点插值 rel diff）：
 主体解 median ≤ 1e-6 完全一致；max 偏差集中于界面/临界面尖峰格点
@@ -223,8 +227,8 @@ NC-E 48 核/节点 → 131 任务 = -N 3; 硬编码 -N 1 会报
 | 平台 | 状态 | WALL_SECONDS | 备注 |
 |------|------|--------------|------|
 | WSL | ✅ 4 核最优 | 9.8 s (dx0.98µm 档) | 本地无 131 核, 0.03µm 只能上超算 |
-| NC-E scfa2696 | ✅ COMPLETED (JobID 4858339, -N 3) | **3501.9 s (58.4 min)** | 首跑 IB 瞬时故障 (rc_verbs retry exceeded, 0 步即死), 原样重试成功; ~5.6 s/步 |
-| BSCC sch0348 | ❌ 未完成 (JobID 36201968, -N 2) | 被杀 @3h09m (164 步) | ~42-66 s/步 (慢 ~10 倍); 23:50 被外部 CANCELLED (Timelimit=UNLIMITED); 见 hypre 不收敛警告 + dt 下滑 (oneAPI 编译版失稳前兆) — **0.03µm 生产不可用 BSCC** |
+| NC-E <超算账号> | ✅ COMPLETED (JobID 4858339, -N 3) | **3501.9 s (58.4 min)** | 首跑 IB 瞬时故障 (rc_verbs retry exceeded, 0 步即死), 原样重试成功; ~5.6 s/步 |
+| BSCC <超算账号> | ❌ 未完成 (JobID 36201968, -N 2) | 被杀 @3h09m (164 步) | ~42-66 s/步 (慢 ~10 倍); 23:50 被外部 CANCELLED (Timelimit=UNLIMITED); 见 hypre 不收敛警告 + dt 下滑 (oneAPI 编译版失稳前兆) — **0.03µm 生产不可用 BSCC** |
 
 NC-E 数据已收集至 `flash_output/hpc_flash_ssh/` (57 文件, 远端已清理);
 BSCC 残留输出已清理 (partial log 留远端 ~/SNB1CH_out_bscc_partial.log)。

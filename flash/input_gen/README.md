@@ -96,8 +96,8 @@ create_input_files()
 | `gen_checker` | `DependencyChecker` | (无生成) | ✅ 完整 | 依赖检查 + 绘图 |
 | `gen_newpara` | `NewParaGenerator` | 多区剖面文件 | ✅ 完整 | 5 种密度剖面 |
 | `gen_flychk_his` | `FlychkHistoryGenerator` | FLYCHK 输入 `*.zip` | ✅ 完整 | 由 FLASH 剖面生成 FLYCHK history 输入 |
-| `gen_Grid_markRefineDerefine` | (无) | (手动复制) | ⚠️ 参考 | 277 个参考文件 |
-| `gen_otherf90s` | (无) | (手动复制) | ⚠️ 参考 | AMR 细化条件参考 |
+| `gen_Grid_markRefineDerefine` | `GridMarkRefineDerefineGenerator`（+ `ZoneConfig`） | `Grid_markRefineDerefine.F90` | ✅ 完整 | 分区细化/解细化条件生成（`generator.py` 567 行）；**无 `refs/` 目录** |
+| `gen_otherf90s` | (无生成器) | (手动复制) | ⚠️ 仅文档 | 子包只含 `__init__.py` + `GEN_OTHER_F90S_GUIDE.md`；**旧版"277 个 Fortran 文件"的说法有误** |
 | `gen_f90` | (无) | (无) | ⚠️ 预留 | 空模块 |
 
 ---
@@ -231,7 +231,8 @@ print(files)
 - `PARAMS_2D` — 163 个参数
 - `PARAMS_3D` — 186 个参数
 
-**参考示例**: `gen_par/refs/` (750+ `.par` 文件)
+**参考示例**: 无内置示例目录（旧版文档提到的 `gen_par/refs/`（750+ 个 `.par`）
+**在本仓库中不存在**）。参数默认值的权威来源是同目录 `defaults.py`。
 
 **文档**: `gen_par/GEN_PAR_GUIDE.md`
 
@@ -349,7 +350,7 @@ print(files)
 **输出文件**:
 - `run_flash.bat` — Windows 批处理脚本
 - `run_flash.sh` — WSL/Linux shell 脚本
-- `submit_flash.sh` — SLURM 提交脚本
+- `submit_flash.slurm` — SLURM 提交脚本（详见 `gen_shell_script/GEN_SHELL_SCRIPT_GUIDE.md`）
 
 **文档**: `gen_shell_script/GEN_SHELL_SCRIPT_GUIDE.md`
 
@@ -396,37 +397,34 @@ print(files)
 
 ---
 
-### 11. gen_Grid_markRefineDerefine — AMR 网格细化参考
+### 11. gen_Grid_markRefineDerefine — AMR 网格细化/解细化生成器
 
-**当前状态**: 无自动生成器，需手动编写或从 `refs/` 复制
+**当前状态**: ✅ **有自动生成器** —— `GridMarkRefineDerefineGenerator`（+ `ZoneConfig`），
+位于 `gen_Grid_markRefineDerefine/generator.py`（567 行）；输出 `Grid_markRefineDerefine.F90`
 
-**参考文件**: `refs/Grid_markRefineDerefine.F90` 及多个变体
+> ⚠ 旧版本文档曾写"无自动生成器，需手动编写或从 `refs/` 复制"、
+> 并称有 `refs/Grid_markRefineDerefine.F90` —— **该子包并无 `refs/` 目录**，
+> 文档与代码已脱节，现按实际更正。
 
 **关键要点**:
 - AMR 细化变量配置规则
 - 1D/2D/3D 坐标获取差异
-- 典型细化逻辑（LaserSlab 1D）
+- 分区（Zone）驱动的细化/解细化条件
+- 分辨率换算与梯度条件
 
-**文档**: `gen_Grid_markRefineDerefine/GEN_GRID_GUIDE.md`
+**文档**: `gen_Grid_markRefineDerefine/GEN_GRID_GUIDE.md` 与同目录 `README.md`
 
 ---
 
 ### 12. gen_otherf90s — 其他 Fortran 文件参考库
 
-**当前状态**: 无生成器，仅参考文件库
+**当前状态**: **本检出中该子包只有 `__init__.py` + `GEN_OTHER_F90S_GUIDE.md`**，
+不含任何 `.F90` 或分类子目录
 
-**文件数量**: 277 个 Fortran 文件 (`.F90`)
-
-**分类目录**:
-- `custom/` — 自定义 prolongation 文件
-- `gr/` — 引力相对论相关文件
-- `grid_re_de/` — 网格细化参考
-- ...
-
-**使用场景**:
-1. 手动复制参考文件
-2. 学习 FLASH 模块实现
-3. 作为生成器模板（未来扩展）
+> ⚠ 旧版本文档曾称本子包含 "**277 个 Fortran 文件**" 及 `custom/`、`gr/`、
+> `grid_re_de/` 等分类目录 —— **这些在本仓库中均不存在**（该内容属早期规划/外部副本，
+> 未随包分发）。如需参考实现，请改用 `gen_Grid_markRefineDerefine`
+> （已有 `GridMarkRefineDerefineGenerator` 生成器）。
 
 **文档**: `gen_otherf90s/GEN_OTHER_F90S_GUIDE.md`
 
@@ -470,7 +468,8 @@ python -m pytest physimx_sim/src/physimx_sim/flash/input_gen/test/
 
 1. 生成默认文件
 2. 手动修改以匹配目标仿真的需求
-3. 或将需要的示例复制到 `refs/` 目录，并扩展生成器以支持多个模板
+3. 或将需要的示例放到自建目录，并扩展生成器以支持多个模板
+   （注：旧版文档提到的 `refs/` 目录在本仓库中不存在）
 
 ### 2. 如何验证生成的文件是否正确？
 

@@ -69,8 +69,21 @@ https://gitee.com/physimx/flash
 | `run_sic_suite` | `private/tracer/run_sic_suite.py` | `python run_sic_suite.py [--only 名单] [--tmax v]` | 一键顺序执行 OneSi_ml/OneSi_ml_F/OneC_ml/OneC_ml_F，默认 tmax=1.0e-11 |
 | `layer_tracer_Ti` | `private/tracer/layer_tracer_Ti/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (Ti tracer)，CH 靶 + Ti 示踪层 X-ray 谱学诊断 |
 
+### SNB 非局域热传导研究线（`private/SNB/` + `private/tracer/SNB/`）
+
+> SNB = Schurtz–Nicolaï–Busquet 多群非局域电子热传导。**必须在 FLASHSNB 树**编译
+> （场景单元含 9 个覆盖 F90 + 树级补丁），且**必须 `+ug` 均匀网格**。
+> 方法与分享规则见 `private/SNB/SNB/README.md` 及其 `docs/`。
+
+| 名称 | 位置 | 运行方式 | 内容 |
+|------|------|---------|------|
+| **`SNB`（核心模块）** | `private/SNB/SNB/` | 模块脚本（非场景） | ★ 自包含的**可分享**方法包：`gen_scene.py` 生成场景 / `run_scene.py` 运行 / `snb_params.py` 参数基线 / `check_share_safety.py` 提交前自检 / `docs/` 九篇 |
+| `SNBtest/t001…t006` | `private/SNB/SNBtest/Test/` | 场景自带脚本 | SNB 研究过程记录：t001 首个跑通 → t002 SNB vs FL-SH → t003 复现作者示例 → t004 辐射 2×2 → t005 失败案例（`dtmax` 误用）→ **t006 薄驱动推荐范式** |
+| `SNBOneCH_ml` | `private/tracer/SNB/SNBOneCH_ml/` | `python -m` 直跑 | OneCH_ml 几何/材料 + SNB（8 标记多层）；与 `OneCH_ml` 构成 **local vs nonlocal** 对照 |
+| **`SNBOneCH`** | `private/tracer/SNB/SNBOneCH/` | `python -m` 直跑 | 同上但**只用 cham+targ 两标记**；`+ug` iProcs16×nxb128（2048 格）；tmax=1.6 ns；对比图 `plot_compare_onech.py`（nele/tele/pele） |
+
 > ⚠️ **private/ 场景不随发布包分发**（.gitignore 排除），仅限内部使用；tracer 系列以
-> `python -m` 直跑，不进入注册表。
+> `python -m` 直跑，不进入注册表。**SNB 的 F90 源与生成 F90 的脚本一律不分享**（见 `private/SNB/SNB/docs/06`）。
 
 ### 注册场景明细
 

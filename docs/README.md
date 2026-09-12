@@ -21,7 +21,7 @@ PhySimX 的 FLASH 模块提供完整的仿真工作流：一键安装 → 参数
 | `output_processors/` | HDF5 输出分析 (自适应 1D/2D/3D) |
 | `scenarios/flash_demo/` | 一键执行 Demo |
 
-> 旧模块 (`par_calculator`, `par_editor`, `flash_setup`, `first_run`, `env_manager`) 已迁移至 `input_gen/gen_*` 子包。
+> 旧模块 (`par_calculator`, `par_editor`, `flash_setup`, `first_run`) 已不再随包提供，其功能由 `input_gen/gen_*` 子包取代（见下方「迁移说明」）；多环境管理 (`FlashEnvManager`) 现位于 `flash.flash_run.env`。
 
 ---
 
@@ -29,86 +29,84 @@ PhySimX 的 FLASH 模块提供完整的仿真工作流：一键安装 → 参数
 
 ### 1. 一键安装 (WSL/Ubuntu)
 
-```python
-from flash.input_gen.first_run import FlashFirstRun
-
-runner = FlashFirstRun(install_dir="~/hello/FLASH", setup_name="LaserSlab")
-runner.generate_install_script("install_flash.sh")
-# Windows WSL:
-# runner.run_local_wsl()
+```bash
+# Python API 已不再提供 first_run；一键安装请使用自包含入门包：
+cd scenarios/flash_demo/hello_flash
+python deploy_flash.py            # 交互式选择机器 (WSL / SSH1 / SSH2)
+# 或直接运行总入口脚本 (安装 → 仿真 → 分析)：
+bash run_hello_flash.sh
 ```
 
 ### 2. .par 文件编辑
 
 ```python
-from flash.input_gen.par_editor import ParEditor
+from flash.input_gen.gen_par import ParGeneratorExtended
 
-editor = ParEditor()
-editor.read("flash.par")
-editor.modify_variable("dt_init", 1e-15)
-editor.modify_variable("useGravity", False)
-editor.serial_time_power(time_arr, power_arr, section="Laser")
-editor.write("flash_modified.par")
+gen = ParGeneratorExtended(simulation_name="LaserSlab", dimension=1)
+gen.set("dt_init", 1e-15)
+gen.set("useGravity", False)
+gen.set_pulse(time_arr, power_arr)   # 激光脉冲 (时间/功率点对)
+gen.save("flash_modified.par")
 ```
 
 ### 3. 脉冲参数计算
 
 ```python
-from flash.input_gen.par_calculator import ParCalculator
+from flash.input_gen.gen_par import ParGeneratorExtended
 
-time, power = ParCalculator.generate_pulse_points(
-    shape="trapezoid", duration=5e-9, peak_power=1e12, n_points=100
+gen = ParGeneratorExtended(simulation_name="LaserSlab", dimension=1)
+# 直接给出时间/功率点对 (trapezoid 形状示例, 单位 SI: s / W)
+gen.set_pulse(
+    times=[0.0, 1.0e-9, 4.0e-9, 5.0e-9],
+    powers=[0.0, 1.0e12, 1.0e12, 0.0],
 )
-peak = ParCalculator.calculate_peak_power(
-    energy_j=100, pulse_duration_s=5e-9, spot_radius_cm=3e-2
-)
+gen.save("flash_modified.par")
 ```
 
 ### 4. SLURM 提交脚本
 
 ```python
-from flash.input_gen.flash_setup import FLASHSetupGenerator
+from flash.input_gen.gen_shell_script import ShellScriptGenerator
 
-gen = FLASHSetupGenerator(config={
-    "flash_home": "~/hello/FLASH",
-    "slurm_partition": "cpu",
+gen = ShellScriptGenerator(config={
+    "flash_home": "~/hello/FLASH/FLASH4.8",
+    "slurm_partition": "v5_192",
     "slurm_nodes": 1,
 })
-gen.generate_env_script("FLASH_env.sh")
-gen.generate_run_script("FLASH_run.sh", nprocs=4, par_file="flash.par")
-gen.generate_slurm_script("submit.slurm")
+gen.save("run_flash.sh", "wsl", par_file="flash.par")
+gen.save("submit_flash.sh", "slurm", par_file="flash.par")
 ```
 
 ### 5. 多环境管理
 
 ```python
-from flash import FlashEnvManager, get_env_manager
+from flash import FlashEnvManager, FlashEnvironment, get_env_manager
 
 mgr = get_env_manager()
-mgr.add_environment("local_wsl", FlashEnvironment(
+mgr.add(FlashEnvironment(
     name="local_wsl", env_type="local_wsl",
-    flash_home="/home/user/hello/FLASH",
+    flash_home="/home/user/hello/FLASH/FLASH4.8",
 ))
-mgr.add_environment("paracloud", FlashEnvironment(
-    name="paracloud", env_type="remote_sbatch",
-    flash_home="~/hello/FLASH",
+mgr.add(FlashEnvironment(
+    name="paracloud", env_type="ssh_slurm",
     ssh_credential="flash_ssh",
-    slurm_partition="cpu",
+    remote_flash_home="~/hello/FLASH/FLASH4.8",
 ))
 
 # 获取运行命令
-env = mgr.get_environment("paracloud")
-cmd = env.get_run_command(par_file="flash.par", nprocs=32)
+env = mgr.get("paracloud")
+cmd = env.build_run_command(par_file="flash.par", nproc=32)
 ```
 
 ### 6. 输出分析
 
 ```python
-from flash.temp_delete.output_analysis import FlashOutputReader
+from flash.output_processors.hdf5processor import FlashHDF5File
 
-reader = FlashOutputReader("flash_hdf5_plt_cnt_0000")
-print(reader.list_variables())
-reader.close()
+ff = FlashHDF5File("flash_hdf5_plt_cnt_0000")
+print(ff.varnames)          # 可用变量名列表
+print(ff.simulation_time)   # 仿真时间
+ff.close()
 ```
 
 ---
@@ -206,7 +204,7 @@ bash run_flash.sh               # WSL 一键执行
 | 5. 下载结果 | 仅下载分析结果 (JSON + PNG), HDF5 保留在超算上 | `run_remote_analysis_and_download()` |
 
 **SLURM 分区自动检测**: 使用 `test/remote_connect/test_sbatch.py` 检测可用分区。
-当前测试: 用户 `scfa2696` 只有 `v5_192` 分区可用 (`queue` 和 `all` 均无权限):
+当前测试: 用户 `<超算账号>` 只有 `v5_192` 分区可用 (`queue` 和 `all` 均无权限):
 
 ```python
 SLURM_PARTITIONS = ["v5_192"]  # 根据 test_sbatch.py 结果配置
@@ -352,7 +350,9 @@ python3 analyze_density.py     # Step 3: 密度时空演化图
 
 ```bash
 # 通过 Python API 生成安装脚本
-python -c "from flash.input_gen.first_run import quick_install; quick_install()"
+# 旧版的 first_run.quick_install 已移除；一键安装请直接用下面两条：
+python -m flash.scenarios.flash_demo.hello_flash.hello_flash    # 冒烟测试
+bash flash/flash_src/FLASH_one_click_install.sh                 # FLASH 一键安装
 ```
 
 ---
@@ -482,10 +482,16 @@ docs/flash_simulation_execution_knowledge.md
 ## 目录结构
 
 ```
-physimx_sim/flash/
-├── __init__.py              # FlashSimulator + FlashEnvManager
+flash/
+├── __init__.py              # FlashSimulator + 核心导出 (FlashConfig / FlashEnvManager / get_env_manager)
 ├── interface.py             # Simulator 接口 (mock/real)
-├── env_manager.py           # 多环境管理器 (local/remote)
+├── _bootstrap.py            # 独立运行引导
+├── _core/                   # 内置基类 / schema / 凭据 (BaseSimulator, credentials)
+├── config/                  # 运行配置 (FlashConfig)
+├── flash_run/               # 多环境运行管理
+│   ├── env/                 # 环境与资源配置 (FlashEnvManager, get_env_manager, FlashResourceConfig)
+│   └── remote/              # 远程部署与作业调度 (FlashRemoteDeploy, route_tester)
+├── flash_src/               # FLASH 一键安装脚本 (FLASH_one_click_install.sh)
 ├── input_gen/               # 输入文件生成器 v2.0 (自包含)
 │   ├── __init__.py          # create_input_files() 一键生成
 │   ├── gen_par/             # .par 参数文件 (ParGeneratorExtended)
@@ -496,62 +502,41 @@ physimx_sim/flash/
 │   ├── gen_sim_initblock/   # Simulation_initBlock.F90 (BlockGenerator)
 │   ├── gen_eos_op/          # .cn4 EOS 表 (EOSOpacityGenerator)
 │   ├── gen_shell_script/    # 平台运行脚本 (ShellScriptGenerator)
-│   │   ├── generator.py     # 生成器: 支持 dimension/platform 资源自适应
-│   │   └── resource_config.json  # 资源配置 (local/hpc, 1d/2d/3d)
-│   └── gen_checker/         # 依赖检查 + 绘图
+│   ├── gen_checker/         # 依赖检查 + 绘图
+│   ├── gen_newpara/         # 多区密度剖面 (NewParaGenerator)
+│   ├── gen_flychk_his/      # FLASH → FLYCHK history 输入
+│   ├── gen_Grid_markRefineDerefine/  # AMR 细化约束 (GridMarkRefineDerefineGenerator)
+│   ├── gen_otherf90s/       # 其他 Fortran 参考 (说明文档)
+│   ├── gen_f90/             # (预留)
+│   └── test/                # 测试套件
 ├── output_processors/       # 输出分析 (自适应 1D/2D/3D)
-│   ├── __init__.py
-│   ├── hdf5processor/       # 核心 HDF5 I/O
-│   │   └── flash_hdf5.py    # FlashHDF5File: 打开/读取/维度检测
-│   ├── loader/              # 数据加载层
-│   │   └── data_loader.py   # FlashDataLoader → FlashDataContainer
-│   ├── calculator/          # 数值计算
-│   │   └── data_processor.py # 全场统计、切片、展平
-│   └── plotter/             # 自适应可视化
-│       └── plot_generator.py # 1D线图/2D伪彩色/3D切片
-├── output_analysis/         # 输出分析 (旧版)
-├── config/                  # 运行配置
-│   └── __init__.py          # FlashConfig 类
-├── flash_src/               # 源码包 (tar.gz)
-│   ├── FLASH4.8.tar.gz
-│   ├── mpich-3.2.tar.gz
-│   ├── hdf5-1.8.12.tar.gz
-│   └── hypre-2.9.0b.tar.gz
-├── scenarios/flash_demo/    # 演示和快速上手
-│   ├── LaserSlab/           # 标准 LaserSlab 参考文件 (2D)
-│   ├── LaserSlab1d/         # LaserSlab 1D 参考文件 (Config, .par, .cn4, .F90)
-│   ├── LaserSlab1d_2beams/  # 双光束变体参考文件
-│   ├── LaserSlab1d_3beams/  # 三光束变体参考文件
-│   ├── LaserSlab1d_new/     # 自定义 1D 仿真参考文件
-│   ├── LaserSlabpy/         # Python API 相关
-│   ├── laserslab1d_local_demo.py      # Python 一键本地 Demo
-│   ├── laserslab1d_supercomputer_demo.py # Python 一键超算 Demo
-│   ├── laserslab1d_hpc_demo_batch.py    # Python 批量超算 Demo (多功率对比)
-│   ├── demo_task/           # Demo 运行产物
-│   │   ├── laserslab1d_local_demo/    # 本地 Demo 输出 (HDF5 + 图像)
-│   │   ├── laserslab1d_supercomputer_demo/ # 超算 Demo 输出
-│   │   └── laserslab1d_hpc_demo_batch/    # 批量 Demo 输出
-│   │       ├── run/power_0.5/ ...     # 各功率独立运行文件夹
-│   │       ├── output/power_0.5/ ...  # 下载的 HDF5
-│   │       └── plots/                 # 对比分析图像
-│   └── hello_flash/         # 🚀 完全独立的一键入门包
-│       ├── README.md            # 三机器配置说明 (WSL/SSH1/SSH2)
-│       ├── deploy_flash.py      # 一键部署脚本 (交互式选择机器)
-│       ├── run_hello_flash.sh   # 一键完整流程入口
-│       ├── install_flash_wsl.sh # WSL 安装脚本
-│       ├── run_and_collect.sh   # 仿真运行 + 收集
-│       ├── analyze_density.py   # 密度时空分析 (支持source suffix)
-│       ├── setup_hpc_flash.sh   # 超算配置参考脚本
-│       └── outputfiles/         # 仿真输出
-│           ├── hdf5files/           # WSL 本地数据
-│           ├── hdf5filesfrom_ssh1/  # SSH1 (NC-E) 数据
-│           ├── hdf5filesfrom_ssh2/  # SSH2 (BSCC-T6) 数据
-│           ├── plots/               # WSL 分析图
-│           ├── plotsfrom_ssh1/      # SSH1 分析图
-│           └── plotsfrom_ssh2/      # SSH2 分析图
-└── docs/
-    └── README.md            # 本文档
+│   ├── hdf5processor/       # 核心 HDF5 I/O (FlashHDF5File, DataCalculator)
+│   │   └── flash_hdf5.py
+│   ├── loader/              # 数据加载层 (FlashDataLoader → FlashDataContainer)
+│   ├── plotter/             # 自适应可视化 (1D线图/2D伪彩色/3D切片)
+│   ├── parallel.py          # 并行处理
+│   ├── extraction_modes.py  # 提取模式切换 (h5py / yt)
+│   └── test/                # 测试
+├── physics/                 # 物理辅助资料 (ele_nonlocal 等)
+├── scenarios/               # 场景系统
+│   ├── registry.py          # 场景注册表 (get_scenario / list_scenarios)
+│   ├── flash_demo/          # 演示与快速上手
+│   │   ├── demo_local/      # Python 一键本地 Demo
+│   │   ├── demo_hpc/        # Python 一键超算 Demo (含多功率批量)
+│   │   └── hello_flash/     # 🚀 完全独立的一键入门包
+│   │       ├── deploy_flash.py       # 一键部署 (交互式选择机器)
+│   │       ├── run_hello_flash.sh    # 一键完整流程入口
+│   │       ├── install_flash_wsl.sh  # WSL 安装脚本
+│   │       ├── run_and_collect.sh    # 仿真运行 + 收集
+│   │       ├── analyze_density.py    # 密度时空分析
+│   │       └── setup_hpc_flash.sh    # 超算配置参考脚本
+│   ├── center_evolution/    # CH 中心演化场景
+│   ├── sandwich/            # 三明治靶场景 (thin_layer_sandwich / grad_dens_sandwich)
+│   ├── plasma_preparation/  # 等离子体制备场景
+│   └── private/             # 私有场景 (不随发布包分发)
+└── utils/                   # 辅助工具 (HDF5 时间检查 / 文档转换等)
 ```
+
 
 ---
 
@@ -559,11 +544,11 @@ physimx_sim/flash/
 
 | 旧模块 | 新位置 | 说明 |
 |--------|--------|------|
-| `OldVersion/PAR/ParCalculator.py` | `input_gen/par_calculator.py` | 脉冲形状/功率计算 |
-| `OldVersion/PAR/ParEditor.py` | `input_gen/par_editor.py` | Section 感知 .par 编辑器 |
-| `OldVersion/BASEINFO/FLASH_GenShell.py` | `input_gen/flash_setup.py` | 编译/SLURM 脚本生成 |
-| `OldVersion/FirstRun/FLASH_one_click_install.sh` | `input_gen/first_run.py` | 一键安装 (适配最新 Ubuntu) |
-| `OldVersion/FirstRun/analyze_density.py` | `output_analysis/` | HDF5 密度分析 |
+| `OldVersion/PAR/ParCalculator.py` | `input_gen/gen_par/` (`ParGeneratorExtended`) | 脉冲/光束/网格参数生成 |
+| `OldVersion/PAR/ParEditor.py` | `input_gen/gen_par/` (`ParGeneratorExtended`) | Section 感知 .par 生成 |
+| `OldVersion/BASEINFO/FLASH_GenShell.py` | `input_gen/gen_shell_script/` (`ShellScriptGenerator`) | 编译/SLURM 脚本生成 |
+| `OldVersion/FirstRun/FLASH_one_click_install.sh` | `flash_src/FLASH_one_click_install.sh` + `scenarios/flash_demo/hello_flash/` | 一键安装 (适配最新 Ubuntu) |
+| `OldVersion/FirstRun/analyze_density.py` | `output_processors/` | HDF5 密度分析 |
 
 ---
 
@@ -680,13 +665,13 @@ python deploy_flash.py
 
 这些文件需要放入 `FLASH4.8/source/Simulation/SimulationMain/hello/<sim_name>/` 目录。
 
-#### 11.1 使用 ParGenerator 生成 .par 文件
+#### 11.1 使用 ParGeneratorExtended 生成 .par 文件
 
 ```python
-from flash.input_gen.par import ParGenerator, PulseShape
+from flash.input_gen.gen_par import ParGeneratorExtended, PulseShape
 
 # 创建生成器
-gen = ParGenerator(simulation_name="LaserSlab1d_new")
+gen = ParGeneratorExtended(simulation_name="LaserSlab1d_new")
 
 # 设置高斯脉冲（ICF 聚变功率密度 ~1e14 W/cm², 10个时间-功率点）
 times, powers = PulseShape.from_intensity(
@@ -712,7 +697,7 @@ print(gen.pulse_summary)
 #### 11.2 使用 GridBuilder + BlockGenerator 生成 Simulation_initBlock.F90
 
 ```python
-from flash.input_gen.block import BlockGenerator, GridBuilder, BlockVisualizer
+from flash.input_gen.gen_sim_initblock import BlockGenerator, GridBuilder, BlockVisualizer
 
 # 构建网格
 builder = GridBuilder(dim=1, geometry="cartesian", domain=(0, 160e-4))
@@ -763,7 +748,7 @@ python
 analyze_density.py / path / to / output / hdf5files /
 
 # 或使用内置分析器
-from flash.temp_delete.output_analysis import FlashOutputReader
+from flash.output_processors.loader import FlashDataLoader   # 旧 output_analysis 已移除
 
 reader = FlashOutputReader("lasslab_new_hdf5_chk_0001")
 print(reader.list_variables())
@@ -797,14 +782,14 @@ reader.close()
 #### 12.3 使用材料对象
 
 ```python
-from flash.input_gen.par import ParGenerator, MATERIALS, CHAMBER_GASES, list_materials
+from flash.input_gen.gen_par import ParGeneratorExtended, MATERIALS, CHAMBER_GASES, list_materials
 
 # 查看所有可用材料
 print(list_materials("target"))    # 靶材列表
 print(list_materials("chamber"))   # 气体列表
 
 # 创建仿真，指定靶材和腔室
-gen = ParGenerator(simulation_name="LaserSlab1d_CH")
+gen = ParGeneratorExtended(simulation_name="LaserSlab1d_CH")
 
 # 靶材用聚苯乙烯替代铝
 gen.set_material(MATERIALS["polystyrene"])
@@ -828,7 +813,7 @@ print(gen.material_summary)
 
 ```python
 # 完整材料替换示例
-gen = ParGenerator(simulation_name="LaserSlab1d_CH")
+gen = ParGeneratorExtended(simulation_name="LaserSlab1d_CH")
 gen.set_material(MATERIALS["polystyrene"])  # 自动更新 rho/A/Z/eos_file
 
 # 生成 .par 和 Config (DATAFILES 自动包含新材料)
@@ -858,9 +843,9 @@ Beams (光束)  → 每个光束关联一个脉冲，定义空间方向和聚焦
 **如果所有光束时间功率相同**: 使用统一脉冲，不同光束通过 `pulse_number` 指向同一脉冲。
 
 ```python
-from flash.input_gen.par import ParGenerator, BeamConfig, PulseShape
+from flash.input_gen.gen_par import ParGeneratorExtended, BeamConfig, PulseShape
 
-gen = ParGenerator(simulation_name="LaserSlab1d_2beams")
+gen = ParGeneratorExtended(simulation_name="LaserSlab1d_2beams")
 
 # 统一的脉冲 (所有光束共用)
 times, powers = PulseShape.trapezoid(peak_power=1e12)
@@ -881,7 +866,7 @@ print(gen.beam_summary)
 如果光束的时间功率**不同**，必须设置 `ed_numberOfPulses = M`：
 
 ```python
-from flash.input_gen.par import PulseConfig
+from flash.input_gen.gen_par import PulseConfig
 
 # 脉冲1: 方波, 6个时间点
 t1 = [0.0, 0.1e-9, 1.0e-9, 4.0e-9, 4.1e-9, 5.0e-9]
@@ -932,11 +917,11 @@ BeamConfig(
 三光束对称入射铝靶仿真，验证多光束 + 材料预设 API。
 
 ```python
-from flash.input_gen.par import (
-    ParGenerator, BeamConfig, PulseShape, MATERIALS, CHAMBER_GASES
+from flash.input_gen.gen_par import (
+    ParGeneratorExtended, BeamConfig, PulseShape, MATERIALS, CHAMBER_GASES
 )
 
-gen = ParGenerator(simulation_name="LaserSlab1d_3beams")
+gen = ParGeneratorExtended(simulation_name="LaserSlab1d_3beams")
 gen.set_material(MATERIALS["aluminum"])
 gen.set_material(CHAMBER_GASES["helium"], target=False)
 

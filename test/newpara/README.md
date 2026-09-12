@@ -37,7 +37,10 @@ output/
 └── plots/                ← 密度分析图
 ```
 
-## 5 步流程（参考 newparaset/README.md）
+## 5 步流程
+
+> ⚠ 旧标题写的 `newparaset/README.md`（`docs/` 下）在本仓库中不存在；
+> 新参数的权威流程说明见 `flash/input_gen/gen_newpara/README.md`。
 
 1. **Config** — 添加 `PARAMETER` 行定义新参数
 2. **Simulation_data.F90** — 添加 Fortran 变量声明

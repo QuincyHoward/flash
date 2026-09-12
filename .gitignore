@@ -88,14 +88,25 @@ wsl_run.log
 !**/SNBtest/Test/**/*.py
 !**/SNBtest/Test/**/*.md
 !**/SNBtest/Test/**/*.par
-!**/SNBtest/Test/**/*.F90
-!**/SNBtest/Test/**/*.f90
 !**/SNBtest/Test/**/Makefile
 !**/SNBtest/Test/**/Config
 !**/SNBtest/Test/**/*.cn4
 !**/SNBtest/Test/**/*.h
 !**/SNBtest/Test/**/*.sh
 !**/SNBtest/Test/**/*.bat
+# ----------------------------------------------------------------
+# ★★★ SNB 源码保护 (2026-09-11): SNB 场景**不分享任何 F90 源码** ★★★
+# 原作者 SNB 实现包 (diff_advanceTherm / Conductivity / Driver_evolveFlash /
+# Grid_advanceDiffusion / hy_uhd_* / mgd_qesh) 及其派生变体一律禁止入库。
+# 历史坑: 曾用 `!**/SNBtest/Test/**/*.F90` 反向放行 → 导致
+#         Test/t00*/variants/*.F90 被 git add -n 选中 (实测 3 个文件)。
+# 教训: 白名单只放行 py/md/par/Config 等**非源码**类型, 绝不放行 *.F90/*.f90。
+# 另: `flash/scenarios/**/flash_input/` 已排除生成的 Simulation_*.F90。
+# ----------------------------------------------------------------
+**/*.F90
+**/*.f90
+**/Test/t00*/variants/
+
 #**/private/
 
 # ================================================================
@@ -341,3 +352,18 @@ flash/scenarios/sandwich/**/*.png
 !flash/scenarios/private/SNB/SNBtest/Test/t001/hpc_pack/
 !flash/scenarios/private/SNB/SNBtest/Test/t001/hpc_pack/Makefile.h.hpc
 !**/SNBtest/Test/**/*.hpc
+
+# ================================================================
+# ★ SNB 分享排除 (2026-09-11, 用户规则: 不分享 F90 源码)
+# ----------------------------------------------------------------
+# ① 会**写入/生成 F90 源码**的 py 脚本 —— 严禁分享:
+#      scripts/generate/make_therm_variant.py  (写出 SNB 变体 F90)
+#      scripts/generate/gen_t00*_inputs.py     (复制 F90 + 内嵌 Fortran 片段)
+# ② **引用 F90 源码内容**的诊断文档 (含算法片段):
+#      t003/docs/snb_source_diagnosis.md
+# ③ variants/ 目录 (存作者 F90 派生物) —— 见上方规则
+# ================================================================
+**/Test/t00*/scripts/generate/make_therm_variant.py
+**/Test/t00*/scripts/generate/gen_t003_inputs.py
+**/Test/t00*/scripts/generate/gen_t004_inputs.py
+**/Test/t00*/docs/snb_source_diagnosis.md

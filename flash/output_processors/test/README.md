@@ -1,7 +1,7 @@
 # Output Processors 测试文档
 
 > 本目录包含 `flash/output_processors` 包的全部测试。
-> 最后更新: 2026-07-04
+> 最后更新: 2026-09-12（修正过时入口与目录清单）
 
 ---
 
@@ -10,12 +10,15 @@
 ```bash
 cd flash/output_processors
 
-# 运行功能验证脚本
-python demo_output_processor.py
+# 一键运行全部测试（推荐）
+python test/run_all_tests.py
 
-# 运行 pytest 测试
+# 运行 pytest
 pytest test/ -v
 ```
+
+> ⚠ 旧版本文档写的 `python demo_output_processor.py` **在本仓库中不存在**
+> （该脚本从未入库），已改为实际可用的 `test/run_all_tests.py`。
 
 ---
 
@@ -24,19 +27,28 @@ pytest test/ -v
 ```
 test/
 ├── README.md                          ← 本文件
-├── TEST_SUMMARY.md                   ← 最新测试总结（含通过状态）
-├── run_all_tests.py                   ← 一键运行全部测试
+├── TEST_SUMMARY.md                    ← 测试总结（含通过状态）
+├── run_all_tests.py                   ← ★ 一键运行全部测试
+├── gen_test_data.py                   ← 测试数据生成
+├── compare_h5py_vs_yt.py              ← 两种提取模式的交叉验证
+├── test_extraction_modes.py           ← 提取模式测试
+├── test_yt_style_extraction.py        ← yt 风格提取测试
+├── test_yt_style_extraction_improved.py
+├── fix_test_precision.py
 │
 ├── derived_variables/                 ← 派生变量计算测试
-├── loader/                          ← FlashDataLoader 测试
-├── batch_loading/                   ← 批量加载测试
-├── dimension_test/                   ← 1D/2D/3D 维度支持测试
-├── amr_visualization/                ← AMR 网格可视化测试
-│   ├── d1/                          ← 1D 测试
-│   ├── d2/                          ← 2D 测试
-│   └── d3/                          ← 3D 测试
-├── temp_delete/                      ← 临时测试脚本（可删除）
-└── ...
+├── loader/                            ← FlashDataLoader 测试
+├── batch_loading/                     ← 批量加载测试
+├── dimension_test/                    ← 1D/2D/3D 维度支持测试
+├── lazy_loading/                      ← 懒加载测试
+├── parallel/                          ← 并行处理测试
+├── shock_position/                    ← 冲击波位置 / nele 临界面测试
+├── unit_conversion/                   ← 单位换算测试
+├── amr_visualization/                 ← AMR 网格可视化测试
+│   ├── d1/                            ← 1D
+│   ├── d2/                            ← 2D
+│   └── d3/                            ← 3D
+└── test_output/                       ← 测试输出目录
 ```
 
 ---
@@ -45,11 +57,15 @@ test/
 
 | 测试类别 | 文件 | 说明 |
 |---------|------|------|
-| 功能验证 | `demo_output_processor.py` | 完整功能验证（推荐首先运行） |
+| 一键全跑 | `run_all_tests.py` | 顺序执行全部测试并汇总（**推荐首先运行**） |
 | 派生变量 | `derived_variables/test_derived_variables.py` | `DataCalculator` 功能验证 |
 | Loader | `loader/test_loader_validation.py` | `FlashDataLoader.load()` 数据一致性 |
 | 批量加载 | `batch_loading/test_batch_loading.py` | `load_folder()` 功能测试 |
 | 多维支持 | `dimension_test/test_dimension_loading.py` | 1D/2D/3D 全部维度 |
+| 懒加载 | `lazy_loading/test_lazy_loading.py` | 元数据/数据分阶段加载 |
+| 并行 | `parallel/test_parallel_processing.py` | 多进程批量读取 |
+| 临界面 | `shock_position/test_shock_position.py` | 冲击波位置 + `nele` 与临界密度 |
+| 单位换算 | `unit_conversion/test_unit_conversion.py` | `to_si()` / 派生量单位 |
 | AMR 可视化 | `amr_visualization/d*/test_*.py` | AMR 网格可视化测试 |
 
 ---
@@ -66,39 +82,14 @@ test/
 
 ## 运行示例
 
-### 运行功能验证脚本
+### 一键运行全部测试
 
 ```bash
 cd flash/output_processors
-python demo_output_processor.py
+python test/run_all_tests.py
 ```
 
-输出:
-```
-============================================================
-output_processors 功能完整性验证
-输出目录: .../outputfiles
-============================================================
-
-============================================================
-TEST 1: 基础 I/O — 文件结构/仿真时间/激光参数
-============================================================
-...
-  [OK] 基础 I/O
-
-============================================================
-TEST 2: 派生变量计算 (data_calculator)
-============================================================
-...
-  [OK] 派生变量计算
-
-...
-
-============================================================
-测试结果: 8/8 通过
-输出文件位于: .../outputfiles
-============================================================
-```
+具体输出以脚本实际打印为准；完整历史输出见同目录 `all_tests_output.txt`。
 
 ### 运行 pytest
 
@@ -151,4 +142,4 @@ pytest test/ --cov=output_processors --cov-report=html -v
 ---
 
 **维护者**: WorkBuddy AI
-**最后更新**: 2026-07-04
+**最后更新**: 2026-09-12

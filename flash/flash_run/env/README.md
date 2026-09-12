@@ -81,8 +81,10 @@ FLASH 仿真资源配置管理器 (单例模式)。
 ### 基本用法
 
 ```python
-from flash.flash_run.env import FlashEnvManager, get_env_manager
-from flash.flash_run.env.resource_config import FlashResourceConfig, get_resource_config
+# ★ `env/__init__.py` 只导出下面这两个；FlashEnvManager / get_env_manager
+#   需从各自的模块导入（见第 2 行）。
+from flash.flash_run.env import FlashResourceConfig, get_resource_config
+from flash.flash_run.env.env_manager import FlashEnvManager, get_env_manager
 
 # 获取环境管理器 (单例)
 mgr = get_env_manager()
@@ -189,7 +191,7 @@ print(f"自动创建了 {len(created)} 个环境: {created}")
       "env_type": "ssh_slurm",
       "description": "ParaCloud 并行云 NC-E (中卫)",
       "ssh_credential": "flash_ssh",
-      "remote_flash_home": "~/scfa2696/FLASH/FLASH4.8",
+      "remote_flash_home": "~/<超算账号>/FLASH/FLASH4.8",
       ...
     }
   }

@@ -678,14 +678,29 @@ python -m build
 | Hello FLASH 快速上手 | `scenarios/flash_demo/hello_flash/README.md` |
 | 网格细化实施指南 | `input_gen/gen_Grid_markRefineDerefine/README.md` |
 | 新参数生成指南 | `input_gen/gen_newpara/README.md` |
-| F90 参考文件详解 | `input_gen/gen_otherf90s/ref_f90s/FLASH_F90_参考文件详解_总览.md` |
+| F90 参考文件指南 | `input_gen/gen_otherf90s/GEN_OTHER_F90S_GUIDE.md` |
 | 多区密度剖面参考 | `input_gen/gen_newpara/RP_Reference.md` |
 
 ### Skills (WorkBuddy AI 辅助)
 
-- `flash-orchestrator-activator` — 模块编排入口
-- `input-gen-generator` — 仿真输入文件生成
-- `physimx-workflow-orchestrator` — 工作流编排
+> 已核实为**当前实际安装**的技能（用户级 `~/.workbuddy/skills/`）。
+> ⚠ 旧版本文档列的 `flash-orchestrator-activator` / `input-gen-generator` /
+> `physimx-workflow-orchestrator` **均已不存在**，已按实际替换。
+
+| Skill | 用途 |
+|---|---|
+| `snb-flash-scenario-setup` | ★ SNB 场景全流程：设置/判据/分享 + FLASHSNB 构建补丁与三机部署（`references/`） |
+| `flash-to-flychk-history` | FLASH 输出 → FLYCHK history 上传 zip |
+| `physimx-flash-backup-verify` | 备份校验 |
+| `physimx-h5py-batch-read` | h5py 大批量读取性能与索引对齐 |
+| `physimx-h5py-yt-extract` | yt 风格叶块提取 |
+| `physimx-float64-cv-fix` | float64 收敛/精度修复 |
+| `flaky-io-watchdog-extraction` | 批量提取防挂起（worker + 看门狗） |
+| `knnum-mc-ploter` | 蒙卡 Knudsen 数计算模块 |
+| `spectime-diag-v` | SPECTIME 速度诊断（step01–03） |
+| `literature-citation-graph-harvest` | 文献施引/引用检索与 PDF 批量下载 |
+| `gitee-cred-git-scaffold` · `gitee-enterprise-repo` | Gitee 凭据脚手架 / 企业仓库创建 |
+| `code-refactor-safe` | 安全重构工作流 |
 
 ---
 

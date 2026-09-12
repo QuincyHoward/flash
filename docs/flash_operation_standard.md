@@ -211,7 +211,7 @@ python -m physimx_sim.flash.test.remote_connect.test_sbatch
 
 **SLURM 队列分发策略**:
 - 先运行 `test/remote_connect/test_sbatch.py` 检测用户可用分区
-- 根据结果配置 `SLURM_PARTITIONS`（当前用户 `scfa2696` 只有 `v5_192` 分区）
+- 根据结果配置 `SLURM_PARTITIONS`（当前用户 `<超算账号>` 只有 `v5_192` 分区）
 - sbatch 失败时自动降级为直接 `bash run_flash.sh`
 
 **远程目录命名规范**:
@@ -320,7 +320,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 ```python
 # 从 PhySimX/physimx_sim/src/ 可以导入:
-from flash.input_gen.par import ParGenerator
+from flash.input_gen.gen_par import ParGenerator
 from flash.output_processors.loader import FlashDataLoader
 from flash.output_processors.plotter import FlashPlotter
 from flash.flash_run.env.env_manager import FlashEnvManager

@@ -3,7 +3,7 @@
 - **测试日期**: 2026-08-03 07:48 ~ 07:53 (GMT+8)
 - **超算账户**: flash_ssh → ParaCloud NC-E (`ssh.cn-zhongwei-1-v6.paracloud.com:2222`)
 - **超算配置**: ln162.para.bscc, 24 核 / 62GB RAM, Intel oneAPI 2022.1
-- **凭据**: 从 `_core/credentials/_core.py` 加载（用户: `scfa2696@NC-E`）
+- **凭据**: 从 `_core/credentials/_core.py` 加载（用户: `<超算账号>@NC-E`）
 - **场景**: LaserSlab 1D (官方示例, Al/CH/He 三层靶)
 
 ---

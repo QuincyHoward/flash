@@ -45,7 +45,7 @@ t001/
 │   ├── NonLTConduct_2D_hdf5_plt_cnt_0001   # tmax 时刻 plotfile
 │   ├── NonLTConduct_2D_forced_hdf5_plt_cnt_0000  # forced plotfile
 │   ├── NonLTConduct_2D_hdf5_chk_0000 / _0001     # checkpoint
-│   └── hpc_flash_ssh/             # NC-E (scfa2696) 远程输出（与本地逐字节一致）
+│   └── hpc_flash_ssh/             # NC-E (<超算账号>) 远程输出（与本地逐字节一致）
 ├── hpc_pack/
 │   ├── flashsnb_f4.tgz            # WSL FLASHSNB 源码树打包 (58.5MB, 不入库)
 │   └── Makefile.h.hpc             # HPC Makefile.h 参考（实际用各账号常规树覆盖）
@@ -128,8 +128,8 @@ t001/
 
 ### 6.1 一键命令
 ```
-python run_snb_hpc.py --account flash_ssh    # scfa2696 @ NC-E    (分区 v5_192)
-python run_snb_hpc.py --account flash_ssh_2  # sch0348 @ BSCC-T6  (分区 v6_384)
+python run_snb_hpc.py --account flash_ssh    # <超算账号> @ NC-E    (分区 v5_192)
+python run_snb_hpc.py --account flash_ssh_2  # <超算账号> @ BSCC-T6  (分区 v6_384)
 python run_snb_hpc.py --skip-upload          # 复用远端已部署 FLASHSNB 树
 python run_snb_hpc.py --skip-build           # 复用远端已编译 flash4
 ```

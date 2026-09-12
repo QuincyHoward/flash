@@ -468,6 +468,188 @@ class FlashPlotter:
                     pass
         return saved
 
+    # ── 时空（x-t）图 ─────────────────────────────────────────
+    #
+    # ★★ 为什么必须单独提供：FLASH 的 chk 由 `checkpointFileIntervalStep`
+    #    触发，**Δt 随 dt 变化 → 帧在时间轴上高度不均匀**。实测同一台仿真：
+    #      +ug 腿   81 帧  Δt ≡ 2.000e-11            (1.00×)
+    #      AMR 腿  317 帧  Δt 1.36e-12 … 7.19e-11   (52.7×)
+    #    用 `imshow(..., extent=(x0,x1,t0,t1))` 会把**各行按等间距铺开**，
+    #    时间轴被局部拉偏可达数千个百分点（实测 ~3576%），
+    #    从而让"同一物理运动在不同算例上显得前沿速度不同"（纯假象）。
+    #    ⇒ 必须 `pcolormesh` + **真实逐帧时间坐标**。
+
+    @staticmethod
+    def time_uniformity(times) -> dict:
+        """检查帧时间间隔是否均匀（用于判断能否用 imshow 类渲染）。
+
+        返回:
+            {"n", "dt_min", "dt_max", "dt_med", "ratio", "uniform", "max_distort_pct"}
+            `max_distort_pct` = 按等间距假设时时间轴的最大局部畸变百分比。
+        """
+        t = np.asarray(times, float)
+        out = {"n": int(t.size), "dt_min": float("nan"), "dt_max": float("nan"),
+               "dt_med": float("nan"), "ratio": float("nan"),
+               "uniform": False, "max_distort_pct": float("nan")}
+        if t.size < 3:
+            return out
+        dt = np.diff(t)
+        dt = dt[np.isfinite(dt) & (dt > 0)]
+        if dt.size == 0:
+            return out
+        out.update(dt_min=float(dt.min()), dt_max=float(dt.max()),
+                   dt_med=float(np.median(dt)))
+        out["ratio"] = out["dt_max"] / out["dt_min"]
+        out["uniform"] = out["ratio"] <= 1.05
+        out["max_distort_pct"] = (out["dt_max"] / out["dt_med"] - 1.0) * 100.0
+        return out
+
+    @staticmethod
+    def collect_xt(folder_path: str, var_name: str = "dens",
+                   pattern: str = "*chk*", compute_derived: bool = True,
+                   grid_n: int = 900, verbose: bool = True):
+        """把文件夹内所有帧堆叠成时空数据 `(times, x, Z)`。
+
+        ★ 返回的 `times` 是**每帧的真实仿真时间 [s]**，**不是帧序号**。
+          调用方（含本类的 `plot_xt_map`）必须用它作为时间坐标。
+
+        参数:
+            grid_n: 公共 x 网格点数（各帧 AMR 网格不同 → 需插值到公共网格）
+
+        返回:
+            (times, x_common, Z[n_t, n_x])；无数据返回 (None, None, None)
+        """
+        from ..loader import FlashDataLoader
+
+        containers = FlashDataLoader.load_folder(
+            folder_path, pattern=pattern, compute_derived=compute_derived)
+        recs = []
+        for c in containers:
+            arr = c.data.get(var_name, c.derived.get(var_name))
+            if arr is None or c.x is None:
+                continue
+            x = np.asarray(c.x).ravel()
+            v = np.asarray(arr).ravel()
+            if x.size == 0 or x.size != v.size:
+                # 广播维度（如 (nx,1) / (nx,ny)）→ 取第 0 行（1D 常用）
+                v = v.reshape(x.size, -1)[:, 0] if v.size % x.size == 0 else v
+                if v.size != x.size:
+                    continue
+            o = np.argsort(x)
+            recs.append((float(c.simulation_time), x[o], v[o]))
+
+        if not recs:
+            return None, None, None
+        recs.sort(key=lambda r: r[0])
+        times = np.array([r[0] for r in recs], float)
+
+        x0 = max(r[1].min() for r in recs)
+        x1 = min(r[1].max() for r in recs)
+        xg = np.linspace(x0, x1, grid_n)
+        Z = np.vstack([np.interp(xg, x, v, left=np.nan, right=np.nan)
+                       for _, x, v in recs])
+
+        if verbose:
+            u = FlashPlotter.time_uniformity(times)
+            print(f"  [x-t] {var_name}: {u['n']} 帧, "
+                  f"t = {times[0]:.4e} … {times[-1]:.4e} s")
+            if np.isfinite(u["ratio"]):
+                msg = ("均匀" if u["uniform"]
+                       else f"**非均匀** (最大/最小 = {u['ratio']:.2f}×)")
+                print(f"        Δt: {u['dt_min']:.3e} … {u['dt_max']:.3e}  {msg}")
+                if not u["uniform"]:
+                    print(f"        ★ 不可用 imshow(等间距假设); "
+                          f"本函数已按真实时间坐标构建, 请配合 pcolormesh")
+        return times, xg, Z
+
+    @classmethod
+    def plot_xt_map(cls, folder_path: str, var_name: str = "dens",
+                    save_path: str = None, pattern: str = "*chk*",
+                    xlim=None, ylim=None, use_log: bool = None,
+                    cmap: str = "viridis", vmin=None, vmax=None,
+                    compute_derived: bool = True, grid_n: int = 900,
+                    add_dimension: bool = False, figsize=(11, 7)):
+        """绘制单个物理量的**时空（x-t）图**。
+
+        与 `plot_folder` 的区别：`plot_folder` 是**逐帧各出一张图**；
+        本函数把多帧**沿时间堆叠**成一张时空图（多文件 → 一张图）。
+
+        ★ 用 `pcolormesh` + **真实逐帧时间坐标**渲染 —— 对时间间隔不均匀的
+          chk 序列（FLASH 常态）是**唯一正确**的做法；`imshow` 会歪曲时间轴。
+
+        参数:
+            use_log: None = 按量级自动判断（跨 >2 个十进则用对数）
+            xlim / ylim: 形如 (min, max)，单位 µm / ns
+            add_dimension: True 时把 x 轴换算成 µm（默认按容器单位 cm → µm）
+        """
+        times, xg, Z = cls.collect_xt(
+            folder_path, var_name, pattern=pattern,
+            compute_derived=compute_derived, grid_n=grid_n)
+        if times is None:
+            print(f"  [X] 无可用数据: {folder_path} ({var_name})")
+            return None
+
+        # 单位：x [cm] → µm；t [s] → ns
+        x_plot = xg * 1e4
+        t_plot = times * 1e9
+
+        fin = Z[np.isfinite(Z)]
+        if fin.size == 0:
+            print("  [X] 数据全为 NaN")
+            return None
+        if use_log is None:
+            pos = fin[fin > 0]
+            use_log = bool(pos.size and pos.size > fin.size * 0.5
+                           and fin.max() / max(pos.min(), 1e-300) > 1e2)
+        if use_log:
+            pos = fin[fin > 0]
+            floor = float(pos.min()) * 0.5 if pos.size else 1e-30
+            Zp = np.where(np.isfinite(Z) & (Z > 0), Z, floor)
+            from matplotlib.colors import LogNorm
+            if vmin is None:
+                vmin = floor * 1.0000001
+            if vmax is None:
+                vmax = float(Zp.max())
+            norm = LogNorm(vmin=vmin, vmax=vmax)
+        else:
+            Zp = Z
+            if vmin is None:
+                vmin = float(fin.min())
+            if vmax is None:
+                vmax = float(fin.max())
+            from matplotlib.colors import Normalize
+            norm = Normalize(vmin=vmin, vmax=vmax)
+
+        cfg = DATA_CONFIG.get(var_name, {})
+        clabel = f"{cfg.get('description', var_name)} [{cfg.get('unit', '')}]"
+
+        fig, ax = plt.subplots(figsize=figsize)
+        X, T = np.meshgrid(x_plot, t_plot)
+        im = ax.pcolormesh(X, T, Zp, shading="auto", cmap=cmap,
+                           norm=norm, rasterized=True)
+        ax.set_xlabel(r"Position  $x$  [$\mu$m]", fontsize=20)
+        ax.set_ylabel("Time  $t$  [ns]", fontsize=20)
+        ax.set_title(f"{var_name}  x-t  ({os.path.basename(folder_path.rstrip(os.sep))})",
+                     fontsize=22, pad=10)
+        ax.tick_params(labelsize=17, width=1.8)
+        for s in ax.spines.values():
+            s.set_linewidth(1.8)
+        if xlim is not None:
+            ax.set_xlim(*xlim)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
+        cb = fig.colorbar(im, ax=ax, pad=0.02)
+        cb.set_label(clabel + ("  (log)" if use_log else ""), fontsize=17)
+        cb.ax.tick_params(labelsize=15, width=1.6)
+        cb.outline.set_linewidth(1.6)
+
+        if save_path:
+            os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
+            fig.savefig(save_path, dpi=300, bbox_inches="tight")
+            print(f"  [OK] {os.path.basename(save_path)}")
+        plt.close(fig)
+        return save_path
+
     # ── 多子图复合绘图 ─────────────────────────────────────────
 
     def plot_multi_panel(self, var_names: list, save_path: str = None):

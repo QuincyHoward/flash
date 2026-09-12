@@ -34,13 +34,13 @@ FLASH 仿真环境管理
 
   [supercomputer_nc_e] SSH(flash_ssh)
     描述: ParaCloud 并行云 NC-E (中卫)
-    远程 FLASH: ~/scfa2696/FLASH/FLASH4.8
-    工作目录: ~/scfa2696/FLASH/run
+    远程 FLASH: ~/<超算账号>/FLASH/FLASH4.8
+    工作目录: ~/<超算账号>/FLASH/run
 
   [supercomputer_bscc_t6] SSH(flash_ssh_2)
     描述: ParaCloud 并行云 BSCC-T6 (中卫)
-    远程 FLASH: ~/sch0348/FLASH/FLASH4.8
-    工作目录: ~/sch0348/FLASH/run
+    远程 FLASH: ~/<超算账号>/FLASH/FLASH4.8
+    工作目录: ~/<超算账号>/FLASH/run
 ```
 
 ### 1.2 从凭据自动创建环境
@@ -101,7 +101,7 @@ print(report.summary())
 
 # 使用便捷函数
 best = test_and_select_best_route(
-    username="scfa2696@NC-E",
+    username="<超算账号>@NC-E",
     routes=ROUTES_SCFA2696,
     verbose=True,
 )
@@ -112,12 +112,12 @@ best = test_and_select_best_route(
 ============================================================
 SSH 路由延迟测试报告 (TCP 连接延迟)
 ============================================================
-  [OK    ] scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443       tcp= 45ms  ping= 48ms
-  [OK    ] scfa2696@NC-E@ssh.cn-hongkong-1.paracloud.com:22          tcp= 78ms  ping= 82ms
-  [REFUSED] scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:22        tcp= N/A   ping= N/A
+  [OK    ] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443       tcp= 45ms  ping= 48ms
+  [OK    ] <超算账号>@NC-E@ssh.cn-hongkong-1.paracloud.com:22          tcp= 78ms  ping= 82ms
+  [REFUSED] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:22        tcp= N/A   ping= N/A
 ...
 ------------------------------------------------------------
-  最佳路由: scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443  (TCP=45ms, Ping=48ms)
+  最佳路由: <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443  (TCP=45ms, Ping=48ms)
 ```
 
 ---
@@ -431,5 +431,5 @@ from physimx_sim.flash.flash_run.remote.route_tester import RouteTester, test_an
 
 tester = RouteTester()
 report = tester.test_all_routes(ROUTES_SCFA2696)
-best = test_and_select_best_route("scfa2696@NC-E", ROUTES_SCFA2696)
+best = test_and_select_best_route("<超算账号>@NC-E", ROUTES_SCFA2696)
 ```

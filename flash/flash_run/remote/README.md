@@ -21,7 +21,7 @@ SSH 多路由延迟测试器。
 - 测试所有路由的 TCP 连接延迟 (SYN-ACK)
 - 自动选择延迟最低的线路
 - 缓存最佳路由结果
-- 支持 `scfa2696` 和 `sch0348` 两个账号
+- 支持 `<超算账号>` 和 `<超算账号>` 两个账号
 
 **预定义路由**:
 
@@ -36,7 +36,7 @@ SSH 多路由延迟测试器。
 8. `ssh.cn-zhongwei-cstnet-v6.paracloud.com:22`
 9. `ssh.paracloud.com:2222`
 
-`ROUTES_SCH0348` (9 条): 同上，用户名为 `sch0348@BSCC-T6`
+`ROUTES_SCH0348` (9 条): 同上，用户名为 `<超算账号>@BSCC-T6`
 
 **方法**:
 - `test_route(route)`: 测试单条路由
@@ -96,7 +96,7 @@ if report.best:
 
 # 方法 2: 使用便捷函数
 best = test_and_select_best_route(
-    username="scfa2696@NC-E",
+    username="<超算账号>@NC-E",
     routes=ROUTES_SCFA2696,
     verbose=True,
 )
@@ -197,18 +197,18 @@ python -m physimx_sim.flash.flash_run.remote.route_tester
 ============================================================
 SSH 路由延迟测试报告 (TCP 连接延迟)
 ============================================================
-  [OK    ] scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443       tcp= 45ms  ping= 48ms
-  [OK    ] scfa2696@NC-E@ssh.cn-hongkong-1.paracloud.com:22          tcp= 78ms  ping= 82ms
-  [REFUSED] scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:22        tcp= N/A   ping= N/A
+  [OK    ] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443       tcp= 45ms  ping= 48ms
+  [OK    ] <超算账号>@NC-E@ssh.cn-hongkong-1.paracloud.com:22          tcp= 78ms  ping= 82ms
+  [REFUSED] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:22        tcp= N/A   ping= N/A
 ...
 ------------------------------------------------------------
-  最佳路由: scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443  (TCP=45ms, Ping=48ms)
+  最佳路由: <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443  (TCP=45ms, Ping=48ms)
 ```
 
 ### 指定账号测试
 
 ```bash
-python -m physimx_sim.flash.flash_run.remote.route_tester sch0348
+python -m physimx_sim.flash.flash_run.remote.route_tester <超算账号>
 ```
 
 ## 配置存储
@@ -217,10 +217,10 @@ python -m physimx_sim.flash.flash_run.remote.route_tester sch0348
 
 ```json
 {
-  "scfa2696@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443": {
+  "<超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443": {
     "host": "ssh.cn-zhongwei-1.paracloud.com",
     "port": 8443,
-    "username": "scfa2696@NC-E",
+    "username": "<超算账号>@NC-E",
     "tcp_ms": 45.2,
     "ping_ms": 48.5
   }

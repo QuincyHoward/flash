@@ -22,7 +22,7 @@ https://gitee.com/physimx/flash
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
-> 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 发布包已通过全局测试 (236 passed / 1 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
 
 ---
 
@@ -102,17 +102,15 @@ refine_var_2 = "tele"    # 细化变量2：电子温度
 
 ### 3. 典型细化逻辑（LaserSlab 1D）
 
-```fortran
-! 在靶区域 (x < sim_targetRadius) 细化到最高等级
-if (xcent(i) < sim_targetRadius) then
-    need_refine = .true.
-endif
-
-! 在密度梯度大的区域细化
-if (abs(dens(i+1) - dens(i)) / dx > threshold) then
-    need_refine = .true.
-endif
+```text
+实现要点（不含源码）：
+  · 靶区判据：格心坐标小于靶半径（sim_targetRadius）→ 标记为需要细化；
+  · 梯度判据：相邻格密度差的绝对值除以网格间距超过阈值 → 标记为需要细化；
+  · 两者取「或」：任一成立即细化到最高等级。
 ```
+
+> 说明：本仓库**不随文档提供 Fortran 源码片段**（分享规则见 `scenarios/private/SNB/SNB/docs/06`）。
+> 生成器的实际实现见 `generator.py`，此处只列算法要点。
 
 ### 4. 边界框重叠法（核心设计，来自 thin_layer_sandwich 模板）
 
@@ -121,27 +119,21 @@ endif
 - **旧「块中心法」的缺陷**：当目标区域宽度 < 最小块尺寸时完全失效。例如 Al 区仅 0.2µm，远小于 `lref=1` 时的块尺寸 50µm —— 没有任何块的中心落在 Al 或 CH 范围内，所有块都会被误判为 He → `lref ≤ 1` → **永远达不到高分辨率**。
 - **新「边界框重叠法」**：检查块的 `[LOW, HIGH]` 区间是否与目标区域重叠（`boundBox(HIGH,IAXIS) >= -var .and. boundBox(LOW,IAXIS) <= var`），**即使块远大于目标区域，只要覆盖即触发约束**。
 
-```fortran
-! 判断块是否与 Al 靶材区重叠: Al 区范围 x ∈ [-sim_targHeight, sim_targHeight]
-if (boundBox(HIGH, IAXIS) >= -sim_targHeight .and. &
-    boundBox(LOW, IAXIS)  <=  sim_targHeight) then
-    ! ═══ Al 靶材区 ═══ 约束: lref ∈ [lrefine_max-2, lrefine_max]
-    if (lrefine(lb) < al_lower_lref) then
-        refine(lb)   = .true.
-        derefine(lb) = .false.
-    else if (lrefine(lb) > al_target_lref) then
-        refine(lb)   = .false.
-        derefine(lb) = .true.
-    end if
-else if (boundBox(HIGH, IAXIS) >= -sim_polyHeight .and. &
-         boundBox(LOW, IAXIS)  <=  sim_polyHeight) then
-    ! ═══ CH 泡沫区 ═══ 约束: lref ≤ lrefine_max/2
-    ...
-else
-    ! ═══ He 填充区 ═══ 约束: lref ≤ lrefine_min（仅 derefine 方向）
-    ...
-end if
+```text
+实现要点（不含源码）：
+  对每个块，按「边界框区间与目标区域是否重叠」依次比较：
+
+  1. 与 Al 靶材区重叠（Al 区为 |x| ≤ sim_targHeight）
+       → 约束其细化等级落在 [lrefine_max−2, lrefine_max]：
+         低于下限则 refine；高于上限则 derefine。
+  2. 否则与 CH 泡沫区重叠（|x| ≤ sim_polyHeight）
+       → 约束其细化等级不超过 lrefine_max/2。
+  3. 否则（He 填充区）
+       → 只允许向粗解细化（不超过 lrefine_min 方向）。
 ```
+
+> 说明：本仓库**不随文档提供 Fortran 源码片段**（分享规则见 `scenarios/private/SNB/SNB/docs/06`）。
+> 生成器的实际实现见 `generator.py`；此处只列判定逻辑要点。
 
 **分层约束（由 `lrefine_max` 自适应，不硬编码）**：
 

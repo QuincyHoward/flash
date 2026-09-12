@@ -55,8 +55,14 @@ $PY scripts/run/run_t002.py --model both --fl-mode fl_harmonic --fl-coef 0.06 \
 # `+ug` 分辨率/速度矩阵
 $PY scripts/probe/ug_resolution_probe.py
 
-# 对比分析出图
+# 对比分析出图（旧：plt 源，7 张）
 $PY scripts/analysis/compare_models.py --tag full_1ns --target-ns 1.0 --ylim-te 0,2e8
+
+# ★ 对比出图（新：chk 源，上下两联）—— 见 §3
+#   (1) 时空彩图：7 物理量 × 上下两联，线性 t[ns]/x[µm]，nele 对数色标
+$PY scripts/plot_compare/pcolor/plot_xt_pcolor.py --tag chk_full
+#   (2) 10 时刻剖面系列：7 物理量 × 上下两联，线性 x[µm]/y
+$PY scripts/plot_compare/profiles/plot_profiles.py --tag chk_full
 ```
 
 每个 `flash_input/` 内另有 `run_flash.sh`（WSL 手动一键流水线，
@@ -74,8 +80,14 @@ $PY scripts/analysis/compare_models.py --tag full_1ns --target-ns 1.0 --ylim-te 
 | `cmp_2e-10` | fl_minmax / fl_none | 2144 / **12.92 s** | 3456 / **43.49 s** | 5 |
 | `full_1ns` | fl_minmax / fl_none | 10656 / **87.6 s** | 14751 / **139.1 s** | 25 |
 | `full_1ns_h006` | fl_harmonic 0.06（两腿） | 10874 / 89.3 s | 14751 / 144.9 s | 25 |
+| **`chk_full`** | fl_minmax / fl_none | 10656 / **85.4 s** | 14751 / **135.1 s** | **16 chk** (+3 plt) |
 
 环境：WSL Ubuntu-22.04，24 核 / 11 GB，`mpiexec -n 8`。
+
+> **`chk_full`**：1.2 ns 全脉冲、**以 chk 为绘图数据源**（详见 §3）。
+> `checkpointFileIntervalTime = 8e-11` → **16 帧**（0 → 1.2 ns，步长 ~80 ps，
+> 两腿时刻对齐到 <1e-4 ns）；`plotFileIntervalTime = 6e-10` → 仅 3 帧（弃用）。
+> 输出体积 14 MB (FL-SH) / 17 MB (SNB)。
 
 ### 2.2 `+ug` 分辨率/速度矩阵（`results/ug_resolution/matrix.md`）
 
@@ -132,22 +144,107 @@ $PY scripts/analysis/compare_models.py --tag full_1ns --target-ns 1.0 --ylim-te 
 
 ---
 
-## 3. 交付物
+## 3. 对比绘图（chk 数据源，上下两联）
+
+### 3.1 为什么用 chk 而不是 plt
+
+| 维度 | chk | plt |
+|---|---|---|
+| 键数（实测 512 格 FL-SH） | **71** | ~25 |
+| 变量上限 | 无（完整重启快照） | `plot_var` 白名单硬上限 **12** |
+| dtype | **float64** | float32 |
+| 覆盖量 | 含 `pion`/`eele`/`ye`/`sumy`/`gamc`/`game`/`qenl`/`mfpe`… | 仅白名单项 |
+
+**关键事实**：chk 与 plt 的 HDF5 布局**完全相同**，但 `+ug` 均匀网格下
+**所有块都是叶子块**（`node type` 每块标量 = 1），因此**无需 leaf 过滤** ——
+直接按块中心 x 排序拼接即可。`coordinates` 是**块中心**（`(nblocks,3)`），
+重建节点坐标须从 `bounding box` 推：`linspace(lo, hi, nxb+1)`，每块取左闭右开。
+
+### 3.2 目录结构
+
+```
+scripts/plot_compare/
+├── common/plot_common.py          # 唯一公共层：chk 直读 + 单位换算 + 绘图规范
+├── pcolor/plot_xt_pcolor.py       # (1) 上下两联时空彩图
+└── profiles/plot_profiles.py      # (2) 上下两联 10 时刻剖面系列图
+```
+
+### 3.3 图 (1) 时空彩图
+
+7 个物理量各出一张：上联 FL-SH、下联 SNB。**x 轴 [µm] 线性、y 轴 [ns] 线性、
+色标线性**（唯 `nele` 对数）。
+
+```bash
+$PY scripts/plot_compare/pcolor/plot_xt_pcolor.py --tag chk_full
+$PY scripts/plot_compare/pcolor/plot_xt_pcolor.py --tag chk_full --vars tele nele
+$PY scripts/plot_compare/pcolor/plot_xt_pcolor.py --tag chk_full --vars trad --per-leg
+```
+
+### 3.4 图 (2) 10 时刻剖面系列
+
+在两腿**共同时间窗**内**平均取 10 个时刻**（`np.linspace` 含端点），每点取
+**最近的真实 chk 帧**（不插值）。x 轴 [µm] 线性、y 轴**默认线性**
+（唯 `nele` 对数）。
+
+```bash
+$PY scripts/plot_compare/profiles/plot_profiles.py --tag chk_full
+$PY scripts/plot_compare/profiles/plot_profiles.py --tag chk_full --xrange -60 30
+```
+
+### 3.5 ⚠ 单位换算表（FLASH 原生 = CGS）
+
+| 量 | chk 原生 | 绘图单位 | 换算 |
+|---|---|---|---|
+| `tele`/`tion`/`trad` | K | **eV** | `/ 1.1604519e4` |
+| `dens` | g/cm³ | **g/cm³** | 原样 |
+| `pele`/`pres` | erg/cm³ | **Mbar** | `* 1e-12` |
+| `nele` | — | **cm⁻³** | 离线推导 `Ye·6.02e23·ρ` |
+
+`nele` **不走原生场**（SNB 腿 chk 里确有 `nele`），而统一离线推导
+`Ye = zbarFrac/abarInv`（`Eos_getAbarZbar.F90:130-152`），理由有二：
+① FL-SH 腿**无** `NELE_VAR`，用原场会造成两腿口径不对称；
+② 实测 SNB 原生 `nele` 与离线推导差 **~1%**（原生场非全分支刷新，含陈旧值）。
+
+### 3.6 ⚠ `--per-leg`：量值悬殊时的必要开关
+
+默认两联**共享**色标/y 范围（对比的前提）。但 `trad` 是反例 ——
+FL-SH 腿 `erad ~1e12 erg/cm³`，SNB 腿 `~1e-5 erg/cm³`（**相差 17 个数量级**，
+辐射在 SNB 腿基本解耦），共享色标下 **SNB 联全黑、信息量为零**。
+此时加 `--per-leg`：每联独立自动定标，并在 panel title 标注该腿数值区间
+`[min .. max]` 补偿色标不可比。两条建议：
+
+- **报告主图用共享色标**（严格可比），仅当弱腿糊掉时才补 `--per-leg` 版本；
+- `--per-leg` 版文件名带 `_perleg` 后缀，**不会覆盖**共享版。
+
+### 3.7 交付物
+
+| 路径 | 内容 |
+|---|---|
+| `results/pcolor/xt_<var>_chk_full.png` | 7 张时空彩图（共享色标） |
+| `results/pcolor/xt_trad_chk_full_perleg.png` | `trad` 逐腿定标版（SNB 结构可见） |
+| `results/profiles/profiles_<var>_chk_full.png` | 7 张 10 时刻剖面系列（共享 y） |
+| `results/profiles/profiles_trad_chk_full_perleg.png` | `trad` 逐腿定标版 |
+
+绘图规范：全英文标签、字号 ≥18 pt、DPI 450、线宽 ≥2.4。
+
+---
+
+## 4. 交付物
 
 | 路径 | 内容 |
 |---|---|
 | `docs/ug_resolution_finding.md` | `+ug` 分辨率机制：源码证据 + 5 用例实测矩阵 + 旧结论修正 |
 | `docs/snb_vs_flsh_design.md` | 两腿逐项对照 + SNB 侧可调项 A/B/C 清单 + 坑位 |
 | `results/ug_resolution/matrix.{md,csv}` | 分辨率矩阵原始数据 |
+| `scripts/plot_compare/` | 对比绘图套件（chk 源，上下两联；见 §3） |
 | `results/cmp_2e-10/` | 2e-10 对比：dens/tele/trad 剖面、热流、限制因子、ΔTe 时空图、峰值演化 |
 | `results/full_1ns/` | 1 ns 全脉冲同上 7 图 + `summary.{md,json}` |
+| `results/pcolor/` + `results/profiles/` | chk 源上下两联图（§3） |
 | `logs/` | 各次运行/编译的完整日志 |
-
-绘图规范：全英文标签、字号 ≥18 pt、DPI ≥450、线宽 ≥2.4。
 
 ---
 
-## 4. 坑位记录（实操）
+## 5. 坑位记录（实操）
 
 1. **`plot_var` 编译期硬上限 = 12**。`IO/IOMain/Config` 只声明
    `PARAMETER plot_var_1..12`，第 13 项起**静默忽略**（`ignoring unknown
@@ -168,10 +265,22 @@ $PY scripts/analysis/compare_models.py --tag full_1ns --target-ns 1.0 --ylim-te 
    `lrefine_max` 自动加的注释 `res = dir_delta/(nxb*nblock*2^(lrefine_max-1))`
    对 `+ug` 无效，勿据此判断分辨率。
 7. 编译很快（1D 小规模，单次 20–60 s），改 `-nxb` 重编成本可忽略。
+8. **chk 的 `unknown names` 是变量清单的权威来源** —— 不要用 `grep "^VARIABLE"`
+   去猜；chk 里 `node type` 是**每块标量**（`(nblocks,)`），与 plt 同。
+   另外 **plt 只有 float32**，chk 是 float64 → 定量分析优先 chk。
+9. **`matplotlib.cm.get_cmap` 在 mpl ≥3.9 已移除**（本环境 3.11.1）→
+   用 `plt.get_cmap(...)` 或 `matplotlib.colormaps[...]`。
+10. **`imshow` 的 `extent` 必须显式给时刻端点**，否则 y 轴退化成帧号；
+    用 `(x.min, x.max, t.min, t.max)` 并配 `origin="lower"`。
+11. **色标共享是双刃剑**（见 §3.6）：量值跨 >10 个数量级时弱腿会全糊，
+    需 `--per-leg`；且 `--per-leg` 与默认版**必须用不同文件名**，
+    否则后跑的会静默覆盖前者（已修）。
+12. `suptitle` 与上联 `ax.set_title` **容易重叠** → `top≈0.89` +
+    `suptitle y≈0.955` + `hspace≈0.16` 是实测可用的组合。
 
 ---
 
-## 5. 目录结构
+## 6. 目录结构
 
 ```
 t002/
@@ -179,17 +288,22 @@ t002/
 ├── scripts/generate/gen_t002_inputs.py    # 两腿输入生成 + par 一致性自检
 ├── scripts/run/run_t002.py                # 部署→setup→make→mpiexec→收集
 ├── scripts/probe/ug_resolution_probe.py   # +ug 分辨率/速度矩阵
-├── scripts/analysis/compare_models.py     # 对比分析出图（7 张）
+├── scripts/analysis/compare_models.py     # 对比分析出图（旧，plt 源，7 张）
+├── scripts/plot_compare/                  # ★ chk 源上下两联绘图套件（§3）
+│   ├── common/plot_common.py              #   chk 直读 + 单位换算 + 绘图规范
+│   ├── pcolor/plot_xt_pcolor.py           #   时空彩图
+│   └── profiles/plot_profiles.py          #   10 时刻剖面系列
 ├── docs/                                  # 本文档 + 两份专题文档
 ├── sim_flsh/{flash_input,flash_output}/   # FL-SH 腿（标准 FLASH 树）
 ├── sim_snb/{flash_input,flash_output}/    # SNB 腿（FLASHSNB 树，含 9 覆盖 F90）
-├── results/                               # 对比图 + 分辨率矩阵 + 汇总
+├── results/{pcolor,profiles}/             # ★ chk 源上下两联图
+├── results/{cmp_2e-10,full_1ns,...}/      # 旧 plt 源对比图 + 分辨率矩阵
 └── logs/                                  # 运行与编译日志
 ```
 
 ---
 
-## 6. 待用户决策
+## 7. 待用户决策
 
 1. **SNB 腿限流器是否启用**：需放开 `diff_advanceTherm.F90:836-841` 的注释
    （物理代码改动）。启用后 SNB 腿才具备有限限流器，两腿才可比；

@@ -36,7 +36,7 @@ script = generator.generate(
 script = generator.generate(
     sim_path="hello/LaserSlab1d_new",
     dimension=2,
-    platform="hpc/scfa2696",  # 中卫HPC
+    platform="hpc/<超算账号>",  # 中卫HPC
 )
 ```
 
@@ -67,7 +67,7 @@ output_path = generator.save(
     }
   },
   "hpc": {
-    "scfa2696": {
+    "<超算账号>": {
       "1d": {"nprocs": 48, "memory_mb": 196608},
       "2d": {"nprocs": 96, "memory_mb": 393216}
     }
@@ -98,7 +98,7 @@ generator.save(
     "submit_flash.slurm",
     sim_path="hello/LaserSlab2d_new",
     dimension=2,
-    platform="hpc/scfa2696",
+    platform="hpc/<超算账号>",
 )
 ```
 

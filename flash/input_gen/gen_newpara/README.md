@@ -1,6 +1,6 @@
 # gen_newpara — FLASH 新参数多区密度剖面生成指南
 
-> **基于**: test/newpara/ 系列测试 + 多区实战 + FLASH4.8 官方文档  
+> **基于**: `test/newpara/`（仓库根）系列测试 + 多区实战 + FLASH4.8 官方文档  
 > **版本**: 2026-06-30  
 > **目录**: `input_gen/gen_newpara/`
 
@@ -16,7 +16,7 @@
 |------|------|----------|
 | 新参数 5 步流程 | Config → .F90 → .par 文件添加新运行时参数 | ✅ 编译+运行通过 |
 | 增量边界区域划分 | 用运行时参数控制区域边界 | ✅ 三区验证通过 |
-| 5 种密度剖面 | 常量/指数衰减/指数增长/线性/高斯 | ✅ R²=0.994 |
+| 5 种密度剖面 | 常量/指数衰减/指数增长/线性/高斯 | ✅ R²=0.9939 |
 | 多区单仿真混合 | 一个仿真中不同区域使用不同剖面 | ✅ 5区同时验证 |
 | 物种名限制检测 | ≤4 字符，防止 FLASH 静默截断 | ✅ check_species_names() |
 
@@ -35,7 +35,7 @@ Config → Simulation_data.F90 → Simulation_init.F90 → Simulation_initBlock.
 | # | 文件 | 操作 | 示例 |
 |---|------|------|------|
 | 1 | `Config` | 用 `PARAMETER` 行注册参数 | `PARAMETER sim_polyHeight REAL 0.005` |
-| 2 | `Simulation_data.F90` | 声明 Fortran 变量 | `real, save :: sim_polyHeight` |
+| 2 | `Simulation_data.F90` | 声明 Fortran 变量 | 声明 `sim_polyHeight` 为 REAL 保存型模块变量 |
 | 3 | `Simulation_init.F90` | 用 `RuntimeParameters_get` 读取 | `call RuntimeParameters_get('sim_polyHeight', ...)` |
 | 4 | `Simulation_initBlock.F90` | 在初始条件中使用 | `bound3 = bound2 + sim_polyHeight` |
 | 5 | `.par` 文件 | 设置参数初始值 | `sim_polyHeight = 20.0e-04` |
@@ -47,11 +47,11 @@ D sim_paramName Description of the parameter
 PARAMETER sim_paramName TYPE default [allowed_values]
 ```
 
-| TYPE | Fortran 对应 | 示例 |
-|------|-------------|------|
-| `REAL` | `real, save` | `PARAMETER sim_rho REAL 2.7` |
-| `INTEGER` | `integer, save` | `PARAMETER sim_nblocks INTEGER 4` |
-| `BOOLEAN` | `logical, save` | `PARAMETER sim_useFlag BOOLEAN FALSE` |
+| TYPE | 生成的声明形式 | 示例 |
+|------|---------------|------|
+| `REAL` | REAL 保存型模块变量 | `PARAMETER sim_rho REAL 2.7` |
+| `INTEGER` | INTEGER 保存型模块变量 | `PARAMETER sim_nblocks INTEGER 4` |
+| `BOOLEAN` | LOGICAL 保存型模块变量 | `PARAMETER sim_useFlag BOOLEAN FALSE` |
 | `STRING` | 无需声明 | `PARAMETER sim_eos STRING "eos_tab"` |
 
 ### 2.3 ⚠️ 常见错误
@@ -98,24 +98,21 @@ FLASH 静默截断:
 
 取代硬编码的固定区间，使用**累加参数**计算区域边界。
 
-### Fortran 代码模式
+### 实现模式（要点，不含源码）
 
-```fortran
-! 增量边界计算
-b0 = sim_vacuumHeight     ! 真空右边界
-b1 = b0 + sim_zone1Height  ! 区域 1 右边界
-b2 = b1 + sim_zone2Height  ! 区域 2 右边界
-b3 = b2 + sim_zone3Height  ! 区域 3 右边界
+```text
+1. 累加边界：由「起始高度 + 各分区高度」依次累加出各分区右边界
+   （起始 = 真空区高度；此后每段 = 前一段右边界 + 该分区高度）。
 
-! 区域判断
-if (xcent(i) >= b0 .and. xcent(i) < b1) then
-   species = TARG_SPEC
-else if (xcent(i) >= b1 .and. xcent(i) < b2) then
-   species = TARG_SPEC
-else
-   species = CHAM_SPEC
-end if
+2. 分区判断：用「左闭右开」区间逐段判断当前格心落在哪个分区；
+   命中即设该分区的物种常量，全部未命中则兜底为腔室物种。
+
+3. 坐标约定：比较一律用**格心坐标**（1D 为 xcent）；
+   2D/3D 需扩展为多坐标联合判断。
 ```
+
+> 说明：本仓库**不随文档提供 Fortran 源码片段**（分享规则见 `scenarios/private/SNB/SNB/docs/06`）。
+> 生成器的实际实现见 `generator.py`；此处只列算法要点，便于理解生成结果。
 
 ### 优势
 
@@ -225,17 +222,14 @@ sim_zone5Height sim_zone5Profile sim_zone5P1 sim_zone5P2
 
 ## 7. 物种质量分数
 
-每个 cell 的主要物种获得 ~1.0 的质量分数，其他物种获得 `sim_smallX` (1e-99) 痕量。
+每个 cell 的**主要物种**获得 ~1.0 的质量分数，其余物种获得 `sim_smallX`（1e-99）的痕量。
 
-```fortran
-do n = SPECIES_BEGIN, SPECIES_END
-   if (n == species) then
-      call Grid_putPointData(blockID, CENTER, n, EXTERIOR, axis, &
-           1.0e0-(NSPECIES-1)*sim_smallX)
-   else
-      call Grid_putPointData(blockID, CENTER, n, EXTERIOR, axis, sim_smallX)
-   end if
-enddo
+```text
+实现要点（不含源码）：
+  遍历 SPECIES_BEGIN … SPECIES_END 的每个物种下标：
+    · 若该下标 == 本 cell 的目标物种 → 质量分数 = 1 − (NSPECIES−1)×sim_smallX
+    · 否则                        → 质量分数 = sim_smallX
+  质量分数通过 Grid_putPointData 以「物种下标」为变量号写入格心。
 ```
 
 ---
@@ -326,17 +320,21 @@ print(c.summary())
 
 ### 10.2 验证三区密度
 
-使用 `test/newpara/flash_profile/analyze_density_indep.py` 或 `analyze_profile.py` 读取 HDF5 初始密度图。
+可用 `test/newpara/analyze_density.py`（单次）或 `test/newpara/analyze_density_indep.py`（独立于生成流程）
+读取 HDF5 初始密度图。
 
 ### 10.3 参考文件
 
 | 路径 | 内容 |
 |------|------|
-| `test/newpara/` | 基础 3 区双靶实现 (chy+targ+poly) |
-| `test/newpara/flash_profile/` | 密度剖面单区测试 |
-| `test/newpara/flash_profile/multizone_profile/` | 5 区单仿真混合剖面 |
-| `test/newpara/flash_profile/run_all_profiles.py` | 5 种剖面全扫描脚本 |
-| `docs/newparaset/README.md` | FLASH 新参数官方流程文档 |
+| `test/newpara/run_newpara_test.py` | 新参数生成端到端测试入口 |
+| `test/newpara/analyze_density.py` | 初始密度剖面分析 |
+| `test/newpara/analyze_density_indep.py` | 独立版密度分析 |
+| `test/newpara/wsl_deploy.sh` · `copy_to_wsl.sh` | 部署/拷贝到 WSL |
+
+> ⚠ 旧版文档列出的 `test/newpara/flash_profile/`（含 `multizone_profile/`、
+> `run_all_profiles.py`、`analyze_profile.py`）与 `docs/newparaset/README.md`
+> **在本仓库中均不存在**，已按实际目录更正。
 
 ---
 

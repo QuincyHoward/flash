@@ -518,6 +518,52 @@ saved = FlashPlotter.plot_folder_all_vars(
 
 ---
 
+#### 静态方法（时空 / x-t 图，2026-09-12 新增）
+
+> `plot_folder` / `plot_folder_all_vars` 是**逐帧各出一张图**；下面三个是**多文件堆叠成一张时空图**。
+
+##### `time_uniformity(times)`
+
+检查帧时间间隔是否均匀。
+
+```python
+u = FlashPlotter.time_uniformity(times)
+# {"n", "dt_min", "dt_max", "dt_med", "ratio", "uniform", "max_distort_pct"}
+```
+
+* `uniform`：`ratio ≤ 1.05` 为均匀。
+* `max_distort_pct`：**若按等间距假设渲染**，时间轴的最大局部畸变百分比。
+
+##### `collect_xt(folder_path, var_name="dens", pattern="*chk*", compute_derived=True, grid_n=900, verbose=True)`
+
+把文件夹内所有帧堆叠为时空数据。
+
+**返回**：`(times, x_common, Z[n_t, n_x])`；无数据返回 `(None, None, None)`。
+
+* `times` 是**每帧的真实仿真时间 [s]**，**不是帧序号**。
+* 各帧 AMR 网格不同 → 插值到公共网格 `x_common`（`grid_n` 点）。
+* `verbose=True` 时打印 Δt 诊断；**非均匀时主动警告"不可用 `imshow`"**。
+
+##### `plot_xt_map(folder_path, var_name="dens", save_path=None, pattern="*chk*", xlim=None, ylim=None, use_log=None, cmap="viridis", vmin=None, vmax=None, compute_derived=True, grid_n=900, add_dimension=False, figsize=(11, 7))`
+
+绘制单物理量的**时空（x-t）图**。
+
+```python
+FlashPlotter.plot_xt_map("output/run_000001/", "nele",
+                         save_path="xt_nele.png", pattern="*chk*")
+```
+
+* ★ **用 `pcolormesh` + 真实逐帧时间坐标**渲染。
+  对时间间隔不均匀的 chk 序列（FLASH 常态）这是**唯一正确**的做法；
+  `imshow` 会假设各行等间距、把时间轴局部拉偏数千个百分点。
+* `use_log=None`：跨 >2 个十进自动用对数。
+* `xlim`/`ylim` 单位分别为 µm / ns。
+
+> ⚠ **为什么不能用 `imshow` 画 x-t**：FLASH 的 chk 由 `checkpointFileIntervalStep`
+> 触发，Δt 随 dt 变化。实测同一台仿真两条腿：
+> `+ug` 腿 81 帧 Δt 恒定 `2.000e-11`（1.00×）；**AMR 腿 317 帧 Δt `1.36e-12`…`7.19e-11`（52.7×）**。
+> 用 `imshow` 会让**同一物理运动在不同算例上显得前沿速度不同**（纯假象）。
+
 ## 5. 异常情况
 
 ### 5.1 异常类型
@@ -594,4 +640,4 @@ print(VAR_ALIASES)
 ---
 
 **维护者**: WorkBuddy AI
-**最后更新**: 2026-07-04
+**最后更新**: 2026-09-12  (新增时空图 API: plot_xt_map / collect_xt / time_uniformity)

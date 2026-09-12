@@ -108,8 +108,8 @@ SSH 多路由延迟测试器。
   - 缓存最佳路由结果
 
 预定义路由:
-  - ROUTES_SCFA2696: scfa2696@NC-E 的 9 条路由
-  - ROUTES_SCH0348: sch0348@BSCC-T6 的 9 条路由
+  - ROUTES_SCFA2696: <超算账号>@NC-E 的 9 条路由
+  - ROUTES_SCH0348: <超算账号>@BSCC-T6 的 9 条路由
 
 方法:
   - test_route(route): 测试单条路由
@@ -167,7 +167,8 @@ python -m physimx_sim.flash.flash_run.env.resource_config
 # ── 示例工作流 ─────────────────────────────────
 
 ## 本地 WSL 运行
-from flash.flash_run import FlashEnvManager, get_env_manager
+from flash.flash_run import FlashEnvManager
+from flash.flash_run.env.env_manager import get_env_manager   # ★ 不经 __init__ 导出
 
 mgr = get_env_manager()
 mgr.set_active("local_wsl")

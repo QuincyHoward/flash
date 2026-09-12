@@ -23,7 +23,7 @@ https://gitee.com/physimx/flash
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
-> 发布包已通过全局测试 (233 passed / 3 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 发布包已通过全局测试 (236 passed / 1 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
 
 ---
 
@@ -433,12 +433,12 @@ Makefile.h 模板包含 `ifeq ($(FLASHBINARY),true)` 块，可能引起编译错
 
 ```
 scripts/
-└── run_global_tests.py  ← 全局测试
+└── 05_test/run_global_tests.py  ← 全局测试
 
 flash/scenarios/             ← 即插即用场景系统
 └──  center_evolution/  ← CH 中心演化
 
-input_gen/             ← 参数文件生成 (par_editor, par_calculator)
+input_gen/             ← 参数文件生成 (gen_par / gen_config / gen_sim_initblock / …)
 flash_run/             ← 编译和运行管理
 output_processors/     ← HDF5 输出分析和自适应可视化
 ```

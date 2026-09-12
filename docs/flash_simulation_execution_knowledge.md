@@ -209,7 +209,7 @@ ed_laserIOMaxNumberOfPositions = 100
 
 | 项目 | 值 |
 |------|-----|
-| 测试环境 | ParaCloud NC-E (SSH1: scfa2696) |
+| 测试环境 | ParaCloud NC-E (SSH1: <超算账号>) |
 | 作业系统 | SLURM, partition=v5_192, 4 cores, 1 node |
 | 文件模式 (v2.1) | `demo_task/laserslab1d_supercomputer_demo/run/` 独立运行文件夹 |
 | SETUP_CMD (v2.1) | `./setup -auto hello/LaserSlab_hpc -1d ... -objdir=hello/LaserSlab_hpc -par_file=laserslab1d_sc_demo.par` |
@@ -279,7 +279,7 @@ Local:  不生成 SLURM 头
 
 **重要 — SelectType=select/linear 说明:**
 
-ParaCloud NC-E (scfa2696) 使用 `SelectType=select/linear`, 这意味着:
+ParaCloud NC-E (<超算账号>) 使用 `SelectType=select/linear`, 这意味着:
 - 每个 `sbatch` 作业必然分配 **整节点** (48核/192GB)
 - `--ntasks` 仅控制 `srun -n` 的 MPI 进程数, 不影响 SLURM 分配的 CPU 数
 - `--mem` 限制在此模式下同样**无效** — 无论设多少, 整节点内存都被分配

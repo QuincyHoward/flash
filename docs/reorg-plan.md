@@ -98,6 +98,8 @@
 - 引用 `input_gen/gen_otherf90s/ref_f90s/` 全部 5 个子目录的参考文件
 - 引用 `test/newpara/README.md` 多区控制参考
 - 引用 `test/newpara/flash_profile/` 5 种剖面类型
+  > ⚠ **本文是规划稿**：该路径（以及同段的 `input_gen/gen_otherf90s/ref_f90s/`）
+  > 在当前仓库中并不存在，属当时设想；落地情况请以 `flash/input_gen/*/README.md` 为准。
 - references: f90 变体选择矩阵
 
 **Step 2.6 — `flash-test-templates/SKILL.md`** ★ 新增

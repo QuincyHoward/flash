@@ -47,7 +47,7 @@ pip download --only-binary=:all: --platform manylinux2014_x86_64 \
 
 # 2. 打包上传到超算
 tar czf yt_wheels.tar.gz *.whl
-scp yt_wheels.tar.gz scfa2696@ssh.cn-zhongwei-1.paracloud.com:~/AI/AItemp/
+scp yt_wheels.tar.gz <user>@<hpc-login-host>:~/AI/AItemp/      # 主机名见 flash_run/remote/
 
 # 3. 超算端安装
 module load python/3.9.6
