@@ -50,7 +50,27 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 # 专用函数: 从加密凭据存储读取 Gitee 凭据 (禁止硬编码)
-from flash._core.credentials import get_credential_manager, interactive_menu
+# ★ 依赖自检: 凭据库是 Fernet 加密存储, 需要 cryptography。该包**惰性导入**
+#   (在 get_credential_manager() 内部), 所以必须在这里显式探测, 否则用户只会
+#   看到调用深处的裸 ImportError。缺失时给出可直接照做的提示。
+try:
+    from flash._core.credentials import get_credential_manager, interactive_menu
+    import cryptography  # noqa: F401
+except ModuleNotFoundError as _exc:
+    if "cryptography" in str(_exc):
+        sys.exit(
+            "\n  [X] 当前解释器缺少依赖 cryptography (凭据库为 Fernet 加密存储)。\n"
+            f"      正在使用的解释器: {sys.executable}\n"
+            "      请改用含该依赖的解释器运行, 或在当前解释器上安装:\n"
+            f'        "{sys.executable}" -m pip install cryptography\n'
+        )
+    raise
+
+# 同目录的认证工具: credential helper 统一入口 (避免与 git_pull.py 各写一份)
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from _git_auth import auth_prefix, ensure_clean_remote  # noqa: E402
 
 
 # ============================================================================
@@ -273,27 +293,19 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
         warn("DRY-RUN 模式 — 仅展示将要执行的操作\n")
 
     # ── 2. 配置 remote：origin **始终指向不含凭据的干净 URL** ──
-    #   ★★ 认证 URL（含 login:token）**只在第 4 步的 push 命令里现拼现用**，
+    #   ★★ 认证由同目录的 credential helper 在**推送那一刻**经管道提供，
     #      **绝不写进 .git/config** —— 否则 token 会以明文长期落盘。
-    #      这与本文件头"认证 URL 仅在运行时由凭据动态拼装"的设计意图一致。
     #      （历史实现曾在此执行 `git remote set-url origin <user>:<token>@…`，
     #        导致每次推送都把明文 token 写进配置；已修正。）
+    info("确保 origin 指向不含凭据的 URL（清除历史内嵌 token）")
+    ensure_clean_remote(project_root, repo_url, run_git, dry_run=dry_run)
+
+    # 下面这段认证 URL 仅作 helper 缺失时的**回退**，正常路径不会用到。
     if "://" in repo_url:
         scheme, rest = repo_url.split("://", 1)
         auth_url = f"{scheme}://{auth_username}:{token}@{rest}"
     else:
         auth_url = repo_url
-
-    r = run_git(["remote", "-v"], cwd=project_root, check=False)
-    if "origin" not in r.stdout:
-        info("添加远程仓库 origin（不含凭据）")
-        if not dry_run:
-            run_git(["remote", "add", "origin", repo_url], cwd=project_root)
-    else:
-        # 幂等地把 origin 复位成干净 URL：既能预防，也能清掉历史遗留的内嵌 token
-        info("确保 origin 指向不含凭据的 URL（清除历史内嵌 token）")
-        if not dry_run:
-            run_git(["remote", "set-url", "origin", repo_url], cwd=project_root)
 
     # ── 3. 自动提交 ──
     if has_changes(project_root):
@@ -321,21 +333,27 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
         ok("完成!")
         return
 
-    # ★ 推送目标用"运行时认证 URL"，**不用 origin**：
-    #   这样 token 只出现在本次进程的命令行里，**不写入 .git/config**。
-    #   （配合第 2 步把 origin 复位为干净 URL，配置文件里不再有明文凭据。）
-    push_target = auth_url if auth_url != repo_url else "origin"
-    push_args = ["push", push_target, branch]
+    # ★ 认证：用同目录的 credential helper。
+    #   凭据由 helper 从加密库读取、经**管道**交给 git ——
+    #   既不写入 .git/config，也不出现在命令行参数里（`ps` 看不到）。
+    #   （对比：把认证 URL 当 push 参数虽然不落盘，但 token 会进 argv。）
+    prefix = auth_prefix()
+    if not prefix:
+        warn("未找到 credential helper（_git_auth.HELPER_NAME），回退到认证 URL 方式")
+        warn("  回退方式会把 token 放进命令行参数，建议尽快修复 helper 缺失问题。")
+
+    push_target = "origin" if prefix else (auth_url if auth_url != repo_url else "origin")
+    push_args = prefix + ["push", push_target, branch]
     if force:
         push_args.append("--force")
         warn("强制推送模式!")
 
     if dry_run:
-        warn(f"[DRY-RUN] 将执行: git push <认证URL> {branch}"
+        warn(f"[DRY-RUN] 将执行: git -c credential.helper=<helper> push {push_target} {branch}"
              + (" --force" if force else ""))
     else:
-        info(f"执行: git push origin {branch}"
-             + (" --force" if force else "") + "   (认证 URL 仅本次生效)")
+        info(f"执行: git push {push_target} {branch}"
+             + (" --force" if force else "") + "   (凭据经 credential helper 管道传递)")
         r = run_git(push_args, cwd=project_root, check=False)
         if r.returncode == 0:
             ok(f"推送成功! ({branch})")

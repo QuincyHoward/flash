@@ -67,7 +67,27 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 # 专用函数: 从加密凭据存储读取 Gitee 凭据 (禁止硬编码)
-from flash._core.credentials import get_credential_manager, interactive_menu
+# ★ 依赖自检: 凭据库是 Fernet 加密存储, 需要 cryptography。该包**惰性导入**
+#   (在 get_credential_manager() 内部), 所以必须在这里显式探测, 否则用户只会
+#   看到调用深处的裸 ImportError。缺失时给出可直接照做的提示。
+try:
+    from flash._core.credentials import get_credential_manager, interactive_menu
+    import cryptography  # noqa: F401
+except ModuleNotFoundError as _exc:
+    if "cryptography" in str(_exc):
+        sys.exit(
+            "\n  [X] 当前解释器缺少依赖 cryptography (凭据库为 Fernet 加密存储)。\n"
+            f"      正在使用的解释器: {sys.executable}\n"
+            "      请改用含该依赖的解释器运行, 或在当前解释器上安装:\n"
+            f'        "{sys.executable}" -m pip install cryptography\n'
+        )
+    raise
+
+# 同目录的认证工具: credential helper 统一入口 (与 push/pull 共用一份实现)
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from _git_auth import auth_prefix  # noqa: E402
 
 
 # ============================================================================
@@ -217,10 +237,15 @@ def find_git_root(start: Path) -> Path:
     return start.resolve()
 
 
-def fetch_tree_git(auth_url: str, branch: str, cwd: Path):
-    """git fetch <auth_url> <branch> 后用 ls-tree 统计 (按 URL fetch, 不动 remote)。"""
+def fetch_tree_git(url: str, branch: str, cwd: Path):
+    """git fetch <url> <branch> 后用 ls-tree 统计 (按 URL fetch, 不动 remote)。
+
+    ★ url 必须是**不含凭据**的干净 URL；认证由 credential helper 经管道提供
+      （历史实现把 `https://<login>:<token>@…` 当参数传入 → token 会出现在
+      命令行 argv 里，`ps` 可见；已修正）。
+    """
     info(f"回退方案: git fetch (by URL) + git ls-tree -r --long FETCH_HEAD")
-    run_git(["fetch", "--no-tags", auth_url, branch], cwd=cwd)
+    run_git(auth_prefix() + ["fetch", "--no-tags", url, branch], cwd=cwd)
     r = run_git(["ls-tree", "-r", "--long", "FETCH_HEAD"], cwd=cwd)
     files = []
     for line in r.stdout.splitlines():
@@ -425,8 +450,8 @@ def run_report(branch="master", exts=None, include_paths=None, exclude_paths=Non
         warn("Gitee API 返回 truncated=true, 文件树可能不完整!")
     if not files or all(s == 0 for _, s in files):
         warn("API 未返回有效 size, 回退到 git ls-tree 方案")
-        auth_url = f"https://{cred.get('login')}:{token}@gitee.com/{owner}/{repo}.git"
-        files, truncated = fetch_tree_git(auth_url, branch, find_git_root(_ROOT))
+        clean_url = f"https://gitee.com/{owner}/{repo}.git"
+        files, truncated = fetch_tree_git(clean_url, branch, find_git_root(_ROOT))
         source = "git ls-tree -r --long FETCH_HEAD"
     ok(f"获取文件树: {len(files)} 个文件 (来源: {source})")
 

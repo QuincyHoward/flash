@@ -11,8 +11,9 @@
   * 任何密码 / 账户 / token 都 **绝不硬编码** 到本文件。
   * 所有敏感信息均通过专用函数 flash._core.credentials.get_credential_manager()
     读取加密存储 (~/.physimx/flash/credentials.enc, Fernet 对称加密)。
-  * 认证 URL 仅在运行时由凭据动态拼装, 且 credential.helper / askPass 被禁用,
-    任何环境都不会弹出凭据输入框。
+  * 凭据经 **credential helper 管道**交给 git (同目录 _git_auth.py + _git_credential_helper.py):
+    既不写入 .git/config, 也不出现在命令行参数里 —— token 不落盘、`ps` 也看不到。
+  * 其它 credential helper (含系统 GCM) 与 askPass 被显式清空, 任何环境都不弹凭据输入框。
 
 使用示例:
   python git_pull.py              # 双击/默认: 拉取当前分支最新 (ff-only, 干净工作区)
@@ -49,7 +50,27 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 # 专用函数: 从加密凭据存储读取 Gitee 凭据 (禁止硬编码)
-from flash._core.credentials import get_credential_manager, interactive_menu
+# ★ 依赖自检: 凭据库是 Fernet 加密存储, 需要 cryptography。该包**惰性导入**
+#   (在 get_credential_manager() 内部), 所以必须在这里显式探测, 否则用户只会
+#   看到调用深处的裸 ImportError。缺失时给出可直接照做的提示。
+try:
+    from flash._core.credentials import get_credential_manager, interactive_menu
+    import cryptography  # noqa: F401
+except ModuleNotFoundError as _exc:
+    if "cryptography" in str(_exc):
+        sys.exit(
+            "\n  [X] 当前解释器缺少依赖 cryptography (凭据库为 Fernet 加密存储)。\n"
+            f"      正在使用的解释器: {sys.executable}\n"
+            "      请改用含该依赖的解释器运行, 或在当前解释器上安装:\n"
+            f'        "{sys.executable}" -m pip install cryptography\n'
+        )
+    raise
+
+# 同目录的认证工具: credential helper 统一入口 (与 git_push.py 共用一份实现)
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from _git_auth import auth_prefix, ensure_clean_remote  # noqa: E402
 
 
 # ============================================================================
@@ -188,17 +209,13 @@ def ahead_behind(cwd: Path, branch: str):
     return 0, 0
 
 
-def ensure_remote_auth(cwd: Path, auth_url: str, dry_run: bool):
-    """配置 origin remote 为 token 认证 URL (不持久化明文到仓库文件)。"""
-    r = run_git(["remote", "-v"], cwd=cwd, check=False)
-    if "origin" not in r.stdout:
-        info("添加远程仓库 origin")
-        if not dry_run:
-            run_git(["remote", "add", "origin", auth_url], cwd=cwd)
-    else:
-        info("更新远程仓库 URL (token 认证)")
-        if not dry_run:
-            run_git(["remote", "set-url", "origin", auth_url], cwd=cwd)
+def ensure_remote_auth(cwd: Path, repo_url: str, dry_run: bool):
+    """[保留兼容] 确保 origin 指向**不含凭据**的干净 URL。
+
+    ★ 已不再写入 token：历史实现把 `https://<user>:<token>@host/…` 写进 .git/config，
+      导致明文 token 长期落盘。现委托统一的 `_git_auth.ensure_clean_remote`。
+    """
+    ensure_clean_remote(cwd, repo_url, run_git, dry_run=dry_run)
 
 
 # ============================================================================
@@ -232,20 +249,29 @@ def pull_from_gitee(branch=None, rebase=False, stash=False, dry_run=False,
     if dry_run:
         warn("DRY-RUN 模式 — 仅展示将要执行的操作\n")
 
-    # ── 2. 配置 remote (token 认证) ──
+    # ── 2. 配置 remote：origin **始终指向不含凭据的干净 URL** ──
+    #   ★★ 认证由同目录的 credential helper 在 fetch/pull 那一刻经管道提供，
+    #      **绝不写进 .git/config**（历史实现会在此把明文 token 写进 URL）。
+    info("确保 origin 指向不含凭据的 URL（清除历史内嵌 token）")
+    ensure_clean_remote(project_root, repo_url, run_git, dry_run=dry_run)
+
+    # 认证参数：正常走 helper；缺失时才回退到认证 URL（token 会进 argv，仅作兜底）
+    prefix = auth_prefix()
+    if not prefix:
+        warn("未找到 credential helper（_git_auth.HELPER_NAME），回退到认证 URL 方式")
     if "://" in repo_url:
         scheme, rest = repo_url.split("://", 1)
         auth_url = f"{scheme}://{auth_username}:{token}@{rest}"
     else:
         auth_url = repo_url
-    ensure_remote_auth(project_root, auth_url, dry_run)
+    net_target = "origin" if prefix else (auth_url if auth_url != repo_url else "origin")
 
     # ── 3. 获取远端最新 (刷新远端跟踪引用) ──
-    info(f"获取远端最新: git fetch origin {branch}")
+    info(f"获取远端最新: git fetch {net_target} {branch}")
     if dry_run:
-        warn(f"[DRY-RUN] 将执行: git fetch origin {branch}")
+        warn(f"[DRY-RUN] 将执行: git fetch {net_target} {branch}")
     else:
-        run_git(["fetch", "origin", branch], cwd=project_root)
+        run_git(prefix + ["fetch", net_target, branch], cwd=project_root)
 
     ahead, behind = ahead_behind(project_root, branch)
     info(f"本地领先远程: {ahead} commit(s), 落后远程: {behind} commit(s)")
@@ -273,7 +299,7 @@ def pull_from_gitee(branch=None, rebase=False, stash=False, dry_run=False,
 
     # ── 5. 执行拉取 ──
     pull_mode = "--rebase" if rebase else "--ff-only"
-    pull_args = ["pull", pull_mode, "origin", branch]
+    pull_args = ["pull", pull_mode, net_target, branch]
 
     if dry_run:
         warn(f"[DRY-RUN] 将执行: git {' '.join(pull_args)}")
@@ -284,7 +310,7 @@ def pull_from_gitee(branch=None, rebase=False, stash=False, dry_run=False,
         return
 
     info(f"执行: git {' '.join(pull_args)}")
-    r = run_git(pull_args, cwd=project_root, check=False)
+    r = run_git(prefix + pull_args, cwd=project_root, check=False)
     if r.returncode == 0:
         ok(f"拉取成功! ({branch})")
     else:
@@ -325,9 +351,9 @@ def show_status(project_root: Path | None = None):
         eprint(f"  {'─'*50}")
     else:
         ok("工作区干净, 无未提交变更")
-    # 刷新远端后报告
+    # 刷新远端后报告 (只读操作, 同样经 credential helper 认证)
     info("刷新远端引用 (git fetch)")
-    run_git(["fetch", "origin", branch], cwd=project_root, check=False)
+    run_git(auth_prefix() + ["fetch", "origin", branch], cwd=project_root, check=False)
     ahead, behind = ahead_behind(project_root, branch)
     info(f"领先远程: {ahead} commit(s), 落后远程: {behind} commit(s)")
     if behind > 0:
