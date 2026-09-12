@@ -1,3 +1,16 @@
+# ⚠⚠ 注意：本文件是 **legacy 单体实现，不会被导入** ⚠⚠
+# ---------------------------------------------------------------------------
+# 它原名 `credentials.py`，与同目录的**包** `credentials/` 同名 → 按 Python 规则
+# **包优先**，因此本模块长期处于"被遮蔽、不可达"状态。
+# 2026-09-12 已重命名为 `credentials_legacy.py` 以消除命名冲突。
+#
+# * 现役实现：`flash/_core/credentials/`（包）
+#   —— `flash/_core/__init__.py` 明确从中导入；`pyproject.toml` 的
+#      `flash-cred = "flash._core.credentials:interactive_menu"` 也指向该包。
+# * 本文件仅作**历史参考**保留（便于回溯旧接口实现），**请勿再导入或修改**。
+#   如需旧接口，请改用包导出的对应函数。
+# ---------------------------------------------------------------------------
+
 """
 FLASH Sim standalone 凭据管理器 (自动加密版 + SSH 账户管理)
 
@@ -976,7 +989,11 @@ def _route_test_menu(cm, accounts):
         print(f"\n  [{cred_name}] {label}:")
         # 使用 route_key 确定路由列表
         route_key = RouteTester.resolve_route_key(cred_name, cred)
-        if route_key in ("nc_e", "scfa2696"):
+        # 路由键：`RouteTester.resolve_route_key()` 已把历史键归一化为
+        # "nc_e" / "bscc_t6" 两个**规范键**。
+        # （原代码此处还写着已废弃的**账号名字面量**，现改用规范键，
+        #   与本仓库"文档/代码不出现账号明文"的约定一致。）
+        if route_key == "nc_e":
             from flash.flash_run.remote.route_tester import ROUTES_SCFA2696 as routes
         else:
             from flash.flash_run.remote.route_tester import ROUTES_SCH0348 as routes

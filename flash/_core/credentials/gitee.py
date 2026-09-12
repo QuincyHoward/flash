@@ -17,7 +17,14 @@ from ._core import (
     get_credential_manager,
     mask_secret,
 )
-from ._config import DEFAULT_USER_NAME, DEFAULT_PASSWORD
+# ★ 必须用**包内相对导入**取 ENTRIES。
+#   原写法 `__import__("_config", fromlist=["ENTRIES"])` 是"顶层导入"惯用法：
+#   当本文件以脚本方式启动时（`python manage.py` 会把 credentials/ 放进 sys.path[0]），
+#   它会把 `_config` 当作**顶层模块**加载，于是 `_config.py` 内部的
+#   `from .hpc_config import ...` 立刻报
+#   "ImportError: attempted relative import with no known parent package"
+#   （表现为：设置 Gitee 令牌时崩溃）。
+from ._config import DEFAULT_USER_NAME, DEFAULT_PASSWORD, ENTRIES
 
 
 def setup_gitee() -> bool:
@@ -27,8 +34,8 @@ def setup_gitee() -> bool:
     print(f"\n  📝 设置 Gitee 凭据")
     print(f"  {'─' * 50}")
 
-    # 获取默认值
-    entry_def = next((e for e in __import__("_config", fromlist=["ENTRIES"]).ENTRIES if e["name"] == "gitee"), None)
+    # 获取默认值（ENTRIES 已在模块顶部以相对导入取得，见文件头注释）
+    entry_def = next((e for e in ENTRIES if e["name"] == "gitee"), None)
     if entry_def is None:
         print("\n  ❌ 未找到 Gitee 配置定义。")
         return False
