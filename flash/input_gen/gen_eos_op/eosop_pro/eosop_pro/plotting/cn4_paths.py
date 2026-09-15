@@ -38,8 +38,8 @@ from typing import Optional, Sequence, Tuple
 import numpy as np
 
 from .. import config
-from ..plotting.style import apply_style
-from .cn4_io import NA, CN4Table, CN4ParseError
+from .style import apply_style
+from ..parsers.cn4_io import NA, CN4Table, CN4ParseError
 from .units import (
     P_JCM3_TO_MBAR,
     E_JG_TO_ERG_G,
@@ -110,7 +110,7 @@ def _tags_suffix(tbl: CN4Table, cn4_field: str) -> str:
     ``checked`` 后下一次出图自动同步；原生 cn4（数据全来自 ionmix，
     已核查）后缀为空，图像不变。
     """
-    from ..plotting.labels import cn4_tags
+    from .labels import cn4_tags
     tags = cn4_tags(getattr(tbl, "origin_family", "") or "", cn4_field)
     return f", {tags}" if tags else ""
 
@@ -690,7 +690,7 @@ def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5),
         输出文件路径
     """
     import matplotlib.pyplot as plt
-    from ..plotting.labels import cn4_tags
+    from .labels import cn4_tags
     apply_style()
 
     def _sfx(field: str) -> str:
@@ -931,7 +931,7 @@ def plot_pv_diagram(tbl: CN4Table, T_ref: float, s_field: np.ndarray,
 
 if __name__ == "__main__":  # pragma: no cover
     import sys
-    from .cn4_io import parse_cn4
+    from ..parsers.cn4_io import parse_cn4
 
     if len(sys.argv) < 2:
         print(__doc__)

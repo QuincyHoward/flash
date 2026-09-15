@@ -81,8 +81,9 @@ def _load_target():
     root = str(_PROJ)
     if root not in sys.path:
         sys.path.insert(0, root)
-    from eosop_pro.cn4 import (                # noqa: PLC0415
-        load_cn4, cn4_paths as tgt_paths, units as tgt_units,
+    from eosop_pro.parsers.cn4_io import load_cn4   # noqa: PLC0415
+    from eosop_pro.plotting import (            # noqa: PLC0415
+        cn4_paths as tgt_paths, units as tgt_units,
     )
     return {"load_cn4": load_cn4, "paths": tgt_paths, "units": tgt_units}
 
@@ -414,7 +415,24 @@ def compare_coverage(ref, tgt, rep: Report):
         "trace_hugoniot", "plot_usup_vs_pressure", "plot_interpolated_probe",
         "sound_speed", "plot_pv_diagram", "compute_r2",
     ]
-    import eosop_pro.cn4 as pkg                # noqa: PLC0415
+    # 第十三轮扁平化：旧 ``eosop_pro.cn4`` 顶层包已删除，导出分散于
+    # parsers（cn4_io/cnr_io）与 plotting（paths/plots/units/timeseries/
+    # fit）—— 聚合成等价视图后仍按同一张出口清单做覆盖检查。
+    import eosop_pro.parsers.cn4_io as _io       # noqa: PLC0415
+    import eosop_pro.parsers.cnr_io as _cnr      # noqa: PLC0415
+    import eosop_pro.plotting.cn4_paths as _pth  # noqa: PLC0415
+    import eosop_pro.plotting.cn4_plots as _plt_ # noqa: PLC0415
+    import eosop_pro.plotting.units as _uni      # noqa: PLC0415
+    import eosop_pro.plotting.cn4_timeseries as _ts   # noqa: PLC0415
+    import eosop_pro.plotting.cn4_fit as _fit    # noqa: PLC0415
+
+    class _PkgView:
+        """旧顶层包 ``eosop_pro.cn4`` 的导出等价视图。"""
+
+    for _m in (_io, _cnr, _pth, _plt_, _uni, _ts, _fit):
+        for _k, _v in vars(_m).items():
+            setattr(_PkgView, _k, _v)
+    pkg = _PkgView
     absent = [n for n in ref_exports if not hasattr(pkg, n)]
     rep.add("coverage: 顶层包导出全覆盖", not absent,
             f"缺失: {absent}" if absent else f"{len(ref_exports)} 个导出均在")

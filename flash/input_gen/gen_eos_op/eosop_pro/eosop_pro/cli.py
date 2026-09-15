@@ -269,8 +269,8 @@ def cmd_prune_reports(args) -> int:
 # ══════════════════════════════════════════════════════════════
 def cmd_cn4_plot(args) -> int:
     """单个 cn4 文件出图（彩图 / 曲线 / 群大图 三选一）。"""
-    from .cn4 import load_cn4
-    from .cn4 import cn4_plots as P
+    from .parsers.cn4_io import load_cn4
+    from .plotting import cn4_plots as P
 
     tbl = load_cn4(args.cn4)
     print(f"文件: {args.cn4}")
@@ -325,8 +325,8 @@ def cmd_cn4_plot_all(args) -> int:
 
 def cmd_cn4_paths(args) -> int:
     """cn4 EOS 路径研究：等温 / 等压 / 等熵 / 雨贡纽 / P-V 图。"""
-    from .cn4 import load_cn4
-    from .cn4 import cn4_paths as E
+    from .parsers.cn4_io import load_cn4
+    from .plotting import cn4_paths as E
 
     tbl = load_cn4(args.cn4)
     print(f"文件: {args.cn4}  成分: {tbl.species_label}")
@@ -377,8 +377,8 @@ def cmd_cn4_paths(args) -> int:
 
 def cmd_cn4_fit(args) -> int:
     """cn4 关系拟合：幂律 / 指数 / 理想气体 / 通用。"""
-    from .cn4 import load_cn4
-    from .cn4 import cn4_fit as F
+    from .parsers.cn4_io import load_cn4
+    from .plotting import cn4_fit as F
 
     tbl = load_cn4(args.cn4)
     od = args.outdir or "."

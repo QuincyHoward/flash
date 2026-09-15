@@ -1000,7 +1000,7 @@ def cn4_to_parsed_tables(table: CN4Table, relpath: str = "") -> list:
     与 ``ParsedTable.field_shape`` 的约定一致；而 cn4 原始存储为
     density-major，故此处做一次转置（逐列重排），并把该动作记入 ``notes``。
     """
-    from ..parsers.base import ParsedTable
+    from .base import ParsedTable
 
     rel = relpath or os.path.basename(table.filepath)
     key_base = f"CN4_{table.basename}"
@@ -1169,7 +1169,7 @@ def parsed_tables_to_cn4(tables: Sequence, *,
     Raises:
         CN4ParseError: 缺 EOS 总表 / 缺 izgas/fracsp / 长度不一致
     """
-    from ..parsers.base import ParsedTable
+    from .base import ParsedTable
 
     #: 等价于"EOS 总表"的 kind 名。
     #: ``cn4_eos`` 是 ionmix 解析器对 ``.cn4`` 的命名（该族把 EOS 与

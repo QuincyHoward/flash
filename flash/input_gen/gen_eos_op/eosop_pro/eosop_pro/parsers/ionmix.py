@@ -93,8 +93,8 @@ def parse_composition(head: list[str]) -> dict:
     自动识别 ``.cn4``（``982 i12`` 独占行）与 ``.cnr``（``981 4e12.6,i12``）
     两种头部布局 —— 判据是第 4 行能否被 ``int()`` 解析。
     """
-    from ..cn4.cn4_io import parse_header
-    from ..cn4.cnr_io import parse_cnr_header
+    from .cn4_io import parse_header
+    from .cnr_io import parse_cnr_header
 
     try:
         h = parse_header(head)
@@ -114,7 +114,7 @@ def parse_composition(head: list[str]) -> dict:
 
 def _build_table(rel: str, doc_lines: list[str]) -> ParsedTable:
     """调用完整 cn4 内核解析，并适配为单张 ParsedTable。"""
-    from ..cn4.cn4_io import (
+    from .cn4_io import (
         BLOCK_SPEC,
         OPACITY_SPEC,
         parse_header,
@@ -248,7 +248,7 @@ def _build_table_cnr(rel: str, path: str | Path) -> ParsedTable:
     故本函数只输出 ``.cnr`` 实际拥有的量: 组分、``zbar``、``enrgy``、
     能群边界、以及三块群/2-T 不透明度。**不伪造**缺失的 EOS 场。
     """
-    from ..cn4.cnr_io import parse_cnr
+    from .cnr_io import parse_cnr
 
     c = parse_cnr(path)
 
@@ -362,7 +362,7 @@ def parse_all(path: str | Path, relpath: str = "", *,
         atomwt: 可选原子量列表，顺序同 ``izgas``；仅影响 ``rho`` 派生场
             （当前 ``_build_table`` 未算 rho，故此处保留签名兼容）。
     """
-    from ..cn4.cn4_io import parse_header
+    from .cn4_io import parse_header
     from ..core.textio import read_text
 
     rel = relpath or Path(str(path)).name

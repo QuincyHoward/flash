@@ -886,7 +886,7 @@ def plot_cn4_all(*, outdir: str | Path | None = None,
         汇总字典（含 ``csv``/``md``/``json`` 报告路径）
     """
     from glob import glob
-    from .cn4.cn4_plots import plot_cn4_directory
+    from .plotting.cn4_plots import plot_cn4_directory
 
     od = Path(outdir) if outdir else (config.PLOTS_DIR / "cn4")
     od.mkdir(parents=True, exist_ok=True)

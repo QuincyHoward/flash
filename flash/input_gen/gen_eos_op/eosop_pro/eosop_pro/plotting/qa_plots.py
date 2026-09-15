@@ -89,8 +89,10 @@ def plot_eos_isobars(table: ParsedTable, field: str = "P", *,
             continue
         j = int(idx_pos[int(np.argmin(np.abs(log_rho_pos - np.log10(d))))])
         y = arr[:, j]
+        # ★ 散点规约（用户 2026-09-15 晚）：uk/uv 数据一律散点（lw=0），
+        #   不连线 —— 未核查数据不得呈现插值连续性暗示。
         ax.plot(Te, y, marker="o", markersize=config.PLOT_MARKERSIZE - 2,
-                linewidth=config.PLOT_LINEWIDTH,
+                linewidth=0, linestyle="none",
                 label=f"rho = {rho[j]:.3g} g/cc")
     ax.set_xscale("log")
     ax.set_yscale("log")
@@ -153,8 +155,9 @@ def plot_zeff(table: ParsedTable, field: str = "Z", *,
     fig, ax = P.subplots()
     picks = np.linspace(0, rho.size - 1, min(4, rho.size)).astype(int)
     for j in picks:
+        # ★ 散点规约（用户 2026-09-15 晚）：uk/uv 数据一律散点（lw=0）。
         ax.plot(Te, arr[:, j], marker="s", markersize=config.PLOT_MARKERSIZE,
-                linewidth=config.PLOT_LINEWIDTH,
+                linewidth=0, linestyle="none",
                 label=f"rho = {rho[j]:.3g} g/cc")
     ax.set_xscale("log")
     ax.set_xlabel(field_label(table.family, "Te",
@@ -172,10 +175,14 @@ def plot_zeff(table: ParsedTable, field: str = "Z", *,
 
 def plot_loglog_curve(x, y, *, xlabel="x", ylabel="y", title="curve",
                       out_path=None):
-    """通用 log-log 曲线（用于冷不透明度等一维表）。"""
+    """通用 log-log 曲线（用于冷不透明度等一维表）。
+
+    ★ 散点规约（用户 2026-09-15 晚）：本函数画的是原始表数据点
+    （多为 uk/uv 族），一律散点呈现（lw=0），不连线。
+    """
     P = _plt()
     fig, ax = P.subplots()
-    ax.plot(x, y, linewidth=config.PLOT_LINEWIDTH,
+    ax.plot(x, y, linewidth=0, linestyle="none",
             marker="o", markersize=config.PLOT_MARKERSIZE - 3)
     ax.set_xscale("log")
     ax.set_yscale("log")

@@ -47,13 +47,13 @@ __all__ = [
 
 
 def _plt():
-    from ..plotting.style import apply_style
+    from .style import apply_style
     return apply_style()
 
 
 def _save(fig, outfile: str | os.PathLike | None, tag: str) -> str:
     """落盘并关闭 figure（批量场景必须关闭）。"""
-    from ..plotting.style import assert_ascii
+    from .style import assert_ascii
     from pathlib import Path as _P
     if outfile is None:
         safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in tag)

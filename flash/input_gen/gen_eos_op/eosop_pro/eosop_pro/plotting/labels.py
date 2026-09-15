@@ -12,16 +12,20 @@
 ``test/eosopdata/step02_families/test_plot_labels.py`` 扫描绘图模块
 源码不得再出现硬编码物理量标签）。
 
-标签格式（与 field_checks 模块头规约一致）
-------------------------------------------
+标签格式（与 field_checks 模块头规约一致；长/短双轨）
+------------------------------------------------------
 ::
 
-    field_label("mpqeos", "P")   # -> "Pressure (file in GPa) (Mbar), uv"
-    field_label("ionmix", "T")   # -> "Temperature axis (tplsma) (eV)"（已核查，标记省略）
+    field_label("mpqeos", "P")     # -> "P (Mbar), uv"（默认短标签）
+    field_label("mpqeos", "P", long=True)  # -> "Pressure (file in GPa) (Mbar), uv"
+    field_label("ionmix", "T")     # -> "T (eV)"（已核查，标记省略）
 
-* ``meaning`` —— 字典登记的物理意义；**未登记名**（仅命中 ``"*"`` 兜底
-  或未注册族兜底）回退用字段名本身（去掉 coldopacity 式 ``#`` 前缀），
-  绝不冒充字典语义；
+* **短/长双轨**（用户 2026-09-15 晚裁定）—— 条目含 ``short``（物理量
+  标准简写）与 ``meaning``（完整表述）两个标签；**绘图默认用短标签**
+  （避免长标签遮挡图面），报告/人工核查场景用 ``long=True``。两者都
+  带 uk/uv 标记。``short`` 为空串（动态注册族）回退 ``meaning``；
+* **未登记名**（仅命中 ``"*"`` 兜底或未注册族兜底）回退用字段名本身
+  （去掉 coldopacity 式 ``#`` 前缀），绝不冒充字典语义；
 * ``unit`` —— :func:`display_unit`：解析器逐文件实测单位（如 hugoniot
   的 ``# name [unit]`` 头）优先，其次字典 ``unit``，两者皆无写
   ``unknown``（不猜测）；
@@ -35,16 +39,15 @@
 ``Te``/``tele`` -> ``T``（ionmix 的温度轴登记名）-> ``"*"`` 兜底 ->
 未注册族兜底（``field_check`` 自带）。
 
-cn4 泛化（第十二轮指令 3）
---------------------------
-跨族转换出的 :class:`~..cn4.cn4_io.CN4Table` 带 ``origin_family``
-（来源族名）。cn4 路径图（:mod:`..cn4.cn4_paths`）的标签用
+cn4 泛化（第十二轮指令 3；第十三轮 cn4/ 扁平化）
+------------------------------------------------
+跨族转换出的 :class:`~..parsers.cn4_io.CN4Table` 带 ``origin_family``
+（来源族名）。cn4 路径图（:mod:`.cn4_paths`）的标签用
 :func:`cn4_tags` 回查**来源族**的认证标记并追加后缀，让"这批数据的
 核查状态"在图上持续可见；原生 cn4 数据全部来自 ionmix（18 块
-``checked=True``），标记整体省略。cn4 专用绘图
-（:mod:`..cn4.cn4_plots`）保留 LaTeX 数学排版标签，但其量名与字典的
-对应关系由 ``test_plot_labels`` 一致性测试锁定（键 ⊆ ionmix 登记键 ∪
-代码派生量）。
+``checked=True``），标记整体省略。cn4 网格绘图（:mod:`.cn4_plots`）
+保留 LaTeX 数学排版标签，但其量名与字典的对应关系由
+``test_plot_labels`` 一致性测试锁定（键 ⊆ ionmix 登记键 ∪ 代码派生量）。
 """
 
 from __future__ import annotations
@@ -139,10 +142,14 @@ def tags_of(family: str, name: str) -> str:
 
 
 def field_label(family: str, name: str, *,
-                parser_unit: str | None = None) -> str:
-    """★ 物理量标签统一出口：``"Meaning (unit)"`` + 认证标记后缀。
+                parser_unit: str | None = None,
+                long: bool = False) -> str:
+    """★ 物理量标签统一出口：``"Label (unit)"`` + 认证标记后缀。
 
-    * ``meaning`` 取字典登记值；未登记名（兜底命中）回退字段名本身
+    * **长/短双轨**（用户 2026-09-15 晚裁定）：默认用字典登记的
+      **短标签** ``short``（空串回退 ``meaning``）；``long=True`` 用长
+      标签 ``meaning``（报告/人工核查场景）。两者都带认证标记；
+    * 标签取字典登记值；未登记名（兜底命中）回退字段名本身
       （去 ``#`` 前缀）—— 绝不把兜底语义冒充成登记语义；
     * ``unit`` 走 :func:`display_unit`（实测优先 -> 字典 -> unknown）；
     * 标记非空时追加 ``", <tags>"``（有源且已核查则整体省略）。
@@ -151,7 +158,10 @@ def field_label(family: str, name: str, *,
     本函数没有任何缓存或第二份标签表。
     """
     fc, _fam, key = _entry(family, name)
-    base = fc.meaning if key is not None else str(name).lstrip("#")
+    if key is not None:
+        base = fc.meaning if long else (getattr(fc, "short", "") or fc.meaning)
+    else:
+        base = str(name).lstrip("#")
     unit = display_unit(family, name, parser_unit)
     core = f"{base} ({unit})"
     tags = tags_of(family, name)

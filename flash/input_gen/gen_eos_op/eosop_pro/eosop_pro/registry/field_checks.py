@@ -98,7 +98,7 @@ colorbar / x/y 轴一律 ``Name (unit, <tags>)`` 形式（无标记则只写
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace as _dc_replace
 
 __all__ = ["FieldCheck", "FIELD_CHECKS", "field_check", "checked_families",
            "family_check_stats", "doc_label", "verify_label", "tags_label",
@@ -152,7 +152,10 @@ class FieldCheck:
     """单个字段的核查条目（各字段含义见模块 docstring「字段结构」）。
 
     Attributes:
-        meaning: 物理意义（英文，出图/报告用，保证 ASCII）。
+        meaning: 物理意义（英文，出图/报告用，保证 ASCII）。长标签。
+        short: 短标签（物理量标准简写，ASCII；2026-09-15 晚裁定）。
+            **绘图默认用短标签**（标签过长遮挡图面）；空串回退
+            ``meaning``。报告与字典文档同时展示长短两个标签。
         unit: 单位字符串；未判定为 ``"unknown"``（不猜测）。
         checked: 第二重认证 —— 是否完成人工核查（未核查显示 ``uv``）。
         kind: 来源类型（受控词表 KIND_*；``"none"`` -> 显示 ``uk``）。
@@ -165,6 +168,7 @@ class FieldCheck:
     checked: bool
     kind: str = KIND_NONE
     source: str = ""
+    short: str = ""
 
     @property
     def doc(self) -> str:
@@ -247,6 +251,9 @@ def dump_markdown(title: str = "eosop 变量控制字典") -> str:
         "> 条目的 `checked=True`（或补 `source`），再重跑上述命令同步本文档。",
         "> 标记规约（2026-09-15）：只有 `uk`（无来源确认）/ `uv`（未人工",
         "> 核查）两个标记；两者都通过则**省略**（当前仅 cn4）。",
+        "> 标签双轨（2026-09-15 晚）：每条目含**短标签**（物理量简写，",
+        "> 绘图默认）与**长标签**（meaning，报告/核查）两个设置，显示时",
+        "> 都带 uk/uv 标记。",
         "> 来源规约（2026-09-15）：`source` 只引用一级出处（文件内声明 /",
         "> 一级说明文档 / 源码行号 / 派生公式），并尽量原文摘录；",
         "> `docs/20` 手册属中间产物，**不得**作为来源引用。",
@@ -257,8 +264,10 @@ def dump_markdown(title: str = "eosop 变量控制字典") -> str:
         "|---|---|",
         ("| 变量 | 解析器/绘图链路使用的字段名或轴名；`*` = 未登记列名的"
          "兜底条目 |"),
-        ("| 物理意义 | 英文表述（出图/报告用，保证 ASCII），括注坐标制与"
-         "已知陷阱 |"),
+        ("| 短标签 | 物理量标准简写（ASCII）；**绘图默认用**（用户 "
+         "2026-09-15 晚裁定），空回退长标签 |"),
+        ("| 物理意义 | 英文长标签表述（报告/人工核查用，保证 ASCII），"
+         "括注坐标制与已知陷阱 |"),
         ("| 单位 | 推荐记法；`unknown` = 未判定，**不猜测** |"),
         ("| 来源类型 | `in-file declaration` 文件内声明 / `primary document` "
          "一级说明文档 / `source code` 源码行号 / `code-derived` 派生公式 / "
@@ -275,15 +284,15 @@ def dump_markdown(title: str = "eosop 变量控制字典") -> str:
         entries = FIELD_CHECKS[fam]
         lines.append(f"## {fam}")
         lines.append("")
-        lines.append("| 变量 | 物理意义 | 单位 | 来源类型 | 标记 | "
+        lines.append("| 变量 | 短标签 | 物理意义 | 单位 | 来源类型 | 标记 | "
                      "来源详述（一级出处 / 脚本 / 文件内声明） |")
-        lines.append("|---|---|---|---|---|---|")
+        lines.append("|---|---|---|---|---|---|---|")
         for fld, fc in entries.items():
             tags = tags_label(fc) or "（已核查，省略）"
             src = fc.source.replace("|", "\\|")
             lines.append(
-                f"| `{fld}` | {fc.meaning} | {fc.unit} | {fc.kind} | {tags} "
-                f"| {src} |")
+                f"| `{fld}` | {fc.short or '（回退长标签）'} | {fc.meaning} "
+                f"| {fc.unit} | {fc.kind} | {tags} | {src} |")
         lines.append("")
     return "\n".join(lines)
 
@@ -767,6 +776,106 @@ _UNREGISTERED_FAMILY = FieldCheck(
     False, KIND_NONE,
     "field_checks：该族未注册进控制字典（register_family 登记后方可被 "
     "gridmap 链路采用）—— 查询兜底，绝不冒充已核查。")
+
+
+# ================================================================
+# 短标签（short）—— 用户 2026-09-15 晚裁定：条目含**长/短两个标签**。
+# 绘图默认用短标签（长 meaning 保留给报告/文档与人工核查场景），
+# 两者显示时都带 uk/uv 标记。短标签 = 物理量标准简写（全 ASCII）；
+# 空串回退 ``meaning``（labels.field_label 负责回退）。
+# 人工核查工作流不变：直接改本表或条目，然后重跑再生成命令。
+# ================================================================
+_SHORT_LABELS: dict[str, dict[str, str]] = {
+    "ionmix": {
+        "T": "T", "nion": "n_ion", "zbar": "Zbar", "dzdt": "dZ/dT",
+        "p_ion": "P_ion", "p_ele": "P_ele",
+        "dpion_dt": "dP_ion/dT", "dpele_dt": "dP_ele/dT",
+        "e_ion": "E_ion", "e_ele": "E_ele",
+        "cv_ion": "cv_ion", "cv_ele": "cv_ele",
+        "deion_dn": "de_ion/dn", "deele_dn": "de_ele/dn",
+        "engrup": "E_groups",
+        "opac_rosseland": "kappa_R",
+        "opac_planck_abs": "kappa_P_abs",
+        "opac_planck_ems": "kappa_P_ems",
+    },
+    "multi_inverted_eos": {
+        "rho": "rho", "de": "de", "P": "P", "E": "E",
+        "e0_cold": "e0_cold", "de_energy": "de", "T": "T",
+        "*": "field",
+    },
+    "multi_opacity": {
+        "rho": "rho", "Te": "Te", "kappa": "kappa", "Z": "Z",
+        "*": "field",
+    },
+    "hyades_eos": {
+        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
+        "raw_tail": "tail", "*": "field",
+    },
+    "hyades_opacity": {
+        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
+        "raw_tail": "tail", "*": "field",
+    },
+    "sesame_dat": {
+        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
+        "raw_tail": "tail", "*": "field",
+    },
+    "mpqeos": {
+        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "Z": "Z",
+        "*": "field",
+    },
+    "feos_native": {
+        "rho": "rho", "Te": "Te", "raw_values": "raw", "*": "field",
+    },
+    "feos_tabdata": {"*": "col"},
+    "feos_aux": {"*": "raw"},
+    "ledcop_atomic": {
+        "rho": "rho", "Te": "Te", "Ross": "kappa_R", "Planck": "kappa_P",
+        "No. Free": "N_free", "Av Sq Free": "Nsqr_free", "*": "field",
+    },
+    "ledcop_zeff": {
+        "rho": "rho", "Te": "Te", "NoFree": "N_free",
+        "AvSqFree": "Nsqr_free", "*": "field",
+    },
+    "coldopacity": {"Eph": "E_ph", "miu": "miu", "*": "col"},
+    "hugoniot": {
+        "Rho": "rho", "T": "T", "P": "P", "E": "E", "Us": "Us",
+        "Up": "Up", "*": "col",
+    },
+    "snop_input": {
+        "T1": "T1", "T2": "T2", "X1": "hnu1", "X2": "hnu2",
+        "FG": "groups", "*": "field",
+    },
+    "generic_curve": {"*": "y"},
+    "derived_axes": {"n_e": "n_e"},
+}
+
+
+def apply_short_labels() -> None:
+    """把 :data:`_SHORT_LABELS` 回填进各条目的 ``short`` 字段。
+
+    模块加载时执行一次；任何静态登记条目缺短标签立即 ``RuntimeError``
+    （登记完整性：短标签是绘图默认标签，不允许静默缺失）。
+    ``register_family`` 动态注册的族不经过本函数 —— 其条目 ``short``
+    为空串，绘图时由 labels 回退 ``meaning``（兼容语义）。
+    """
+    missing: list[str] = []
+    for fam, entries in FIELD_CHECKS.items():
+        shorts = _SHORT_LABELS.get(fam)
+        if shorts is None:
+            missing.append(f"{fam}.* (whole family)")
+            continue
+        for fld, fc in entries.items():
+            short = shorts.get(fld)
+            if not short:
+                missing.append(f"{fam}.{fld}")
+                continue
+            FIELD_CHECKS[fam][fld] = _dc_replace(fc, short=short)
+    if missing:
+        raise RuntimeError(
+            "field_checks: short label missing for: " + ", ".join(missing))
+
+
+apply_short_labels()
 
 
 def field_check(family: str, field: str) -> FieldCheck:

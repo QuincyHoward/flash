@@ -76,7 +76,7 @@ def _to_cn4(fam):
     tables = _first(fam)
     if not tables:
         return None
-    from eosop_pro.cn4 import parsed_tables_to_cn4
+    from eosop_pro.parsers.cn4_io import parsed_tables_to_cn4
     try:
         return parsed_tables_to_cn4(list(tables), izgas=[AL_Z],
                                     fracsp=list(AL_FRAC),
@@ -109,7 +109,7 @@ def test_convertible_families_produce_cn4_tables():
 
 def test_cn4_paths_api_is_complete():
     """``cn4_paths`` 必须导出全套物理路径入口（防接口退化）。"""
-    from eosop_pro.cn4 import cn4_paths
+    from eosop_pro.plotting import cn4_paths
     for nm in ("trace_isotherm", "trace_isobar", "compute_entropy",
                "trace_isentrope", "trace_hugoniot", "plot_usup_vs_pressure",
                "sound_speed", "plot_pv_diagram", "interpolate_quantity",
@@ -135,8 +135,8 @@ def _run_hugoniot(t, *, frac=0.6, out=None):
     **明确的物理拒绝**，其他异常照常抛出（不掩盖真实缺陷）。
     """
     import numpy as np
-    from eosop_pro.cn4 import CN4ParseError
-    from eosop_pro.cn4.cn4_paths import rho_from_nion, trace_hugoniot
+    from eosop_pro.parsers.cn4_io import CN4ParseError
+    from eosop_pro.plotting.cn4_paths import rho_from_nion, trace_hugoniot
     rho_ax = np.asarray(rho_from_nion(t, np.asarray(t.density, float)),
                         dtype=float)
     ok = np.isfinite(rho_ax) & (rho_ax > 0)
@@ -164,7 +164,7 @@ def test_isotherm_runs_on_mpqeos_converted_table():
     t = _to_cn4("mpqeos")
     if t is None:
         return
-    from eosop_pro.cn4.cn4_paths import trace_isotherm
+    from eosop_pro.plotting.cn4_paths import trace_isotherm
     out = tmp_dir() / "path_mpqeos_isotherm.png"
     x, P, e, f = trace_isotherm(t, T_idx=_hot_T_idx(t, 0.6), outfile=str(out))
     n = len(x)
@@ -183,7 +183,7 @@ def test_isotherm_runs_on_hyades_converted_table():
     t = _to_cn4("hyades_eos")
     if t is None:
         return
-    from eosop_pro.cn4.cn4_paths import trace_isotherm
+    from eosop_pro.plotting.cn4_paths import trace_isotherm
     out = tmp_dir() / "path_hyades_isotherm.png"
     x, P, e, _f = trace_isotherm(t, T_idx=_hot_T_idx(t, 0.7),
                                  outfile=str(out))
@@ -198,8 +198,8 @@ def test_isotherm_rejects_cold_region_with_nonpositive_P_or_E():
     这是**期望行为**（对数插值对非正值无定义）。本测试锁定它，避免将来
     被误"修复"成静默填充 —— 那会产出物理上错误的图。
     """
-    from eosop_pro.cn4 import CN4ParseError
-    from eosop_pro.cn4.cn4_paths import trace_isotherm
+    from eosop_pro.parsers.cn4_io import CN4ParseError
+    from eosop_pro.plotting.cn4_paths import trace_isotherm
     raised = False
     for fam in CONVERTIBLE:
         t = _to_cn4(fam)
@@ -220,7 +220,7 @@ def test_isotherm_finite_T_interpolates():
     t = _to_cn4("mpqeos")
     if t is None or t.ntemp < 4:
         return
-    from eosop_pro.cn4.cn4_paths import trace_isotherm
+    from eosop_pro.plotting.cn4_paths import trace_isotherm
     lo = float(t.temperature[_hot_T_idx(t, 0.5)])
     hi = float(t.temperature[_hot_T_idx(t, 0.8)])
     if not (lo > 0 and hi > lo):
@@ -237,7 +237,7 @@ def test_isotherm_supports_both_x_axes():
     t = _to_cn4("mpqeos")
     if t is None:
         return
-    from eosop_pro.cn4.cn4_paths import trace_isotherm
+    from eosop_pro.plotting.cn4_paths import trace_isotherm
     idx = _hot_T_idx(t, 0.6)
     x_rho, _P, _e, _f = trace_isotherm(t, T_idx=idx, x_axis="rho")
     x_n = trace_isotherm(t, T_idx=idx, x_axis="nion")[0]
@@ -255,7 +255,7 @@ def test_isobar_runs_on_converted_table():
     t = _to_cn4("mpqeos")
     if t is None:
         return
-    from eosop_pro.cn4.cn4_paths import trace_isobar, _press
+    from eosop_pro.plotting.cn4_paths import trace_isobar, _press
     import numpy as np
     P = np.asarray(_press(t), dtype=float)
     finite = P[np.isfinite(P)]
@@ -280,7 +280,7 @@ def test_entropy_field_is_computable_and_increases_with_T():
     t = _to_cn4("mpqeos")
     if t is None or t.ntemp < 5 or t.ndens < 3:
         return
-    from eosop_pro.cn4.cn4_paths import compute_entropy
+    from eosop_pro.plotting.cn4_paths import compute_entropy
     import numpy as np
     s = np.asarray(compute_entropy(t), dtype=float)
     expect(s.size == t.ntemp * t.ndens,
@@ -308,7 +308,7 @@ def test_isentrope_runs_on_converted_table():
     t = _to_cn4("mpqeos")
     if t is None or t.ndens < 6 or t.ntemp < 12:
         return
-    from eosop_pro.cn4.cn4_paths import compute_entropy, trace_isentrope
+    from eosop_pro.plotting.cn4_paths import compute_entropy, trace_isentrope
     import numpy as np
     s = np.asarray(compute_entropy(t), dtype=float).reshape(t.ndens, t.ntemp)
     s0 = float(s[5, 10]) if np.isfinite(s[5, 10]) else float(np.nanmedian(s))
@@ -390,8 +390,8 @@ def test_hugoniot_numeric_reference_supported():
     if t is None or t.ndens < 5 or t.ntemp < 8:
         return
     import numpy as np
-    from eosop_pro.cn4 import CN4ParseError
-    from eosop_pro.cn4.cn4_paths import rho_from_nion, trace_hugoniot
+    from eosop_pro.parsers.cn4_io import CN4ParseError
+    from eosop_pro.plotting.cn4_paths import rho_from_nion, trace_hugoniot
     rho_ax = np.asarray(rho_from_nion(t, np.asarray(t.density, float)),
                         dtype=float)
     ok = np.isfinite(rho_ax) & (rho_ax > 0)
@@ -421,7 +421,7 @@ def test_hugoniot_usup_plot_runs():
     t = _to_cn4("mpqeos")
     if t is None or t.ndens < 5 or t.ntemp < 8:
         return
-    from eosop_pro.cn4.cn4_paths import plot_usup_vs_pressure
+    from eosop_pro.plotting.cn4_paths import plot_usup_vs_pressure
     import numpy as np
     got = _run_hugoniot(t, frac=0.6)
     if got is None:
@@ -444,7 +444,7 @@ def test_sound_speed_is_positive_and_finite():
     t = _to_cn4("mpqeos")
     if t is None or t.ndens < 4:
         return
-    from eosop_pro.cn4.cn4_paths import sound_speed
+    from eosop_pro.plotting.cn4_paths import sound_speed
     import numpy as np
     cs = np.asarray(sound_speed(t), dtype=float)
     expect(cs.size > 0, "声速场为空")
@@ -463,7 +463,7 @@ def test_pv_diagram_runs_on_converted_table():
     t = _to_cn4("mpqeos")
     if t is None or t.ndens < 6 or t.ntemp < 12:
         return
-    from eosop_pro.cn4.cn4_paths import (compute_entropy, plot_pv_diagram,
+    from eosop_pro.plotting.cn4_paths import (compute_entropy, plot_pv_diagram,
                                          rho_from_nion, trace_hugoniot)
     import numpy as np
     s = np.asarray(compute_entropy(t), dtype=float)
@@ -507,7 +507,7 @@ def test_multi_inverted_eos_is_rejected_by_design():
         return
     expect("de" in tables[0].axes,
            "前提失效：multi_inverted_eos 的轴不再是 de")
-    from eosop_pro.cn4 import parsed_tables_to_cn4
+    from eosop_pro.parsers.cn4_io import parsed_tables_to_cn4
     raised = False
     try:
         parsed_tables_to_cn4(list(tables), izgas=[AL_Z], fracsp=list(AL_FRAC),
@@ -526,7 +526,7 @@ def test_opacity_only_families_have_no_eos_paths():
         if t is None:
             continue
         # 若真转出来了，必须至少不是"全 NaN 的假 EOS"
-        from eosop_pro.cn4.cn4_paths import _press, _energy
+        from eosop_pro.plotting.cn4_paths import _press, _energy
         import numpy as np
         P = np.asarray(_press(t), dtype=float)
         E = np.asarray(_energy(t), dtype=float)

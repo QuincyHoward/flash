@@ -50,7 +50,7 @@ def write_cn4_single(table: ParsedTable, out_path: Path, *,
         CN4ParseError: 缺 ``izgas`` / 多元素缺 ``fracsp`` / 无 EOS 总表
         ValueError: 传入 ``invert=True``（cn4 无需 (rho,de)->(rho,Te) 反演）
     """
-    from ..cn4.cn4_io import CN4ParseError, parsed_tables_to_cn4, write_cn4
+    from ..parsers.cn4_io import CN4ParseError, parsed_tables_to_cn4, write_cn4
 
     if opts.pop("invert", None):
         raise ValueError(

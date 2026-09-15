@@ -33,10 +33,10 @@ from pathlib import Path
 
 import numpy as np
 
-from eosop_pro.cn4 import load_cn4
-from eosop_pro.cn4 import cn4_paths as P
-from eosop_pro.cn4 import units
-from eosop_pro.cn4.cn4_io import CN4ParseError
+from eosop_pro.parsers.cn4_io import load_cn4
+from eosop_pro.plotting import cn4_paths as P
+from eosop_pro.plotting import units
+from eosop_pro.parsers.cn4_io import CN4ParseError
 
 from eosopdata._samples import first_cn4
 
@@ -293,7 +293,7 @@ def test_isotherm_monotonic_in_density():
 def test_isobar_inside_range():
     """取压力范围中点做等压线，应返回 ``(T_curve, nion_curve, outfile)``。"""
     t = _tbl()
-    from eosop_pro.cn4.cn4_paths import _press
+    from eosop_pro.plotting.cn4_paths import _press
     Pg = np.asarray(_press(t), dtype=float)
     P_target = float(np.sqrt(Pg.min() * Pg.max()))     # 几何中点（跨数量级）
     out = _OUT / "isobar.png"

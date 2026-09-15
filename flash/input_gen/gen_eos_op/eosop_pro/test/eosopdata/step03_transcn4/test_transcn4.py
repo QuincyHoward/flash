@@ -36,7 +36,7 @@ sys.path.insert(0, os.path.dirname(_d))                        # test/
 sys.path.insert(0, os.path.dirname(os.path.dirname(_d)))       # repo root
 
 from eosopdata._samples import cn4_root, find_parseable        # noqa: E402
-from eosop_pro.cn4 import (                                    # noqa: E402
+from eosop_pro.parsers.cn4_io import (                         # noqa: E402
     BLOCK_SPEC,
     NAN_PLACEHOLDER_CUTOFF,
     NAN_PLACEHOLDER_FIELD,
@@ -50,7 +50,7 @@ from eosop_pro.cn4 import (                                    # noqa: E402
     parsed_tables_to_cn4,
     write_cn4,
 )
-from eosop_pro.cn4.cn4_io import (                             # noqa: E402
+from eosop_pro.parsers.cn4_io import (                             # noqa: E402
     _FOREIGN_FIELD_ALIASES,
     _FOREIGN_OPACITY_ALIASES,
     _FOREIGN_RHO_AXES,
@@ -594,7 +594,7 @@ def test_mass_density_is_converted_to_nion():
 
 def test_generated_table_axes_are_te_and_nion_when_exported():
     """导出的 ParsedTable 轴名应为 ``Te`` / ``nion``（[i_Te][j_x] 语义）。"""
-    from eosop_pro.cn4 import cn4_to_parsed_tables
+    from eosop_pro.parsers.cn4_io import cn4_to_parsed_tables
     sample = find_parseable("mpqeos", ("*.301",))
     if sample is None:
         return

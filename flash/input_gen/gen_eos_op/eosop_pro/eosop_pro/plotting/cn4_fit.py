@@ -28,7 +28,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from .. import config
-from .cn4_io import CN4ParseError, CN4Table
+from ..parsers.cn4_io import CN4ParseError, CN4Table
 from .units import P_JCM3_TO_MBAR
 
 __all__ = [
@@ -38,7 +38,7 @@ __all__ = [
 
 
 def _plt():
-    from ..plotting.style import apply_style
+    from .style import apply_style
     return apply_style()
 
 
@@ -52,7 +52,7 @@ def compute_r2(y, yfit) -> float:
 
 
 def _save(fig, outfile, tag: str) -> str:
-    from ..plotting.style import assert_ascii
+    from .style import assert_ascii
     if outfile is None:
         outfile = os.path.join(os.getcwd(), f"fit_{tag}.png")
     outfile = str(outfile)

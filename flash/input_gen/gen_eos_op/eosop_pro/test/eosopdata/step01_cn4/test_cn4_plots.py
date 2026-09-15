@@ -29,9 +29,9 @@ from _runner import expect, expect_eq, expect_in, main
 from pathlib import Path
 
 from eosop_pro import config
-from eosop_pro.cn4 import load_cn4
-from eosop_pro.cn4 import cn4_plots
-from eosop_pro.cn4.cn4_plots import (
+from eosop_pro.parsers.cn4_io import load_cn4
+from eosop_pro.plotting import cn4_plots
+from eosop_pro.plotting.cn4_plots import (
     AXES, SUPPORTED_QUANTITIES, OPACITY_NAMES,
     axis_label, display_scale,
 )
@@ -87,7 +87,7 @@ def test_axis_label_rejects_unknown():
 
 def test_supported_quantities_covers_all_blocks():
     """``SUPPORTED_QUANTITIES`` 必须覆盖 12 个二维场 + 3 个不透明度 + 派生量。"""
-    from eosop_pro.cn4.cn4_io import BLOCK_SPEC, OPACITY_SPEC
+    from eosop_pro.parsers.cn4_io import BLOCK_SPEC, OPACITY_SPEC
     for attr, _l, _u, _s in BLOCK_SPEC:
         expect_in(attr, SUPPORTED_QUANTITIES, f"缺二维场 {attr}")
     for attr, _l, _u, _s in OPACITY_SPEC:
@@ -105,7 +105,7 @@ def test_opacity_names_map_to_real_attributes():
 
 def test_display_scale_comes_from_units_module():
     """显示换算因子必须来自 ``units`` 模块（单一来源），不在此硬编码。"""
-    from eosop_pro.cn4 import units
+    from eosop_pro.plotting import units
     expect_eq(display_scale("p_ion"), units.P_JCM3_TO_MBAR)
     expect_eq(display_scale("e_ele"), units.E_JG_TO_ERG_G)
     expect_eq(display_scale("cv_ion"), units.CV_TO_ERG_G_EV)
@@ -195,7 +195,7 @@ def test_opacity_group_figure_has_4_panels():
 
 def test_opacity_group_figure_rejects_bad_ig():
     """群号越界必须报错（不静默画空图）。"""
-    from eosop_pro.cn4.cn4_io import CN4ParseError
+    from eosop_pro.parsers.cn4_io import CN4ParseError
     t = _tbl()
     try:
         cn4_plots.plot_opacity_group_figure(t, ig=t.ngrups + 5,
@@ -354,13 +354,13 @@ def test_generated_figures_are_pure_ascii():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from eosop_pro.plotting import style
-    from eosop_pro.cn4.cn4_paths import apply_style
+    from eosop_pro.plotting.cn4_paths import apply_style
 
     t = _tbl()
     apply_style()
 
     # 热图：直接复现内部调用，拿到 fig 再检查
-    from eosop_pro.cn4.cn4_plots import (
+    from eosop_pro.plotting.cn4_plots import (
         _resolve_quantity, _prepare_axes, _plot_heatmap, axis_label,
     )
     field, qlabel, zlog = _resolve_quantity(t, "zbar", None, 1)

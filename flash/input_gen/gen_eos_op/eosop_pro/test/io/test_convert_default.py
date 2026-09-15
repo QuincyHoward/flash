@@ -44,7 +44,7 @@ from eosop_pro.convert import (                                # noqa: E402
     list_targets,
     set_default_target,
 )
-from eosop_pro.cn4 import (                                    # noqa: E402
+from eosop_pro.parsers.cn4_io import (                         # noqa: E402
     cn4_to_parsed_tables,
     expected_number_count,
     load_cn4,

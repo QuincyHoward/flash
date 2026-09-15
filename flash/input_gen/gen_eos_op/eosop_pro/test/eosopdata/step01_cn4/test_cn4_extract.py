@@ -27,11 +27,11 @@ from _runner import expect, expect_eq, expect_in, main
 
 import numpy as np
 
-from eosop_pro.cn4 import (
+from eosop_pro.parsers.cn4_io import (
     N_BLOCKS, load_cn4, parse_cn4, write_cn4,
     cn4_to_parsed_tables, parsed_tables_to_cn4,
 )
-from eosop_pro.cn4.cn4_io import (
+from eosop_pro.parsers.cn4_io import (
     BLOCK_SPEC, OPACITY_SPEC, FIXED_WIDTH, ELEMENT_ATOMWT, CN4ParseError,
 )
 
@@ -123,7 +123,7 @@ def test_composition_is_consistent():
 # ══════════════════════════════════════════════════════════════
 def test_physical_quantities_are_finite_or_placeholder():
     """12 个二维场不得含 NaN 垃圾 —— 除显式占位外应全为有限值。"""
-    from eosop_pro.cn4.cn4_io import is_nan_placeholder
+    from eosop_pro.parsers.cn4_io import is_nan_placeholder
     t = _tbl()
     bad = []
     for attr, _lbl, _unit, _src in BLOCK_SPEC:

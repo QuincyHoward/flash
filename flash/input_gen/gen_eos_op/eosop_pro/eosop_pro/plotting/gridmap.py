@@ -681,16 +681,18 @@ def _table_curves(tbl, fname, f2, *, fixed_name, fixed_vals, var_name,
         outfile=sub / f"{sanitize_name(fname)}_{tag}.png", scatter=scatter)
 
 
-def _axis_label_of(tbl, name: str) -> str:
+def _axis_label_of(tbl, name: str, *, long: bool = False) -> str:
     """轴标签（**带认证标记**，字典驱动 :func:`.labels.field_label`）。
 
-    格式 ``Meaning (unit)`` / ``Meaning (unit), <tags>`` —— 截断曲线的
+    格式 ``Label (unit)`` / ``Label (unit), <tags>`` —— 截断曲线的
     x/y 轴同样必须让认证状态可见（用户 2026-09-15 令）；用 ``tbl.family``
     查询控制字典，意义/单位/标记实时同步（★ 模块级导入修复：旧实现把
     ``field_check`` 放在函数内导入，本函数在模块层引用不到 ->
     NameError 被 vs_x/vs_y 的 try/except 静默吞掉，截断曲线从未产出）。
+    **长/短双轨**（用户 2026-09-15 晚裁定）：默认短标签（``short``，
+    空回退 ``meaning``）；``long=True`` 用长标签（报告/核查场景）。
     """
-    return field_label(tbl.family, name,
+    return field_label(tbl.family, name, long=long,
                        parser_unit=tbl.axis_units.get(name, ""))
 
 

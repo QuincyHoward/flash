@@ -53,7 +53,7 @@ from typing import Optional, Sequence
 import numpy as np
 
 from .. import config
-from .cn4_io import CN4ParseError, CN4Table
+from ..parsers.cn4_io import CN4ParseError, CN4Table
 from .units import pressure_mbar, energy_ergg, velocity_umns
 
 __all__ = [
@@ -180,7 +180,7 @@ def _arr2d(tbl: CN4Table, name: str, ig: int = 1) -> np.ndarray:
 
 def _plt():
     """惰性应用全局样式并返回 ``matplotlib.pyplot``。"""
-    from ..plotting.style import apply_style
+    from .style import apply_style
     return apply_style()
 
 
@@ -191,7 +191,7 @@ def _save(fig, outfile: str | os.PathLike, tag: str = "fig") -> str:
     （实测 60 张即触发 ``More than 20 figures have been opened``）。
     文本 ASCII 由 :func:`..plotting.style.assert_ascii` 在存盘前校验。
     """
-    from ..plotting.style import assert_ascii
+    from .style import assert_ascii
     from pathlib import Path as _P
     outfile = str(outfile)
     _P(outfile).parent.mkdir(parents=True, exist_ok=True)
@@ -419,7 +419,7 @@ def _plot_heatmap(*, x, y, field, quantity_label, title, xlabel, ylabel,
     此签名调用；实际绘制与样式全部由
     :func:`..plotting.gridmap.plot_heatmap` 承担（任意 eosop 族共用）。
     """
-    from ..plotting.gridmap import plot_heatmap
+    from .gridmap import plot_heatmap
     return plot_heatmap(
         x=x, y=y, field=field,
         xlabel=xlabel, ylabel=ylabel, clabel=quantity_label, title=title,
@@ -592,7 +592,7 @@ def plot_all_quantities_dual_axes(
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     if quantities is None:
-        from .cn4_io import BLOCK_SPEC, OPACITY_SPEC
+        from ..parsers.cn4_io import BLOCK_SPEC, OPACITY_SPEC
         quantities = ([a for a, _l, _u, _s in BLOCK_SPEC]
                       + [a for a, _l, _u, _s in OPACITY_SPEC])
     bad = [y for y in y_axes if y not in Y_AXIS_SUFFIX]
@@ -658,8 +658,14 @@ def plot_vs_temperature(
     nions = _axis_values(tbl, "nion")
 
     fig, ax = plt.subplots(figsize=figsize)
+    # ★ 散点规约（用户 2026-09-15 晚）：源族认证标记非空（uk/uv）的
+    #   数据一律散点（lw=0），不连线；已全通过（如原生 ionmix）保持折线。
+    from .labels import cn4_tags
+    _tags = cn4_tags(getattr(tbl, "origin_family", "") or "", quantity)
+    _lw = 0 if _tags else config.PLOT_LINEWIDTH
+    _ls = "none" if _tags else "-"
     for i in idxs:
-        ax.plot(Ts, field[i], lw=config.PLOT_LINEWIDTH, marker="o",
+        ax.plot(Ts, field[i], lw=_lw, linestyle=_ls, marker="o",
                 ms=config.PLOT_MARKERSIZE - 2,
                 label=f"$n_i$ = {nions[i]:.2e} cm$^{{-3}}$")
     if xlog:
@@ -698,8 +704,13 @@ def plot_vs_density(
     nions = _axis_values(tbl, "nion")
 
     fig, ax = plt.subplots(figsize=figsize)
+    # ★ 散点规约：同 plot_vs_temperature（源族 uk/uv -> 纯散点）。
+    from .labels import cn4_tags
+    _tags = cn4_tags(getattr(tbl, "origin_family", "") or "", quantity)
+    _lw = 0 if _tags else config.PLOT_LINEWIDTH
+    _ls = "none" if _tags else "-"
     for j in idxs:
-        ax.plot(nions, field[:, j], lw=config.PLOT_LINEWIDTH, marker="s",
+        ax.plot(nions, field[:, j], lw=_lw, linestyle=_ls, marker="s",
                 ms=config.PLOT_MARKERSIZE - 2,
                 label=f"$T$ = {Ts[j]:.2e} eV")
     if xlog:
@@ -778,7 +789,7 @@ def plot_cn4_directory(
         stem = Path(str(fp)).stem
         sub = outdir / stem
         try:
-            from .cn4_io import load_cn4
+            from ..parsers.cn4_io import load_cn4
             tbl = load_cn4(fp)
         except Exception as exc:                      # noqa: BLE001
             errors.append((str(fp), f"parse: {exc}"))

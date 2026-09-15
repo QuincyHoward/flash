@@ -160,13 +160,23 @@ def test_display_unit_priority():
 
 
 def test_hash_prefix_and_te_alias_lookup():
-    """coldopacity 式 ``#`` 前缀名与 ionmix 式 ``T`` 轴名都能命中字典。"""
+    """coldopacity 式 ``#`` 前缀名与 ionmix 式 ``T`` 轴名都能命中字典。
+
+    第十三轮双轨：默认**短标签**（``E_ph`` / ``T``）；``long=True``
+    取长标签 meaning（含已知陷阱注记）。
+    """
     lab = field_label("coldopacity", "#Eph")
-    expect(lab.startswith("Photon energy axis"),
-           f"#Eph 应命中 Eph 条目: {lab!r}")
+    expect(lab.startswith("E_ph ("),
+           f"#Eph 应命中 Eph 条目（短标签默认）: {lab!r}")
+    expect("Photon energy axis" in field_label(
+               "coldopacity", "#Eph", long=True),
+           f"#Eph long=True 应取长标签: {lab!r}")
     lab2 = field_label("ionmix", "Te")
-    expect(lab2.startswith("Temperature axis"),
-           f"ionmix 的 Te 应别名到 T 条目: {lab2!r}")
+    expect(lab2 == "T (eV)",
+           f"ionmix 的 Te 应别名到 T 条目（短标签默认）: {lab2!r}")
+    expect(field_label("ionmix", "Te", long=True).startswith(
+               "Temperature axis"),
+           "ionmix 的 Te long=True 应取长标签")
     expect(lab2 == field_label("ionmix", "T"),
            "Te 与 T 的 ionmix 标签应一致（均为已核查，无标记）")
     expect(", uv" not in lab2, f"cn4/ionmix 已核查，标记应省略: {lab2!r}")
@@ -175,8 +185,11 @@ def test_hash_prefix_and_te_alias_lookup():
 def test_family_alias_cn4_maps_to_ionmix():
     """族名别名：ParsedTable 的 ``family == "cn4"`` -> 字典 ``ionmix``。"""
     lab = field_label("cn4", "Te")
-    expect(lab.startswith("Temperature axis"),
-           f"cn4 应经别名命中 ionmix: {lab!r}")
+    expect(lab == "T (eV)",
+           f"cn4 应经别名命中 ionmix（短标签 T）: {lab!r}")
+    expect(field_label("cn4", "Te", long=True).startswith(
+               "Temperature axis"),
+           "cn4 别名 long=True 应取 ionmix 长标签")
     expect_eq(cn4_tags("cn4", "T"), "", "cn4 别名应视为原生（无标记）")
 
 
@@ -222,7 +235,7 @@ def test_cn4_source_field_candidates_are_registered():
 
 def test_cn4_table_has_origin_family_field():
     """``CN4Table`` 必须带 ``origin_family`` 字段（默认空 = 原生 cn4）。"""
-    from eosop_pro.cn4.cn4_io import CN4Table
+    from eosop_pro.parsers.cn4_io import CN4Table
     names = {f.name for f in dataclass_fields(CN4Table)}
     expect("origin_family" in names, "CN4Table 缺 origin_family 字段")
     f = next(f for f in dataclass_fields(CN4Table)
@@ -236,7 +249,7 @@ def test_cn4_plot_quantity_names_are_dictionary_backed():
     LaTeX 排版标签保留（第十二轮裁定），但量名集合不得偏离字典 ——
     字典登记键改名/删除而 cn4_plots 未同步时，本测试 FAIL。
     """
-    from eosop_pro.cn4.cn4_plots import (AXES, OPACITY_NAMES,
+    from eosop_pro.plotting.cn4_plots import (AXES, OPACITY_NAMES,
                                          _QUANTITY_META,
                                          SUPPORTED_QUANTITIES)
     from eosop_pro.registry.field_checks import FIELD_CHECKS
@@ -306,15 +319,40 @@ def test_qa_plots_isobar_labels_carry_tags():
 
 
 def test_gridmap_axis_label_of_real_table_carries_tags():
-    """实表断言：``_axis_label_of`` 对真实解析表输出带 ``uv`` 的标签。"""
+    """实表断言：``_axis_label_of`` 对真实解析表输出带 ``uv`` 的短标签。
+
+    第十三轮双轨：mpqeos.Te 登记短标签就是 ``Te`` -> 默认
+    ``"Te (eV), uv"``；``long=True`` 取完整 meaning（含陷阱注记）。
+    """
     from eosop_pro.plotting.gridmap import _axis_label_of
     t = _mpqeos_first()
     if t is None:
         return
     lab = _axis_label_of(t, "Te")
     expect(lab.endswith(", uv"), f"mpqeos Te 轴标签应带 uv: {lab!r}")
-    expect(lab.startswith("Electron temperature axis"),
-           f"mpqeos Te 轴标签应取字典意义: {lab!r}")
+    expect(lab == "Te (eV), uv",
+           f"mpqeos Te 轴标签默认应为短标签: {lab!r}")
+    lab_long = _axis_label_of(t, "Te", long=True)
+    expect(lab_long.startswith("Electron temperature axis"),
+           f"mpqeos Te 轴标签 long=True 应取字典长标签: {lab_long!r}")
+
+
+def test_short_label_dual_track_default_short():
+    """短标签双轨（用户 2026-09-15 晚裁定）：绘图默认短标签；全字典
+    每个登记条目都必须有非空 ASCII 短标签（缺失即字典登记缺陷）。
+    字段名本身即标准简写的（p_ion/cv_ion 等），短标签与字段名一致。"""
+    from eosop_pro.registry.field_checks import FIELD_CHECKS
+    lab = field_label("mpqeos", "P", parser_unit="Mbar")
+    expect_eq(lab, "P (Mbar), uv",
+              f"默认应取短标签: {lab!r}")
+    lab_long = field_label("mpqeos", "P", parser_unit="Mbar", long=True)
+    expect(lab_long.startswith("Pressure (file in GPa)"),
+           f"long=True 应取长标签 meaning: {lab_long!r}")
+    for fam, entries in FIELD_CHECKS.items():
+        for fld, fc in entries.items():
+            expect(bool(fc.short), f"{fam}.{fld} 缺短标签（short 为空）")
+            expect(all(ord(c) < 128 for c in fc.short),
+                   f"{fam}.{fld} 短标签含非 ASCII: {fc.short!r}")
 
 
 if __name__ == "__main__":
