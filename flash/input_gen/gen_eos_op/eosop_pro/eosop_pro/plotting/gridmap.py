@@ -328,7 +328,7 @@ def _derive_ne(table, charge: np.ndarray, atomwt: float) -> tuple[np.ndarray, st
     ne = rho[None, :] * _cfg.N_A * charge / float(atomwt)
     if not np.any(ne > 0):
         return None
-    return ne, f"n_e = rho * N_A * Zbar / A (A={atomwt:g} amu, N_A={_cfg.N_A:.6e})"
+    return ne, f"n_e = rho * N_A * Zbar / A (A={atomwt:g} amu, N_A={_cfg.N_A:.1e})"
 
 
 def plot_table_all_fields(
@@ -671,7 +671,7 @@ def _table_curves(tbl, fname, f2, *, fixed_name, fixed_vals, var_name,
     idxs = [round(i * (fixed_vals.size - 1) / (k - 1)) for i in range(k)]
     curves = []
     for j in idxs:
-        label = f"{fixed_name} = {fixed_vals[j]:.3g}"
+        label = f"{fixed_name} = {fixed_vals[j]:.1e}"
         row = f2[j, :] if fixed_axis == 0 else f2[:, j]
         curves.append((label, var_vals, row))
     return plot_multi_curve(

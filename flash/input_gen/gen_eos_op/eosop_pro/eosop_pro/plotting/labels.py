@@ -159,7 +159,7 @@ def field_label(family: str, name: str, *,
     """
     fc, _fam, key = _entry(family, name)
     if key is not None:
-        base = fc.meaning if long else (getattr(fc, "short", "") or fc.meaning)
+        base = fc.meaning if long else (fc.short or fc.meaning)
     else:
         base = str(name).lstrip("#")
     unit = display_unit(family, name, parser_unit)

@@ -519,7 +519,7 @@ def plot_opacity_group_figure(
         _colorbar(fig, mesh, ax, cbl)
 
     fig.suptitle(
-        f"{tbl.species_label} group {ig} ({lo:.2e} - {hi:.2e} eV)",
+        f"{tbl.species_label} group {ig} ({lo:.1e} - {hi:.1e} eV)",
         fontsize=config.PLOT_TITLE_FONTSIZE, y=0.995)
     fig.tight_layout(rect=(0, 0, 1, 0.965))
 
@@ -667,7 +667,7 @@ def plot_vs_temperature(
     for i in idxs:
         ax.plot(Ts, field[i], lw=_lw, linestyle=_ls, marker="o",
                 ms=config.PLOT_MARKERSIZE - 2,
-                label=f"$n_i$ = {nions[i]:.2e} cm$^{{-3}}$")
+                label=f"$n_i$ = {nions[i]:.1e} cm$^{{-3}}$")
     if xlog:
         ax.set_xscale("log")
     if ylog is None:
@@ -712,7 +712,7 @@ def plot_vs_density(
     for j in idxs:
         ax.plot(nions, field[:, j], lw=_lw, linestyle=_ls, marker="s",
                 ms=config.PLOT_MARKERSIZE - 2,
-                label=f"$T$ = {Ts[j]:.2e} eV")
+                label=f"$T$ = {Ts[j]:.1e} eV")
     if xlog:
         ax.set_xscale("log")
     if ylog is None:

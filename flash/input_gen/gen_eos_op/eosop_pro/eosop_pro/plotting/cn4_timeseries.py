@@ -163,14 +163,14 @@ def plot_center_series(
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(times, field[:, i], lw=config.PLOT_LINEWIDTH, marker="o",
             ms=config.PLOT_MARKERSIZE - 2,
-            label=f"x = {xgrid[i]:.4e}")
+            label=f"x = {xgrid[i]:.1e}")
     if xlog:
         ax.set_xscale("log")
     if ylog:
         ax.set_yscale("log")
     ax.set_xlabel(time_label)
     ax.set_ylabel(quantity_label)
-    ax.set_title(f"{quantity_label} at x = {xgrid[i]:.3e}")
+    ax.set_title(f"{quantity_label} at x = {xgrid[i]:.1e}")
     ax.grid(True, which="both", alpha=0.3)
     ax.tick_params(which="both", direction="in", top=True, right=True,
                    labelsize=config.PLOT_TICK_FONTSIZE, width=2.0, length=6)

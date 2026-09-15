@@ -301,7 +301,7 @@ def trace_isotherm(tbl: CN4Table, T_idx: int = 10, T: Optional[float] = None,
     ax2.set_yscale("log")
     ax2.set_ylabel(r"Specific energy $e$ (erg/g)" + _tags_suffix(tbl, "E"))
     ax2.tick_params(axis="y", labelcolor="tab:blue")
-    ax1.set_title(rf"Isotherm, $T$ = {T_val:.4e} eV")
+    ax1.set_title(rf"Isotherm, $T$ = {T_val:.1e} eV")
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, loc="best")
@@ -355,7 +355,7 @@ def trace_isobar(tbl: CN4Table, P: float, outfile=None, figsize=(10.0, 7.5)):
     ax.set_xlabel(r"Temperature $T$ (eV)" + _tags_suffix(tbl, "T"))
     ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)"
                   + _tags_suffix(tbl, "nion"))
-    ax.set_title(rf"Isobar, $P$ = {pressure_mbar(P):.3e} Mbar")
+    ax.set_title(rf"Isobar, $P$ = {pressure_mbar(P):.1e} Mbar")
     _style_ax(ax)
     fig.tight_layout()
     outfile = _save(fig, outfile, f"isobar_P{pressure_mbar(P):.2e}Mbar")
@@ -448,7 +448,7 @@ def trace_isentrope(tbl: CN4Table, s: np.ndarray, s0_idx: Tuple[int, int] = (5, 
     ax.set_xlabel(r"Temperature $T$ (eV)" + _tags_suffix(tbl, "T"))
     ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)"
                   + _tags_suffix(tbl, "nion"))
-    ax.set_title(rf"Isentrope, $s$ = {energy_ergg(s0):.4f} erg/(g eV)")
+    ax.set_title(rf"Isentrope, $s$ = {energy_ergg(s0):.1e} erg/(g eV)")
     _style_ax(ax)
     fig.tight_layout()
     outfile = _save(fig, outfile, f"isentrope_s{energy_ergg(s0):.2e}")
@@ -638,7 +638,7 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
         ax2.plot(Up_u[m_fit], yfit, "--", lw=2.0, color="black", alpha=0.75,
                  label=rf"Fit ($U_p\leq {fit_win:.0f}$)")
     ax2.text(0.05, 0.97,
-             rf"$U_s = {k:.4f}\,U_p + {b:.4e}$ um/ns" "\n"
+             rf"$U_s = {k:.4f}\,U_p + {b:.1e}$ um/ns" "\n"
              rf"(window $U_p\in[0,{fit_win:.0f}]$, $R^2 = {r2:.4f}$)",
              transform=ax2.transAxes, ha="left", va="top",
              bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.85))
@@ -768,8 +768,8 @@ def plot_interpolated_probe(tbl: CN4Table, rho_probe: float, T_probe: float,
                    + _tags_suffix(tbl, "zbar"))
     ax2.tick_params(axis="y", labelcolor="tab:blue")
     ax1.plot([T_probe], [P_at], "D", ms=14, color="black",
-             label=rf"Probe ({rho_probe:.3g} g/cm$^3$, {T_probe:.4g} eV)")
-    ax1.set_title(rf"Interpolated EOS at fixed $\rho$ = {rho_probe:.4g} g/cm$^3$")
+             label=rf"Probe ({rho_probe:.1e} g/cm$^3$, {T_probe:.1e} eV)")
+    ax1.set_title(rf"Interpolated EOS at fixed $\rho$ = {rho_probe:.1e} g/cm$^3$")
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, loc="best")
@@ -900,7 +900,7 @@ def plot_pv_diagram(tbl: CN4Table, T_ref: float, s_field: np.ndarray,
 
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(V_dense, pressure_mbar(P_iso), ".", ms=4, color="tab:red",
-            alpha=0.7, label=rf"Isotherm $T={T_ref:.3e}$ eV")
+            alpha=0.7, label=rf"Isotherm $T={T_ref:.1e}$ eV")
     if V_ent is not None and len(V_ent) > 1:
         ax.plot(V_ent, pressure_mbar(P_ent), "^", ms=5, mfc="tab:purple",
                 mec="none", alpha=0.85,

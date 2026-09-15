@@ -44,7 +44,10 @@ colorbar / x/y 轴一律 ``Name (unit, <tags>)`` 形式（无标记则只写
 
 字段结构（2026-09-15 补充裁定：结构化字段，各字段含义一目了然）
 ----------------------------------------------------------------
-* ``meaning`` —— 物理意义（英文，出图/报告用，保证 ASCII）；
+* ``meaning`` —— 物理意义（英文，出图/报告用，保证 ASCII）；**长标签**；
+* ``short``   —— 短标签（物理量标准简写，ASCII；**绘图默认用**，
+  2026-09-15 晚裁定）；**直接内联写在各条目 ``FieldCheck(..., short=...)``
+  构造处**（长/短标签同处，便于人工对照修改），空串回退 ``meaning``；
 * ``unit``    —— 单位（``"unknown"`` = 未判定，**不猜测**）；
 * ``kind``    —— 来源类型分类：``in-file declaration``（文件内声明）/
   ``primary document``（一级说明文档）/ ``source code``（源码行号）/
@@ -98,7 +101,7 @@ colorbar / x/y 轴一律 ``Name (unit, <tags>)`` 形式（无标记则只写
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace as _dc_replace
+from dataclasses import dataclass
 
 __all__ = ["FieldCheck", "FIELD_CHECKS", "field_check", "checked_families",
            "family_check_stats", "doc_label", "verify_label", "tags_label",
@@ -155,7 +158,9 @@ class FieldCheck:
         meaning: 物理意义（英文，出图/报告用，保证 ASCII）。长标签。
         short: 短标签（物理量标准简写，ASCII；2026-09-15 晚裁定）。
             **绘图默认用短标签**（标签过长遮挡图面）；空串回退
-            ``meaning``。报告与字典文档同时展示长短两个标签。
+            ``meaning``。直接内联在本条目 ``FieldCheck(..., short=...)``
+            构造处（长/短标签同处，用户 2026-09-15 晚裁定：集中表不便
+            对照修改，已废除）；报告与字典文档同时展示长短两个标签。
         unit: 单位字符串；未判定为 ``"unknown"``（不猜测）。
         checked: 第二重认证 —— 是否完成人工核查（未核查显示 ``uv``）。
         kind: 来源类型（受控词表 KIND_*；``"none"`` -> 显示 ``uk``）。
@@ -305,51 +310,51 @@ def dump_markdown(title: str = "eosop 变量控制字典") -> str:
 _IONMIX_C4: dict[str, FieldCheck] = {
     # -- 轴 --
     "T":       FieldCheck("Temperature axis (tplsma)", "eV", True, KIND_CODE,
-                          "abjt_03.f:4684 '(in ev)' + guide S5.4"),
+                          "abjt_03.f:4684 '(in ev)' + guide S5.4", short="T"),
     "nion":    FieldCheck("Ion (nucleon) number density axis (densnn)",
                           "cm^-3", True, KIND_CODE,
-                          "abjt_03.f:4686 + guide S5.1 mass-density formula"),
+                          "abjt_03.f:4686 + guide S5.1 mass-density formula", short="n_ion"),
     # -- 12 个二维 EOS 场 --
     "zbar":    FieldCheck("Average charge state ne/nion", "-", True, KIND_CODE,
-                          _CN4_SOURCE + " :4687"),
+                          _CN4_SOURCE + " :4687", short="Zbar"),
     "dzdt":    FieldCheck("d(zbar)/dT", "1/eV", True, KIND_CODE,
-                          _CN4_SOURCE + " :4691 (L4 derivation)"),
+                          _CN4_SOURCE + " :4691 (L4 derivation)", short="dZ/dT"),
     "p_ion":   FieldCheck("Ion pressure", "J/cm3", True, KIND_CODE,
-                          _CN4_SOURCE + " :4693 (L4) + guide :920"),
+                          _CN4_SOURCE + " :4693 (L4) + guide :920", short="P_ion"),
     "p_ele":   FieldCheck("Electron pressure", "J/cm3", True, KIND_CODE,
-                          _CN4_SOURCE + " :4696 (L4) + guide :921"),
+                          _CN4_SOURCE + " :4696 (L4) + guide :921", short="P_ele"),
     "dpion_dt": FieldCheck("d(p_ion)/dT", "J/cm3/eV", True, KIND_CODE,
-                           _CN4_SOURCE + " :4699 + guide :922"),
+                           _CN4_SOURCE + " :4699 + guide :922", short="dP_ion/dT"),
     "dpele_dt": FieldCheck("d(p_ele)/dT", "J/cm3/eV", True, KIND_CODE,
-                           _CN4_SOURCE + " :4702 + guide :923"),
+                           _CN4_SOURCE + " :4702 + guide :923", short="dP_ele/dT"),
     "e_ion":   FieldCheck("Ion specific internal energy", "J/g", True,
-                          KIND_CODE, _CN4_SOURCE + " :4706 + guide :924"),
+                          KIND_CODE, _CN4_SOURCE + " :4706 + guide :924", short="E_ion"),
     "e_ele":   FieldCheck("Electron specific internal energy", "J/g", True,
-                          KIND_CODE, _CN4_SOURCE + " :4708 + guide :925"),
+                          KIND_CODE, _CN4_SOURCE + " :4708 + guide :925", short="E_ele"),
     "cv_ion":  FieldCheck("Ion specific heat", "J/g/eV", True, KIND_CODE,
-                          _CN4_SOURCE + " :4711 + guide :926"),
+                          _CN4_SOURCE + " :4711 + guide :926", short="cv_ion"),
     "cv_ele":  FieldCheck("Electron specific heat", "J/g/eV", True, KIND_CODE,
-                          _CN4_SOURCE + " :4713 + guide :927"),
+                          _CN4_SOURCE + " :4713 + guide :927", short="cv_ele"),
     "deion_dn": FieldCheck(
         "d(e_ion)/d(n_ion)", "J*cm3/g", True, KIND_CODE,
         _CN4_SOURCE + " :4717-4719; source self-notes 'not sure' - "
-        "unit provisional per guide :928 (uncertainty registered in cn4.units)"),
+        "unit provisional per guide :928 (uncertainty registered in cn4.units)", short="de_ion/dn"),
     "deele_dn": FieldCheck(
         "d(e_ele)/d(n_ele)", "J*cm3/g", True, KIND_CODE,
         _CN4_SOURCE + " :4722-4725; source self-notes 'not sure' - "
-        "unit provisional per guide :929 (uncertainty registered in cn4.units)"),
+        "unit provisional per guide :929 (uncertainty registered in cn4.units)", short="de_ele/dn"),
     # -- 群结构 + 3 个三维不透明度场 --
     "engrup":  FieldCheck("Photon group boundaries", "eV", True, KIND_CODE,
-                          _CN4_SOURCE + " :4729 '(in ev)'"),
+                          _CN4_SOURCE + " :4729 '(in ev)'", short="E_groups"),
     "opac_rosseland": FieldCheck("Rosseland group opacity", "cm2/g", True,
                                  KIND_CODE,
-                                 _CN4_SOURCE + " :4525/:4733 + guide :931"),
+                                 _CN4_SOURCE + " :4525/:4733 + guide :931", short="kappa_R"),
     "opac_planck_abs": FieldCheck("Planck absorption group opacity", "cm2/g",
                                   True, KIND_CODE,
-                                  _CN4_SOURCE + " :4526/:4736 + guide :932"),
+                                  _CN4_SOURCE + " :4526/:4736 + guide :932", short="kappa_P_abs"),
     "opac_planck_ems": FieldCheck("Planck emission group opacity", "cm2/g",
                                   True, KIND_CODE,
-                                  _CN4_SOURCE + " :4739 + guide :933"),
+                                  _CN4_SOURCE + " :4739 + guide :933", short="kappa_P_ems"),
 }
 
 
@@ -363,45 +368,45 @@ _MULTI_INVERTED_EOS: dict[str, FieldCheck] = {
         "Mass density axis (linear)", "g/cm3", False, KIND_DOC,
         _SRC_MULTI_SESAME + "：'r[nr]  密度(g/cc)'；同文明文'因变量和自变量都"
         "没有使用对数坐标系，而是使用线性坐标系'；解析器 parsers/"
-        "multi_inverted_eos.py:234-236 同值实现。"),
+        "multi_inverted_eos.py:234-236 同值实现。", short="rho"),
     "de":    FieldCheck(
         "Specific internal energy axis (above cold curve)", "Mbar*cm3/g",
         False, KIND_DOC,
         _SRC_MULTI_SESAME + "：'de[ne]  能量(能量列表，与冷能量的差距, "
-        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:238-240。"),
+        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:238-240。", short="de"),
     "P":     FieldCheck(
         "Pressure P(rho, de+e0)", "Mbar", False, KIND_DOC,
         _SRC_MULTI_SESAME + "：'P[ne*nr]  压力 P[(0~nr-1)+nr*i]为密度为"
         "r[0~nr-1]，能量de[i]+e0[0~ nr-1]时的压力，单位为Mbar'；解析器 "
-        "parsers/multi_inverted_eos.py:242-245。"),
+        "parsers/multi_inverted_eos.py:242-245。", short="P"),
     "E":     FieldCheck(
         "Specific internal energy (de + e0_cold)", "Mbar*cm3/g", False,
         KIND_DOC,
         _SRC_MULTI_SESAME + "：de 为'与冷能量的差距'，总比能 = de + e0；"
         "解析器 parsers/multi_inverted_eos.py:249-259 合成（无 e0 布局以 "
-        "de 为基准并显式注记）。"),
+        "de 为基准并显式注记）。", short="E"),
     "e0_cold": FieldCheck(
         "Cold curve specific energy (1-D over rho)", "Mbar*cm3/g", False,
         KIND_DOC,
         _SRC_MULTI_SESAME + "：'e0[nr]  冷能量(密度对应的冷能量列表，"
-        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:247-252。"),
+        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:247-252。", short="e0_cold"),
     "de_energy": FieldCheck(
         "Energy-axis spacing (same array as axis de)", "Mbar*cm3/g", False,
         KIND_DOC,
         "能量轴 de 另注册为一维场以便出图；单位继承 de 的 " +
         _SRC_MULTI_SESAME + " 声明；解析器 parsers/multi_inverted_eos.py:"
-        "266-268。"),
+        "266-268。", short="de"),
     "T":     FieldCheck(
         "Temperature field T(rho, de+e0) (file in Kelvin, parser converts)",
         "eV", False, KIND_DOC,
         _SRC_MULTI_SESAME + "：'T[ne*nr] 密度为r[0~nr-1]，能量de[i]+e0[0~ "
         "nr-1]时的温度（Kelvin）'；解析器 parsers/multi_inverted_eos.py:"
-        "261-264 乘 config.EV_PER_K 转 eV（常数单一来源）。"),
+        "261-264 乘 config.EV_PER_K 转 eV（常数单一来源）。", short="T"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
         "MULTI SESAME docx 的 F1 布局只定义 r/de/e0/P/T 五段（计数公式 "
         "'参数个数为4+2*nr+ne+2*nr*ne'），解析器 with_e0/no_e0 布局之外"
-        "不承认其它列 —— 未登记名一律兜底，不猜。"),
+        "不承认其它列 —— 未登记名一律兜底，不猜。", short="field"),
 }
 
 
@@ -415,29 +420,29 @@ _MULTI_OPACITY: dict[str, FieldCheck] = {
         _SRC_MULTI_SESAME + "：'剩下的数据依次为 r[nr]: log(密度g/cc)'，且"
         "'不透明度为logloglog全部采用对数存储数据'（log10 坐标）；解析器 "
         "parsers/multi_opacity.py 模块头'单位'节（另引 bundled 脚本 "
-        "matlab/outputMULTIOpacity.m 逐行佐证）。"),
+        "matlab/outputMULTIOpacity.m 逐行佐证）。", short="rho"),
     "Te":    FieldCheck(
         "Electron temperature axis (log10; eV/keV dual trap)", "eV", False,
         KIND_DOC,
         _SRC_MULTI_SESAME + "：'t[nt] log(温度eV)'；⚠️ ZEFF 族例外为 keV —— "
         "同 docx Zeff 节'温度单位是keV'并明文以 X_Z.dat(eV) / X_Zeff.dat"
         "(keV) 区分文件名，由解析器 unit_hint 传入（multi_opacity.py 模块头"
-        "'单位'节）。"),
+        "'单位'节）。", short="Te"),
     "kappa": FieldCheck(
         "Opacity (per-group subtables, log10)", "cm2/g", False, KIND_DOC,
         _SRC_MULTI_SESAME + "：'z[nr*nt]表格数据（log坐标,cm2/g）'；多群子表"
         "头自带逐群 (E_lo, E_hi)，标签 PLANCK/ROSSLAN/EPS 分别对应 Planck "
         "平均/Rosseland 平均/NLTE 因子（docx 数据类型表）；解析器 parsers/"
-        "multi_opacity.py（LABEL_RE / KIND_BY_LABEL）。"),
+        "multi_opacity.py（LABEL_RE / KIND_BY_LABEL）。", short="kappa"),
     "Z":     FieldCheck(
         "Mean ionisation (NZ kind)", "-", False, KIND_NONE,
         "NZ kind 值段（opbe.inhalt 表号 NZ；f2 枚举实测 547 个 F2-like 文件，"
         "见 multi_opacity.py 模块头）。⚠️ 不冒充有源：一级文档中 'Z' 指不透明"
         "度表格角值（docx：'其中Z的单位为cm2/g'），并非平均电离度 —— NZ 段"
-        "语义未获任何一级来源确认，待人工核查定案。"),
+        "语义未获任何一级来源确认，待人工核查定案。", short="Z"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
-        "未登记列名兜底；不猜，人工核查后补条目。"),
+        "未登记列名兜底；不猜，人工核查后补条目。", short="field"),
 }
 
 
@@ -450,30 +455,30 @@ _HYADES: dict[str, FieldCheck] = {
     "rho":   FieldCheck(
         "Mass density axis", "g/cm3", False, KIND_DOC,
         _SRC_HYADES + "：'密度 g/cm3; 温度 keV; 压强 dyne/cm2;比内能 erg/g'"
-        "（逐字）；解析器 parsers/hyades_eos.py 模块头同文摘录（36-38 行）。"),
+        "（逐字）；解析器 parsers/hyades_eos.py 模块头同文摘录（36-38 行）。", short="rho"),
     "Te":    FieldCheck(
         "Electron temperature axis (file in keV)", "eV", False, KIND_DOC,
-        _SRC_HYADES + "：'温度 keV'（文件原生 keV，解析器换算为 eV 后登记）。"),
+        _SRC_HYADES + "：'温度 keV'（文件原生 keV，解析器换算为 eV 后登记）。", short="Te"),
     "P":     FieldCheck(
         "Pressure (CGS native)", "dyne/cm2", False, KIND_DOC,
-        _SRC_HYADES + "：'压强 dyne/cm2'（CGS 原生单位，解析器原样保留）。"),
+        _SRC_HYADES + "：'压强 dyne/cm2'（CGS 原生单位，解析器原样保留）。", short="P"),
     "E":     FieldCheck(
         "Specific internal energy (CGS native)", "erg/g", False, KIND_DOC,
-        _SRC_HYADES + "：'比内能 erg/g'（CGS 原生单位）。"),
+        _SRC_HYADES + "：'比内能 erg/g'（CGS 原生单位）。", short="E"),
     "kappa": FieldCheck(
         "Opacity (opc_* = [Rosseland, Planck])", "cm2/g", False, KIND_DOC,
         _SRC_HYADES + "：'不透明度参数使用同样的格式，压强处为平均Rosseland值，"
         "比内能处为平均Planck值，单位cm2/g'；且'本来应该存储Planck平均不透明度"
         "的位置用0代替'（Rosseland-only 判序依据，解析器 hyades_eos.py 模块头 "
-        "32-34 行自动判序实现）。"),
+        "32-34 行自动判序实现）。", short="kappa"),
     "raw_tail": FieldCheck(
         "Trailing residual values", "unknown", False, KIND_NONE,
         "尾部残余值：L = 2 + NR + NT + 2*NR*NT 之外的余数，解析器 hyades_eos.py "
         "按原样保存为 raw_tail 并记 unit=unknown —— 任何一级来源都未定义其含义，"
-        "不猜。"),
+        "不猜。", short="tail"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
-        "Hyades docx 未定义其它列名；未登记名兜底，不猜。"),
+        "Hyades docx 未定义其它列名；未登记名兜底，不猜。", short="field"),
 }
 
 
@@ -486,33 +491,33 @@ _MPQEOS: dict[str, FieldCheck] = {
         "Mass density axis", "g/cm3", False, KIND_DOC,
         _SRC_MULTI_SESAME + "（MPQeos/SESAME 节）：'SESAME数据库的单位：…密度"
         "（g/cc）'，数据布局 'Id(1111)  Density(g/cc)  NR  NT'；解析器 "
-        "parsers/mpqeos.py:107-109。"),
+        "parsers/mpqeos.py:107-109。", short="rho"),
     "Te":    FieldCheck(
         "Electron temperature axis (file in Kelvin)", "eV", False, KIND_DOC,
         _SRC_MULTI_SESAME + "（MPQeos/SESAME 节）：'温度(Kelvin)'、布局 "
         "'T[1-NT](K)'，且'Multi1D++程序将自动识别文件后缀301/304/305并对单位"
         "制进行转化'；解析器 parsers/mpqeos.py:110-111 乘 config.EV_PER_K "
-        "转 eV。"),
+        "转 eV。", short="Te"),
     "P":     FieldCheck(
         "Pressure (file in GPa)", "Mbar", False, KIND_DOC,
         _SRC_MULTI_SESAME + "（MPQeos/SESAME 节）：'压强（GPa）' + 换算式 "
         "'1GPa= 1e9Pa= 1e10 dyne/cm2=1e10erg/cm3=1e12 erg/cm2=1e-2Mbar'；"
-        "解析器 parsers/mpqeos.py:115-117（config.MBAR_PER_GPA）。"),
+        "解析器 parsers/mpqeos.py:115-117（config.MBAR_PER_GPA）。", short="P"),
     "E":     FieldCheck(
         "Specific internal energy (file in MJ/kg)", "Mbar*cm3/g", False,
         KIND_DOC,
         _SRC_MULTI_SESAME + "（MPQeos/SESAME 节）：'能量（MJ/kg）' + 换算式 "
         "'1MJ/kg= 1e3J/g= 1e10 erg/g= 1e12 erg*cm/g=1e-2Mbar*cm3/g'；解析器 "
-        "parsers/mpqeos.py:120-122（config.MBAR_CM3_G_PER_MJ_KG）。"),
+        "parsers/mpqeos.py:120-122（config.MBAR_CM3_G_PER_MJ_KG）。", short="E"),
     "Z":     FieldCheck(
         "Average ionisation (5th payload segment)", "-", False, KIND_NONE,
         "docx 布局第 5 段 'Z[1-NRxNT]'，但同一 docx 自述'压强、能量甚至Z等有"
         "负值，原因正在查找'；解析器 parsers/mpqeos.py:142-152 实测负值并显式"
         "告警（风险 R3：段语义待核）。⚠️ 与'平均电离度'语义相矛盾的证据在案，"
-        "不冒充有源 —— 待人工核查。"),
+        "不冒充有源 —— 待人工核查。", short="Z"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
-        "MPQeos 布局只有 R/T/P/E/Z 五段；未登记名兜底，不猜。"),
+        "MPQeos 布局只有 R/T/P/E/Z 五段；未登记名兜底，不猜。", short="field"),
 }
 
 
@@ -527,21 +532,21 @@ _FEOS_NATIVE: dict[str, FieldCheck] = {
         "'交叉校验证据'：Al/B 两例 NR/NT 双验证）；但 .feos 自身的单位声明"
         "无法从一级文档可靠还原 —— FEOS-Package-Documentation2016.pdf §16.2 "
         "正文受 PDF 抽取连字伪影影响（解析器模块头'诚实声明（风险 R3）'）→ "
-        "无可指认来源，待人工对照 PDF 原件核查。"),
+        "无可指认来源，待人工对照 PDF 原件核查。", short="rho"),
     "Te":    FieldCheck(
         "Electron temperature axis", "eV", False, KIND_NONE,
         "网格由单调递增前缀裁剪定位（parsers/feos_native.py::grid_length，"
         "头部声明 NR/NT 实测可能多 1 个 0.0 哨兵）；行 0 十字段含 T_ref[eV]，"
-        "但网格单位的文档级声明不可得（同 rho：PDF 抽取伪影）→ 待人工核查。"),
+        "但网格单位的文档级声明不可得（同 rho：PDF 抽取伪影）→ 待人工核查。", short="Te"),
     "raw_values": FieldCheck(
         "Undecoded payload (PDF extraction artefacts; column semantics "
         "not recoverable)", "unknown", False, KIND_NONE,
         "未解码载荷：解析器只完全解码行 0 十字段（有 .301 交叉验证）并定位 "
         "rho/T 网格，其余数值按原样存 raw_values、绝不猜列语义（feos_native.py "
-        "模块头'诚实声明（风险 R3）'）—— 设计上无来源可用。"),
+        "模块头'诚实声明（风险 R3）'）—— 设计上无来源可用。", short="raw"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
-        "未登记名兜底，不猜。"),
+        "未登记名兜底，不猜。", short="field"),
 }
 
 _FEOS_TABDATA: dict[str, FieldCheck] = {
@@ -549,14 +554,14 @@ _FEOS_TABDATA: dict[str, FieldCheck] = {
         "All columns (colN naming; no local column-name doc)", "unknown",
         False, KIND_NONE,
         "colN 占位列名：本地无任何一级列名文档（仅有中间产物草稿提及，"
-        "不作依据）—— 语义待人工核查，不猜。"),
+        "不作依据）—— 语义待人工核查，不猜。", short="col"),
 }
 
 _FEOS_AUX: dict[str, FieldCheck] = {
     "*":     FieldCheck(
         "raw_values (auxiliary parameter file)", "unknown", False, KIND_NONE,
         "辅助参数文件的未解码载荷：无可指认的一级来源（中间产物草稿不作"
-        "依据）—— 待人工核查。"),
+        "依据）—— 待人工核查。", short="raw"),
 }
 
 
@@ -569,25 +574,25 @@ _LEDCOP_DECL = ("文件头第 3 行明文声明（实测 Al.txt）：'Opacities 
 
 _LEDCOP_ATOMIC: dict[str, FieldCheck] = {
     "rho":   FieldCheck("Mass density axis", "g/cm3", False, KIND_IN_FILE,
-                        _LEDCOP_DECL + " —— density（gm/cc）项。"),
+                        _LEDCOP_DECL + " —— density（gm/cc）项。", short="rho"),
     "Te":    FieldCheck("Electron temperature axis (file declares keV inline)",
                         "eV", False, KIND_IN_FILE,
-                        _LEDCOP_DECL + " —— T 项（文件原生 keV，解析器换算 eV）。"),
+                        _LEDCOP_DECL + " —— T 项（文件原生 keV，解析器换算 eV）。", short="Te"),
     "Ross":  FieldCheck("Rosseland opacity", "cm2/g", False, KIND_IN_FILE,
-                        _LEDCOP_DECL + " —— Opacities 项。"),
+                        _LEDCOP_DECL + " —— Opacities 项。", short="kappa_R"),
     "Planck": FieldCheck("Planck opacity", "cm2/g", False, KIND_IN_FILE,
-                         _LEDCOP_DECL + " —— Opacities 项。"),
+                         _LEDCOP_DECL + " —— Opacities 项。", short="kappa_P"),
     "No. Free": FieldCheck(
         "Free-electron count (dimensionless, normalization unchecked)", "-",
         False, KIND_NONE,
         "列名来自解析器对数据列的切分命名；文件内无该列的单位/语义声明；"
         "Atomic(LEDCOP)说明.doc 抽取为乱码（ole2 双对齐失败）不可引用 → "
-        "无可指认来源，待人工核查。"),
+        "无可指认来源，待人工核查。", short="N_free"),
     "Av Sq Free": FieldCheck(
         "Mean-square free-electron count", "-", False, KIND_NONE,
-        "同 'No. Free'：文件内无声明、说明 .doc 抽取乱码不可引用 → 待人工核查。"),
+        "同 'No. Free'：文件内无声明、说明 .doc 抽取乱码不可引用 → 待人工核查。", short="Nsqr_free"),
     "*":     FieldCheck("Unregistered field", "unknown", False, KIND_NONE,
-                        "未登记列名兜底，不猜。"),
+                        "未登记列名兜底，不猜。", short="field"),
 }
 
 
@@ -600,13 +605,13 @@ _LEDCOP_ZEFF: dict[str, FieldCheck] = {
     "rho":   FieldCheck(
         "Mass density axis (log10 values)", "g/cm3", False, KIND_DOC,
         _SRC_MULTI_SESAME + "（Zeff 节）：'温度和密度采用对数坐标系…密度单位"
-        "是g/cm3'；解析器 parsers/ledcop_zeff.py 模块头（log10 rho 布局）。"),
+        "是g/cm3'；解析器 parsers/ledcop_zeff.py 模块头（log10 rho 布局）。", short="rho"),
     "Te":    FieldCheck(
         "Electron temperature axis (log10 values, keV)", "keV", False,
         KIND_DOC,
         _SRC_MULTI_SESAME + "（Zeff 节）：'温度单位是keV'，并明文与不透明度族"
         "区分（'与不透明度不同，不透明度温度单位为eV'）、文件名约定 "
-        "X_Zeff.dat(keV) vs X_Z.dat(eV)；解析器 parsers/ledcop_zeff.py 模块头。"),
+        "X_Zeff.dat(keV) vs X_Z.dat(eV)；解析器 parsers/ledcop_zeff.py 模块头。", short="Te"),
     "NoFree": FieldCheck(
         "Free-electron number (Zbar equivalent)", "-", False, KIND_DOC,
         "LANL TOPS FAQ（https://aphysics2.lanl.gov/static/opacdocs/"
@@ -616,7 +621,7 @@ _LEDCOP_ZEFF: dict[str, FieldCheck] = {
         "文件格式之一（opac-help.html：'The LEDCOP files are older cross "
         "section files'），NoFree 列名即 TOPS 输出约定；最佳引用 "
         "Magee et al. 1995（LANL T-1）。*.NoFree 值段解析器 _field_for "
-        "登记为 Z/ZEFF；文件内无单位声明（.doc 抽取乱码不可引用）→ 无量纲。"),
+        "登记为 Z/ZEFF；文件内无单位声明（.doc 抽取乱码不可引用）→ 无量纲。", short="N_free"),
     "AvSqFree": FieldCheck(
         "Mean-square free-electron number (Z^2 equivalent)", "-", False,
         KIND_DOC,
@@ -626,9 +631,9 @@ _LEDCOP_ZEFF: dict[str, FieldCheck] = {
         "（自由电子数平方对离子态的平均）→ <Z^2>，与 NoFree=<Z> 配套"
         "（差值即离子态方差）。同 NoFree：LEDCOP/TOPS 同源（LANL T-1，"
         "最佳引用 Magee et al. 1995），无量纲；解析器 _field_for 登记 "
-        "Z2/ZEFF2。"),
+        "Z2/ZEFF2。", short="Nsqr_free"),
     "*":     FieldCheck("Unregistered field", "unknown", False, KIND_NONE,
-                        "未登记列名兜底，不猜。"),
+                        "未登记列名兜底，不猜。", short="field"),
 }
 
 
@@ -643,14 +648,14 @@ _COLD_DECL = ("逐文件两行头明文声明列名与单位（实测 Ac.coldopa
 _COLDOPACITY: dict[str, FieldCheck] = {
     "Eph":   FieldCheck("Photon energy axis (typical; per-file declared)",
                         "eV", False, KIND_IN_FILE,
-                        _COLD_DECL + "；本条 unit 为典型值，以逐文件头为准。"),
+                        _COLD_DECL + "；本条 unit 为典型值，以逐文件头为准。", short="E_ph"),
     "miu":   FieldCheck("Opacity column (typical; per-file declared)",
                         "cm2/g", False, KIND_IN_FILE,
-                        _COLD_DECL + "；本条 unit 为典型值，以逐文件头为准。"),
+                        _COLD_DECL + "；本条 unit 为典型值，以逐文件头为准。", short="miu"),
     "*":     FieldCheck("Per-file column (see in-file name/unit header lines)",
                         "unknown", False, KIND_IN_FILE,
                         _COLD_DECL + "；兜底列名/单位由逐文件头实时登记（查询"
-                        "兜底不猜）。"),
+                        "兜底不猜）。", short="col"),
 }
 
 
@@ -665,20 +670,20 @@ _HUGO_DECL = ("逐文件首行 '# name [unit]' 注释头逐列声明（两种写
 
 _HUGONIOT: dict[str, FieldCheck] = {
     "Rho":   FieldCheck("Mass density (per-file declared)", "g/cm3", False,
-                        KIND_IN_FILE, _HUGO_DECL),
+                        KIND_IN_FILE, _HUGO_DECL, short="rho"),
     "T":     FieldCheck("Temperature (per-file declared)", "eV", False,
-                        KIND_IN_FILE, _HUGO_DECL),
+                        KIND_IN_FILE, _HUGO_DECL, short="T"),
     "P":     FieldCheck("Pressure (per-file declared)", "Mbar", False,
-                        KIND_IN_FILE, _HUGO_DECL),
+                        KIND_IN_FILE, _HUGO_DECL, short="P"),
     "E":     FieldCheck("Specific internal energy (per-file declared)",
-                        "erg/g", False, KIND_IN_FILE, _HUGO_DECL),
+                        "erg/g", False, KIND_IN_FILE, _HUGO_DECL, short="E"),
     "Us":    FieldCheck("Shock velocity (per-file declared)", "km/s", False,
-                        KIND_IN_FILE, _HUGO_DECL),
+                        KIND_IN_FILE, _HUGO_DECL, short="Us"),
     "Up":    FieldCheck("Particle velocity (per-file declared)", "km/s",
-                        False, KIND_IN_FILE, _HUGO_DECL),
+                        False, KIND_IN_FILE, _HUGO_DECL, short="Up"),
     "*":     FieldCheck("Per-file column (see '# [...] [unit]' comment header)",
                         "unknown", False, KIND_IN_FILE,
-                        _HUGO_DECL + "；兜底列由逐文件头实时登记。"),
+                        _HUGO_DECL + "；兜底列由逐文件头实时登记。", short="col"),
 }
 
 
@@ -692,27 +697,27 @@ _SNOP_UNITS_NOTE = "解析器 parsers/snop_input.py:33-38 PARAM_UNITS 逐字摘�
 _SNOP_INPUT: dict[str, FieldCheck] = {
     "T1":    FieldCheck("Temperature bound 1 (lowest)", "keV", False, KIND_DOC,
                         _SRC_SNOP_MANUAL + "：'T1  Lowest temperature (in keV)'；"
-                        + _SNOP_UNITS_NOTE),
+                        + _SNOP_UNITS_NOTE, short="T1"),
     "T2":    FieldCheck("Temperature bound 2 (highest)", "keV", False, KIND_DOC,
                         _SRC_SNOP_MANUAL + "：'T2  Highest temperature (in keV)'；"
-                        + _SNOP_UNITS_NOTE),
+                        + _SNOP_UNITS_NOTE, short="T2"),
     "X1":    FieldCheck("Photon energy bound 1 (lowest)", "keV", False,
                         KIND_DOC,
                         _SRC_SNOP_MANUAL + "：'X1  Lowest photon energy (in "
                         "keV)'；★ 修正：此前登记为 'Density bound'，系中间产物"
                         "手册笔误 —— SNOP.MANUAL 原文为光子能量边界；"
-                        + _SNOP_UNITS_NOTE),
+                        + _SNOP_UNITS_NOTE, short="hnu1"),
     "X2":    FieldCheck("Photon energy bound 2 (highest)", "keV", False,
                         KIND_DOC,
                         _SRC_SNOP_MANUAL + "：'X2  Highest photon energy (in "
-                        "keV)'；修正说明同 X1；" + _SNOP_UNITS_NOTE),
+                        "keV)'；修正说明同 X1；" + _SNOP_UNITS_NOTE, short="hnu2"),
     "FG":    FieldCheck("Photon group boundaries (user-supplied if IGROUP=0)",
                         "eV", False, KIND_DOC,
                         _SRC_SNOP_MANUAL + "：'FG(NG+1)Group boundaries (in eV) "
-                        "given by user if IGROUP = 0'；" + _SNOP_UNITS_NOTE),
+                        "given by user if IGROUP = 0'；" + _SNOP_UNITS_NOTE, short="groups"),
     "*":     FieldCheck(
         "Unregistered field", "unknown", False, KIND_NONE,
-        "SNOP.MANUAL 定义的其余 namelist 参数未逐一登记；未登记名兜底，不猜。"),
+        "SNOP.MANUAL 定义的其余 namelist 参数未逐一登记；未登记名兜底，不猜。", short="field"),
 }
 
 
@@ -725,7 +730,7 @@ _GENERIC_CURVE: dict[str, FieldCheck] = {
         "Fallback family - column semantics not documented, never guessed",
         "unknown", False, KIND_NONE,
         "兜底族设计立场：列语义不文档化、绝不猜测（parsers/generic_curve.py）"
-        "—— 无来源可用，人工核查前保持 uk, uv。"),
+        "—— 无来源可用，人工核查前保持 uk, uv。", short="y"),
 }
 
 
@@ -742,7 +747,7 @@ _DERIVED_AXES: dict[str, FieldCheck] = {
         "Electron number density (derived: n_e = rho*N_A*Zbar/A)", "cm^-3",
         False, KIND_DERIVED,
         "代码内派生公式：plotting/gridmap.py::_derive_ne，常数 N_A 取 "
-        "config.py 单一来源（公式与常数均可指认，单位由量纲确定）—— 待人工核查。"),
+        "config.py 单一来源（公式与常数均可指认，单位由量纲确定）—— 待人工核查。", short="n_e"),
 }
 
 
@@ -780,102 +785,12 @@ _UNREGISTERED_FAMILY = FieldCheck(
 
 # ================================================================
 # 短标签（short）—— 用户 2026-09-15 晚裁定：条目含**长/短两个标签**。
-# 绘图默认用短标签（长 meaning 保留给报告/文档与人工核查场景），
-# 两者显示时都带 uk/uv 标记。短标签 = 物理量标准简写（全 ASCII）；
-# 空串回退 ``meaning``（labels.field_label 负责回退）。
-# 人工核查工作流不变：直接改本表或条目，然后重跑再生成命令。
+# r14 起各条目的 short 直接内联在上方各 FieldCheck(..., short=...)
+# 构造处（长/短标签同处，便于人工对照修改）；此前的集中表
+# _SHORT_LABELS 与 apply_short_labels() 回填机制已废除。绘图默认用
+# 短标签（labels.field_label），空串回退 meaning；全表非空 + ASCII
+# 由 test_plot_labels 双轨测试守护。
 # ================================================================
-_SHORT_LABELS: dict[str, dict[str, str]] = {
-    "ionmix": {
-        "T": "T", "nion": "n_ion", "zbar": "Zbar", "dzdt": "dZ/dT",
-        "p_ion": "P_ion", "p_ele": "P_ele",
-        "dpion_dt": "dP_ion/dT", "dpele_dt": "dP_ele/dT",
-        "e_ion": "E_ion", "e_ele": "E_ele",
-        "cv_ion": "cv_ion", "cv_ele": "cv_ele",
-        "deion_dn": "de_ion/dn", "deele_dn": "de_ele/dn",
-        "engrup": "E_groups",
-        "opac_rosseland": "kappa_R",
-        "opac_planck_abs": "kappa_P_abs",
-        "opac_planck_ems": "kappa_P_ems",
-    },
-    "multi_inverted_eos": {
-        "rho": "rho", "de": "de", "P": "P", "E": "E",
-        "e0_cold": "e0_cold", "de_energy": "de", "T": "T",
-        "*": "field",
-    },
-    "multi_opacity": {
-        "rho": "rho", "Te": "Te", "kappa": "kappa", "Z": "Z",
-        "*": "field",
-    },
-    "hyades_eos": {
-        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
-        "raw_tail": "tail", "*": "field",
-    },
-    "hyades_opacity": {
-        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
-        "raw_tail": "tail", "*": "field",
-    },
-    "sesame_dat": {
-        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "kappa": "kappa",
-        "raw_tail": "tail", "*": "field",
-    },
-    "mpqeos": {
-        "rho": "rho", "Te": "Te", "P": "P", "E": "E", "Z": "Z",
-        "*": "field",
-    },
-    "feos_native": {
-        "rho": "rho", "Te": "Te", "raw_values": "raw", "*": "field",
-    },
-    "feos_tabdata": {"*": "col"},
-    "feos_aux": {"*": "raw"},
-    "ledcop_atomic": {
-        "rho": "rho", "Te": "Te", "Ross": "kappa_R", "Planck": "kappa_P",
-        "No. Free": "N_free", "Av Sq Free": "Nsqr_free", "*": "field",
-    },
-    "ledcop_zeff": {
-        "rho": "rho", "Te": "Te", "NoFree": "N_free",
-        "AvSqFree": "Nsqr_free", "*": "field",
-    },
-    "coldopacity": {"Eph": "E_ph", "miu": "miu", "*": "col"},
-    "hugoniot": {
-        "Rho": "rho", "T": "T", "P": "P", "E": "E", "Us": "Us",
-        "Up": "Up", "*": "col",
-    },
-    "snop_input": {
-        "T1": "T1", "T2": "T2", "X1": "hnu1", "X2": "hnu2",
-        "FG": "groups", "*": "field",
-    },
-    "generic_curve": {"*": "y"},
-    "derived_axes": {"n_e": "n_e"},
-}
-
-
-def apply_short_labels() -> None:
-    """把 :data:`_SHORT_LABELS` 回填进各条目的 ``short`` 字段。
-
-    模块加载时执行一次；任何静态登记条目缺短标签立即 ``RuntimeError``
-    （登记完整性：短标签是绘图默认标签，不允许静默缺失）。
-    ``register_family`` 动态注册的族不经过本函数 —— 其条目 ``short``
-    为空串，绘图时由 labels 回退 ``meaning``（兼容语义）。
-    """
-    missing: list[str] = []
-    for fam, entries in FIELD_CHECKS.items():
-        shorts = _SHORT_LABELS.get(fam)
-        if shorts is None:
-            missing.append(f"{fam}.* (whole family)")
-            continue
-        for fld, fc in entries.items():
-            short = shorts.get(fld)
-            if not short:
-                missing.append(f"{fam}.{fld}")
-                continue
-            FIELD_CHECKS[fam][fld] = _dc_replace(fc, short=short)
-    if missing:
-        raise RuntimeError(
-            "field_checks: short label missing for: " + ", ".join(missing))
-
-
-apply_short_labels()
 
 
 def field_check(family: str, field: str) -> FieldCheck:

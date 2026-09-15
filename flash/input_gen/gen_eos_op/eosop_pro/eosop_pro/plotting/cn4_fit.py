@@ -137,7 +137,7 @@ def fit_power_law(x, y, *, xlabel="x", ylabel="y", title=None,
     out = _plot_fit(
         x[m], y[m], yfit[m],
         xlabel=xlabel, ylabel=ylabel,
-        title=title or f"Power law: $y = {a:.4g}\\,x^{{{b:.4f}}}$  "
+        title=title or f"Power law: $y = {a:.1e}\\,x^{{{b:.4f}}}$  "
                        f"($R^2$ = {r2:.4f})",
         outfile=outfile, tag=tag)
     print(f"[fit] power law a={a:.6g}, b={b:.6f}, R2={r2:.6f} -> {out}")
@@ -169,7 +169,7 @@ def fit_exponential(x, y, *, xlabel="x", ylabel="y", title=None,
     out = _plot_fit(
         x[m], y[m], yfit[m],
         xlabel=xlabel, ylabel=ylabel,
-        title=title or f"Exponential: $y = {a:.4g}\\,e^{{{b_nat:.4f}x}}$  "
+        title=title or f"Exponential: $y = {a:.1e}\\,e^{{{b_nat:.4f}x}}$  "
                        f"($R^2$ = {r2:.4f})",
         outfile=outfile, tag=tag)
     print(f"[fit] exponential a={a:.6g}, b={b_nat:.6f}, R2={r2:.6f} -> {out}")
@@ -234,12 +234,12 @@ def fit_ideal_gas(tbl: CN4Table, *, T_idx: int = 0,
     order = np.argsort(x)
     ax.plot(x[order], yfit[order] * P_JCM3_TO_MBAR, "-",
             lw=config.PLOT_LINEWIDTH, color="tab:red",
-            label=f"Fit: slope = {slope_mbar:.4e} Mbar/cc")
+            label=f"Fit: slope = {slope_mbar:.1e} Mbar/cc")
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel(r"$(1 + \langle Z\rangle)\; n_i$ (cm$^{-3}$)")
     ax.set_ylabel("Pressure $P$ (Mbar)")
-    ax.set_title(f"Ideal-gas test at $T$ = {T:.4e} eV  ($R^2$ = {r2:.4f})")
+    ax.set_title(f"Ideal-gas test at $T$ = {T:.1e} eV  ($R^2$ = {r2:.4f})")
     ax.grid(True, which="both", alpha=0.3)
     ax.tick_params(which="both", direction="in", top=True, right=True,
                    labelsize=config.PLOT_TICK_FONTSIZE, width=1.5, length=6)

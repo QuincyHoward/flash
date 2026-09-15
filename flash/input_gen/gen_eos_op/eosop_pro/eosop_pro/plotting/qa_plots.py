@@ -93,7 +93,7 @@ def plot_eos_isobars(table: ParsedTable, field: str = "P", *,
         #   不连线 —— 未核查数据不得呈现插值连续性暗示。
         ax.plot(Te, y, marker="o", markersize=config.PLOT_MARKERSIZE - 2,
                 linewidth=0, linestyle="none",
-                label=f"rho = {rho[j]:.3g} g/cc")
+                label=f"rho = {rho[j]:.1e} g/cc")
     ax.set_xscale("log")
     ax.set_yscale("log")
     # 轴标签走控制字典（意义 + 单位 + uk/uv 标记，实时同步）
@@ -158,7 +158,7 @@ def plot_zeff(table: ParsedTable, field: str = "Z", *,
         # ★ 散点规约（用户 2026-09-15 晚）：uk/uv 数据一律散点（lw=0）。
         ax.plot(Te, arr[:, j], marker="s", markersize=config.PLOT_MARKERSIZE,
                 linewidth=0, linestyle="none",
-                label=f"rho = {rho[j]:.3g} g/cc")
+                label=f"rho = {rho[j]:.1e} g/cc")
     ax.set_xscale("log")
     ax.set_xlabel(field_label(table.family, "Te",
                               parser_unit=table.axis_units.get("Te", "")))
