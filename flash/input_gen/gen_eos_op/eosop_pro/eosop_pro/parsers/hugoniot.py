@@ -48,8 +48,15 @@ def parse_column_header(line: str) -> list[tuple[str, str]]:
         if unit:
             sm = _SCALE_UNIT_RE.match(unit)
             if sm:
-                # 带上缩放因子信息，避免丢失（用 "×N unit" 形式保留）
-                unit = f"{sm.group(2).strip()} (x{sm.group(1)})"
+                # 带上缩放因子信息，避免丢失（用 "×N unit" 形式保留）；
+                # 缩放因子数值化重排为 :.1e（2026-09-15 晚规约：图上数值
+                # 一律 :.1e —— 文件头原文 1.000000e+005 太长，会原样进入
+                # 图轴标签），非数值文本解析失败时回退原文
+                try:
+                    scale_txt = f"{float(sm.group(1)):.1e}"
+                except ValueError:
+                    scale_txt = sm.group(1)
+                unit = f"{sm.group(2).strip()} (x{scale_txt})"
         if name:
             out.append((name.strip(), unit))
     return out

@@ -636,10 +636,10 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
              alpha=0.85, label=f"Data ({len(Us)} pts)")
     if yfit is not None:
         ax2.plot(Up_u[m_fit], yfit, "--", lw=2.0, color="black", alpha=0.75,
-                 label=rf"Fit ($U_p\leq {fit_win:.0f}$)")
+                 label=rf"Fit ($U_p\leq {fit_win:.1e}$)")
     ax2.text(0.05, 0.97,
-             rf"$U_s = {k:.4f}\,U_p + {b:.1e}$ um/ns" "\n"
-             rf"(window $U_p\in[0,{fit_win:.0f}]$, $R^2 = {r2:.4f}$)",
+             rf"$U_s = {k:.1e}\,U_p + {b:.1e}$ um/ns" "\n"
+             rf"(window $U_p\in[0,{fit_win:.1e}]$, $R^2 = {r2:.1e}$)",
              transform=ax2.transAxes, ha="left", va="top",
              bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.85))
     ax2.set_xlabel(r"Particle velocity $U_p$ (um/ns)" + _tags_suffix(tbl, "Up"))

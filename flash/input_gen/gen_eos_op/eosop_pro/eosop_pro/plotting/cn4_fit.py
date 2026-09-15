@@ -137,8 +137,8 @@ def fit_power_law(x, y, *, xlabel="x", ylabel="y", title=None,
     out = _plot_fit(
         x[m], y[m], yfit[m],
         xlabel=xlabel, ylabel=ylabel,
-        title=title or f"Power law: $y = {a:.1e}\\,x^{{{b:.4f}}}$  "
-                       f"($R^2$ = {r2:.4f})",
+        title=title or f"Power law: $y = {a:.1e}\\,x^{{{b:.1e}}}$  "
+                       f"($R^2$ = {r2:.1e})",
         outfile=outfile, tag=tag)
     print(f"[fit] power law a={a:.6g}, b={b:.6f}, R2={r2:.6f} -> {out}")
     return a, b, r2, out
@@ -169,8 +169,8 @@ def fit_exponential(x, y, *, xlabel="x", ylabel="y", title=None,
     out = _plot_fit(
         x[m], y[m], yfit[m],
         xlabel=xlabel, ylabel=ylabel,
-        title=title or f"Exponential: $y = {a:.1e}\\,e^{{{b_nat:.4f}x}}$  "
-                       f"($R^2$ = {r2:.4f})",
+        title=title or f"Exponential: $y = {a:.1e}\\,e^{{{b_nat:.1e}x}}$  "
+                       f"($R^2$ = {r2:.1e})",
         outfile=outfile, tag=tag)
     print(f"[fit] exponential a={a:.6g}, b={b_nat:.6f}, R2={r2:.6f} -> {out}")
     return a, b_nat, r2, out
@@ -239,7 +239,7 @@ def fit_ideal_gas(tbl: CN4Table, *, T_idx: int = 0,
     ax.set_yscale("log")
     ax.set_xlabel(r"$(1 + \langle Z\rangle)\; n_i$ (cm$^{-3}$)")
     ax.set_ylabel("Pressure $P$ (Mbar)")
-    ax.set_title(f"Ideal-gas test at $T$ = {T:.1e} eV  ($R^2$ = {r2:.4f})")
+    ax.set_title(f"Ideal-gas test at $T$ = {T:.1e} eV  ($R^2$ = {r2:.1e})")
     ax.grid(True, which="both", alpha=0.3)
     ax.tick_params(which="both", direction="in", top=True, right=True,
                    labelsize=config.PLOT_TICK_FONTSIZE, width=1.5, length=6)
@@ -282,7 +282,7 @@ def fit_generic(x, y, func: Callable, p0=None, *, xlabel="x", ylabel="y",
     out = _plot_fit(
         x[m], y[m], yfit[m], xlabel=xlabel, ylabel=ylabel,
         title=title or f"Generic fit ({len(popt)} params)  "
-                       f"($R^2$ = {r2:.4f})",
+                       f"($R^2$ = {r2:.1e})",
         outfile=outfile, tag=tag)
     print(f"[fit] generic popt={np.asarray(popt)}, R2={r2:.6f} -> {out}")
     return popt, pcov, r2, out
