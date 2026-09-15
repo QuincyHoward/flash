@@ -22,10 +22,13 @@ cn4 专用绘图（:mod:`..cn4.cn4_plots`）里的**绘图原语**已上提至�
 * 每张图落盘后立即 ``close``（run_all 同进程执行，figure 不得泄漏）；
 * ne-T 等**派生轴**只在物理可导出时绘制（需电离度场 + 显式 ``atomwt``），
   缺依据时**跳过并写明原因**，绝不猜测；
-* **两重认证显示规约**（用户 2026-09-15）：每张图的 colorbar / 曲线
-  ylabel 一律追加两重认证标记 ``doc``（有专门文献/文档说明）或 ``uk``
-  （未知），``ok``（已人工核查）或 ``uv``（未验证）—— 例如
-  ``P (Mbar, uk, uv)``。报告 ``_report.txt`` 的轴/字段行同规约；
+* **认证标记显示规约**（用户 2026-09-15 第二次裁定 + 第十二轮）：标记
+  只有 ``uk``（无来源确认）/ ``uv``（未人工核查）两个，有源且已核查
+  **整体省略**（当前仅 cn4）—— 例如 ``P (Mbar), uv``。所有轴 /
+  colorbar / ylabel 标签一律经 :mod:`.labels`（字典驱动统一出口）实时
+  取意义/单位/标记 —— 人工核查翻 ``checked`` 后**下一次出图自动同步**，
+  本模块不再硬编码任何物理量标签。报告 ``_report.txt`` 的轴/字段行
+  同规约；
 * **raw 数值兜底**（用户 2026-09-15）：字段与轴的形状/长度不匹配而无法
   按语义绘图的，**不再静默跳过** —— 改画 ``raw values vs element index``
   序列图（数值本身永远可画），图与报告明确标注 semantics unknown；
@@ -40,6 +43,8 @@ from typing import Iterable, Sequence
 import numpy as np
 
 from .. import config
+from ..registry.field_checks import field_check, tags_label
+from .labels import display_unit, field_label, tags_of
 
 __all__ = [
     "plot_heatmap", "plot_multi_curve", "plot_table_all_fields",
@@ -250,6 +255,19 @@ def _auto_log(vals: np.ndarray) -> bool:
 # ParsedTable 批量出图（任意 eosop 族）
 # ================================================================
 
+def _unit_disp(family: str, name: str, raw: str) -> str:
+    """单位 + 认证标记显示串（**字典驱动**，:func:`.labels.display_unit`）。
+
+    单位：解析器逐文件实测值优先 -> 字典 ``unit`` -> ``unknown``；
+    标记只有 ``uk``（无来源确认）/ ``uv``（未人工核查），有源且已核查
+    整体省略（当前仅 cn4）—— 报告行与图上（colorbar / 曲线 ylabel）
+    同规约，意义/单位/标记实时取自控制字典，人工核查后自动同步。
+    """
+    unit = display_unit(family, name, raw)
+    tags = tags_of(family, name)
+    return f"{unit}, {tags}" if tags else unit
+
+
 def sanitize_name(name: str) -> str:
     """表键 / 字段名 -> 文件名安全 ASCII 串（非 [A-Za-z0-9._-] 替换 '_'）。"""
     out = "".join(c if (c.isascii() and (c.isalnum() or c in "._-"))
@@ -340,24 +358,10 @@ def plot_table_all_fields(
         ``{"outdir", "family", "n_tables", "n_plots", "plots", "skipped",
         "tables_truncated", "reports"}``
     """
-    from ..registry.field_checks import (field_check, tags_label)
-
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     tables = list(tables)
     fam = family or (getattr(tables[0], "family", "") if tables else "")
-
-    def _unit_disp(raw: str, fc) -> str:
-        """单位 + **认证标记**显示串（用户 2026-09-15 规约）。
-
-        标记只有 ``uk``（无来源确认）/ ``uv``（未人工核查）两个；
-        有源且已人工核查 -> 标记整体省略（当前仅 cn4）。
-        无单位写 ``unknown`` —— 报告行与图上（colorbar / 曲线 ylabel）
-        同规约，未认证单位绝不能被当成已认证。
-        """
-        unit = raw or "unknown"
-        tags = tags_label(fc)
-        return f"{unit}, {tags}" if tags else unit
 
     plots: list[str] = []
     skipped: list[str] = []
@@ -399,19 +403,15 @@ def plot_table_all_fields(
             x_name = y_name = None
 
         def _ax_label(name: str) -> str:
-            """轴标签（**带认证标记**，与 colorbar 同规约）。
+            """轴标签（**带认证标记**，字典驱动 :func:`.labels.field_label`）。
 
-            格式 ``Name (unit)`` 或 ``Name (unit), <tags>`` —— 标记只有
-            ``uk``（无来源）/``uv``（未核查），有源且已核查则整体省略
-            （用户 2026-09-15 规约），不能只标场量。
+            格式 ``Meaning (unit)`` 或 ``Meaning (unit), <tags>`` —— 标记
+            只有 ``uk``（无来源）/``uv``（未核查），有源且已核查则整体
+            省略（用户 2026-09-15 规约）；意义/单位实时取自控制字典，
+            轴与场量同规约，人工核查后自动同步。
             """
-            u = tbl.axis_units.get(name, "")
-            fc_ax = field_check(fam, name)
-            base = {"Te": "Electron temperature Te", "T": "Temperature T",
-                    "tele": "Electron temperature Te"}.get(name, name)
-            core = f"{base} ({u})" if u else base
-            tags = tags_label(fc_ax)
-            return f"{core}, {tags}" if tags else core
+            return field_label(fam, name,
+                               parser_unit=tbl.axis_units.get(name, ""))
 
         # 轴数组提前取好（2D/3D 分支共用；1D 表为 None）
         xv = np.asarray(tbl.axes[x_name], float) if x_name else None
@@ -436,7 +436,7 @@ def plot_table_all_fields(
         map_count = 0
         curve_count = 0
 
-        def _raw_fallback(fname, flat, unit, fc, why: str):
+        def _raw_fallback(fname, flat, unit, why: str):
             """语义映射失败时的 **raw 数值兜底图**（用户 2026-09-15 规约）。
 
             返回 ``(plot_path | None, note | None)``：成功 -> ``(路径, None)``；
@@ -451,7 +451,7 @@ def plot_table_all_fields(
                               f"raw fallback budget exhausted")
             try:
                 return _plot_raw_sequence(tbl, fname, flat, sub,
-                                          _unit_disp(unit, fc)), None
+                                          _unit_disp(fam, fname, unit)), None
             except Exception as exc:                          # noqa: BLE001
                 return None, (f"{tbl.table_key}.{fname}: {why}; "
                               f"raw fallback failed: {exc}")
@@ -478,7 +478,7 @@ def plot_table_all_fields(
                 if ng is None or shape[0] != ng:
                     why = (f"3D field without confirmed group dim "
                            f"(shape={tuple(shape)}, n_groups={ng})")
-                    p, note = _raw_fallback(fname, flat, unit, fc, why)
+                    p, note = _raw_fallback(fname, flat, unit, why)
                     if note:
                         skipped.append(note)
                     if p:
@@ -503,7 +503,8 @@ def plot_table_all_fields(
                         plots.append(plot_heatmap(
                             x=xv, y=yv, field=f2,
                             xlabel=_ax_label(x_name), ylabel=_ax_label(y_name),
-                            clabel=f"{fname} group {g + 1} ({_unit_disp(unit, fc)})",
+                            clabel=(f"{field_label(fam, fname, parser_unit=unit)}"
+                                    f" - group {g + 1}"),
                             title=f"{tbl.table_key}: {fname} group {g + 1}",
                             outfile=out, cmap=cmap, zlog=zl))
                         made_here += 1
@@ -524,7 +525,7 @@ def plot_table_all_fields(
                 if f2.shape != (len(yv), len(xv)):
                     why = (f"shape {tuple(shape)} does not match "
                            f"axes ({x_name}, {y_name})")
-                    p, note = _raw_fallback(fname, flat, unit, fc, why)
+                    p, note = _raw_fallback(fname, flat, unit, why)
                     if note:
                         skipped.append(note)
                     if p:
@@ -538,7 +539,7 @@ def plot_table_all_fields(
                     plots.append(plot_heatmap(
                         x=xv, y=yv, field=f2,
                         xlabel=_ax_label(x_name), ylabel=_ax_label(y_name),
-                        clabel=f"{fname} ({_unit_disp(unit, fc)})",
+                        clabel=field_label(fam, fname, parser_unit=unit),
                         title=f"{tbl.table_key}: {fname}",
                         outfile=out, cmap=cmap, zlog=_auto_zlog(f2)))
                     made_here += 1
@@ -555,18 +556,14 @@ def plot_table_all_fields(
                                else ne2d.T)
                     if f2.shape == ne_plot.shape:
                         out = sub / f"{sanitize_name(fname)}_ne-T.png"
-                        # 派生轴同样带认证标记（derived_axes 族登记）
-                        fc_ne = field_check("derived_axes", "n_e")
-                        tags_ne = tags_label(fc_ne)
-                        ylab = "Electron number density n_e (cm$^{-3}$)"
-                        if tags_ne:
-                            ylab = f"{ylab}, {tags_ne}"
+                        # 派生轴同样走字典（derived_axes 族登记，实时同步）
+                        ylab = field_label("derived_axes", "n_e")
                         try:
                             plots.append(plot_heatmap(
                                 x=xv, y=ne_plot, field=f2,
                                 xlabel=_ax_label(x_name),
                                 ylabel=ylab,
-                                clabel=f"{fname} ({_unit_disp(unit, fc)})",
+                                clabel=field_label(fam, fname, parser_unit=unit),
                                 title=f"{tbl.table_key}: {fname}  [{how}]",
                                 outfile=out, cmap=cmap, zlog=_auto_zlog(f2)))
                             made_here += 1
@@ -587,7 +584,7 @@ def plot_table_all_fields(
                             fixed_name=y_name, fixed_vals=yv,
                             var_name=x_name, var_vals=xv, fixed_axis=0,
                             tag="vs_" + sanitize_name(x_name), sub=sub,
-                            unit=_unit_disp(unit, fc), scatter=bool(tags)))
+                            parser_unit=unit, scatter=bool(tags)))
                         made_here += 1
                     except Exception as exc:                      # noqa: BLE001
                         skipped.append(f"{tbl.table_key}.{fname} (vs x): {exc}")
@@ -597,7 +594,7 @@ def plot_table_all_fields(
                             fixed_name=x_name, fixed_vals=xv,
                             var_name=y_name, var_vals=yv, fixed_axis=1,
                             tag="vs_" + sanitize_name(y_name), sub=sub,
-                            unit=_unit_disp(unit, fc), scatter=bool(tags)))
+                            parser_unit=unit, scatter=bool(tags)))
                         made_here += 1
                     except Exception as exc:                      # noqa: BLE001
                         skipped.append(f"{tbl.table_key}.{fname} (vs y): {exc}")
@@ -611,7 +608,7 @@ def plot_table_all_fields(
                 if yv.size != xv.size:
                     why = (f"len {yv.size} != axis {ax_name!r} "
                            f"len {xv.size}")
-                    p, note = _raw_fallback(fname, flat, unit, fc, why)
+                    p, note = _raw_fallback(fname, flat, unit, why)
                     if note:
                         skipped.append(note)
                     if p:
@@ -623,7 +620,8 @@ def plot_table_all_fields(
                 try:
                     plots.append(plot_multi_curve(
                         [(fname, xv, yv)],
-                        xlabel=_ax_label(ax_name), ylabel=f"{fname} ({_unit_disp(unit, fc)})",
+                        xlabel=_ax_label(ax_name),
+                        ylabel=field_label(fam, fname, parser_unit=unit),
                         title=f"{tbl.table_key}: {fname}", outfile=out,
                         scatter=bool(tags)))
                     made_here += 1
@@ -653,7 +651,7 @@ def plot_table_all_fields(
 
 
 def _table_curves(tbl, fname, f2, *, fixed_name, fixed_vals, var_name,
-                  var_vals, fixed_axis, tag, sub, unit,
+                  var_vals, fixed_axis, tag, sub, parser_unit,
                   scatter: bool = False):
     """2D 场的截断曲线（cn4 ``plot_vs_temperature`` 的 ParsedTable 泛化版）。
 
@@ -661,6 +659,7 @@ def _table_curves(tbl, fname, f2, *, fixed_name, fixed_vals, var_name,
 
     * ``fixed_axis=0`` —— 固定 **y 轴**（行）若干值，画 ``field`` 随 **x 轴** 的变化；
     * ``fixed_axis=1`` —— 固定 **x 轴**（列）若干值，画 ``field`` 随 **y 轴** 的变化；
+    * ``parser_unit`` —— 解析器逐文件实测单位（None/空 -> 字典单位）；
     * ``scatter`` —— 字段认证标记非空（uk/uv）时为 ``True``（散点规约）。
     """
     fixed_vals = np.asarray(fixed_vals, dtype=float)
@@ -677,25 +676,22 @@ def _table_curves(tbl, fname, f2, *, fixed_name, fixed_vals, var_name,
         curves.append((label, var_vals, row))
     return plot_multi_curve(
         curves, xlabel=_axis_label_of(tbl, var_name),
-        ylabel=f"{fname} ({unit})",
+        ylabel=field_label(tbl.family, fname, parser_unit=parser_unit),
         title=f"{tbl.table_key}: {fname} {tag.replace('_', ' ')}",
         outfile=sub / f"{sanitize_name(fname)}_{tag}.png", scatter=scatter)
 
 
 def _axis_label_of(tbl, name: str) -> str:
-    """轴标签（**带认证标记**，与 _ax_label / colorbar 同规约）。
+    """轴标签（**带认证标记**，字典驱动 :func:`.labels.field_label`）。
 
-    格式 ``Name (unit)`` / ``Name (unit), <tags>``（标记只有 uk/uv，
-    有源且已核查则省略）—— 截断曲线的 x/y 轴同样必须让认证状态可见
-    （用户 2026-09-15 令）；用 ``tbl.family`` 查询控制字典。
+    格式 ``Meaning (unit)`` / ``Meaning (unit), <tags>`` —— 截断曲线的
+    x/y 轴同样必须让认证状态可见（用户 2026-09-15 令）；用 ``tbl.family``
+    查询控制字典，意义/单位/标记实时同步（★ 模块级导入修复：旧实现把
+    ``field_check`` 放在函数内导入，本函数在模块层引用不到 ->
+    NameError 被 vs_x/vs_y 的 try/except 静默吞掉，截断曲线从未产出）。
     """
-    u = tbl.axis_units.get(name, "")
-    fc_ax = field_check(tbl.family, name)
-    base = {"Te": "Electron temperature Te", "T": "Temperature T",
-            "tele": "Electron temperature Te"}.get(name, name)
-    core = f"{base} ({u})" if u else base
-    tags = tags_label(fc_ax)
-    return f"{core}, {tags}" if tags else core
+    return field_label(tbl.family, name,
+                       parser_unit=tbl.axis_units.get(name, ""))
 
 
 def _auto_zlog(f2: np.ndarray) -> bool:

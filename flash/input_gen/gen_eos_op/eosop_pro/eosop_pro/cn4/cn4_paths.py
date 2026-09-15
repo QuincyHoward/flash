@@ -100,6 +100,21 @@ def _style_ax(ax) -> None:
         s.set_linewidth(1.5)
 
 
+def _tags_suffix(tbl: CN4Table, cn4_field: str) -> str:
+    """轴/曲线标签的**来源族认证标记后缀**（用户 2026-09-15 第十二轮规约）。
+
+    跨族转换表（``tbl.origin_family`` 非空，如 ``"mpqeos"``）上，物理
+    路径图的标签必须追加**来源族**的认证标记（``, uk, uv`` / ``,
+    uv``），让"这批数据的核查状态"在图上持续可见 —— 标记实时取自
+    控制字典（:func:`plotting.labels.cn4_tags`），人工核查翻
+    ``checked`` 后下一次出图自动同步；原生 cn4（数据全来自 ionmix，
+    已核查）后缀为空，图像不变。
+    """
+    from ..plotting.labels import cn4_tags
+    tags = cn4_tags(getattr(tbl, "origin_family", "") or "", cn4_field)
+    return f", {tags}" if tags else ""
+
+
 def _save(fig, outfile, tag: str) -> str:
     """保存图像；``outfile=None`` 时写到 cwd。"""
     if outfile is None:
@@ -265,24 +280,26 @@ def trace_isotherm(tbl: CN4Table, T_idx: int = 10, T: Optional[float] = None,
 
     use_rho = (x_axis == "rho")
     x = rho_axis if use_rho else nion
-    xlabel = (r"Mass density $\rho$ (g/cm$^3$)" if use_rho
-              else r"Ion number density $n_i$ (cm$^{-3}$)")
+    xlabel = (r"Mass density $\rho$ (g/cm$^3$)" + _tags_suffix(tbl, "rho")
+              if use_rho
+              else r"Ion number density $n_i$ (cm$^{-3}$)"
+                   + _tags_suffix(tbl, "nion"))
 
     P = pressure_mbar(P)      # J/cm3 -> Mbar
     e = energy_ergg(e)        # J/g   -> erg/g
 
     fig, ax1 = plt.subplots(figsize=figsize)
     ax1.plot(x, P, "o-", lw=config.PLOT_LINEWIDTH, ms=6, color="tab:red",
-             label=r"Pressure $P$ (Mbar)")
+             label=r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax1.set_xscale("log"); ax1.set_yscale("log")
     ax1.set_xlabel(xlabel)
-    ax1.set_ylabel(r"Pressure $P$ (Mbar)")
+    ax1.set_ylabel(r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax1.tick_params(axis="y", labelcolor="tab:red")
     ax2 = ax1.twinx()
     ax2.plot(x, e, "s-", lw=config.PLOT_LINEWIDTH, ms=6, color="tab:blue",
-             label=r"Specific energy $e$ (erg/g)")
+             label=r"Specific energy $e$ (erg/g)" + _tags_suffix(tbl, "E"))
     ax2.set_yscale("log")
-    ax2.set_ylabel(r"Specific energy $e$ (erg/g)")
+    ax2.set_ylabel(r"Specific energy $e$ (erg/g)" + _tags_suffix(tbl, "E"))
     ax2.tick_params(axis="y", labelcolor="tab:blue")
     ax1.set_title(rf"Isotherm, $T$ = {T_val:.4e} eV")
     h1, l1 = ax1.get_legend_handles_labels()
@@ -335,8 +352,9 @@ def trace_isobar(tbl: CN4Table, P: float, outfile=None, figsize=(10.0, 7.5)):
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(T_c, n_c, "o-", lw=config.PLOT_LINEWIDTH, ms=5, color="tab:green")
     ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlabel(r"Temperature $T$ (eV)")
-    ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)")
+    ax.set_xlabel(r"Temperature $T$ (eV)" + _tags_suffix(tbl, "T"))
+    ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)"
+                  + _tags_suffix(tbl, "nion"))
     ax.set_title(rf"Isobar, $P$ = {pressure_mbar(P):.3e} Mbar")
     _style_ax(ax)
     fig.tight_layout()
@@ -427,8 +445,9 @@ def trace_isentrope(tbl: CN4Table, s: np.ndarray, s0_idx: Tuple[int, int] = (5, 
     fig, ax = plt.subplots(figsize=figsize)
     ax.plot(T_c, n_c, "o-", lw=config.PLOT_LINEWIDTH, ms=5, color="tab:purple")
     ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlabel(r"Temperature $T$ (eV)")
-    ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)")
+    ax.set_xlabel(r"Temperature $T$ (eV)" + _tags_suffix(tbl, "T"))
+    ax.set_ylabel(r"Ion number density $n_i$ (cm$^{-3}$)"
+                  + _tags_suffix(tbl, "nion"))
     ax.set_title(rf"Isentrope, $s$ = {energy_ergg(s0):.4f} erg/(g eV)")
     _style_ax(ax)
     fig.tight_layout()
@@ -592,8 +611,8 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
     ax1.plot([rho0_eff], [pressure_mbar(P0)], "*", ms=20, color="black",
              label="Reference state")
     ax1.set_xscale("log"); ax1.set_yscale("log")
-    ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)")
-    ax1.set_ylabel(r"Pressure $P$ (Mbar)")
+    ax1.set_xlabel(r"Mass density $\rho$ (g/cm$^3$)" + _tags_suffix(tbl, "rho"))
+    ax1.set_ylabel(r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax1.set_title("Shock Hugoniot")
     ax1.set_xlim(rho0_eff * 0.5, max(rho0_eff * 1.05, rho_c.max()) * 1.3)
     p_lo, p_hi = min(P0, P_c.min()), max(P0, P_c.max())
@@ -623,8 +642,8 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
              rf"(window $U_p\in[0,{fit_win:.0f}]$, $R^2 = {r2:.4f}$)",
              transform=ax2.transAxes, ha="left", va="top",
              bbox=dict(boxstyle="round,pad=0.3", fc="white", alpha=0.85))
-    ax2.set_xlabel(r"Particle velocity $U_p$ (um/ns)")
-    ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)")
+    ax2.set_xlabel(r"Particle velocity $U_p$ (um/ns)" + _tags_suffix(tbl, "Up"))
+    ax2.set_ylabel(r"Shock velocity $U_s$ (um/ns)" + _tags_suffix(tbl, "Us"))
     ax2.set_title(r"$U_s$-$U_p$ relation (linear fit)")
     ax2.legend(loc="best")
     ax2.set_xlim(0.0, fit_win)
@@ -639,8 +658,9 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
     ax3.plot([V0], [pressure_mbar(P0)], "*", ms=20, color="black",
              label="Reference state")
     ax3.set_xscale("log"); ax3.set_yscale("log")
-    ax3.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)")
-    ax3.set_ylabel(r"Pressure $P$ (Mbar)")
+    ax3.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)"
+                   + _tags_suffix(tbl, "V"))
+    ax3.set_ylabel(r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax3.set_title("Hugoniot in P-V plane")
     ax3.set_xlim(V_c.min() * 0.8, V0 * 1.2)
     ax3.set_ylim(pressure_mbar(p_lo) * 0.5, pressure_mbar(p_hi) * 2.0)
@@ -655,16 +675,27 @@ def trace_hugoniot(tbl: CN4Table, ref_idx: Tuple[int, int] = (0, 0),
     return rho_c, P_c, Us, Up, outfile
 
 
-def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5)):
+def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5),
+                          origin_family: str = ""):
     """绘制 ``Us``、``Up`` 随压力 ``P`` 的关系。
 
     显示单位: ``P`` -> Mbar（对数轴）, ``Us``/``Up`` -> um/ns（线性轴，窗口 [0,100]）。
+
+    Args:
+        origin_family: 跨族转换 cn4 表的来源族名（``tbl.origin_family``）；
+            非空时轴标签追加该族的认证标记（第十二轮规约 —— 本函数
+            不收 ``CN4Table``，需调用方显式传入）。
 
     Returns:
         输出文件路径
     """
     import matplotlib.pyplot as plt
+    from ..plotting.labels import cn4_tags
     apply_style()
+
+    def _sfx(field: str) -> str:
+        tags = cn4_tags(origin_family, field)
+        return f", {tags}" if tags else ""
 
     Us_u = velocity_umns(np.asarray(Us, dtype=float))
     Up_u = velocity_umns(np.asarray(Up, dtype=float))
@@ -682,8 +713,8 @@ def plot_usup_vs_pressure(Us, Up, P, outfile=None, figsize=(9.0, 6.5)):
             label=r"Particle velocity $U_p$ (um/ns)")
     ax.set_xscale("log")
     ax.set_ylim(0.0, 100.0)
-    ax.set_xlabel(r"Pressure $P$ (Mbar)")
-    ax.set_ylabel(r"Velocity (um/ns)")
+    ax.set_xlabel(r"Pressure $P$ (Mbar)" + _sfx("P"))
+    ax.set_ylabel(r"Velocity (um/ns)" + _sfx("Up"))
     ax.set_title(r"$U_s$ / $U_p$ vs Pressure $P$")
     if len(P_w):
         ax.set_xlim(P_w.min() * 0.5, P_w.max() * 2.0)
@@ -722,16 +753,19 @@ def plot_interpolated_probe(tbl: CN4Table, rho_probe: float, T_probe: float,
 
     fig, ax1 = plt.subplots(figsize=figsize)
     ax1.plot(Ts, P_probe, "o-", lw=config.PLOT_LINEWIDTH, ms=5, color="tab:red",
-             label=r"Pressure $P$ (Mbar)")
+             label=r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax1.set_xscale("log"); ax1.set_yscale("log")
-    ax1.set_xlabel(r"Temperature $T$ (eV)")
-    ax1.set_ylabel(r"Pressure $P$ (Mbar)")
+    ax1.set_xlabel(r"Temperature $T$ (eV)" + _tags_suffix(tbl, "T"))
+    ax1.set_ylabel(r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax1.tick_params(axis="y", labelcolor="tab:red")
     ax2 = ax1.twinx()
     ax2.plot(Ts, zb_probe, "s-", lw=config.PLOT_LINEWIDTH, ms=5,
-             color="tab:blue", label=r"Average charge $\langle Z \rangle$")
+             color="tab:blue",
+             label=r"Average charge $\langle Z \rangle$"
+                   + _tags_suffix(tbl, "zbar"))
     ax2.set_xscale("log")
-    ax2.set_ylabel(r"Average charge $\langle Z \rangle$")
+    ax2.set_ylabel(r"Average charge $\langle Z \rangle$"
+                   + _tags_suffix(tbl, "zbar"))
     ax2.tick_params(axis="y", labelcolor="tab:blue")
     ax1.plot([T_probe], [P_at], "D", ms=14, color="black",
              label=rf"Probe ({rho_probe:.3g} g/cm$^3$, {T_probe:.4g} eV)")
@@ -877,8 +911,9 @@ def plot_pv_diagram(tbl: CN4Table, T_ref: float, s_field: np.ndarray,
     ax.plot([V0], [pressure_mbar(P0)], "*", ms=22, color="black",
             label="Reference state")
     ax.set_xscale("log"); ax.set_yscale("log")
-    ax.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)")
-    ax.set_ylabel(r"Pressure $P$ (Mbar)")
+    ax.set_xlabel(r"Specific volume $V = 1/\rho$ (cm$^3$/g)"
+                  + _tags_suffix(tbl, "V"))
+    ax.set_ylabel(r"Pressure $P$ (Mbar)" + _tags_suffix(tbl, "P"))
     ax.set_title("EOS paths in P-V diagram (from common state)")
     v_min = V_h.min() if len(V_h) else V0 * 0.1
     if V_ent is not None and len(V_ent):

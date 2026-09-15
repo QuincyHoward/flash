@@ -98,6 +98,10 @@ def test_convertible_families_produce_cn4_tables():
         expect("e_ion" in t.fields2d or "e_ele" in t.fields2d
                or "p_ion" in t.fields2d,
                f"{fam}: 转出的 cn4 缺 EOS 场 {sorted(t.fields2d)}")
+        # 第十二轮：跨族转换必须记录来源族（绘图标签据此回查认证标记）
+        expect(t.origin_family == fam,
+               f"{fam}: 转出 cn4 未记录来源族 "
+               f"(origin_family={t.origin_family!r})")
         made += 1
     if made == 0:
         return
@@ -408,7 +412,12 @@ def test_hugoniot_numeric_reference_supported():
 
 
 def test_hugoniot_usup_plot_runs():
-    """``plot_usup_vs_pressure`` 应能吃雨贡纽产物出图。"""
+    """``plot_usup_vs_pressure`` 应能吃雨贡纽产物出图。
+
+    （第十二轮清理：本文件曾定义两次本测试 —— 首版在 ``return None``
+    之后还有一段不可达代码，Python 以第二个定义覆盖第一个；现只保留
+    一份，并把来源族 ``origin_family`` 传给绘图以追加认证标记后缀。）
+    """
     t = _to_cn4("mpqeos")
     if t is None or t.ndens < 5 or t.ntemp < 8:
         return
@@ -423,36 +432,8 @@ def test_hugoniot_usup_plot_runs():
     if m.sum() < 2:
         return
     out = tmp_dir() / "path_usup.png"
-    plot_usup_vs_pressure(Us_a[m], Up_a[m], P_a[m], outfile=str(out))
-    expect(os.path.isfile(out), f"{out} 未生成")
-    return None
-    rho_tab = np.asarray(t.density, dtype=float)
-    if not (rho_tab > 0).all():
-        return
-    rho0 = float(rho_tab[len(rho_tab) // 2])
-    T0 = float(t.temperature[max(1, t.ntemp // 3)])
-    out = tmp_dir() / "path_hugoniot_numeric.png"
-    rho_c, P_c, Us, Up, _f = trace_hugoniot(t, rho0=rho0, T0=T0,
-                                            outfile=str(out))
-    expect(len(rho_c) >= 1, "数值参考态无输出")
-    return None
-
-
-def test_hugoniot_usup_plot_runs():
-    """``plot_usup_vs_pressure`` 应能吃雨贡纽产物出图。"""
-    t = _to_cn4("mpqeos")
-    if t is None or t.ndens < 5 or t.ntemp < 8:
-        return
-    from eosop_pro.cn4.cn4_paths import (plot_usup_vs_pressure,
-                                         trace_hugoniot)
-    import numpy as np
-    rho_c, P_c, Us, Up, _f = trace_hugoniot(t, ref_idx=(2, 3))
-    Us_a, Up_a, P_a = (np.asarray(x, dtype=float) for x in (Us, Up, P_c))
-    m = np.isfinite(Us_a) & np.isfinite(Up_a) & np.isfinite(P_a)
-    if m.sum() < 2:
-        return
-    out = tmp_dir() / "path_usup.png"
-    plot_usup_vs_pressure(Us_a[m], Up_a[m], P_a[m], outfile=str(out))
+    plot_usup_vs_pressure(Us_a[m], Up_a[m], P_a[m], outfile=str(out),
+                          origin_family=t.origin_family)
     expect(os.path.isfile(out), f"{out} 未生成")
     return None
 

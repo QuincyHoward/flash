@@ -2,6 +2,11 @@
 
 所有函数都返回 :class:`matplotlib.figure.Figure` 并可写出 PNG；
 文本一律英文（由 :func:`plotting.style.assert_ascii` 保证）。
+
+★ 标签纪律（用户 2026-09-15 第十二轮裁定）：所有 x/y 轴与 colorbar
+标签一律经 :func:`.labels.field_label` 从控制字典实时取物理意义 / 单位
+/ 认证标记 —— 人工核查翻 ``checked`` 后下一次出图自动同步，本模块
+不硬编码任何物理量标签。
 """
 
 from __future__ import annotations
@@ -13,6 +18,7 @@ import numpy as np
 from .. import config
 from ..grid.interpolate import log10_or_nan
 from ..parsers.base import ParsedTable
+from .labels import field_label
 from .style import apply_style, assert_ascii
 
 __all__ = ["plot_eos_isobars", "plot_opacity_heatmap", "plot_zeff",
@@ -88,8 +94,11 @@ def plot_eos_isobars(table: ParsedTable, field: str = "P", *,
                 label=f"rho = {rho[j]:.3g} g/cc")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("Electron temperature T$_e$ (eV)")
-    ax.set_ylabel(f"{field} ({table.field_units.get(field, '?')})")
+    # 轴标签走控制字典（意义 + 单位 + uk/uv 标记，实时同步）
+    ax.set_xlabel(field_label(table.family, "Te",
+                              parser_unit=table.axis_units.get("Te", "")))
+    ax.set_ylabel(field_label(table.family, field,
+                              parser_unit=table.field_units.get(field, "")))
     ax.set_title(f"{table.table_key}: EOS isobars")
     ax.grid(True, which="both", alpha=0.3)
     ax.legend()
@@ -118,9 +127,14 @@ def plot_opacity_heatmap(table: ParsedTable, field: str = "kappa", *,
     Y = log10_or_nan(Te)
     im = ax.pcolormesh(X, Y, Z, shading="nearest", cmap=config.PLOT_CMAP)
     cb = fig.colorbar(im, ax=ax)
-    cb.set_label(f"log10 {field} ({table.field_units.get(field, '?')})")
-    ax.set_xlabel("log10 rho (g/cm$^3$)")
-    ax.set_ylabel("log10 T$_e$ (eV)")
+    # 轴/colorbar 显示的是 log10 变换值：意义/单位/标记仍走控制字典，
+    # 前缀 "log10 " 描述本图实际画的数值（对数坐标）。
+    cb.set_label("log10 " + field_label(
+        table.family, field, parser_unit=table.field_units.get(field, "")))
+    ax.set_xlabel("log10 " + field_label(
+        table.family, "rho", parser_unit=table.axis_units.get("rho", "")))
+    ax.set_ylabel("log10 " + field_label(
+        table.family, "Te", parser_unit=table.axis_units.get("Te", "")))
     ax.set_title(f"{table.table_key}: opacity map")
     if out_path:
         save_fig(fig, out_path)
@@ -143,8 +157,10 @@ def plot_zeff(table: ParsedTable, field: str = "Z", *,
                 linewidth=config.PLOT_LINEWIDTH,
                 label=f"rho = {rho[j]:.3g} g/cc")
     ax.set_xscale("log")
-    ax.set_xlabel("Electron temperature T$_e$ (eV)")
-    ax.set_ylabel(f"{field} (mean ionisation)")
+    ax.set_xlabel(field_label(table.family, "Te",
+                              parser_unit=table.axis_units.get("Te", "")))
+    ax.set_ylabel(field_label(table.family, field,
+                              parser_unit=table.field_units.get(field, "")))
     ax.set_title(f"{table.table_key}: effective charge")
     ax.grid(True, which="both", alpha=0.3)
     ax.legend()

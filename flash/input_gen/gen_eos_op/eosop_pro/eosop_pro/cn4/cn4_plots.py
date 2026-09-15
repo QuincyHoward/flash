@@ -71,6 +71,11 @@ __all__ = [
 # ================================================================
 
 #: 五个可选坐标轴。``fn`` 取 1D 轴数组（``nele`` 特殊，见 ``_prepare_axes``）。
+#: ★ 第十二轮泛化裁定：本模块保留 LaTeX 数学排版标签（PPT 级排版资产；
+#: ionmix 字典 meaning 含 "(tplsma)" 内部名，不适合直接上标签），但
+#: 全部量名与控制字典（``registry/field_checks`` 的 ``ionmix`` 族）的
+#: 对应关系由 ``test/eosopdata/step02_families/test_plot_labels.py``
+#: 一致性测试锁定 —— 字典登记键变化而此处未同步时测试 FAIL。
 AXES: dict[str, dict] = {
     "T": dict(label="Temperature", unit="eV", short=r"$T$", dim=1),
     "tele": dict(label="Electron temperature", unit="eV", short=r"$T_e$", dim=1),

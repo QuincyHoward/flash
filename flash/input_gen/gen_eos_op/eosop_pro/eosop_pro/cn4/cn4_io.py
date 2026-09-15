@@ -375,6 +375,14 @@ class CN4Table:
     notes: List[str] = field(default_factory=list)
     #: 原子量来源: ``"user"`` / ``"ionmxinp"`` / ``"element_table"`` / ``"unavailable"``
     atomwt_source: str = "unavailable"
+    #: ★ 来源族（用户 2026-09-15 第十二轮规约）：跨族转换
+    #: （``parsed_tables_to_cn4(..., allow_foreign=True)``）时记录源
+    #: ``ParsedTable.family``（如 ``"mpqeos"``）；原生 cn4 / cn4 往返
+    #: 转换为 ``""``。cn4 路径图（``cn4_paths``）的轴标签经
+    #: ``plotting.labels.cn4_tags(origin_family, ...)`` 回查来源族的
+    #: 认证标记（``uk, uv`` / ``uv``）并追加后缀 —— 数据的核查状态在
+    #: 图上持续可见；原生 cn4 数据全来自 ionmix（已核查）无标记。
+    origin_family: str = ""
 
     # ── 基本视图 ────────────────────────────────────────────────
     @property
@@ -1443,6 +1451,11 @@ def parsed_tables_to_cn4(tables: Sequence, *,
             "各族单位体系差异大，需调用方按需换算）；"
             f"源族单位来源 = {eos.unit_source or 'unknown'}")
 
+    # ★ 来源族（第十二轮）：取首个非 cn4 来源族名；绘图标签经
+    #   plotting.labels.cn4_tags 用它回查该族认证标记。
+    foreign_named = sorted(foreign_families - {"cn4"})
+    origin_family = foreign_named[0] if foreign_named else ""
+
     return CN4Table(
         filepath=str(eos.source_relpath),
         ntemp=ntemp, ndens=ndens, ngrups=ngrups, ngases=len(izgas),
@@ -1459,6 +1472,7 @@ def parsed_tables_to_cn4(tables: Sequence, *,
         atomwt_source="user" if atomwt is not None else (
             "element_table" if guess_atomwt(izgas) is not None else "unavailable"
         ),
+        origin_family=origin_family,
         notes=notes,
     )
 

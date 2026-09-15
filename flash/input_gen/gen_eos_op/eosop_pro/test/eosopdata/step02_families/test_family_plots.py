@@ -40,6 +40,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(_d)))       # repo root
 from eosopdata._samples import find_parseable, tmp_dir             # noqa: E402
 
 from eosop_pro import config                                      # noqa: E402
+from eosop_pro.plotting.labels import field_label                 # noqa: E402
 
 #: 各族样品模式（与 test_family_extract.py 一致）。
 SAMPLE_PATTERNS = {
@@ -265,8 +266,12 @@ def test_loglog_curve_renders_for_coldopacity():
         return
     nm = next(iter(t.fields))
     out = tmp_dir() / "fam_coldopacity_curve.png"
+    # 标签走控制字典（意义/单位/uk,uv 标记实时同步，第十二轮裁定）
     plot_loglog_curve(list(ax), list(t.fields[nm]),
-                      xlabel="Photon energy (eV)", ylabel=nm,
+                      xlabel=field_label("coldopacity", "#Eph",
+                                         parser_unit=t.axis_units.get("#Eph", "")),
+                      ylabel=field_label("coldopacity", nm,
+                                         parser_unit=t.field_units.get(nm, "")),
                       title=f"{t.table_key}: cold opacity", out_path=out)
     expect(out.is_file(), f"{out} 未生成")
     return None
@@ -285,8 +290,12 @@ def test_loglog_curve_renders_for_hugoniot():
     if nm is None:
         return
     out = tmp_dir() / "fam_hugoniot_curve.png"
+    # 标签走控制字典（hugoniot 单位逐文件可变：实测单位优先）
     plot_loglog_curve(list(rho), list(t.fields[nm]),
-                      xlabel="Density (g/cm3)", ylabel=nm,
+                      xlabel=field_label("hugoniot", "Rho",
+                                         parser_unit=t.axis_units.get("Rho", "")),
+                      ylabel=field_label("hugoniot", nm,
+                                         parser_unit=t.field_units.get(nm, "")),
                       title=f"{t.table_key}: Hugoniot", out_path=out)
     expect(out.is_file(), f"{out} 未生成")
     return None
@@ -306,7 +315,10 @@ def test_generic_curve_multicolumn_renders():
     if len(vals) != len(list(ax)):
         return
     out = tmp_dir() / "fam_generic_curve.png"
-    plot_loglog_curve(list(ax), vals, xlabel="x", ylabel=nm,
+    # 兜底族无登记语义：field_label 回退列名本身 + uk,uv 标记（不猜）
+    plot_loglog_curve(list(ax), vals,
+                      xlabel=field_label("generic_curve", "x"),
+                      ylabel=field_label("generic_curve", nm),
                       title=f"{t.table_key}: {nm}", out_path=out)
     expect(out.is_file(), f"{out} 未生成")
     return None
