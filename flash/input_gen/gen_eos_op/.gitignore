@@ -1,0 +1,152 @@
+# ============================================================
+# gen_eos_op 本地 git 忽略规则
+# 原则: 只跟踪源码 / 文档 / 配置 / 脚本; 排除大体积二进制与产物
+# ============================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# 测试与覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+*.cover
+
+# ---------- 编辑器 / IDE ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+.vs/
+
+# ---------- 操作系统 ----------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+
+# ============================================================
+# ---------- 大体积数据（>400 MB，不适合纳入 git） ----------
+# ============================================================
+
+# src/Multi1D++：MULTI 可执行程序 + GUI + 便携包（约 1.5 GB）
+src/Multi1D++Portable20241128/
+src/*.rar
+src/*.zip
+src/*.7z
+
+# IONMIX 大体积绘图输出（implot01 ≈ 858 MB, implot03 ≈ 615 MB）
+ionmix/**/implot0*
+ionmix/**/implot1*
+ionmix/**/implot2*
+ionmix/**/implot3*
+ionmix/**/implot4*
+ionmix/**/implot5*
+ionmix/**/implot6*
+ionmix/**/implot7*
+ionmix/**/implot8*
+ionmix/**/implot9*
+ionmix/**/ionmxbug
+# IONMIX 编译产物（可执行文件，受 FLASH License §3 约束不随包分发）
+ionmix/**/abjt_03
+ionmix/**/cnrdeos
+
+# eosop_pro 运行产物
+eosop_pro/outputs/
+eosop_pro/docs/extracted/
+eosop_pro/**/output/
+eosop_pro/**/*.h5
+eosop_pro/**/*.hdf5
+
+# eosop_pro 测试产物（产物跟测试走: 各 step 文件夹内的 _out/ 与集中 _tmp/）
+eosop_pro/test/_tmp/
+eosop_pro/test/**/_out/
+
+# ionmix 参考实现内的运行产物
+ionmix/**/test/output/
+ionmix/**/test/**/*.png
+ionmix/**/test/**/*.csv
+ionmix/**/E4data/**/*.png
+ionmix/**/E4data/**/*.csv
+
+# ---------- 二进制 / 归档（通用兜底） ----------
+*.exe
+*.dll
+*.pyd
+*.msi
+*.cab
+*.bin
+*.o
+*.a
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.sdf
+*.opensdf
+*.suo
+
+# 压缩包
+*.rar
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.xz
+*.zst
+
+# 大体积科学数据格式
+*.h5
+*.hdf5
+*.chk
+*.plt
+*.mat
+*.sesame
+*.opj
+*.pptx
+*.pdf
+*.silo
+
+# ---------- 注 ----------
+# 说明: 上述 *.pdf / *.pptx / *.h5 等兜底规则会同时排除少量文档资产。
+# 如需纳入特定文档，请用 `git add -f <path>` 强制添加。

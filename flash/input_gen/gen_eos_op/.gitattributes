@@ -1,0 +1,47 @@
+# 换行符权威规则 —— 不同文件类型要求相反，必须显式固定
+#
+# 背景: test_suite_hygiene.py::test_bats_use_crlf 要求 .bat 必须 CRLF
+#       （cmd.exe 对纯 LF 下多行 if ( ) 块解析异常）；
+#       而 test_python_sources_do_not_contain_crlf 要求 .py 必须 LF
+#       （CRLF 会破坏 shebang / 在 WSL 下报 /bin/bash^M）。
+#
+# 若不显式声明，全凭工作区当前字节状态 + core.autocrlf 决定，极易回归。
+# 本文件把两类规则钉死在版本库里。
+
+# ── Windows 批处理：必须 CRLF ──
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# ── Python / Shell / 文本数据：必须 LF ──
+*.py    text eol=lf
+*.sh    text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.ini   text eol=lf
+
+# ── 科学数据文件：不做任何换行转换（二进制/定宽格式，逐字节重要） ──
+#    cn4 的 4e12.6 定宽编码、HDF5 等一旦被转换即损坏
+*.cn4   -text
+*.cnr   -text
+*.h5    -text
+*.hdf5  -text
+*.dat   -text
+*.feos  -text
+*.sesame -text
+*.bin   -text
+
+# ── 二进制资源 ──
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.pdf   binary
+*.pptx  binary
+*.docx  binary
+*.xlsx  binary
+*.rar   binary
+*.zip   binary
