@@ -58,6 +58,20 @@ wsl_run.log
 **/temp
 **/tmp
 
+**/*copy*/
+**/*Copy*/
+**/*COPY*/
+**/*副本*/
+**/*copy*.*
+**/*Copy*.*
+**/*COPY*.*
+**/*副本*.*
+
+**/*_[0-9][0-9][0-9].py
+
+**/Multi1D*/
+**/Multi1D*.rar
+
 *.mod
 
 #
@@ -72,10 +86,135 @@ wsl_run.log
 
 
 # ================================================================
+# ★ 同步自 flash/input_gen/gen_eos_op/.gitignore (2026-09-16)
+# ----------------------------------------------------------------
+# 目的: 将 gen_eos_op (eosop_pro 多类型 EOS/不透明度文件处理模块) 的
+#       局部忽略策略提升为**仓库级**通用规则 —— 使该子树即使移除本地
+#       .gitignore, 也保持完全相同的忽略行为。
+# 约定:
+#   ① 上游的相对路径规则 (src/… 、ionmix/… 、eosop_pro/…) 统一加 `**/`
+#      前缀, 保证在任意层级生效 (实际位置在 flash/input_gen/gen_eos_op/ 下)。
+#   ② 已被上方规则覆盖的条目不再重复, 清单见本区块末尾。
+#   ③ 本区块刻意置于 SNB / Gen_eos_op_data / SNBtest 等 `!` 白名单**之前**,
+#      确保后续反选规则优先生效 (gitignore 后定义者优先)。
+# ================================================================
+
+# ---------- 虚拟环境 ----------
+# ⚠ 偏差说明: 上游为裸 `env/`。本仓库已跟踪源码包 flash/flash_run/env/
+#   (env_manager.py / resource_config.py), 裸 `env/` 会让该包内**新增文件
+#   被静默忽略** → 故 ENV/ 与 env/ 一律锚定到仓库根 (/ 前缀)。
+venv/
+/ENV/
+/env/
+env.bak/
+venv.bak/
+
+# ---------- 测试与覆盖率 ----------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+*.cover
+
+# ---------- 编辑器 / IDE / 操作系统 (补充项) ----------
+*.orig
+*.rej
+.vs/
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+._*
+
+# ---------- 大幅面数据源 ----------
+# Multi1D++ 便携包 (≈1.5 GB); 目录与压缩包规则同步
+**/src/Multi1D++Portable20241128/
+**/src/*.rar
+**/src/*.zip
+**/src/*.7z
+
+# ---------- IONMIX 大体积绘图输出 / 编译产物 ----------
+# implot01 ≈858 MB、implot03 ≈615 MB
+**/ionmix/**/implot[0-9]*
+**/ionmix/**/ionmxbug
+**/ionmix/**/cnrdeos
+
+# ---------- eosop_pro 运行 / 测试产物 ----------
+# (产物跟测试走: 各 step 内的 _out/ 与集中 _tmp/)
+# 注: output/ 与 *.h5/*.hdf5 已由上方规则覆盖, 此处只补未覆盖项
+**/eosop_pro/outputs/
+**/eosop_pro/docs/extracted/
+**/eosop_pro/test/_tmp/
+**/eosop_pro/test/**/_out/
+
+# ---------- IONMIX 参考实现内的运行产物 (CSV; PNG 已全局忽略) ----------
+**/ionmix/**/E4data/**/*.csv
+**/ionmix/**/test/**/*.csv
+
+# ---------- 二进制 / 编译中间件 / 归档 (通用兜底) ----------
+*.exe
+*.dll
+*.pyd
+*.msi
+*.cab
+*.bin
+*.o
+*.a
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.idb
+*.sdf
+*.opensdf
+*.suo
+*.rar
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.gz
+*.bz2
+*.xz
+*.zst
+
+# ---------- 大体积科学数据格式 (补充项) ----------
+# (*.h5 / *.hdf5 / *.pdf / *.pptx 已在文件上方全局忽略)
+*.chk
+*.plt
+*.mat
+*.sesame
+*.opj
+*.silo
+
+# ----------------------------------------------------------------
+# 同步时判定"已被覆盖"故未重复的条目 (上游 → 本文件对应规则):
+#   Python    : __pycache__/ *.py[cod] *$py.class *.so .Python build/
+#               develop-eggs/ dist/ downloads/ eggs/ .eggs/ lib64/ parts/
+#               sdist/ var/ wheels/ *.egg-info/ .installed.cfg *.egg
+#   虚拟环境  : .venv/
+#   编辑器/IDE: .vscode/ .idea/ *.swp *.swo *~ *.bak
+#   操作系统  : Thumbs.db .DS_Store
+#   媒体大文件: *.pdf *.png *.pptx *.h5 *.hdf5
+#   路径类    : ionmix/**/abjt_03        → 已有 **/abjt_03
+#               eosop_pro/**/output/     → 已有 **/output/
+#               ionmix/**/test/output/   → 已有 **/output/
+#               ionmix/**/test/**/*.png  → 已有 *.png
+#               ionmix/**/E4data/**/*.png→ 已有 *.png
+#   已知例外  : eosop_pro/requirements.txt 被本文件 `*.txt` 规则排除
+#               (文档统一 md 的既有约定), 如需入库用 git add -f。
+# ----------------------------------------------------------------
+
+# ================================================================
 # My Projects (内部工作区, 不发布)
 # ================================================================
 .workbuddy/
 .codebuddy/
+%SystemDrive%
+
 **/collision_compression/
 **/plasma_preparation/
 **/SNBtest/**
