@@ -459,6 +459,46 @@ def test_sound_speed_positive_finite():
     expect(np.nanmin(cs) > 0, f"声速应全为正，min={np.nanmin(cs)}")
 
 
+class _IdealGasStub:
+    """合成单原子理想气体表（zbar 恒定、P ∝ n·T、cv = 1.5 P/(ρT)）。
+
+    仅实现 ``sound_speed`` 的依赖面（field/density/temperature/
+    avgatw/ndens/ntemp）；代数自洽保证 γ_sound = c_s²ρ/P ≡ 5/3
+    精确成立（lnP 对 lnn 线性、P 对 T 线性 -> 差分零截断误差）。
+    """
+
+    def __init__(self, ndens=9, ntemp=5, avgatw=12.011):
+        self.density = np.logspace(20.0, 24.0, ndens).tolist()
+        self.temperature = np.linspace(100.0, 1000.0, ntemp).tolist()
+        self.avgatw = avgatw
+        self.ndens, self.ntemp = ndens, ntemp
+        n = np.asarray(self.density, dtype=float)[:, None]
+        T = np.asarray(self.temperature, dtype=float)[None, :]
+        self._P = n * T                                  # ∝ n·T（幅度不影响 γ_sound）
+        self._rho = n * avgatw / units.NA                # g/cm^3
+        self._cv = 1.5 * self._P / (self._rho * T)       # 使 e = cv·T = 1.5 P/ρ
+
+    def field(self, name):
+        src = self._P if name.startswith("p_") else self._cv
+        return (0.5 * src).ravel().tolist()
+
+
+def test_sound_speed_ideal_gas_gamma_anchor():
+    """ln10 回归守卫：理想气体表上 γ_sound = c_s²ρ/P 必须精确 = 5/3。
+
+    2026-09-15 诊断：``np.gradient(np.log(P), log10(n))`` 混用自然
+    对数值与常用对数坐标，dlnP/dlnn 被虚大 ln(10)≈2.303 倍，
+    γ_sound 变 ~3.0（c_s 偏大 ~33%）。本表 P ∝ n（zbar 恒定），
+    dlnP/dlnn 必须 = 1；坐标混用若复发则 γ_sound ≈ 2.97 必 FAIL。
+    """
+    t = _IdealGasStub()
+    cs = np.asarray(P.sound_speed(t), dtype=float)
+    g = cs ** 2 * P._rho(t) / P._press(t) * 1e-7         # c_s²[cm²/s²] -> J/g
+    expect(np.allclose(g, 5.0 / 3.0, rtol=1e-9),
+           f"理想气体锚失败: gamma_sound=[{g.min():.6f}, {g.max():.6f}]"
+           " (期望 5/3；若≈2.97 为 dlnP/dlnn 坐标混用 ln10 复发)")
+
+
 def test_pv_diagram_three_paths():
     """P-V 图：等温 / 等熵 / 雨贡纽三条路径从同一参考态出发。"""
     t = _tbl()

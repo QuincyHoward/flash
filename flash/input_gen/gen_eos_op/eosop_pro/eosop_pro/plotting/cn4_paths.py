@@ -807,8 +807,12 @@ def sound_speed(tbl: CN4Table) -> np.ndarray:
     """
     P = _press(tbl)
     rho = _rho(tbl)
-    logn = np.log10(np.asarray(tbl.density, dtype=float))
-    dlnP_dlnn = np.gradient(np.log(P), logn, axis=0)
+    # ⚠️ 必须用自然对数坐标（ln n）：np.gradient(np.log(P), lnn) 才是
+    # dlnP/dlnn。若坐标写成 log10(n)，np.gradient 会混入 ln(10)≈2.303
+    # 因子使 c_s 虚大 ~33%（2026-09-15 诊断、2026-09-17 修复，
+    # 回归守卫见 test_cn4_paths.test_sound_speed_ideal_gas_gamma_anchor）
+    lnn = np.log(np.asarray(tbl.density, dtype=float))
+    dlnP_dlnn = np.gradient(np.log(P), lnn, axis=0)
     dPdRho_T = (P / rho) * dlnP_dlnn                      # J/g
     dP_dT = np.gradient(P, np.asarray(tbl.temperature, dtype=float), axis=1)
     cv = np.maximum(_heatcp(tbl), 1e-30)                  # J/g/eV
