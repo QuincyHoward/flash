@@ -121,6 +121,7 @@ SUPPORTED_QUANTITIES: tuple[str, ...] = tuple(
     sorted(set(_QUANTITY_META) | {
         "opac_rosseland", "opac_planck_abs", "opac_planck_ems",
         "transmission", "cs", "dzdt",
+        "gamma_ion", "gamma_ele", "cs_thermal_fraction",   # r16 固化
     })
 )
 
@@ -316,6 +317,20 @@ def _resolve_quantity(tbl: CN4Table, quantity: str,
         from .cn4_paths import sound_speed
         return velocity_umns(sound_speed(tbl)), (
             r"Sound speed $c_s$ (um/ns)"), True
+
+    # ---- 有效 γ（单点恒等式 γ=1+P/(ρe)，EOS 非理想性诊断，r16 固化）----
+    if q in ("gamma_ion", "gamma_ele"):
+        from .cn4_thermo import gamma_ion as _g_ion, gamma_ele as _g_ele
+        g = _g_ion(tbl) if q == "gamma_ion" else _g_ele(tbl)
+        return g, (f"Effective {q} = 1 + P/(rho e)"), False
+
+    # ---- 热熵项占 c_s^2 比值（严格量分解；理想气体锚 0.40，r16 固化）----
+    if q == "cs_thermal_fraction":
+        from .cn4_thermo import cs_terms as _cs_terms
+        from .cn4_thermo import thermal_fraction as _thermal_fraction
+        th, iso = _cs_terms(tbl)
+        return _thermal_fraction(th, iso), (
+            "Thermal-entropy term fraction of c_s^2"), False
 
     # ---- 压力/内能与组合量：走显示单位换算 ----
     if q in ("p_ion", "p_ele", "e_ion", "e_ele", "dpion_dt", "dpele_dt",
@@ -732,6 +747,65 @@ def plot_vs_density(
         d = os.path.dirname(os.path.abspath(tbl.filepath))
         outfile = os.path.join(d, f"{tbl.basename}_{quantity}_vs_nion.png")
     return _save(fig, outfile, tag=f"{quantity}_vs_nion")
+
+
+# ================================================================
+# γ(T) 幂律拟合折线图（r16 自 test/sound_velocity 固化）
+# ================================================================
+def plot_gamma_T_fit(
+    tbl: CN4Table,
+    gamma_row_i: np.ndarray,
+    gamma_row_e: np.ndarray,
+    fit_i: tuple[float, float, float],
+    fit_e: tuple[float, float, float],
+    outfile: str | os.PathLike,
+    row_note: str = "",
+) -> str:
+    """固定密度行 ``γ(T)`` 双曲线 + 幂律拟合 + 5/3 理论横线（log-log）。
+
+    Args:
+        gamma_row_i / gamma_row_e: (ntemp,) 有效的 γ_i / γ_e 行
+            （:func:`cn4_thermo.gamma_ion` / ``gamma_ele`` 的行切片）。
+        fit_i / fit_e: :func:`cn4_thermo.gamma_powerlaw_fit` 的
+            ``(a, b, r2)``（常数数据 R^2 为 NaN 是预期——SS_tot 极小）。
+        row_note: 附加行说明（进 title，如 ``"n = 4.5e+20 cm^-3 (mid-density row)"``）。
+
+    Returns:
+        落盘路径。
+    """
+    from . import style
+
+    style.apply_style()
+    plt = _plt()
+    T = np.asarray(tbl.temperature, dtype=float)
+    m = np.isfinite(T) & (T > 0)
+
+    ai, bi, r2i = fit_i
+    ae, be, r2e = fit_e
+    fig, ax = plt.subplots(figsize=config.PLOT_FIGSIZE)
+    ax.plot(T[m], gamma_row_i[m], "o-", ms=config.PLOT_MARKERSIZE,
+            label=f"gamma_i (fit a={ai:.1e}, b={bi:.1e}, R2={r2i:.1e})")
+    ax.plot(T[m], gamma_row_e[m], "s--", ms=config.PLOT_MARKERSIZE,
+            label=f"gamma_e (fit a={ae:.1e}, b={be:.1e}, R2={r2e:.1e})")
+    if np.isfinite(ai) and bi != 0:
+        ax.plot(T[m], ai * T[m] ** bi, ":", color="black", lw=2.0,
+                label="power-law fits")
+    ax.axhline(5.0 / 3.0, color="red", lw=2.0, ls="-.", alpha=0.9,
+               label="single-atom ideal-gas anchor 5/3")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Temperature T (eV)")
+    ax.set_ylabel(r"Effective gamma = 1 + P/(rho e)")
+    title = "gamma(T) power-law fit"
+    if row_note:
+        title += f" - {row_note}"        # 全 ASCII（assert_ascii 守卫）
+    ax.set_title(title)
+    ax.grid(True, which="both", alpha=0.3)
+    ax.legend(fontsize=config.PLOT_LEGEND_FONTSIZE, loc="best")
+    ax.tick_params(labelsize=config.PLOT_TICK_FONTSIZE)
+
+    return _save(fig, outfile, tag="gamma_T_fit")
 
 
 # ================================================================

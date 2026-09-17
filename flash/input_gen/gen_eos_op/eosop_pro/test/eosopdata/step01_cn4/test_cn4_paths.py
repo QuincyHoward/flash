@@ -39,6 +39,7 @@ from eosop_pro.plotting import units
 from eosop_pro.parsers.cn4_io import CN4ParseError
 
 from eosopdata._samples import first_cn4
+from eosopdata._idealgas import IdealGasStub as _IdealGasStub  # r16 共享化
 
 _OUT = Path(__file__).resolve().parent / "_out"
 _OUT.mkdir(parents=True, exist_ok=True)
@@ -459,30 +460,6 @@ def test_sound_speed_positive_finite():
     expect(np.nanmin(cs) > 0, f"声速应全为正，min={np.nanmin(cs)}")
 
 
-class _IdealGasStub:
-    """合成单原子理想气体表（zbar 恒定、P ∝ n·T、cv = 1.5 P/(ρT)）。
-
-    仅实现 ``sound_speed`` 的依赖面（field/density/temperature/
-    avgatw/ndens/ntemp）；代数自洽保证 γ_sound = c_s²ρ/P ≡ 5/3
-    精确成立（lnP 对 lnn 线性、P 对 T 线性 -> 差分零截断误差）。
-    """
-
-    def __init__(self, ndens=9, ntemp=5, avgatw=12.011):
-        self.density = np.logspace(20.0, 24.0, ndens).tolist()
-        self.temperature = np.linspace(100.0, 1000.0, ntemp).tolist()
-        self.avgatw = avgatw
-        self.ndens, self.ntemp = ndens, ntemp
-        n = np.asarray(self.density, dtype=float)[:, None]
-        T = np.asarray(self.temperature, dtype=float)[None, :]
-        self._P = n * T                                  # ∝ n·T（幅度不影响 γ_sound）
-        self._rho = n * avgatw / units.NA                # g/cm^3
-        self._cv = 1.5 * self._P / (self._rho * T)       # 使 e = cv·T = 1.5 P/ρ
-
-    def field(self, name):
-        src = self._P if name.startswith("p_") else self._cv
-        return (0.5 * src).ravel().tolist()
-
-
 def test_sound_speed_ideal_gas_gamma_anchor():
     """ln10 回归守卫：理想气体表上 γ_sound = c_s²ρ/P 必须精确 = 5/3。
 
@@ -490,6 +467,7 @@ def test_sound_speed_ideal_gas_gamma_anchor():
     对数值与常用对数坐标，dlnP/dlnn 被虚大 ln(10)≈2.303 倍，
     γ_sound 变 ~3.0（c_s 偏大 ~33%）。本表 P ∝ n（zbar 恒定），
     dlnP/dlnn 必须 = 1；坐标混用若复发则 γ_sound ≈ 2.97 必 FAIL。
+    （合成表 stub 已共享化至 ``eosopdata._idealgas.IdealGasStub``）
     """
     t = _IdealGasStub()
     cs = np.asarray(P.sound_speed(t), dtype=float)

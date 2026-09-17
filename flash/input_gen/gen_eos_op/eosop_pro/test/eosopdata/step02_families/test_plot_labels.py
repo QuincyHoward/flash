@@ -256,7 +256,11 @@ def test_cn4_plot_quantity_names_are_dictionary_backed():
     ionmix = set(FIELD_CHECKS["ionmix"])
     derived = {"rho", "nele"}     # cn4 派生量（rho=nion<A>/N_A、nele=zbar*nion）
     alias = {"tele"}              # IONMIX 单温假设下 T 的轴别名（labels._TE_ALIAS）
-    extra = {"transmission", "cs"}  # cn4 特有派生量（无源族概念）
+    extra = {"transmission", "cs",
+             "gamma_ion", "gamma_ele", "cs_thermal_fraction"}
+    # r16 扩展：cn4 特有派生诊断量（无源族概念）——
+    # gamma_ion/gamma_ele = 1+P/(rho*e) 单点恒等式（cn4_thermo），
+    # cs_thermal_fraction = 热熵项占 c_s^2 比值（cn4_thermo 两项分解）
     legal = ionmix | derived | alias | extra
     for nm in AXES:
         expect(nm in legal, f"AXES 键 {nm!r} 不在字典 ionmix 集内")
