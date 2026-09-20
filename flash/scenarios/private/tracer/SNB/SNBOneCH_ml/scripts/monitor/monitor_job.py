@@ -23,9 +23,29 @@ sys.path.insert(0, _ROOT)
 
 from remote_ssh_helper import quick_run  # noqa: E402
 
+
+def resolve_deploy(credential_name: str) -> str:
+    """解析远端部署目录绝对路径。
+
+    ★ 不能用 `~/SNBOneCH_ml_deploy`: paramiko SFTP/exec 不展开 `~` (与 scp CLI 不同),
+    会把文件写进**名为 `~` 的字面目录**。必须用 `$HOME` 展开后的绝对路径,
+    并叠加与场景一致的 SIM_USER_DIR (由 runner.get_sim_user_dir() 提供, 实测 = QC)。
+    """
+    try:
+        out, _, _ = quick_run('printf "%s" "$HOME"', credential_name=credential_name,
+                              timeout=60)
+        home = (out or "").strip()
+    except Exception:
+        home = ""
+    if home.startswith("/"):
+        return f"{home}/QC/SNBOneCH_ml_deploy"
+    print(f"[WARN] $HOME 探测失败 (got={home!r}); 回退字面路径, 可能落错目录", flush=True)
+    return "~/QC/SNBOneCH_ml_deploy"
+
+
 DEPLOY = {
-    "flash_ssh": "~/SNBOneCH_ml_deploy",
-    "flash_ssh_2": "~/SNBOneCH_ml_deploy",
+    "flash_ssh": "",   # 运行期由 resolve_deploy() 填充 (NC-E: scfa2696)
+    "flash_ssh_2": "",  # 运行期由 resolve_deploy() 填充 (BSCC: sch0348)
 }
 
 
@@ -38,7 +58,11 @@ def main() -> int:
     ap.add_argument("--max-polls", type=int, default=20, help="最大轮询次数")
     args = ap.parse_args()
 
-    deploy = DEPLOY.get(args.account, "~/SNBOneCH_ml_deploy")
+    # ★ 必须现场解析部署目录: DEPLOY 字典的两个值都是空串占位,
+    #   直接 DEPLOY.get(...) 会拿到 "" → tail 的路径变成 /run_<job>_out.txt 之类,
+    #   永远读不到日志。旧版这里回退字面 "~/..." 更是错的 (paramiko 不展开 ~)。
+    deploy = resolve_deploy(args.account)
+    print(f"[i] deploy dir = {deploy}", flush=True)
     for i in range(1, args.max_polls + 1):
         try:
             out, _, _ = quick_run(

@@ -22,11 +22,33 @@ JOB = "36201968"
 MAX_POLLS = 26          # 26 次 x 30 分钟 = 13 小时上限
 INTERVAL = 1800         # 秒
 
+
+def resolve_deploy(credential_name: str) -> str:
+    """解析远端部署目录绝对路径。
+
+    ★ 不能用 `~/SNBOneCH_ml_deploy`: paramiko 不展开 `~` (与 scp CLI 不同),
+    会把文件写进**名为 `~` 的字面目录**。必须用 `$HOME` 展开结果叠加
+    SIM_USER_DIR (= QC, 由 runner.get_sim_user_dir() 提供)。
+    """
+    try:
+        out, _, _ = quick_run('printf "%s" "$HOME"', credential_name=credential_name,
+                              timeout=60)
+        home = (out or "").strip()
+    except Exception:
+        home = ""
+    if home.startswith("/"):
+        return f"{home}/QC/SNBOneCH_ml_deploy"
+    print(f"[WARN] $HOME 探测失败 (got={home!r}); 回退字面路径", flush=True)
+    return "~/QC/SNBOneCH_ml_deploy"
+
+
+DEPLOY = resolve_deploy("flash_ssh_2")
+
 for i in range(1, MAX_POLLS + 1):
     try:
         out, err, rc = quick_run(
             f"sacct -j {JOB} --format=State,Elapsed --noheader | head -1; "
-            f"tail -c 300 ~/SNBOneCH_ml_deploy/run_{JOB}_out.txt",
+            f"tail -c 300 {DEPLOY}/run_{JOB}_out.txt",
             credential_name="flash_ssh_2",
             timeout=90,
         )

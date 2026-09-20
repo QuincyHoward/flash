@@ -509,3 +509,16 @@ flash/scenarios/sandwich/**/*.png
 **/Test/t00*/scripts/generate/gen_t003_inputs.py
 **/Test/t00*/scripts/generate/gen_t004_inputs.py
 **/Test/t00*/docs/snb_source_diagnosis.md
+
+# ================================================================
+# 瞬态产物：备份 / 一次性探针与流水线日志（2026-09-20）
+#   *.bak[0-9]*  —— MultiEOSOP 格式说明 .bak2~6 等编辑备份
+#   *.bak_*      —— 带时间戳的 .bak_YYYYMMDD 备份
+#   gen_eos_op/src **/*.out / pipeline_*.out / _extract_chk_params.out
+#                —— 一次性探针/流水线运行日志
+# ================================================================
+**/*.bak[0-9]*
+**/*.bak_*
+flash/input_gen/gen_eos_op/src/**/*.out
+test/_extract_chk_params.out
+**/pipeline_*.out

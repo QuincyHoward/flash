@@ -124,6 +124,7 @@ exclude = [
 include = [
     "**/*.py",
     "**/*.md",
+    "flash/_core/credentials/hpc_accounts.example.json",
     "flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/**/Z*.cn4",
     "README.md",
     "LICENSE",

@@ -181,11 +181,14 @@ def load_ssh_credentials(name: Optional[str] = None) -> Optional[Dict[str, Any]]
     if not raw:
         return None
 
-    # 如果已有完整字段，直接返回
+    # 兼容: 旧版 manual 模式曾把 host/username 写进加密库 (credentials.enc)。
+    # 新流程已把这些非敏感基础信息统一收敛到
+    # ~/.physimx/flash/hpc_accounts.json (见 hpc_config.py);
+    # 此分支仅为读取旧数据时保持可用, 新写入不会再产生此类字段。
     if raw.get("host") and raw.get("username"):
         return dict(raw)
 
-    # ── 路由解析 ──
+    # ── 路由解析 (唯一来源: hpc_accounts.json) ──
     from ._config import get_ssh_routes, ENTRIES_BY_NAME
     result = dict(raw)
 

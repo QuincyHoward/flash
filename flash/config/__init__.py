@@ -12,9 +12,13 @@ FLASH 仿真基本配置
   from flash.config import FlashConfig, get_default_config
 
   config = get_default_config()
-  config.mode = "ssh"  # 切换到超算模式
-  config.ssh.host = "ssh.cn-zhongwei-1.paracloud.com"
+  config.mode = "ssh"          # 切换到超算模式
+  config.ssh_host = "ssh.example.com"
   config.save()
+
+注意：超算主机/端口/用户名/线路的权威来源是
+  ~/.physimx/flash/hpc_accounts.json
+本模块的 ssh_* 字段仅为临时覆盖，建议留空以使用上述 JSON。
 """
 
 from pathlib import Path

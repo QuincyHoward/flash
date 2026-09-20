@@ -3,6 +3,32 @@ Flash 凭据管理 -- 统一管理脚本
 ==============================
 主入口菜单，可导航到各个凭据管理模块。
 
+★ 超算连接信息 (主机/端口/用户名/线路) 的唯一来源
+---------------------------------------------------------------
+包内不含任何硬编码的超算主机/端口/线路; 全部读写下列明文 JSON::
+
+    ~/.physimx/flash/hpc_accounts.json
+
+格式 (详见 ``hpc_config.py`` 模块 docstring)::
+
+    {
+      "accounts": {
+        "flash_ssh": {
+          "title":        "FLASH 超算 SSH #1 (NC-E)",
+          "ssh_username": "user@NC-E",
+          "route_key":    "nc_e",
+          "routes": [
+            {"host": "ssh.example.com", "port": 22,   "label": "线路 A"},
+            {"host": "ssh.example.com", "port": 2222, "label": "线路 B"}
+          ]
+        }
+      }
+    }
+
+此处的 SSH 管理菜单在 JSON 缺字段时会提示补录并回写 (密码除外, 仍加密
+存于同目录 ``credentials.enc``)。示例脚本见
+``examples/hpc_accounts_demo.py``, 模板见 ``hpc_accounts.example.json``。
+
 用法:
     python -m flash._core.credentials.manage           # 主菜单 (模块方式,推荐)
     python -m flash._core.credentials.manage setup     # 一键设置所有凭据
@@ -85,6 +111,52 @@ def _set_user_name() -> None:
 
     set_user_name(new_name)
     print(f"\n  ✅ 用户名已设为: {new_name}")
+
+
+def _collect_manual_basics(entry) -> dict:
+    """[手动模式] 采集 host/port/username, 返回可写入 JSON 的 kwargs。
+
+    ★ 超算连接信息 (host/port/username/线路) 的唯一来源是明文
+      ``~/.physimx/flash/hpc_accounts.json``; 加密库 ``credentials.enc``
+      只保留密码等敏感字段。故采集结果由 :func:`_persist_manual_basics`
+      落到 JSON, 而不是塞进加密存储 (避免出现第二套真相源)。
+
+    Returns:
+        ``set_hpc_account_basics()`` 可接受的关键字参数 (可能为空字典)。
+    """
+    basics: dict = {}
+    for key, label, default in entry.get("manual_fields", []):
+        basics[key] = ask_one(label, default)
+
+    host = str(basics.get("host") or "").strip()
+    username = str(basics.get("username") or "").strip()
+    try:
+        port = int(basics.get("port") or 22)
+    except (TypeError, ValueError):
+        port = 22
+
+    kwargs: dict = {}
+    if username:
+        kwargs["ssh_username"] = username
+    if host:
+        kwargs["routes"] = [{"host": host, "port": port,
+                             "label": f"{host}:{port}"}]
+    return kwargs
+
+
+def _persist_manual_basics(name: str, kwargs: dict) -> None:
+    """把 :func:`_collect_manual_basics` 的结果写入明文 JSON。
+
+    ★ 密码不经过此函数 (仍由调用方写入加密库)。
+    """
+    from .hpc_config import set_hpc_account_basics
+
+    if not kwargs:
+        print("  ⚠️  未填写 host/username → 基础信息未写入 "
+              "hpc_accounts.json (可在该文件中手工补全)")
+        return
+    set_hpc_account_basics(name, **kwargs)
+    print("  ✅ 基础信息 (host/port/username) 已明文写入 hpc_accounts.json")
 
 
 def _setup_ssh_presconfigured() -> None:
@@ -202,10 +274,10 @@ def _setup_ssh_presconfigured() -> None:
                 print(f"\n  ⚠️  请为账号 {ssh_user} 设置密码")
             data[key] = ask_one(label, default)
 
+        # manual 模式: host/port/username 属明文基础信息 → 写 hpc_accounts.json
         if data.get("connection_mode") == "manual":
-            print("\n  [手动模式] 需要额外信息:")
-            for key, label, default in entry.get("manual_fields", []):
-                data[key] = ask_one(label, default)
+            print("\n  [手动模式] 需要额外信息 (明文写入 hpc_accounts.json):")
+            _persist_manual_basics(name, _collect_manual_basics(entry))
 
         cm.set(name, data)
         print(f"\n  ✅ {title} 已保存。")

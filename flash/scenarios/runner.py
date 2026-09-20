@@ -370,17 +370,44 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
 
 # ── HPC 远程运行 (paramiko 分阶段) ───────────────────────
 
+def load_hpc_routes(credential: str) -> List[Tuple[str, int]]:
+    """读取指定账户的 SSH 线路 ``[(host, port), ...]``。
+
+    ★ 唯一来源: ``~/.physimx/flash/hpc_accounts.json``
+      (``accounts.<credential>.routes``), 包内不硬编码任何超算主机。
+
+    文件格式::
+
+        {"accounts": {"flash_ssh": {"ssh_username": "user@NC-E",
+                                    "routes": [{"host": "ssh.example.com",
+                                                "port": 22, "label": "线路 A"}]}}}
+
+    示例脚本见 ``flash/_core/credentials/examples/hpc_accounts_demo.py``。
+
+    Returns:
+        线路元组列表; 未配置或无 host 时返回 ``[]``。
+    """
+    try:
+        from flash._core.credentials.hpc_config import get_hpc_routes
+    except ImportError as exc:  # pragma: no cover
+        log(f"无法导入 hpc_config 以读取线路: {exc}", "WARN")
+        return []
+    try:
+        return [(r["host"], int(r.get("port", 22)))
+                for r in get_hpc_routes(credential)]
+    except Exception as exc:  # noqa: BLE001
+        log(f"解析 hpc_accounts.json 线路失败 ({credential}): {exc}", "WARN")
+        return []
+
+
 class Remote:
     """paramiko 远程连接 (多路由自动尝试)。"""
 
     def __init__(self, credential: str = "flash_ssh",
                  routes: Optional[List[Tuple[str, int]]] = None):
         self.credential = credential
-        self.routes = routes or [
-            ("ssh.cn-zhongwei-1.paracloud.com", 22),
-            ("ssh.cn-zhongwei-1.paracloud.com", 2222),
-            ("ssh.cn-zhongwei-1.paracloud.com", 8443),
-        ]
+        # 线路来自 ~/.physimx/flash/hpc_accounts.json (不再包内硬编码)
+        self.routes = routes if routes is not None else load_hpc_routes(credential)
         self.client = None
         self.sftp = None
         self.home = ""
@@ -394,6 +421,14 @@ class Remote:
         password = cred.get("password", "")
         if not username or not password:
             raise RuntimeError(f"凭据 {self.credential} 缺少 ssh_username/password")
+        if not self.routes:
+            raise RuntimeError(
+                f"账户 {self.credential} 未配置 SSH 线路。请在 "
+                f"~/.physimx/flash/hpc_accounts.json 的 "
+                f"accounts.{self.credential}.routes 中补充 "
+                f"[{{\"host\": ..., \"port\": ..., \"label\": ...}}]"
+                f" (格式见 flash._core.credentials.hpc_config 模块说明)"
+            )
 
         import paramiko
         last_err = ""

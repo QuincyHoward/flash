@@ -158,15 +158,42 @@ def sftp_upload(cred: Dict[str, Any], local_path: str, remote_path: str):
         client.close()
 
 
-def download_all_outputs(cred: Dict[str, Any], remote_output_dir: str, local_output_dir: Path, max_retries: int = 3):
+def download_all_outputs(cred: Dict[str, Any], remote_output_dir: str,
+                         local_output_dir: Path, max_retries: int = 3,
+                         with_plt: bool = False):
     """
     从超算下载所有输出文件（支持断点续传和重试）
+
+    ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
+    flash/flash_run/remote/fetch_policy.py): 跳过 *_hdf5_plt_*。
+    演示用少量 plt 采样走 download_sample_hdf5 (_plot_utils 消费
+    lasslab_hdf5_plt_cnt_0066), 不受本策略影响。
     """
     log("正在下载输出文件...", "STEP")
     
     # 获取远程文件列表
     r = ssh_cmd(cred, f"ls {remote_output_dir}/*plt* {remote_output_dir}/*chk* 2>/dev/null", timeout=30)
     remote_files = [l.strip() for l in r["stdout"].strip().splitlines() if l.strip()]
+
+    # ★ chk-only 默认 (2026-09-16 全场景定案): 统一走 fetch_policy 过滤 plt;
+    #   importlib 按路径加载策略模块, 避免 import flash 包副作用。
+    import importlib.util as _ilu
+    _fp = None
+    for _root in Path(__file__).resolve().parents:
+        _f = _root / "flash" / "flash_run" / "remote" / "fetch_policy.py"
+        if _f.is_file():
+            _spec = _ilu.spec_from_file_location("_fetch_policy", _f)
+            _fp = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_fp)
+            break
+    if _fp is None:
+        raise ImportError("fetch_policy.py not found above " + str(__file__))
+    if not with_plt:
+        _nplt = sum(1 for f in remote_files if _fp.is_plt(Path(f).name))
+        remote_files = [f for f in remote_files if not _fp.is_plt(Path(f).name)]
+        if _nplt:
+            log(f"★ chk-only 模式: 跳过 {_nplt} 个 plt 文件 (with_plt=True 可改)",
+                "INFO")
     
     if not remote_files:
         log("远程未找到输出文件", "WARN")

@@ -635,13 +635,18 @@ date
         remote_output_dir: str,
         local_output_dir: str,
         pattern: str = "*.h5",
+        with_plt: bool = False,
     ) -> List[str]:
         """下载仿真结果文件。
+
+        ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
+        flash/flash_run/remote/fetch_policy.py): 跳过 *_hdf5_plt_*。
 
         Args:
             remote_output_dir: 远程输出目录。
             local_output_dir: 本地保存目录。
             pattern: 文件匹配模式。
+            with_plt: True 时连 plt 一起下载（默认不取）。
 
         Returns:
             下载的文件列表（本地路径）。
@@ -661,6 +666,19 @@ date
             return []
 
         remote_files = [f for f in stdout.strip().split("\n") if f]
+        # ★ chk-only 默认 (2026-09-16 全场景定案, 策略源
+        #   flash/flash_run/remote/fetch_policy.py): 跳过 *_hdf5_plt_*。
+        try:
+            from flash.flash_run.remote.fetch_policy import is_plt
+        except ImportError:  # 兜底: 包内相对导入
+            from .fetch_policy import is_plt
+        if not with_plt:
+            _nplt = sum(1 for f in remote_files if is_plt(posixpath.basename(f)))
+            remote_files = [f for f in remote_files
+                            if not is_plt(posixpath.basename(f))]
+            if _nplt and self.verbose:
+                print(f"  [POLICY] chk-only 默认: 跳过 {_nplt} 个 plt 文件 "
+                      f"(with_plt=True 可改)")
         downloaded = []
 
         for rf in remote_files:

@@ -41,6 +41,16 @@ import numpy as np
 
 _CHK_RE = re.compile(r"hdf5_chk_(\d+)$")
 
+# ══════════════════════════════════════════════════════════════
+# 单位常量 (★ 2026-09-14 定案: chk 的温度字段单位是 **K**, 不是 eV)
+#   ★★ 本常量曾在姊妹模块 `_longrun_lib.py` 里被误写为 `1.16045e7`
+#      —— 注释写 "K/eV" 但数值是 **K/keV**（大 1000 倍）⇒ 温度少 1000 倍。
+#      教训: 单位常量**集中定义并附量纲注释**, 禁止就地写裸字面量。
+# ══════════════════════════════════════════════════════════════
+K_PER_EV = 11604.51812        # 1 eV = 11604.51812 K  (即 1/k_B, k_B=8.617333e-5 eV/K)
+K_BOLTZ_CGS = 1.380649e-16    # erg/K
+M_P_CGS = 1.67262192e-24      # g
+
 
 # ══════════════════════════════════════════════════════════════
 # chk 读取 (无需 yt; 直接 h5py)
@@ -102,9 +112,73 @@ def list_chk(d: Path) -> List[Path]:
 
 
 # ══════════════════════════════════════════════════════════════
-def verdict(frames: List[Dict[str, float]], expect: Optional[float]
+# 温度单位自检 (P28) —— 两条独立恒等式
+# ══════════════════════════════════════════════════════════════
+def unit_selfcheck(p: Path) -> Tuple[bool, List[str]]:
+    """用两条恒等式判定 chk 温度字段的单位究竟是 K 还是 eV。
+
+    ① 单原子理想气体:  `eint = (3/2)·p/ρ`          —— 与 chk 的 `eint` 比
+    ② 状态方程:        `p = (n_i+n_e)·k·T`          —— 仅当 T 取 K 才与 chk `pres` 吻合
+       (n_i = ρ/(Ā·m_p), n_e = Z̄·n_i;  Z̄ = sumy/ye, Ā = 1/ye)
+
+    两条都独立于"我以为是哪种单位"的预设 ⇒ 可证伪。
+    """
+    msgs: List[str] = []
+    with h5py.File(p, "r") as f:
+        rho = read_var(f, "dens")
+        pres = read_var(f, "pres")
+        ei = read_var(f, "eint")
+        te = read_var(f, "tele")
+        ye = read_var(f, "ye")
+        sy = read_var(f, "sumy")
+    if any(v is None for v in (rho, pres, ei, te)):
+        return False, ["[X] 缺 dens/pres/eint/tele, 无法自检"]
+    ok = True
+    # 取居中的 cell (避开边界/真空区)
+    i = len(rho) // 2
+    # ① 内能恒等式 (与成分、单位都无关, 只验热力学一致性)
+    #   ★ 用途是**识别量纲错误**(差 ~1e4 倍), 不是精确校核 ——
+    #     含电离能的 EOS 会偏离 1 百分之几, 故阈值取 10× 而非 5%。
+    if pres[i] > 0 and rho[i] > 0:
+        r1 = float(ei[i] / (1.5 * pres[i] / rho[i]))
+        hit1 = 0.1 < r1 < 10.0
+        msgs.append(f"[{'OK' if hit1 else 'X'}]  eint / (1.5·p/ρ) = {r1:.5f}"
+                    f"   (单原子理想气体≈1; 偏离 >10× 才是量纲错)")
+        ok = ok and hit1
+    # ② 状态方程 —— 唯一能区分 K / eV 的判据
+    if ye is not None and sy is not None and ye[i] > 1e-30:
+        Abar = 1.0 / ye[i]
+        Zbar = sy[i] / ye[i]
+        n_i = rho[i] / (Abar * M_P_CGS)
+        n_e = Zbar * n_i
+        for tag, T in (("K", te[i]), ("eV", te[i] * K_PER_EV)):
+            pe = (n_i + n_e) * K_BOLTZ_CGS * T
+            r2 = (pres[i] / pe) if pe > 0 else float("nan")
+            hit2 = abs(r2 - 1.0) < 0.10
+            msgs.append(f"[{'OK' if hit2 else ' '}]  p=(n_i+n_e)kT, T 取 [{tag:>2s}]"
+                        f" → p_est={pe:.4e} vs chk pres={pres[i]:.4e}"
+                        f" (ratio {r2:.5f})")
+            if tag == "K":
+                ok = ok and hit2
+    else:
+        msgs.append("[!] 缺 ye/sumy, 跳过状态方程判据")
+    msgs.append(f"  ⇒ chk 温度字段单位为 **K**;  显示 eV 须 /{K_PER_EV:.5f}")
+    return ok, msgs
+
+
+# ══════════════════════════════════════════════════════════════
+def verdict(frames: List[Dict[str, float]], expect: Optional[float],
+            collapse_drop: float = 0.30
             ) -> Tuple[int, List[str]]:
-    """判定 dt 是否被正确钳位。返回 (退出码, 说明行)。"""
+    """判定 dt 是否被正确钳位。返回 (退出码, 说明行)。
+
+    ★ collapse_drop: 「单帧断崖跌幅」阈值。默认 0.30。
+      ⚠ 假阳性提示 (2026-09-14): 含金属层(V/Ti)的 SNB 场景 ρmax 峰→末可平滑
+        衰减 30%+，SNBVTi 1.6 ns 实测单帧最大跌幅 **31.0%** 被判"崩塌"，
+        而该 run 与参考基线 SNBOneCH_ml **逐位一致**(Te_max 1.849e7 vs 1.820e7 K)。
+      ⇒ 本判据仅作**报警**；定性崩塌的最终依据是**与已验证基线同窗口比对**，
+        或检查 `rho_sum` 是否 NaN。必要时用 --collapse-drop 放宽。
+    """
     msgs: List[str] = []
     if len(frames) < 2:
         return 2, ["帧数不足 2, 无法判定趋势"]
@@ -165,7 +239,7 @@ def verdict(frames: List[Dict[str, float]], expect: Optional[float]
         denom = np.where(seg[:-1] > 0, seg[:-1], np.nan)
         steps = np.diff(seg) / denom
         worst = float(-np.nanmin(steps)) if steps.size else 0.0
-        if worst > 0.30:
+        if worst > collapse_drop:
             msgs.append(f"[X]  ρmax 峰值 {pk:.3f} → 末值 {rho_max[-1]:.3f}，"
                         f"单帧最大跌幅 {worst * 100:.1f}% → **断崖式下跌, 判为崩塌**")
             ok = False
@@ -190,6 +264,10 @@ def main() -> int:
     ap.add_argument("--brief", action="store_true",
                     help="只打印首末帧 + 结论")
     ap.add_argument("--quiet", action="store_true", help="只打印结论")
+    ap.add_argument("--unit-check", action="store_true",
+                    help="★ 用两条恒等式自检 chk 温度字段的单位 (K vs eV) —— 见 P28")
+    ap.add_argument("--collapse-drop", type=float, default=0.30,
+                    help="单帧断崖跌幅阈值 (默认 0.30); 含金属层场景可放宽, 见 verdict() 注释")
     args = ap.parse_args()
 
     d = Path(args.dir).resolve()
@@ -218,16 +296,23 @@ def main() -> int:
         show = frames
         if args.brief and len(frames) > 2:
             show = [frames[0], frames[len(frames) // 2], frames[-1]]
-        print(f"\n{'file':>28s} {'time[ns]':>11s} {'dt[s]':>12s} "
-              f"{'rho_max':>10s} {'rho_sum':>13s} {'Te_max[eV]':>11s} "
-              f"{'Tr_max[eV]':>11s}")
+        print(f"\n{'file':>26s} {'time[ns]':>10s} {'dt[s]':>12s} "
+              f"{'rho_max':>9s} {'rho_sum':>12s} "
+              f"{'Te_max[K]':>12s} {'Te_max[eV]':>11s} {'Tr_max[eV]':>11s}")
         for f in show:
-            print(f"{f['file']:>28s} {f['time']*1e9:>11.5f} {f['dt']:>12.4e} "
-                  f"{f['rho_max']:>10.5f} {f['rho_sum']:>13.6e} "
-                  f"{f['tele_max']/1.1604519e4:>11.2f} "
-                  f"{f['trad_max']/1.1604519e4:>11.4f}")
+            print(f"{f['file']:>26s} {f['time']*1e9:>10.5f} {f['dt']:>12.4e} "
+                  f"{f['rho_max']:>9.5f} {f['rho_sum']:>12.5e} "
+                  f"{f['tele_max']:>12.4e} "
+                  f"{f['tele_max']/K_PER_EV:>11.2f} "
+                  f"{f['trad_max']/K_PER_EV:>11.4f}")
 
-    code, msgs = verdict(frames, args.expect_dtmax)
+    if args.unit_check:
+        print("\n  ── 温度单位自检 (P28) ──")
+        _uok, _umsgs = unit_selfcheck(chks[-1])
+        for m in _umsgs:
+            print("  " + m)
+
+    code, msgs = verdict(frames, args.expect_dtmax, args.collapse_drop)
     print()
     for m in msgs:
         print("  " + m)

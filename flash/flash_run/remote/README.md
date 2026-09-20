@@ -38,6 +38,20 @@ SSH 多路由延迟测试器。
 
 `ROUTES_SCH0348` (9 条): 同上，用户名为 `<超算账号>@BSCC-T6`
 
+> **★ 实测延迟参考**（2026-09-12/13，NC-E，网络波动大，仅作量级参考）：
+>
+> | 路由 | 实测 TCP | 备注 |
+> |---|---|---|
+> | `ssh.paracloud.com:2222` | **201 ms** | 本次最佳 |
+> | `ssh.cn-zhongwei-1.paracloud.com:2222` | 311 ms | |
+> | `ssh.cn-zhongwei-1.paracloud.com:8443` | 335 ms | |
+> | `ssh.cn-zhongwei-1.paracloud.com:22` | **4582 ms** | 抖动极大，避免 |
+> | `ssh.cn-hongkong-1.paracloud.com:22` | REFUSED | |
+> | 各 `-v6` / `cstnet` 路由 | REFUSED | 本机无 IPv6 / 通道未开 |
+>
+> 结论：**每次连接都实测**是必要的 —— 最优路由随网络状况变化，
+> 且 `-v6` / `cstnet` 在本机通常不可达。
+
 **方法**:
 - `test_route(route)`: 测试单条路由
 - `test_all_routes(routes, verify_ssh)`: 测试所有路由
@@ -264,6 +278,54 @@ cd ~/hello/FLASH/FLASH4.8/object
 mpirun -np 90 ./flash4 -par_file laser_slab_2d.par
 ```
 
+## 路径解析（★ 高频踩坑区）
+
+### SFTP **不展开 `~`**
+
+SFTP 协议**没有 shell**，`~` 在 `sftp.put()` / `sftp.get()` / `sftp.stat()` 中
+是**普通字符**。把 `"~/QC/out"` 传给 SFTP 会落到**字面 `~` 目录**，
+而 `ls ~/QC/out`（走 shell，会展开）当然找不到 → "上传成功却找不到文件"。
+
+| 场景 | 正确做法 |
+|---|---|
+| SFTP 路径 | **一律绝对路径**（`/publicfs01/.../home/<user>/...`） |
+| 获取 HOME | `printf '%s' "$HOME"`（★ **不要**用 `echo ~`，部分环境返回字面 `~`） |
+| `execute()` 命令 | 走 shell，`~` 可展开，但**仍建议**统一绝对路径以免歧义 |
+| `upload`/`download`/`file_exists` | 内部调用 `_resolve_path()`，会把 `~/` 前缀替换为真实 HOME |
+
+```python
+with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
+    home, _, _ = deploy.execute('printf %s "$HOME"')   # 权威做法
+    home = home.strip()
+    deploy.upload("./a.tar.gz", f"{home}/QC/deploy/a.tar.gz")   # 显式绝对路径
+```
+
+### 远端文件清单：用 `find -printf`，不要 `ls -la | awk`
+
+文件名含空格 / 中文 / 特殊字符时，`ls -la | awk '{print $NF}'` 会截断或错位。
+
+```bash
+# ✓ 推荐（GNU find）
+find <dir> -maxdepth 1 -type f -printf '%s %f\n'
+
+# ✓ 或走 Python
+for a in sftp.listdir_attr(remote_dir):
+    print(a.st_size, a.filename)
+```
+
+### 下载完整性判据
+
+FLASH `chk` 文件的完整性**只认 md5**。
+"h5py 能打开"与"文件完整"是**正交**的两件事 —— 截断的 HDF5 有时仍可打开
+但读出的数据是错的。**逐文件核对 md5 后再删除远端源**。
+
+### 断网重试
+
+本项目默认网络不稳定。长下载/上传应带**连接级重试**（每文件独立建连 +
+指数退避），而不是整批失败退出。参考实现见
+`scenarios/private/tracer/SNB/SNBOneCH_ml/scripts/longrun/03_run_16ns_pipeline.py`
+的 `_run_with_net_retry()`。
+
 ## 注意事项
 
 1. **路由自动选择**: 每次调用 `connect()` 时都会重新测试所有路由，确保使用当前网络条件下最快的线路。
@@ -275,6 +337,10 @@ mpirun -np 90 ./flash4 -par_file laser_slab_2d.par
 4. **作业监控**: `check_job()` 使用 `sacct` 命令，确保超算上已安装 SLURM。
 
 5. **文件权限**: 上传/下载文件时，确保有相应的读写权限。
+
+6. **★ SFTP 路径**: 见上节「路径解析」——**绝对路径**是唯一安全做法。
+
+7. **★ 默认超算 = NC-E**（`--account flash_ssh`）。BSCC-T6 为 `flash_ssh_2`。
 
 ## 依赖
 

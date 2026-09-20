@@ -1028,8 +1028,23 @@ def main(credential_name: Optional[str] = None):
     except RuntimeError as e:
         log(f"SSH 连接失败: {e}", "ERROR")
         log("请确保已配置凭据: python -m flash._core.credentials.manage", "INFO")
-        log("或者手动上传文件到超算并运行:", "INFO")
-        log(f"  scp -r {INPUT_DIR}/* scfa2696@ssh.cn-zhongwei-1.paracloud.com:{remote_dir}/", "INFO")
+        log("或者手动上传文件到超算并运行 "
+            "(账户/线路统一配置于 ~/.physimx/flash/hpc_accounts.json):", "INFO")
+        # 提示命令中的 user@host 从明文 JSON 读取, 不在脚本内硬编码
+        _hint_user, _hint_host = "<user>", "<host>"
+        try:
+            from flash._core.credentials.hpc_config import (
+                get_hpc_routes, get_hpc_ssh_username,
+            )
+            _u = get_hpc_ssh_username("flash_ssh")
+            _rs = get_hpc_routes("flash_ssh")
+            if _u:
+                _hint_user = _u.split("@")[0]
+            if _rs:
+                _hint_host = _rs[0]["host"]
+        except Exception:  # noqa: BLE001
+            pass
+        log(f"  scp -r {INPUT_DIR}/* {_hint_user}@{_hint_host}:{remote_dir}/", "INFO")
         return False
 
     # ── 完成 ──
@@ -1042,14 +1057,21 @@ def main(credential_name: Optional[str] = None):
     return True
 
 
-def download_hdf5_to_local(session: RemoteSession, remote_dir: str, actual_output_dir: str = ""):
+def download_hdf5_to_local(session: RemoteSession, remote_dir: str,
+                           actual_output_dir: str = "",
+                           with_plt: bool = False):
     """下载 HDF5 文件到本地供 output_processors 分析。
+
+    ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
+    flash/flash_run/remote/fetch_policy.py): 只回传 chk; 本地分析
+    FlashDataLoader 本就优先 chk。
 
     Args:
         session: RemoteSession 实例
         remote_dir: 远程任务目录（回退查找用）
         actual_output_dir: FLASH 实际输出目录（run_flash_on_hpc 返回，
             形如 .../outputfiles_20260811_192104）
+        with_plt: True 时连 plt 一起下载（默认不取）
     """
     # 优先使用实际输出目录；否则在 remote_dir 下扫描 outputfiles*
     search_dirs = []
@@ -1068,6 +1090,26 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str, actual_outpu
         return
 
     remote_files = [l.strip() for l in out.strip().splitlines() if l.strip()]
+    # ★ chk-only 默认 (2026-09-16 全场景定案, 策略源
+    #   flash/flash_run/remote/fetch_policy.py): plt 不回传; with_plt=True 才取。
+    #   importlib 按路径加载策略模块, 避免 import flash 包副作用。
+    import importlib.util as _ilu
+    _fp = None
+    for _root in Path(__file__).resolve().parents:
+        _f = _root / "flash" / "flash_run" / "remote" / "fetch_policy.py"
+        if _f.is_file():
+            _spec = _ilu.spec_from_file_location("_fetch_policy", _f)
+            _fp = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_fp)
+            break
+    if _fp is None:
+        raise ImportError("fetch_policy.py not found above " + str(__file__))
+    if not with_plt:
+        _nplt = sum(1 for f in remote_files if _fp.is_plt(Path(f).name))
+        remote_files = [f for f in remote_files if not _fp.is_plt(Path(f).name)]
+        if _nplt:
+            log(f"    ★ chk-only 模式: 跳过 {_nplt} 个 plt 文件 "
+                f"(with_plt=True 可改)", "INFO")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     n = 0
     for rf in remote_files[:10]:

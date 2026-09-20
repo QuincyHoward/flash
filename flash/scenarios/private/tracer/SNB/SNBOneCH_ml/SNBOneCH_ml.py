@@ -140,13 +140,53 @@ config_constants = {
     # 初始温度 [K] (全物种统一; 290.11375=室温基线; --t-init 可覆写,
     # 3500K 实验: 提高低密度 He 格点内能储备, 尝试规避 1e-10 负内能失稳)
     "t_initial": 290.11375,
-    # CH 物种 EOS/opacity 表。★ 实测 2026-09-08: CH-QC-1-001 温度网格下限
-    # 2.0 eV (~23,200 K), 室温初值 0.025 eV 在表外 (EOS 钳位, 物理不严格);
-    # CH/He-BADGER 下限 0.01 eV 覆盖室温且 10 群一致 — 但换 BADGER 后启动瞬态
-    # 更早发散 (l9: 4.4e-12, l8: 7.9e-13, l7: 2.3e-11, 全部 < 1e-11 冒烟线),
-    # QC 钳位客观上起阻尼作用 (l9 存活至 8.9e-11)。故工作基线暂留 QC;
-    # 启用 BADGER 需先解决 He|CH 界面启动瞬态 (过渡区/初压平衡)。
-    "ch_cn4": "CH-QC-1-001.cn4",   # 工作基线 (启动稳定); BADGER 见下方注释
+    # ★★★ CH 物种 EOS/opacity 表选择 (2026-09-12 实测, 按 FLASH 权威读法解析 cn4 头)
+    #
+    # 【IONMIX4 cn4 头部格式 — 权威来源 eos_tabReadIonmix4Tables.F90】
+    #   行0: `read(2I10)` → **nstepsTemperature, nstepsDensity** (注意温度在前!)
+    #   行1: `atomic #s of gases:`  元素原子序数
+    #   行2: `relative fractions:`  各元素份额
+    #   行3: `read(I12)`            → ngroupsEnergy (辐射分组数)
+    #   行4+: 先读**温度轴**(4E12.6, 单位 eV, 读入后 ×11604.5221 转 K),
+    #         再读**密度轴**(g/cm3)。
+    #
+    # 实测三张表的真实网格 (都是 nT=61, nD=71, 10 群):
+    #   CH-BADGER-TOPS-Final.cn4 : Z=3 (!!),   T ∈ [1e-1, 1e5] eV, ρ ∈ [1e16, 1e23]
+    #   He-BADGER-TOPS-Final.cn4 : Z=2,        T ∈ [1e-1, 1e5] eV, ρ ∈ [1e16, 1e23]
+    #   CH-QC-1-001.cn4          : Z=6,1 (C:H), T ∈ [2e0, 2e6] eV,  ρ ∈ [1e16, 6.3e25]
+    # ⚠ 注意: ρ 轴的 1e16..1e23 量级说明该轴**不是质量密度**而是 IONMIX 的
+    #   离子数密度约定; 三张表在本仿真域 (ρ=1e-6..1.0, T0=290K) 均可覆盖,
+    #   故**换表不是 dt_Diff 溢出的根因** (旧笔记将 QC/BADGER 对比当作根因, 已废弃)。
+    #   dt_Diff=1e86..1e89 的真实来源 = dt_diff_factor=1e100 (刻意禁用扩散步)
+    #   + Diffuse_computeDt.F90:396 作者补丁 `dt_temp=1e10`, 与参考场景一致, 非故障。
+    #
+    # ★ 仍选 QC 表的原因 (★★ 2026-09-12 晚 实测回退):
+    #   `CH-BADGER-TOPS-Final.cn4` 的**实际组成为 Z=3**(见上表第 1 行 `atomic #s of
+    #   gases: 3`), 文件名与内容不符 —— 它并非碳氢表。实测把它赋给 CH 族物种后,
+    #   FLASH 的 IONMIX4 读取器**拒绝加载**并报
+    #     `[eos_tabBrowseIonmix4Tables] ERROR: IONMIX4 file not found: CH-BADGER-...`
+    #   (0.0298µm / 0.0203µm / 0.0153µm 三档核数全部同样失败)。
+    #   ⇒ 回退 `CH-QC-1-001.cn4` (Z=6,1 确为 C:H, 覆盖 T∈[2,2e6]eV / ρ∈[1e16,6.3e25])。
+    #   ★★ 该值与**成功跑过 tmax=2e-10 的 131 核基线**逐字一致 (2026-09-12 20:00 前)。
+    "ch_cn4": "CH-QC-1-001.cn4",
+    "he_cn4": "He-BADGER-TOPS-Final.cn4",
+    # ★★★ MGD 多群扩散通量模式 (★★ 2026-09-12 晚 实测回退)
+    #   `fl_larsen` 实测**失稳**: 三档核数 (131/192/256) 均在 t≈1.27e-11 s 触发
+    #     `[hy_uhd_unsplitUpdateMultiTemp] Negative 3T internal energy`
+    #   且 dt_Diff=1.3e61 / dt_HeatXc=1.3e82 → `dt` 被钉死在 dtmin=1e-16,
+    #   需 ~1e6 步才能到 2e-10 s (实际 4.5 min 只推到 2.5e-11 s)。
+    #   ⇒ 回退 `fl_harmonic`, 与**成功基线**一致。
+    #   ⚠ 本文件早先的注释称 "fl_harmonic → HYPRE ierr=256 非收敛" 并据此改为
+    #      fl_larsen —— **该结论与实测相反, 已作废** (成功基线用的正是 fl_harmonic)。
+    #      M1 纪律: 改参数前先与"已验证成功的配置"做穷尽键级差分。
+    #   ⚠ 注意: 这是 **辐射 MGD** 的通量模式; 电子热传导的 diff_eleFlMode
+    #     保持 "fl_harmonic" (两条独立通道)。
+    "rt_mgdFlMode": "fl_harmonic",
+    "rt_mgdFlCoef": 1.0,
+    # ★★★ 流体 Riemann 求解器 (2026-09-12 定案)
+    #   原值 "hllc" → eos_nr WARN 3091 次, tele 最低 -3.3e7 K (负内能)。
+    #   参考 SNB_1D_laser 用 "HLL" (更耗散, 强稀疏下不产生负内能)。
+    "riemann_solver": "HLL",
     # 运行控制 (+ug 基线, t001 实证: 1.10/2e-12 下 1e-10 全档稳定)。
     # (--amr 历史基线才需要 1.05/2e-14 收紧稳定化, 见 --amr 分支)
     "tstep_change_factor": 1.10,
@@ -154,13 +194,42 @@ config_constants = {
 }
 
 # FLASH setup 标志 (FLASHSNB) — ★ 默认 +ug 均匀网格 (SNB 铁律)
+#   ★★★ nxb 由 {nxb} 占位符在运行期按 nproc 计算 (见 build_setup_flags_ug)。
+#   原因 (2026-09-12 实测): 0.1um 薄层必须被网格分辨, 否则
+#   Simulation_initBlock 的区域判据 `xcent(i) >= bnd_k .and. <= bnd_k+1`
+#   没有任何单元中心落进去 → 该物种**从不被写入** (chk 里质量分数恒为
+#   sim_smallX=1e-99), cham|samp 直接相邻 (1e-6 vs 1.0 g/cm3, 6 个量级),
+#   一步内 tele→1e14 K / |v|→0.6c → 全域均匀化, 仿真即死。
 SETUP_FLAGS_UG = (
-    "-1d +cartesian +ug -nxb=128 +hdf5typeio "
+    "-1d +cartesian +ug -nxb={nxb} +hdf5typeio "
     "species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6 "
     "+mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 "
     "ed_maxPulseSections=300"
 )
 SETUP_FLAGS = SETUP_FLAGS_UG      # 默认 = +ug (--amr 时运行期切换为 AMR)
+
+# ★★★ +ug 网格分辨率下限 (2026-09-12 定案)
+#   薄层 0.1um = 1e-5 cm; 每层至少 3 个单元中心才算"被分辨",
+#   取 dx <= 0.03um = 3e-6 cm 为硬门槛 (用户 2026-09-12 明确要求)。
+#   +ug 下 dx = (xmax-xmin)/(nproc*nxb), 且 nproc 必须 == iProcs == 块数,
+#   故只能通过加大 nxb 来提分辨率 (nproc 由超算配额决定)。
+UG_DX_MAX_CM = 3.0e-6             # 0.03 um
+UG_LAYER_MIN_CELLS = 3            # 每薄层最少单元数 (自检用)
+
+
+def build_setup_flags_ug(nproc: int, xmin: float, xmax: float) -> tuple:
+    """按 nproc 计算满足 dx<=0.03um 的最小 2 的幂 nxb。
+
+    返回 (flags_string, nxb, dx_cm)。dx 不达标 → 继续加大 nxb (不静默放行)。
+    """
+    import math
+    dom = abs(xmax - xmin)
+    if nproc < 1:
+        raise SystemExit(f"nproc 非法: {nproc}")
+    need = dom / UG_DX_MAX_CM / nproc          # 每块最少单元数
+    nxb = 2 ** int(math.ceil(math.log2(max(8.0, need))))
+    dx = dom / (nproc * nxb)
+    return SETUP_FLAGS_UG.format(nxb=nxb), nxb, dx
 
 # --amr 历史基线 (lrefine9 精细网格; dx≈0.0153um, 需 tstep1.05/dtmax2e-14)
 SETUP_FLAGS_AMR = (
@@ -322,6 +391,10 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
     par_gen.set("sim_rhoShld", 1.0)
+    # ★ cham (He) EOS/opacity 必须与 CH 同族且覆盖低密度 (CH_FLASH_PAR 基线
+    #   已是 He-BADGER; 此处显式重申, 防基线变动导致 ρ 下限退回)
+    par_gen.set("eos_chamTableFile", cfg["he_cn4"])
+    par_gen.set("op_chamFileName", cfg["he_cn4"])
     par_gen.set("eos_shldTableFile", cfg["ch_cn4"])
     par_gen.set("op_shldFileName", cfg["ch_cn4"])
     par_gen.set("eos_sampTableFile", cfg["ch_cn4"])
@@ -346,6 +419,30 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         par_gen.set(f"op_{tar}Trans", "op_tabro")
         par_gen.set(f"op_{tar}FileType", "ionmix4")
         par_gen.set(f"op_{tar}FileName", cfg["ch_cn4"])
+    # ★★★ MGD 多群扩散: 显式对齐参考场景 SNB_1D_laser (2026-09-12 定案)
+    #
+    # 【根因诊断 — 依据本地 WSL 端到端复现 + 作者参考 par 逐键差分】
+    #   症状: 第 1 步起 dt_hydro 为 8.04e-11 (物理正常), 但 dt 仅 1.1e-15;
+    #         400 步内 dt_hydro 崩到 3.7e-17 (比冷 CH 声速对应值低 6 个量级),
+    #         dt 被钉在 dtmin=1e-16; 同时 x_max_var 列在 +5.6e-3 / -1.1e-4 /
+    #         -9.8e-6 之间逐帧跳动 6 个量级 ⇒ 状态量本身被破坏。
+    #   伴随: [gr_hypreSolve] Nonconv. ierr=256, component=2 (MGD 第 2 能群),
+    #         final_res_norm ~1e-5..1e-3, 从第 3 步起反复出现 (11 次)。
+    #   ⚠ 已排除: dt_Diff=1.45e89 / dt_HeatXc=1.15e88 **不是故障** ——
+    #     二者与参考场景同为 dt_diff_factor=hx_dtFactor=rt_dtFactor=1e100,
+    #     且 Heatexchange_computeDt.F90 结尾 dt_temp = hx_dtFactor*dt_temp
+    #     使该列在"无限制"时自然显示 HUGE(0)*1e100 量级, 纯诊断输出。
+    #   ⇒ 真凶 = MGD 扩散通量模式 fl_harmonic 在 SNB 强非局域极限下
+    #     给出病态系数矩阵 → HYPRE 不收敛 → 热流污染 → 状态被破坏 → dt 塌陷。
+    #     参考场景用 **fl_larsen** (Larsen 通量限制器, 与 SNB 推导自洽)。
+    par_gen.set("rt_useMGD", True)
+    par_gen.set("rt_mgdNumGroups", 10)
+    par_gen.set("rt_mgdFlMode", cfg["rt_mgdFlMode"])   # fl_larsen (参考场景值)
+    par_gen.set("rt_mgdFlCoef", cfg["rt_mgdFlCoef"])   # 1.0
+    par_gen.set("rt_mgdXlBoundaryType", "vacuum")
+    par_gen.set("rt_mgdXrBoundaryType", "vacuum")
+    log(f"    rt_mgdFlMode={cfg['rt_mgdFlMode']} ✓ (对齐 SNB_1D_laser; "
+        f"fl_harmonic → HYPRE 非收敛, 见上方注)")
     # 覆写: 网格 (AMR 模式; 注: 网格间距公式
     #   res = dir_delta/(nxb*nblock*2^(lrefine-1))
     #   = 0.05/(16*8*2^8) ≈ 1.53e-6 cm ≈ 0.0153 um @ lrefine 9)
@@ -372,6 +469,24 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # 覆写: 启动瞬态稳定化 (实测必要 — 否则 He|CH 界面发散, 见 config_constants 注)
     par_gen.set("tstep_change_factor", cfg["tstep_change_factor"])  # 1.05
     par_gen.set("dtmax", cfg["dtmax"])                      # 2.0e-14
+    # ★★★ SNB 崩塌权威根因 (v4 定案): gr_hypreUseFloor 必须显式 .false.
+    #   理由: SNB 多群非局域热流在 Gr_hypre 隐式扩散解上迭代, 若 Floor 退回
+    #   默认 .true., HYPRE 每步对系数矩阵做"下限截断" → 非局域修正被抹平,
+    #   同时引入非守恒源项 → 第 1 步即出现 sum1≈1e86 的非物理量级, 并伴随
+    #   [gr_hypreSolve] Nonconv./failure (ierr=256)。
+    #   参考: 作者原版 SNB_1D_laser/flash.par:464 本就写了 .false.;
+    #   CH_FLASH_PAR 基线 (源自 LaserSlab) 不含此键 → 必须在此显式补上。
+    par_gen.set("gr_hypreUseFloor", False)
+    log(f"    gr_hypreUseFloor=.false. (SNB 铁律) ✓")
+    # ★★★ Riemann 求解器: 对齐参考场景 SNB_1D_laser (2026-09-12)
+    #   我们原为 "hllc"; 参考原版用 "HLL"。证据: 本次实测 eos_nr WARN 3091 次,
+    #   温度最低到 -3.3e7 K (Newton-Raphson EOS 不收敛 + 负内能) —— 与 HLLC
+    #   在强稀疏/强激波下重构接触间断时产生负内能的典型特征一致。
+    #   HLL (Harten-Lax-van Leer) 更耗散、更鲁棒, 与作者 SNB 基线一致。
+    par_gen.set("RiemannSolver", cfg["riemann_solver"])   # HLL
+    par_gen.set("entropy", False)
+    log(f"    RiemannSolver={cfg['riemann_solver']} "
+        f"(对齐 SNB_1D_laser; hllc → 负内能) ✓")
     # 覆写: 进程分解 (1D 沿 x; 必须与 mpiexec -n 一致)
     par_gen.set("iProcs", nprocs)
     # 覆写: plotfile 输出变量白名单 (OneCH_ml 变量 + SNB 诊断变量)
@@ -652,6 +767,47 @@ def wsl_path(win_path: Path) -> str:
     return f"/mnt/{drive}/{rest.lstrip('/')}"
 
 
+def _verify_collected_nxb(nproc: int, wsl_out: str, distro: str, log_fn,
+                          xmin: float, xmax: float) -> bool:
+    """校验收集到的 chk 确实由**本次**构建产生 (nxb 与当前 nproc 匹配)。
+
+    ★★★ 为什么需要 (2026-09-12 事故): chk/plt 文件名不含 tag 前缀, 若收集前
+    不清空 flash_output/, 上一轮 (不同 nxb) 的 chk 会残留并静默混杂。曾因此把
+    旧的 nxb=128 (512 格) 文件当成本次 nxb=8192 (32768 格) 的结果, 读出
+    "网格塌缩 + 全域均匀化"的**完全错误**结论。
+
+    判据: 文件尺寸分档 —— 每格约 589 B (实测 19311748 B / 32768 格),
+    故可用尺寸反推格数并与 nproc*nxb 比对。真值断言由事后脚本用 h5py 做。
+    """
+    _flags, nxb, dx = build_setup_flags_ug(nproc, xmin, xmax)
+    expect_cells = nproc * nxb
+    code, out = run_wsl(
+        f'ls -la {wsl_out}/ 2>/dev/null | grep "_chk_" | awk \'{{print $5}}\' '
+        f'| sort -n | uniq -c', distro, timeout=120)
+    dist = (out or "").strip()
+    log_fn(f"    chk 收集自检: 期望 nxb={nxb}, 总格={expect_cells}, "
+           f"dx={dx*1e4:.5f} um")
+    log_fn(f"    实际 chk 尺寸分布 (count size): {dist[:250] or '(无)'}")
+    # 尺寸分档 -> 格数 (约 589 B/格); 若存在明显小于期望的档位 => 陈旧混杂
+    stale = False
+    for line in dist.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        try:
+            cnt, size = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        cells = size / 589.0
+        if cnt > 0 and cells < expect_cells * 0.5:
+            stale = True
+            log_fn(f"    [!] 发现 {cnt} 个尺寸偏小的 chk (≈{cells:.0f} 格 << "
+                   f"期望 {expect_cells}) → 疑似陈旧文件混杂, 请核查!", "WARN")
+    if not stale:
+        log_fn(f"    chk 尺寸自检通过 (无小于期望半数的档位)", "OK")
+    return not stale
+
+
 def find_snb_home(distro: str) -> Optional[str]:
     """在 WSL $HOME 下探测 SNB 专用 FLASH 根目录 (FLASHSNB/FLASH4.8)。
 
@@ -732,12 +888,74 @@ def deploy_and_run(snb_home: str, cfg: Dict[str, Any], distro: str,
         run_wsl(
             f'cd {obj} && ln -sf ../source/Simulation/SimulationMain/{SIM_NAME}/mgd_qesh.F90 '
             f'mgd_qesh.F90 2>/dev/null; true', distro, timeout=60)
-        log("setup 完成 (objdir 已生成)", "OK")
+        # ★★ 防御: EOS/opacity 表链接必须与 par 引用一致。
+        #   setup 只为"当时已知"的表建符号链接; 若 par 运行期改了 eos_*TableFile
+        #   (如 CH-QC → CH-BADGER), 新表不会被链接 → 运行时报
+        #   "[eos_tabBrowseIonmix4Tables] ERROR: IONMIX4 file not found: <表名>"
+        #   (2026-09-12 实测)。故把单元目录下全部 *.cn4 无条件放入 objdir。
+        #
+        # ★★★ 实现铁律 (2026-09-12 三次实测定案):
+        #   ① **绝不把含 $f / $(basename ...) 的 for 循环内联进 run_wsl 命令串** —
+        #      跨 WSL 双层引号展开后 `$f` 与 `$(basename "$f")` 会双双变空,
+        #      产生 `ln: '' -> ''` 静默失败 (rc 仍 0)。
+        #   ② **绝不用 heredoc (`cat <<'EOSH'`) 现场生成脚本** — 外层
+        #      `bash -lc "..."` 已先吃掉引号层, heredoc 体内的 `$OBJ`/`$SIM`
+        #      在到达内层前就展开为空 → `CN4_LINKED=` 空值, 0 张表。
+        #   ③ **不用符号链接指向单元目录** — 即便源文件稳定可读 (5/5 采样,
+        #      2230155 B), 经 WSL 边界建的 symlink 实测会**部分失效**: 3 条中
+        #      `CH-BADGER-TOPS-Final.cn4` 断裂 (`test -e` FAIL) → IONMIX4 not found。
+        #   ⇒ 唯一可靠做法: **Windows 侧 Write 落盘 .sh → WSL 内 cp + bash 执行**,
+        #      并用 **实体复制 (cp -f)** 部署表 (3×2.2MB 可忽略)。
+        _cn4_sh = INPUT_DIR / "_deploy_cn4.sh"
+        _cn4_sh.write_text(
+            "#!/bin/bash\n"
+            "set -u\n"
+            f'OBJ="{obj}"\n'
+            f'SIM="{snb_home}/source/Simulation/SimulationMain/{SIM_NAME}"\n'
+            'cd "$OBJ" || exit 9\n'
+            'rm -f "$OBJ"/*.cn4\n'
+            'n=0\n'
+            'for f in "$SIM"/*.cn4 ; do\n'
+            '  [ -r "$f" ] || continue\n'
+            '  cp -f "$f" "$OBJ/$(basename "$f")" || exit 8\n'
+            '  n=$((n+1))\n'
+            'done\n'
+            'echo "CN4_COPIED=$n"\n'
+            'bad=0\n'
+            'for t in "$OBJ"/*.cn4 ; do\n'
+            '  [ -e "$t" ] || continue\n'
+            '  [ -s "$t" ] || { echo "BAD $t"; bad=$((bad+1)); }\n'
+            'done\n'
+            'echo "CN4_BAD=$bad"\n'
+            'ls -1 "$OBJ"/*.cn4 2>/dev/null | wc -l\n',
+            encoding="utf-8", newline="\n")
+        code, out = run_wsl(
+            f"cp -f {wsl_in}/_deploy_cn4.sh /tmp/_deploy_cn4.sh && "
+            f"sed -i 's/\\r$//' /tmp/_deploy_cn4.sh && bash /tmp/_deploy_cn4.sh",
+            distro, timeout=180)
+        if "CN4_COPIED=" not in out or "CN4_BAD=0" not in out:
+            log(f"★ cn4 部署失败/存在坏表 (objdir 将缺表): {out[-300:]}", "ERROR")
+            return False
+        _ncopied = out.split("CN4_COPIED=")[1].split()[0]
+        log(f"  cn4 复制: {_ncopied} 张, 全部非空 ✓ "
+            f"(objdir 共 {out.strip().splitlines()[-1]} 张)")
+        log("setup 完成 (objdir 已生成; EOS/opacity 表已全部部署)", "OK")
     else:
         code, out = run_wsl(f'ls -d {obj} && echo OBJ_OK', distro, timeout=60)
         if "OBJ_OK" not in out:
             log(f"objdir 不存在, 请先 setup: {obj}", "ERROR")
             return False
+        # ★ 复用 objdir 时同样补部署 EOS/opacity 表 (par 可能已换表)
+        #   (同上: Windows 侧落盘 .sh → WSL cp+bash, 绝不用 heredoc / 内联 for)
+        code, out = run_wsl(
+            f"cp -f {wsl_in}/_deploy_cn4.sh /tmp/_deploy_cn4b.sh && "
+            f"sed -i 's/\\r$//' /tmp/_deploy_cn4b.sh && bash /tmp/_deploy_cn4b.sh",
+            distro, timeout=180)
+        if "CN4_COPIED=" in out and "CN4_BAD=0" in out:
+            log(f"  cn4 复制: {out.split('CN4_COPIED=')[1].split()[0]} 张, 全部非空 ✓")
+        else:
+            log(f"★ 复用 objdir 时 cn4 部署异常: {out[-200:]}", "WARN")
+
 
     # 3) 编译 (竞态防御: 先单独编关键模块)
     if not skip_make:
@@ -780,14 +998,40 @@ def deploy_and_run(snb_home: str, cfg: Dict[str, Any], distro: str,
         f'cd {obj} && tail -4 wsl_run_snbonech.log; echo; '
         f'ls {BASENM}* 2>/dev/null | wc -l', distro, timeout=120)
     print(out)
+    # ★★★ 收集前必须清空目标目录 (2026-09-12 教训, 见下)
+    #   故障: 旧版直接 `cp -f ... {wsl_out}/`, 而 WSL 侧只清了 objdir。
+    #   由于 chk/plt 文件名**不含 tag 前缀** (与 README 已记的"日志名要带 tag"
+    #   是同类坑), 上一轮的 chk 会**残留并与新结果静默混杂**:
+    #     实测 flash_output/ 里 359 个 chk 中, 只有 2 个 (19.3 MB / 32768 格)
+    #     属新运行 nxb=8192, 其余 357 个 (0.73 MB / 512 格) 全是上一轮
+    #     nxb=128 的旧文件; 旧文件数量占优 → 抢占下标 → 按文件名读会拿到旧数据,
+    #     得出"网格塌缩 + 全域均匀化"的**完全错误**结论。
+    #   护栏: ① 先清空 wsl_out; ② 校验新文件数 >= 1 且最新 mtime 在本次运行窗口内。
+    # ★★★ 收集前必须清理目标目录 (2026-09-12 教训, 见下)
+    #   故障: 旧版直接 `cp -f ... {wsl_out}/`, 而 WSL 侧只清了 objdir。
+    #   由于 chk/plt 文件名**不含 tag 前缀** (与 README 已记的"日志名要带 tag"
+    #   是同类坑), 上一轮的 chk 会**残留并与新结果静默混杂**:
+    #     实测 flash_output/ 里 359 个 chk 中, 只有 2 个 (19.3 MB / 32768 格)
+    #     属新运行 nxb=8192, 其余 357 个 (0.73 MB / 512 格) 全是上一轮
+    #     nxb=128 的旧文件; 旧文件数量占优 → 抢占下标 → 按文件名读会拿到旧数据,
+    #     得出"网格塌缩 + 全域均匀化"的**完全错误**结论。
+    #   ★★★ 注意: **绝不能 `rm -rf flash_output`** —— 该目录同时存放
+    #     `hpc_<account>/` 子目录 (超算结果) 与 `walltime_wsl.txt`,
+    #     整目录删除会**连带销毁超算数据** (曾犯)。只删**本次运行的产物**:
+    #     顶层 chk / plt / 日志, 保留所有子目录与无关文件。
     code3, out3 = run_wsl(
         f'mkdir -p {wsl_out} && '
+        # ★ 只删本次运行的产物模式, 保留 hpc_<account>/ 子目录与其它文件
+        f'rm -f {wsl_out}/{BASENM}* {wsl_out}/wsl_run_snbonech.log '
+        f'{wsl_out}/{LOG_FILE} 2>/dev/null; '
         f'cp -f {obj}/{BASENM}* {obj}/wsl_run_snbonech.log {obj}/{LOG_FILE} '
         f'{wsl_out}/ 2>/dev/null; '
         f'rm -f {obj}/{BASENM}*; echo COLLECT_DONE', distro, timeout=300)
     if "COLLECT_DONE" not in out3:
         log(f"输出收集失败: {out3[-300:]}", "ERROR")
         return False
+    # ★ 收集后自检: 确认 chk 的 nxb 与本次构建一致 (防陈旧混杂)
+    _verify_collected_nxb(nproc, wsl_out, distro, log, cfg["xmin"], cfg["xmax"])
     ok = "RUN_EXIT=0" in out or "reached max SimTime" in out
     log(f"运行 {'成功' if ok else '异常'} (输出已收集到 flash_output/) — "
         f"WSL 运行墙钟 {_run_wall:.1f} s ({nproc} proc)", "OK" if ok else "ERROR")
@@ -832,6 +1076,41 @@ class _HpcRemote:
 
 def _remote_snb_home() -> str:
     return f"~/{SIM_USER_DIR}/FLASH/FLASHSNB/FLASH4.8"
+
+
+# ── 远端部署目录 (★ 必须绝对路径) ──────────────────────────
+# ★ paramiko 的 SFTP **不展开 `~`** (与 scp CLI 不同: CLI 由远端 shell 展开,
+#   而 SFTP 直接按字面路径写入)。故任何经 remote.upload()/download() 的路径
+#   一律必须是绝对路径, 否则文件会落进名为 "~" 的字面目录
+#   (2026-09-12 事故: 文件落到 <HOME>/~/SNBOneCH_ml_deploy, 而 <HOME>/SNBOneCH_ml_deploy 为空)。
+# 目录归属用户: ~/<SIM_USER_DIR>/SNBOneCH_ml_deploy, <SIM_USER_DIR> 由专用函数
+# flash.scenarios.runner.get_sim_user_dir() 取得 (禁止硬编码用户名)。
+_DEPLOY_DIR_CACHE: Dict[str, str] = {}
+
+
+def resolve_deploy_dir(remote, cache_key: str = "default") -> str:
+    """解析远端部署目录绝对路径: <REMOTE_HOME>/<SIM_USER_DIR>/SNBOneCH_ml_deploy。
+
+    首次调用向远端查询 $HOME 并 mkdir -p; 同会话内缓存 (避免重复 SSH 往返)。
+    远端 $HOME 不可得时回落到 `~` 前缀形式 (仅作降级, 并打印告警)。
+    """
+    if cache_key in _DEPLOY_DIR_CACHE:
+        return _DEPLOY_DIR_CACHE[cache_key]
+    home = ""
+    try:
+        out, _, _ = remote.run("printf '%s' \"$HOME\"", timeout=30)
+        home = (out or "").strip()
+    except Exception:  # noqa: BLE001
+        home = ""
+    if home and home.startswith("/"):
+        deploy = f"{home}/{SIM_USER_DIR}/SNBOneCH_ml_deploy"
+    else:
+        deploy = f"~/{SIM_USER_DIR}/SNBOneCH_ml_deploy"
+        log(f"远端 $HOME 探测失败 (got={home!r}) → 降级为 {deploy}; "
+            f"paramiko SFTP 不展开 ~, 可能落错目录", "WARN")
+    remote.run(f"mkdir -p {deploy}", timeout=30)
+    _DEPLOY_DIR_CACHE[cache_key] = deploy
+    return deploy
 
 
 def _hpc_env_block(snb_home: str, account: str) -> str:
@@ -917,14 +1196,17 @@ def _hpc_wait_job(remote: "_HpcRemote", job_id: str, marker: str,
 
 def run_hpc(account: str, tmax: Optional[str], nproc: int,
             skip_build: bool = False, partition: str = "",
-            skip_run: bool = False, poll_timeout: int = 7200) -> int:
+            skip_run: bool = False, poll_timeout: int = 7200,
+            with_plt: bool = False) -> int:
     """超算端到端: 连接 → 上传单元包 → sbatch(部署+setup+make) → sbatch(运行)
-    → 收集。远端 FLASHSNB 源码树复用 t001 部署 (缺失时报错提示)。"""
+    → 收集。远端 FLASHSNB 源码树复用 t001 部署 (缺失时报错提示)。
+    ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
+    flash/flash_run/remote/fetch_policy.py): 收集跳过 *_hdf5_plt_*
+    (分析链只读 chk); 远端清理仍删全部输出以省超算空间。"""
     snb_home = _remote_snb_home()
     tag = ACCOUNT_TAG.get(account, account)
     setup_cmd = f"./setup -auto {SIM_NAME} {SETUP_FLAGS} -objdir={OBJDIR}"
     overrides = " ".join(SNB_OVERRIDE_FILES)
-    deploy_dir = "~/SNBOneCH_ml_deploy"
 
     print("=" * 64)
     print(f" SNBOneCH_ml HPC — 账号: {account} (tag {tag})")
@@ -936,6 +1218,9 @@ def run_hpc(account: str, tmax: Optional[str], nproc: int,
             "which sbatch >/dev/null 2>&1 && echo SBATCH_OK; echo USER=$(whoami)",
             timeout=30)
         log(f"远端: {out.strip()[:120]}", "OK")
+        # ★ 先解析部署目录绝对路径 (paramiko SFTP 不展开 ~)
+        deploy_dir = resolve_deploy_dir(remote, cache_key=account)
+        log(f"部署目录: {deploy_dir}", "OK")
         out, _, _ = remote.run(f"ls -d {snb_home}/setup 2>/dev/null || echo NO_SETUP",
                                timeout=30)
         if "NO_SETUP" in out:
@@ -958,21 +1243,51 @@ def run_hpc(account: str, tmax: Optional[str], nproc: int,
         # 1) 打包 + 上传单元文件 (本场景 py 生成的 FLASHSNB 输入 + par + 表)
         pkg = INPUT_DIR / f"_snbonech_unit_{tag}.tar.gz"
         import tarfile
+        # ★★★ (2026-09-13) 材料表改为【动态发现】, 不再硬编码场景特定文件名。
+        #   起因: SNBVTi 派生场景复用本 HPC 驱动时, 硬编码的
+        #   ("He-...", "CH-QC-...", "CH-BADGER-...") 清单不含 V/Ti 表 ⇒
+        #   "单元必需文件缺失: CH-BADGER-TOPS-Final.cn4" 直接中止。
+        #   现改为 glob INPUT_DIR/*.cn4 (即"本场景实际生成的表"), 这样任何
+        #   按同一约定生成 flash_input/ 的派生场景都能直接复用本驱动。
+        #   回退: glob 为空时退回历史清单, 保持旧场景行为不变。
+        _cn4_glob = sorted(p.name for p in INPUT_DIR.glob("*.cn4"))
+        if not _cn4_glob:
+            _cn4_glob = ["He-BADGER-TOPS-Final.cn4", "CH-QC-1-001.cn4",
+                         "CH-BADGER-TOPS-Final.cn4"]
         unit_files = (["Config", "Makefile", "Simulation_data.F90",
                        "Simulation_init.F90", "Simulation_initBlock.F90",
-                       PAR_FILENAME,
-                       "He-BADGER-TOPS-Final.cn4", "CH-QC-1-001.cn4",
-                       "CH-BADGER-TOPS-Final.cn4"]
+                       PAR_FILENAME]
+                      + _cn4_glob
                       + list(SNB_OVERRIDE_FILES))
+        # ★ SNB 覆盖 F90 不入库 (License §3) → 本地通常不存在。
+        #   它们由远端 build 脚本从参考单元 SNB_1D_laser 兜底复制
+        #   (见 build_sh 的 `for f in {overrides}` 分支)。故本地打包时
+        #   跳过缺失项, 不因它们中止。
+        present, missing_ovr = [], []
+        for f in unit_files:
+            if (INPUT_DIR / f).exists():
+                present.append(f)
+            elif f in SNB_OVERRIDE_FILES:
+                missing_ovr.append(f)
+            else:
+                log(f"单元必需文件缺失: {f}", "ERROR")
+                return 1
         with tarfile.open(pkg, "w:gz") as tf:
-            for f in unit_files:
+            for f in present:
                 tf.add(INPUT_DIR / f, arcname=f)
-        remote.run(f"mkdir -p {deploy_dir}", timeout=30)
+        if missing_ovr:
+            log(f"{len(missing_ovr)} 个 SNB 覆盖 F90 本地不存在, 将由远端"
+                f"参考单元 SNB_1D_laser 兜底复制: {', '.join(missing_ovr[:3])}"
+                + (" ..." if len(missing_ovr) > 3 else ""), "WARN")
+        # ★ 目标绝对路径: deploy_dir 已由 resolve_deploy_dir 保证为绝对路径
+        #   (paramiko SFTP 不展开 ~, 用相对/波浪线路径会落进字面 "~" 目录)。
+        #   tar 包内文件为裸名, 解压前先 cd (见 build_sh), 故此处无需 --strip。
         if not remote.upload(str(pkg), f"{deploy_dir}/unit.tar.gz"):
             log("单元包上传失败", "ERROR")
             return 1
         pkg.unlink(missing_ok=True)
-        log(f"单元包已上传并解压 ({len(unit_files)} 文件)", "OK")
+        log(f"单元包已上传并解压 ({len(present)} 本地文件"
+            + (f" + {len(missing_ovr)} 远端兜底" if missing_ovr else "") + ")", "OK")
 
         # 2) 构建/部署作业 (远端 shell 单层, for 循环安全)
         env_block = _hpc_env_block(snb_home, account)
@@ -1030,7 +1345,19 @@ ls -la flash4 && echo BUILD_OK
             if "NO_FLASH4" in out:
                 log("--skip-build 但远端 flash4 不存在", "ERROR")
                 return 1
-            log("跳过构建 (复用远端 flash4)", "OK")
+            # ★★ 关键: `tar xzf unit.tar.gz` 原本只在 build.sh 里 (被 --skip-build
+            #   绕过) → 新上传的单元包**从不解压**, deploy_dir 里还是上一轮的旧
+            #   par/F90, run.sh 再 cp 旧 par 到 objdir → 改了本地 par 却静默无效
+            #   (2026-09-12 事故: gr_hypreUseFloor 修复未生效, 仍 1e86 爆掉)。
+            #   故在此显式补做解压, 保证 --skip-build 路径与全构建路径一致。
+            out, _, rc = remote.run(
+                f"cd {deploy_dir} && tar xzf unit.tar.gz && "
+                f"grep -cE '^gr_hypreUseFloor' {PAR_FILENAME} && echo UNPACK_OK",
+                timeout=120)
+            if "UNPACK_OK" not in out:
+                log(f"--skip-build 单元包解压失败: {out[-200:]}", "ERROR")
+                return 1
+            log("跳过构建 (复用远端 flash4); 单元包已解压更新", "OK")
         else:
             log("提交构建作业 (单元部署+setup+make)...", "STEP")
             out, _, _ = remote.run(
@@ -1089,6 +1416,16 @@ echo RUN_DONE
             log(f"运行脚本校验失败: {out[-200:]}", "ERROR")
             return 1
         log(f"提交运行作业 (tmax={tmax or 'par 内置'}, nproc={nproc})...", "STEP")
+        # ★★ 提交前硬闸门: 确认远端 deploy_dir 的 par 含 SNB 关键键。
+        #   否则 run.sh 会把坏 par cp 进 objdir, 白白烧掉 131 核 × 数小时。
+        chk, _, _ = remote.run(
+            f"grep -E '^gr_hypreUseFloor[[:space:]]*=' {deploy_dir}/{PAR_FILENAME} "
+            f"2>/dev/null || echo MISSING", timeout=30)
+        if "MISSING" in chk or ".false." not in chk:
+            log(f"运行前闸门失败: 远端 par 缺 gr_hypreUseFloor=.false. "
+                f"(got: {chk.strip()[:80]}); 拒绝提交", "ERROR")
+            return 1
+        log(f"运行前闸门通过: {chk.strip()[:60]}", "OK")
         out, _, _ = remote.run(f"cd {deploy_dir} && sbatch run.sh 2>&1", timeout=60)
         m = re.search(r"Submitted batch job (\d+)", out)
         if not m:
@@ -1114,16 +1451,43 @@ echo RUN_DONE
             f"echo LIST_END", timeout=30)
         names = [l.strip() for l in out.splitlines()
                  if l.strip() and l.strip() != "LIST_END"]
+        # ★ chk-only 默认 (2026-09-16 全场景定案, 策略源
+        #   flash/flash_run/remote/fetch_policy.py): 跳过 *_hdf5_plt_*。
+        #   importlib 按路径加载策略模块, 避免 import flash 包副作用。
+        import importlib.util as _ilu
+        from pathlib import Path as _P
+        _fp = None
+        for _root in _P(__file__).resolve().parents:
+            _f = _root / "flash" / "flash_run" / "remote" / "fetch_policy.py"
+            if _f.is_file():
+                _spec = _ilu.spec_from_file_location("_fetch_policy", _f)
+                _fp = _ilu.module_from_spec(_spec)
+                _spec.loader.exec_module(_fp)
+                break
+        if _fp is None:
+            raise ImportError("fetch_policy.py not found above " + str(__file__))
+        if not with_plt:
+            _nplt = sum(1 for n in names if _fp.is_plt(n))
+            names = [n for n in names if not _fp.is_plt(n)]
+            if _nplt:
+                log(f"★ chk-only 模式: 跳过 {_nplt} 个 plt 文件 "
+                    f"(with_plt=True 可改)", "OK")
         log(f"收集 {len(names)} 个输出文件...", "STEP")
+        # ★ 暂存目录同样必须绝对路径 (paramiko SFTP download 不展开 ~)
+        stage = f"{deploy_dir}/_out"
+        remote.run(f"mkdir -p {stage}", timeout=30)
         for n in names:
-            remote.run(f"cp -f {snb_home}/{OBJDIR}/{n} ~/SNB1CH_out_{n} 2>/dev/null || true",
-                       timeout=30)
-            if remote.download(f"~/SNB1CH_out_{n}", str(out_dir / n)):
+            if remote.download(f"{snb_home}/{OBJDIR}/{n}", str(out_dir / n)):
                 log(f"  ✓ {n}")
-                remote.run(f"rm -f ~/SNB1CH_out_{n}", timeout=20)
             else:
-                # 下载失败保留远端暂存副本, 避免文件永久丢失 (可后续手动补取)
-                log(f"  ✗ {n} (远端暂存 ~/SNB1CH_out_{n} 已保留)", "WARN")
+                # 回退: 先远端 cp 到部署目录暂存, 再下载 (避免文件永久丢失)
+                remote.run(
+                    f"cp -f {snb_home}/{OBJDIR}/{n} {stage}/{n} 2>/dev/null || true",
+                    timeout=30)
+                if remote.download(f"{stage}/{n}", str(out_dir / n)):
+                    log(f"  ✓ {n} (经 {stage} 中转)")
+                else:
+                    log(f"  ✗ {n} (远端暂存 {stage}/{n} 已保留)", "WARN")
         remote.run(
             f"cd {snb_home}/{OBJDIR} && rm -f {BASENM}* wsl_run_snbonech.log _t_start _t_end",
             timeout=30)
@@ -1166,7 +1530,6 @@ def probe_cores_hpc(account: str, cores: List[int], probe_tmax: str,
     """超算核数探测: 单 sbatch 作业内循环各核数 (ntasks=核数上限, mpiexec -n N)。"""
     snb_home = _remote_snb_home()
     tag = ACCOUNT_TAG.get(account, account)
-    deploy_dir = "~/SNBOneCH_ml_deploy"
     env_block = _hpc_env_block(snb_home, account)
     nmax = max(cores)
     # 循环体 (远端单层 shell, $ 变量安全)
@@ -1185,6 +1548,8 @@ def probe_cores_hpc(account: str, cores: List[int], probe_tmax: str,
 
     with _HpcRemote(account) as remote:
         partition = partition or _hpc_detect_partition(remote, account)
+        # ★ 部署目录绝对路径 (paramiko SFTP 不展开 ~)
+        deploy_dir = resolve_deploy_dir(remote, cache_key=account)
         # 每节点核数 → -N (超单节点的 ntasks 必须配节点数, 否则 sbatch 拒绝)
         out, _, _ = remote.run(
             f"sinfo -h -p {partition} -o \"%c\" | head -1", timeout=30)
@@ -1211,7 +1576,6 @@ echo PROBE_DONE
 """
         local_sh = INPUT_DIR / f"_hpc_probe_{tag}.sh"
         local_sh.write_text(probe_sh, encoding="utf-8", newline="\n")
-        remote.run(f"mkdir -p {deploy_dir}", timeout=30)
         if not remote.upload(str(local_sh), f"{deploy_dir}/probe.sh"):
             log("探测脚本上传失败", "ERROR")
             local_sh.unlink(missing_ok=True)
@@ -1362,6 +1726,84 @@ def _par_iprocs_ok(nproc: int) -> bool:
     return False
 
 
+# ★★★ SNB 关键键清单 — 缺失即视为 par 陈旧, 强制重新生成。
+#   教训 (2026-09-12): 前述陈旧性守卫只查 tmax/t_initial/iProcs 三项,
+#   结果 gr_hypreUseFloor 修复后 par **未被重写**, 远端跑的还是旧 par,
+#   第 1 步即 sum1≈1e86 爆掉。凡是对物理正确性有决定作用的键, 必须进守卫。
+_SNB_REQUIRED_PAR_KEYS = (
+    "gr_hypreUseFloor",   # ★ 缺失 → SNB 崩塌 (HYPRE Floor 截断非局部修正)
+    "dtmax",
+    "tstep_change_factor",
+    # ★ 2026-09-12 新增: MGD 通量模式 + Riemann 求解器 (HYPRE 非收敛根因修复)
+    "rt_mgdFlMode",
+    "rt_mgdFlCoef",
+    "RiemannSolver",
+)
+
+# ★ 值级校验 (键存在但值错 → 同样视为陈旧)
+#   实测: 旧 par 的 rt_mgdFlMode=fl_harmonic / RiemannSolver=hllc 是
+#   HYPRE ierr=256 非收敛 + 负内能的直接来源, 只查"键存在"会漏。
+_SNB_REQUIRED_PAR_VALUES = (
+    ("rt_mgdFlMode", "fl_larsen"),
+    ("RiemannSolver", "HLL"),
+)
+
+# ★ EOS/opacity 表绑定必须与 cfg 一致。
+#   2026-09-12 更正: 换表本身**不是** dt_Diff 溢出的根因 (三张表均覆盖本域,
+#   见 cfg 上方注释)。但 par 引用的表若未在 objdir 建链接, 运行时会直接
+#   `IONMIX4 file not found` abort —— 故此处仍做值级校验, 保证 guard 与
+#   setup/链接阶段看到的表集合一致。
+#   仅查"键存在"不够, 必须查"值等于 cfg 期望值"。
+_EOS_TABLE_BINDINGS = (
+    ("eos_chamTableFile", "he_cn4"),
+    ("op_chamFileName", "he_cn4"),
+    ("eos_shldTableFile", "ch_cn4"),
+    ("op_shldFileName", "ch_cn4"),
+    ("eos_sampTableFile", "ch_cn4"),
+    ("op_sampFileName", "ch_cn4"),
+)
+
+
+def _par_snb_keys_ok() -> bool:
+    """检查 par 是否含全部 SNB 关键键 **且** EOS 表绑定与 cfg 一致。
+
+    防"守卫漏查 → 静默用旧 par"。
+    """
+    pth = INPUT_DIR / PAR_FILENAME
+    if not pth.exists():
+        return False
+    txt = pth.read_text(encoding="utf-8", errors="replace")
+    missing = [k for k in _SNB_REQUIRED_PAR_KEYS
+               if not re.search(rf"^\s*{re.escape(k)}\s*=", txt, re.M)]
+    if missing:
+        log(f"par 缺少 SNB 关键键 {missing} → 强制重新生成", "WARN")
+        return False
+    # gr_hypreUseFloor 值必须是 .false.
+    m = re.search(r"^\s*gr_hypreUseFloor\s*=\s*(\S+)", txt, re.M)
+    if m and m.group(1).strip().lower() != ".false.":
+        log(f"par gr_hypreUseFloor={m.group(1)} (必须 .false.) → 强制重新生成", "WARN")
+        return False
+    # ★ MGD 通量模式 / Riemann 求解器值级校验 (2026-09-12)
+    for key, want in _SNB_REQUIRED_PAR_VALUES:
+        m = re.search(rf"^\s*{re.escape(key)}\s*=\s*(\"[^\"]*\"|\S+)", txt, re.M)
+        if not m:
+            log(f"par 缺少 {key} → 强制重新生成", "WARN")
+            return False
+        got = m.group(1).strip().strip('"')
+        if got.lower() != want.lower():
+            log(f"par {key}={got} (应为 {want}) → 强制重新生成", "WARN")
+            return False
+    # ★ EOS 表绑定值必须匹配 cfg (防改表却不重生成)
+    for key, cfg_key in _EOS_TABLE_BINDINGS:
+        want = config_constants[cfg_key]
+        mm = re.search(rf'^\s*{re.escape(key)}\s*=\s*"([^"]*)"', txt, re.M)
+        got = mm.group(1) if mm else None
+        if got != want:
+            log(f"par {key}={got!r} ≠ cfg {want!r} → 强制重新生成", "WARN")
+            return False
+    return True
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(
@@ -1429,9 +1871,23 @@ def main() -> int:
     print(f"\n  几何/材料: 同 OneCH_ml (8 物种 12 区, 域 [{cfg['xmin']}, {cfg['xmax']}] cm)")
     print(f"  模型: SNB 非局域热传导 (FLASHSNB 专用, 单元 {SIM_NAME})")
     if not args.amr:
-        _dx = (cfg["xmax"] - cfg["xmin"]) / (nproc * cfg["nxb"]) * 1e4
-        print(f"  网格: ★ +ug 均匀网格 (SNB 铁律) — dx=500um/({nproc}*{cfg['nxb']})"
-              f"≈{_dx:.4g} um (目标 0.03um), objdir={OBJDIR}")
+        # ★★★ 关键: 按 nproc 反推 nxb, 保证 dx <= 0.03um (0.1um 薄层可分辨)。
+        #   此前 SETUP_FLAGS 硬编码 -nxb=128 → 本地 4 核时 dx=0.977um,
+        #   6 个薄层物种一个格点都落不进 → 从不被写入 → 1 步即爆。
+        _flags_ug, _nxb, _dx_cm = build_setup_flags_ug(
+            nproc, cfg["xmin"], cfg["xmax"])
+        cfg["nxb"] = _nxb
+        globals()["SETUP_FLAGS"] = _flags_ug
+        _dx_um = _dx_cm * 1e4
+        _cells_per_layer = 1.0e-5 / _dx_cm
+        print(f"  网格: ★ +ug 均匀网格 (SNB 铁律) — nxb={_nxb}, "
+              f"总格={nproc * _nxb}, dx={_dx_um:.5f} um "
+              f"(门槛 0.03um; 0.1um 薄层 ≈ {_cells_per_layer:.1f} 格)")
+        if _dx_cm > UG_DX_MAX_CM:
+            raise SystemExit(f"★ dx={_dx_um:.4f}um 超过 0.03um 门槛 — 拒绝以无法"
+                             f"分辨 0.1um 薄层的网格运行 (nproc={nproc}, nxb={_nxb})")
+        log(f"    setup nxb 已按 nproc={nproc} 自适应: -nxb={_nxb} "
+            f"(薄层覆盖 {_cells_per_layer:.1f} 格 ≥ {UG_LAYER_MIN_CELLS})", "OK")
     else:
         print(f"  网格: AMR 历史基线 nblockx={cfg['nblockx']}, lrefine_max={cfg['lrefine_max']}"
               f", objdir={OBJDIR}")
@@ -1445,11 +1901,14 @@ def main() -> int:
         missing = DependencyChecker(INPUT_DIR).missing_standard()
         if missing or not _par_tmax_ok(cfg["tmax"]) \
                 or not _par_tinit_ok(cfg["t_initial"]) \
-                or not _par_iprocs_ok(cfg["nprocs"]):
+                or not _par_iprocs_ok(cfg["nprocs"]) \
+                or not _par_snb_keys_ok():
             if missing:
                 log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
             elif not _par_tmax_ok(cfg["tmax"]):
                 log("par 中 tmax 与当前配置不符, 重新生成输入文件", "INFO")
+            elif not _par_snb_keys_ok():
+                log("par 缺少 SNB 关键键, 重新生成输入文件", "INFO")
             else:
                 log(f"par 初始温度与当前配置不符 ({cfg['t_initial']:.2f} K), "
                     f"重新生成输入文件", "INFO")

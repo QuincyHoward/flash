@@ -620,10 +620,14 @@ SSH_FIELDS = [
 ]
 
 # 手动模式时的额外字段
+#   ★ 本文件是 legacy 参考实现, 不被任何模块导入。
+#     超算连接信息 (host / port / username / 线路) 的唯一来源现为
+#     ~/.physimx/flash/hpc_accounts.json (见 _core/credentials/hpc_config.py),
+#     因此这里不再携带任何真实的超算主机名 / 用户名默认值。
 MANUAL_FIELDS = [
-    ("host",     "SSH 主机", "ssh.cn-zhongwei-1.paracloud.com"),
+    ("host",     "SSH 主机", ""),
     ("port",     "SSH 端口", 22),
-    ("username", "用户名",   "hello@NC-E"),  # 默认用户名
+    ("username", "用户名",   ""),
 ]
 
 

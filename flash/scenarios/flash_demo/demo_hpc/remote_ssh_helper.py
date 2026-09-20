@@ -1,11 +1,16 @@
 """
-FLASH 超算 SSH 操作助手 (基于 ssh CLI + SSH_ASKPASS + 动态路由)
+FLASH 超算 SSH 操作助手 (基于 ssh CLI / paramiko + 动态路由)
 ═════════════════════════════════════════════════════════════════════
 
-使用 ssh CLI 命令行工具 + SSH_ASKPASS 环境变量实现密码自动注入。
-自动从凭据系统加载密码 + 动态选择最佳路由 (TCP 延迟探测)。
+两种传输后端:
+  1. **paramiko** (Windows 默认) —— 进程内纯 Python SSH 认证，
+     不依赖 SSH_ASKPASS / tty。实测 2026-09-12: Windows 上
+     `ssh` CLI + SSH_ASKPASS 注入密码时**挂起至超时**（askpass 不被触发），
+     而 paramiko 直连 2.7 s 成功 → Windows 一律走 paramiko。
+  2. **ssh/scp CLI + SSH_ASKPASS** (Linux/macOS 默认) —— 传统路径。
+     可用环境变量 `FLASH_SSH_BACKEND` 强制指定（`paramiko` / `cli`）。
 
-无需 sshpass，适用于 ParaCloud 等自定义 SSH 网关。
+自动从凭据系统加载密码 + 动态选择最佳路由 (TCP 延迟探测)。
 """
 
 import os
@@ -17,6 +22,111 @@ import posixpath
 import platform
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple, Callable
+
+
+# ── 传输后端选择 ────────────────────────────────
+
+def _use_paramiko() -> bool:
+    """是否使用 paramiko 后端。
+
+    默认: Windows 用 paramiko (CLI+ASKPASS 在 Windows 上会挂起),
+    Linux/macOS 用 CLI。`FLASH_SSH_BACKEND` 可强制覆写。
+    """
+    force = os.environ.get("FLASH_SSH_BACKEND", "").strip().lower()
+    if force == "paramiko":
+        return True
+    if force == "cli":
+        return False
+    return platform.system().lower() == "windows"
+
+
+def _connect_paramiko(route: Dict[str, Any], timeout: int = 45):
+    """建立 paramiko 连接 (密码认证)。调用方负责 close()。"""
+    import paramiko
+    cli = paramiko.SSHClient()
+    cli.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    cli.connect(
+        hostname=route["host"],
+        port=int(route["port"]),
+        username=route["username"],
+        password=route["password"],
+        timeout=min(timeout, 30),
+        banner_timeout=45,
+        auth_timeout=45,
+        allow_agent=False,
+        look_for_keys=False,
+    )
+    return cli
+
+
+def _paramiko_run(route: Dict[str, Any], command: str, timeout: int = 60) -> Tuple[str, str, int]:
+    """paramiko 执行远程命令，返回 (stdout, stderr, exit_code)。"""
+    try:
+        cli = _connect_paramiko(route, timeout)
+    except Exception as e:
+        return "", f"paramiko connect failed: {e}", -1
+    try:
+        _si, so, se = cli.exec_command(command, timeout=timeout)
+        out = so.read().decode("utf-8", errors="replace")
+        err = se.read().decode("utf-8", errors="replace")
+        code = so.channel.recv_exit_status()
+        return out, err, code
+    except Exception as e:
+        return "", f"paramiko exec failed: {e}", -1
+    finally:
+        cli.close()
+
+
+def _paramiko_put(route: Dict[str, Any], local_path: str,
+                  remote_path: str, timeout: int = 120) -> bool:
+    """paramiko SFTP 上传（自动创建远端父目录）。"""
+    try:
+        cli = _connect_paramiko(route, timeout)
+    except Exception:
+        return False
+    try:
+        sftp = cli.open_sftp()
+        remote_dir = posixpath.dirname(remote_path)
+        if remote_dir:
+            cur = ""
+            for part in remote_dir.split("/"):
+                if not part:
+                    cur = "/"
+                    continue
+                cur = (cur.rstrip("/") + "/" + part) if cur else part
+                try:
+                    sftp.stat(cur)
+                except OSError:
+                    try:
+                        sftp.mkdir(cur)
+                    except OSError:
+                        pass
+        sftp.put(local_path, remote_path)
+        sftp.close()
+        return True
+    except Exception:
+        return False
+    finally:
+        cli.close()
+
+
+def _paramiko_get(route: Dict[str, Any], remote_path: str,
+                  local_path: str, timeout: int = 120) -> bool:
+    """paramiko SFTP 下载。"""
+    try:
+        cli = _connect_paramiko(route, timeout)
+    except Exception:
+        return False
+    try:
+        sftp = cli.open_sftp()
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        sftp.get(remote_path, local_path)
+        sftp.close()
+        return True
+    except Exception:
+        return False
+    finally:
+        cli.close()
 
 
 # ── SSH 可执行文件查找 ──────────────────────────
@@ -218,6 +328,9 @@ def ssh_cmd(
     Returns:
         (stdout, stderr, exit_code)
     """
+    if _use_paramiko():
+        return _paramiko_run(route, command, timeout=timeout)
+
     password = route["password"]
     args = _build_ssh_args(route, command, timeout)
     askpass_path = _create_askpass_script(password)
@@ -261,6 +374,16 @@ def scp_upload(
     Returns:
         是否成功
     """
+    if _use_paramiko():
+        if verbose:
+            print(f"  [SFTP] {Path(local_path).name} -> {remote_path}")
+        for attempt in range(3):
+            if _paramiko_put(route, local_path, remote_path, timeout=timeout):
+                return True
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+        return False
+
     password = route["password"]
     askpass_path = _create_askpass_script(password)
     scp_exe = _find_scp()
@@ -309,6 +432,16 @@ def scp_download(
     Returns:
         是否成功
     """
+    if _use_paramiko():
+        if verbose:
+            print(f"  [SFTP] {remote_path} -> {local_path}")
+        for attempt in range(3):
+            if _paramiko_get(route, remote_path, local_path, timeout=timeout):
+                return True
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+        return False
+
     password = route["password"]
     askpass_path = _create_askpass_script(password)
     scp_exe = _find_scp()

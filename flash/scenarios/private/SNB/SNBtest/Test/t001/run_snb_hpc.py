@@ -416,8 +416,11 @@ echo RUN_DONE
 
 # ── 步骤 6: 收集输出到本地 ───────────────────────────
 
-def collect_outputs(remote: Remote, snb_home: str, account: str) -> Path:
-    """把 objdir 内 NonLTConduct* + wsl_run_snb.log 下载到 flash_output/hpc_<account>/。"""
+def collect_outputs(remote: Remote, snb_home: str, account: str,
+                    with_plt: bool = False) -> Path:
+    """把 objdir 内 NonLTConduct* + wsl_run_snb.log 下载到 flash_output/hpc_<account>/。
+    ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
+    flash/flash_run/remote/fetch_policy.py): 跳过 *_hdf5_plt_* (with_plt=True 才取)。"""
     out_dir = FLASH_OUTPUT / f"hpc_{account}"
     out_dir.mkdir(parents=True, exist_ok=True)
     obj = f"{snb_home}/{OBJDIR}"
@@ -433,6 +436,16 @@ def collect_outputs(remote: Remote, snb_home: str, account: str) -> Path:
     if not names:
         log(f"[收集] objdir 无输出文件: {obj}", "WARN")
         return out_dir
+
+    # ★ chk-only 默认策略: 过滤 plt (本脚本已 bootstrap 仓库根, 可直接包导入;
+    #   策略源 flash/flash_run/remote/fetch_policy.py, 2026-09-16 全场景定案)
+    from flash.flash_run.remote.fetch_policy import is_plt
+    if not with_plt:
+        _nplt = sum(1 for n in names if is_plt(n))
+        names = [n for n in names if not is_plt(n)]
+        if _nplt:
+            log(f"[收集] ★ chk-only 模式: 跳过 {_nplt} 个 plt 文件 "
+                f"(with_plt=True 可改)", "OK")
 
     log(f"[收集] 下载 {len(names)} 个文件到 {out_dir}...", "STEP")
     for n in names:

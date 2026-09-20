@@ -4,6 +4,33 @@ Flash 凭据管理 -- FLASH SSH 账户管理 (多账户+多线路版)
 支持对多个超算 SSH 账户的增/删/改/查，以及主账户管理。
 支持多线路测试与选择（自动选择最快线路）。
 
+★ 数据来源
+---------------------------------------------------------------
+本模块**不硬编码任何超算主机/端口/线路/用户名**。
+账户基础信息全部读写 ``~/.physimx/flash/hpc_accounts.json``::
+
+    {
+      "accounts": {
+        "flash_ssh": {
+          "title":        "FLASH 超算 SSH #1 (NC-E)",
+          "ssh_username": "user@NC-E",
+          "route_key":    "nc_e",
+          "routes": [
+            {"host": "ssh.example.com", "port": 22,   "label": "线路 A"},
+            {"host": "ssh.example.com", "port": 2222, "label": "线路 B"}
+          ]
+        }
+      }
+    }
+
+  * ``ssh_username`` — SSH 登录用户名 (走 JSON, 不再从包内默认值分发);
+  * ``routes``       — 线路列表, 自动选路时逐条 TCP 测速, 缺省 port 视为 22;
+  * 密码**不在** JSON 中: 由 Fernet 加密存于同目录 ``credentials.enc``。
+
+若 JSON 中缺用户名/线路, 本模块的交互流程会提示补录并回写 JSON (明文)。
+完整格式规范见 ``hpc_config.py`` 模块 docstring 与
+``hpc_accounts.example.json``; 最小读取示例见 ``examples/hpc_accounts_demo.py``。
+
 用法:
     python -m flash._core.credentials.flash_ssh       # 交互菜单
     python -m flash._core.credentials.flash_ssh add   # 添加新超算账户
@@ -379,9 +406,9 @@ def _add_preconfigured(cm, idx: int) -> None:
 
     print(f"\n  ─── 添加预配置账户: {title} ──────────────────")
 
-    # 基础信息: hpc_accounts.json 优先 (实时读取), 缺失时交互补全
+    # 基础信息: 仅从 hpc_accounts.json 读取 (实时), 缺失时交互补全
     from ._config import get_ssh_username as _gsu, get_ssh_routes as _gsr
-    ssh_username = _gsu(name) if _gsu(name) != name else ""
+    ssh_username = _gsu(name)   # 未配置时返回 ""
     if not ssh_username:
         while not ssh_username:
             ssh_username = input(f"  {'SSH 用户名':12s} (如 user@cluster): ").strip()
@@ -428,13 +455,6 @@ def _add_preconfigured(cm, idx: int) -> None:
 
 def interactive_menu(cm) -> None:
     """交互菜单。"""
-    # 确保预配置账户已加载
-    try:
-        from ._config import autodiscover_configs
-        autodiscover_configs()
-    except (ImportError, ValueError):
-        pass
-
     while True:
         accounts = collect_ssh_accounts(cm)
         primary = get_primary_ssh(cm)
