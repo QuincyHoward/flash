@@ -1,7 +1,7 @@
 # FLASH 4.8 内置运行时参数参考手册
 
 > **来源**: [FLASH 4.8 Runtime Parameters Documentation](https://flash.rochester.edu/site/flashcode/user_support/rpDoc_4p8.py?submit=rpDoc.txt)  
-> **版本**: 2026-06-30 | **目录**: `input_gen/gen_newpara/`  
+> **版本**: 2026-09-20（新增 §9 chk 实测对照） | **目录**: `input_gen/gen_newpara/`  
 > **核心要点**: ⭐ 以下参数均为 FLASH 4.8 内置参数，已在其对应模块中通过 `PARAMETER` 注册声明。  
 > **使用时仅需在 `.par` 文件中赋值即可，不需要在仿真 `Config` 文件中重复声明，也不需要手动调用 `RuntimeParameters_get`。**
 
@@ -415,13 +415,18 @@ call RuntimeParameters_get("lrefine_max", lrefine_max)   ← ❌ (这些由模�
 | `ed_pulseNumber_N` | INTEGER | 1 | 光束使用的脉冲编号 | ⭐ **必须设置** |
 | `laser_powMult` | REAL | 1.0 | 激光功率倍增因子 | ⭐ 批量扫描用 |
 
-**脉冲形状**:
+**脉冲形状** (P=脉冲编号, S=时间点/段编号):
 
 | 参数名 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `ed_numberOfSections_P` | INTEGER | 1 | 脉冲 P 的分段数 |
-| `ed_time_P_S` | REAL | 0.0 | 脉冲 P 段 S 的时间点 (秒) |
-| `ed_power_P_S` | REAL | 0.0 | 脉冲 P 段 S 的功率 (W) |
+| `ed_time_P_S` | REAL | **−1.0** | 脉冲 P 段 S 的时间点 (秒)；未设置时为 −1.0 哨兵（非 0.0，源码 `Laser/Config:208-209`） |
+| `ed_power_P_S` | REAL | **−1.0** | 脉冲 P 段 S 的功率；源码注释单位 W，1D 均匀束下实为**强度口径 W/cm²** |
+
+> ⚠️ 最大脉冲数/段数由 **setup 选项** `ed_maxPulses=` / `ed_maxPulseSections=` 控制
+> (PPDEFINE 编译期宏，非运行时参数，chk 中查不到；源码默认 5/20)。
+> 判断"是否设置"一律用 `> 0`。实测 (SNBOneCH_ml，`ed_maxPulseSections=300`)：
+> chk 注册 300 段、实际使用 82 段，峰值 3.15e14 W/cm² (§9)。
 
 ### 5.10 HeatExchange — 热交换
 
@@ -603,6 +608,39 @@ c = DependencyChecker("./my_simulation/flash_input")
 c.check_all()
 print(c.summary())
 ```
+
+---
+
+## 9. chk 实测对照（2026-09-20，SNBOneCH_ml +ug 短测）
+
+运行时参数写入 chk 后存放于 4 个根数据集（`real/integer/logical/string runtime parameters`）。
+读取要点（详见《FLASH物理量说明.md》§1.7，`flash/output_processors/`）：
+
+1. **chk 内参数名一律小写**：par 中的 `ed_lensX_1` 在 chk 中为 `ed_lensx_1`（大小写不保留）；
+2. **logical 存 0/1**；**string 定长空格填充**（比较前 `strip()`）；
+3. **激光脉冲参数默认 −1.0（哨兵）**，判"是否设置"用 `> 0`（§5.9）；
+4. **`+ug` 运行无 AMR 参数**：chk 中查不到 `lrefine_max`/`refine_var_*` 属正常（仅 AMR 运行注册）；
+   网格由 `dx = (xmax−xmin)/(nxb·nblockx)` 唯一确定；
+5. `sim info` 数据集含完整 setup 命令行，是重建算例配置的权威入口。
+
+典型参数实测值（★；`sim_*`/`ms_*` 族为仿真 Config 注册（本包生成），其余为 FLASH 内置）：
+
+| 参数 | ★ 实测值 | 说明 |
+|------|--------|------|
+| `tmax` / `dtinit` / `dtmin` / `dtmax` | 2e-10 / 1e-15 / 1e-16 / 2e-12 | s |
+| `cfl` | 0.2 | |
+| `xmin` / `xmax` | −0.04 / 0.01 | cm，dx=0.4883 µm (nxb=128, nblockx=8) |
+| `geometry` / `xl/xr_boundary_type` | cartesian / outflow | y/z: periodic |
+| `basenm` / `log_file` | snbonechug_ / snbonech.log | string 空格填充 |
+| `eosmode` / `riemannsolver` | dens_ie_recal_gather / HLL | |
+| `rt_mgdnumgroups` / `rt_mgdbounds_*` | 10 / 0.1…6309.573 | 群边界 eV，对数间隔 |
+| `ed_wavelength_1` | 0.351 | **µm（例外：非 CGS）** |
+| `ed_lensx_1` / `ed_targetx_1` | −1 / 0 | cm，透镜在域外 |
+| `sim_tele` / `sim_tion` / `sim_trad` | 290.11375 | K |
+| `sim_rhocham` / `sim_rho<层>` | 1e-6 / 1.0 | g/cm³ |
+| `sim_tar1radius`…`sim_tar6radius` | 1e-4 … 6e-4 | cm |
+| `sim_sampheight` | 0.005 | cm |
+| `ms_<物种>a/z`（chk 内小写） | cham: 4.002602/2；tar*·shld·samp: 6.509/3.5 | g/mol / — |
 
 ---
 

@@ -1,0 +1,163 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% This file contains all the data needed for                      
+%% 1) computing an EOS for a material included in the material db  
+%% 2) showing an EOS table (isotherms, isochores, isentropes) or   
+%%    calculating the principal Hugoniot from this table           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Material: aluminum (Al)                                         
+%% Last change: september 21 17:00:00 CEST 2012                         
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% EOS table calculation (feos):                                         
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Computation-Settings
+
+Material-Number = 3717       % Material number in FEOS parameter database
+Maxwell_Flag = 1             % "Maxwell construction" desired? (0: no, 1: yes)
+SoftSphere_Flag = 1          % Replace TF cold curve for densities < Rsolid with 
+                             %   soft sphere function? (0: no, 1: yes)
+UserCalculations_Flag = 1    % Perform user-defined calculations? (0: no, 1: yes)
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Q-table
+
+% Distribution of densities:
+Rhonorm = 2.7     % Norm in g/cm^3
+Rhoratio-6 = 0    % Rhoratiox defines number of logarithmically distributed density 
+Rhoratio-5 = 3    %   points in range Rnorm*1.0e(x-1) to Rnorm*1.0ex, x=-6...6
+Rhoratio-4 = 3    % Attention: Take care of lower density library limit!
+Rhoratio-3 = 3    
+Rhoratio-2 = 10
+Rhoratio-1 = 50
+Rhoratio0 = 50
+Rhoratio1 = 50
+Rhoratio2 = 10
+Rhoratio3 = 3
+Rhoratio4 = 3
+Rhoratio5 = 3
+Rhoratio6 = 3
+
+% Distribution of temperatures:
+Tnorm = 1.0e3     % Norm in eV
+Tratio-6 = 1      % Tratiox defines number of logarithmically distributed temperature 
+Tratio-5 = 2      %   points in range Tnorm*1.0e(x-1) to Tnorm*1.0ex, x=-6...6
+Tratio-4 = 10     % Attention: Take care of lower temperature library limit!
+Tratio-3 = 20     
+Tratio-2 = 20
+Tratio-1 = 10
+Tratio0 = 2
+Tratio1 = 1
+Tratio2 = 1
+Tratio3 = 1
+Tratio4 = 0
+Tratio5 = 0
+Tratio6 = 0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% EOS table visualization (showeos):                                    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                   General
+
+File-Format = 1    % 1: FEOS (recommended), 2: SESAME 301/304/305
+EOS-Type = 1       % 1: total, 2: electronic, 3: ionic, 4: Thomas-Fermi
+
+% FEOS format: Implies .feos file. 
+%   All thermodynamic quantities are available!
+% SESAME format: Implies .301 (total), .304 (electrons), or .305 (ions) file. 
+%   Thomas-Fermi EOS and charge state are not available!
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Units
+
+Rho_unit = 1.0     % 1.0 ---> g/cm^3
+T_unit = 1.0       % 1.0 ---> eV, 8.617525902e-5 ---> K
+P_unit = 1.0e12    % 1.0 ---> dyne/cm^2, 1.0e12 ---> MBar
+E_unit = 1.0       % 1.0 ---> erg/g, 1.0e10 ---> MJ/kg
+U_unit = 1.0e5     % 1.0 ---> cm/s, 1.0e5 ---> km/s
+
+% The following units are set automatically:
+%   F_unit = E_unit, S_unit = E_unit / T_unit,
+%   V_unit = 1.0 / Rho_unit, Q_unit = 1.0
+ 
+%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Rho-T-Mesh
+
+% Distribution of densities:
+Rhomin = 1.0e-3    % Minimum density (in units which are defined above)
+Rhomax = 10        % Maximum density (in units which are defined above)
+Rhooriginal = 0    % Use only original tabulated densities? (0: no, 1: yes)
+Rhonumber = 5      % Number of densities (if Rhooriginal is set to 0) 
+Rholog = 0         % 0: linearly distributed, 1: logarithmically distributed
+
+% Distribution of temperatures (for isentropes only at Rhomin):
+Tmin = 1.0e-4    % Minimum temperature (in units which are defined above)
+Tmax = 1.0e3     % Maximum temperature (in units which are defined above)
+Toriginal = 0    % Use only original tabulated temperatures? (0: no, 1: yes)
+Tnumber = 7      % Number of temperatures (if Toriginal is set to 0) 
+Tlog = 1         % 0: linearly distributed, 1: logarithmically distributed
+
+% Only for isotherms, isochores, or Mountain plots:
+Rhofirst = 0     % Print out lowest density of table? (0: no, 1: yes)
+Tfirst = 1       % Print out lowest temperature of table? (0: no, 1: yes)
+
+% For isentropes, the entropies are initialized at (Rho=Rhomin, T=Tmin,...,Tmax).
+% => Number of isentropes = Number of temperatures
+% For isentropes, the maximum and minimum temperatures for Rho > Rhomin are given
+%   by the table boundaries, not by Tmin and Tmax.
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Isocurves
+
+% Output settings for isotherms, isochores, and isentropes:
+Xquantity = 1    % Quantity which is printed out on the x-axis
+Xelement = 0     % Element number (only for charge state of mixtures, 0: sum)
+Yquantity = 4    % Quantity which is printed out on the y-axis
+Yelement = 0     % Element number (only for charge state of mixtures, 0: sum)
+
+% Possible choices for Xquantity and Yquantity: 
+%   1: density, 2: specific volume, 3: temperature, 4: pressure, 
+%   5: specific internal energy, 6: specific Helmholtz free energy, 
+%   7: specific entropy, 8: summed-up or single-element charge state
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+                   Mountain
+
+% Quantity printed out as function of density / specific volume and temperature:
+Xquantity = 1    % 1: density, 2: specific volume
+Quantity = 4     % Mountain quantity as function of Xquantity and temperature
+Element = 0      % Element number (only for charge state of mixtures, 0: sum)
+
+% Possible choices for Quantity: 
+%   4: pressure, 5: specific internal energy, 6: specific Helmholtz free energy, 
+%   7: specific entropy, 8: summed-up or single-element charge state
+ 
+%%%%%%%%%%%%%%%%%%%%%%% 
+
+                   Hugoniot
+
+% Initial density and temperature:
+Rho0 = 2.7          % Initial density (in units which are defined above)
+T0 = 2.585257e-2    % Initial temperature (in units which are defined above)
+
+% Calculation and output settings:
+Pmax = 1.0e8     % Maximum pressure (in units which are defined above)
+Xquantity = 1    % 1: density, 2: specific volume
+
+% Printed-out quantities are: density / specific volume, temperature, 
+%   pressure, specific energy, shock wave velocity, particle velocity
+                                                
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% eof.                     

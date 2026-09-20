@@ -1,0 +1,207 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%% FEOS material properties database %%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% version: 2016-07-29 %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This file contains the FEOS material properties database.            %
+% To add a new material, introduce a new section with an unused FEOS   %
+% material number. Allowed numbers are: 1000-9999                      %
+% The material number comes before each parameter in squared brackets. %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The following properties have to be specified for each material:     %
+% - SESAME-Number: SESAME table number (if not known, set to 1000)     %
+% - Treference: Reference temperature in eV                            %
+% - Rhoreference: Density at Treference and zero pressure in g/cm^3    %
+% - Buld-Modulus: Bulkmodulus at Treference, Rreference in dyne/cm^2   %
+% - Number-of-Elements: Number of elements included in the material    %
+% - A[1...Element-Number]: Atomic weights of all included elements     %
+% - Z[1...Element-Number]: Atomic numbers of all included elements     %
+% - X[1...Element-Number]: Number of atoms per molecule                %
+%                          of all included elements                    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% If you want to use the soft-sphere function, please specify also:    %
+% - Ecohesive: Cohesive energy / enthalphy of sublimation in erg/g     %
+% - Soft-Sphere-m: Parameter m in soft-sphere function                 %
+% - Soft-Sphere-n: Parameter n in soft-sphere function                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Note that the equation-of-state is also calculated correctly if      %
+% X[1...Element-Number] is the percental fraction of each element in   %
+% a mixture, but then the total values of A, Z, and Q do not have a    %
+% physical meaning any more in the code and the output tables.         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Tin (Sn) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-2160:
+
+[2160]_SESAME-Number = 2160
+[2160]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[2160]_Rhoreference = 7.7
+[2160]_Bulk-Modulus = 5.8e11            % GPa value multiplied by 1.0e10 
+[2160]_Number-of-Elements = 1
+
+[2160]_A[1] = 118.69                    % Element 1: Tin (Sn)
+[2160]_Z[1] = 50.0
+[2160]_X[1] = 1.0
+
+[2160]_Ecohesive = 2.552e10
+[2160]_Soft-Sphere-m = 0.5
+[2160]_Soft-Sphere-n = 2.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Gold (Au) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-2700:
+
+[2700]_SESAME-Number = 2700
+[2700]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[2700]_Rhoreference = 19.3
+[2700]_Bulk-Modulus = 2.2e12            % GPa value multiplied by 1.0e10 
+[2700]_Number-of-Elements = 1
+
+[2700]_A[1] = 196.97                    % Element 1: Gold (Au)
+[2700]_Z[1] = 79.0
+[2700]_X[1] = 1.0
+
+[2700]_Ecohesive = 1.868e10
+[2700]_Soft-Sphere-m = 0.8
+[2700]_Soft-Sphere-n = 2.6
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Silver (Ag) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-2720:
+
+[2720]_SESAME-Number = 2720
+[2720]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[2720]_Rhoreference = 10.49
+[2720]_Bulk-Modulus = 1.0e12            % GPa value multiplied by 1.0e10 
+[2720]_Number-of-Elements = 1
+
+[2720]_A[1] = 107.868                   % Element 1: Silver (Ag)
+[2720]_Z[1] = 47.0
+[2720]_X[1] = 1.0
+
+[2720]_Ecohesive = 2.633e10
+[2720]_Soft-Sphere-m = 1.1
+[2720]_Soft-Sphere-n = 2.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Titanium (Ti) %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-2960:
+
+[2960]_SESAME-Number = 2960
+[2960]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[2960]_Rhoreference = 4.507
+[2960]_Bulk-Modulus = 1.1e12            % GPa value multiplied by 1.0e10 
+[2960]_Number-of-Elements = 1
+
+[2960]_A[1] = 47.867                    % Element 1: Titanium (Ti)
+[2960]_Z[1] = 22.0
+[2960]_X[1] = 1.0
+
+[2960]_Ecohesive = 9.777e10
+[2960]_Soft-Sphere-m = 0.5
+[2960]_Soft-Sphere-n = 2.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Copper (Cu) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-3330:
+
+[3330]_SESAME-Number = 3330
+[3330]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[3330]_Rhoreference = 8.92
+[3330]_Bulk-Modulus = 1.4e12            % GPa value multiplied by 1.0e10 
+[3330]_Number-of-Elements = 1
+
+[3330]_A[1] = 63.546                    % Element 1: Copper (Cu)
+[3330]_Z[1] = 29.0
+[3330]_X[1] = 1.0
+
+[3330]_Ecohesive = 5.287e10
+[3330]_Soft-Sphere-m = 1.1
+[3330]_Soft-Sphere-n = 2.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Aluminum (Al) %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-3717:
+
+[3717]_SESAME-Number = 3717
+[3717]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[3717]_Rhoreference = 2.7
+[3717]_Bulk-Modulus = 7.5e11            % GPa value multiplied by 1.0e10 
+[3717]_Number-of-Elements = 1
+
+[3717]_A[1] = 26.9815                   % Element 1: Aluminum (Al)
+[3717]_Z[1] = 13.0
+[3717]_X[1] = 1.0
+
+[3717]_Ecohesive = 12.123e10
+[3717]_Soft-Sphere-m = 0.5
+[3717]_Soft-Sphere-n = 2.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Tantalum (Ta) %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-7300:
+
+[7300]_SESAME-Number = 7300
+[7300]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[7300]_Rhoreference = 16.65
+[7300]_Bulk-Modulus = 2.0e12            % GPa value multiplied by 1.0e10 
+[7300]_Number-of-Elements = 1
+
+[7300]_A[1] = 180.948                   % Element 1: Tantalum (Ta)
+[7300]_Z[1] = 73.0
+[7300]_X[1] = 1.0
+
+[7300]_Ecohesive =  4.322e10
+[7300]_Soft-Sphere-m = 0.5
+[7300]_Soft-Sphere-n = 4.0
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Fused silica (SiO2) %%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Material-7386:
+
+[7386]_SESAME-Number = 7386
+[7386]_Treference = 2.585257e-2         % 2.585257771e-2 ---> 300 K
+[7386]_Rhoreference = 2.2
+[7386]_Bulk-Modulus = 3.7e11            % GPa value multiplied by 1.0e10 
+[7386]_Number-of-Elements = 2
+
+[7386]_A[1] = 28.0855                   % Element 1: Silicon (Si)
+[7386]_Z[1] = 14.0
+[7386]_X[1] = 1.0
+
+[7386]_A[2] = 15.9994                   % Element 2: Oxygen (O)
+[7386]_Z[2] = 8.0
+[7386]_X[2] = 2.0
+
+[7386]_Ecohesive = 9.736e10
+[7386]_Soft-Sphere-m = 0.8
+[7386]_Soft-Sphere-n = 2.8
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% end of database %%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

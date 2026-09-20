@@ -476,8 +476,8 @@ cat gen_par/refs/coldstart_2d_3lasers.par
 | `ed_wavelength_1` | REAL | 1.053 | 光束1波长 (μm) |
 | `ed_lensX_1` | REAL | -0.1 | 光束1透镜x坐标 (cm) |
 | `ed_targetX_1` | REAL | 0.014 | 光束1目标x坐标 (cm) |
-| `ed_power_1_1` ... `ed_power_1_N` | REAL | 0.0 | 脉冲1功率 (W) |
-| `ed_time_1_1` ... `ed_time_1_N` | REAL | 0.0 | 脉冲1时间 (s) |
+| `ed_power_1_1` ... `ed_power_1_N` | REAL | −1.0 | 脉冲1功率；源码默认 **−1.0 哨兵**（非 0.0），1D 均匀束下实为强度 W/cm² |
+| `ed_time_1_1` ... `ed_time_1_N` | REAL | −1.0 | 脉冲1时间 (s)；源码默认 **−1.0 哨兵**，判"是否设置"用 `> 0` |
 
 ### 3. 流体力学参数
 
@@ -627,6 +627,24 @@ gen.set("refine_var_2", "tele")
 
 ---
 
+## chk 实测对照（2026-09-20）
+
+生成的 `.par` 参数写入 chk 后，存放于 4 个根数据集（`real/integer/logical/string runtime parameters`）。
+读取要点与完整实测值见 `flash/output_processors/FLASH物理量说明.md` §1.7 与
+`gen_newpara/RP_Reference.md` §9。对本包生成器的三条直接影响：
+
+1. **chk 内参数名一律小写**：`ed_lensX_1`/`sim_rhoTarg` 在 chk 中为 `ed_lensx_1`/`sim_rhotarg`。
+   解析 chk 时按小写查询（`PARAM_COMMENTS` 等的大小写仅用于 par 文本注释）。
+2. **激光脉冲参数默认 −1.0（哨兵，非 0.0）**：未赋值的 `ed_time_P_S`/`ed_power_P_S`
+   在 FLASH 内部保持 −1.0，chk 侧判"是否设置"用 `> 0`。最大脉冲数/段数由 setup 选项
+   `ed_maxPulses=`/`ed_maxPulseSections=` 控制（PPDEFINE 编译期宏，**不是 par 参数**；
+   实测 SNBOneCH_ml：300 段注册、82 段使用，峰值 3.15e14 W/cm²）。
+3. **`+ug` 运行无 AMR 参数**：`lrefine_max`/`lrefine_min`/`refine_var_*` 仅 AMR 运行注册，
+   `+ug` 场景 chk 中查不到属正常；dx = (xmax−xmin)/(nxb·nblockx)
+   （实测：域 0.05 cm、128×8 → dx=0.4883 µm）。
+
+---
+
 ## 进阶：扩展默认参数集
 
 如果需要添加新的默认参数集，编辑 `gen_par/defaults.py`：
@@ -652,8 +670,8 @@ DIMENSION_PARAMS[4] = PARAMS_CUSTOM  # 添加新的维度4
 
 ---
 
-**文档版本**: 1.0
-**最后更新**: 2026-07-03
+**文档版本**: 1.1（新增 chk 实测对照；激光脉冲参数默认值修正为 −1.0 哨兵）
+**最后更新**: 2026-09-20
 **维护**: PhySimX Team
 
 ---

@@ -267,6 +267,9 @@ $RECYCLE.BIN/
 **/hypre-2.9.0b.tar.gz
 **/mpich-3.2.tar.gz
 
+**/*flash4_ug*.*
+
+
 # --- FLASH SimulationMain 官方示例源码 ---
 **/SimulationMain/
 
