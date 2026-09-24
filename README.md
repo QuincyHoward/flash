@@ -5,8 +5,8 @@
 [![FLASH: Separate License](https://img.shields.io/badge/FLASH-Separate_License-orange.svg)](https://flash.rochester.edu)
 [![PyPI: flash-sim](https://img.shields.io/badge/PyPI-flash--sim-blue.svg)](https://pypi.org/project/flash-sim/)
 
-> **版本维护策略**: 本仓库以 Gitee 分支为开发主阵地 (release_pypi 为发布分支),
-> PyPI 按阶段发布更新。文档中**不标注具体版本号** (避免与频繁更新脱节),
+> **版本维护策略**: 本仓库以 Gitee 分支为开发主阵地 ,
+> PyPI 按阶段发布更新。文档中**不标注具体版本号** ,
 > 当前版本以 `pyproject.toml` 为准, 历史版本见 `git tag -l` 与 PyPI Releases。
 
 **flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
@@ -63,6 +63,7 @@ FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网
                                     ↓
                自适应可视化 (1D/2D/3D) + 物理量分析
 ```
+`flash-sim`使用Agent生成、使用、维护，适用于这种流程辅助，在第一次全流程构造、或使用`output_processor`进行数据分析等专业决策时，请仔细核对。
 
 支持 **独立模式**（作为独立 Python 包使用）和 **PhySimX 插件模式**（作为 `physimx_sim` 的子模块）。
 

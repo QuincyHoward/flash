@@ -47,7 +47,9 @@ _SNB_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_SNB_DIR / "scripts"))
 
 import snb_params as P  # noqa: E402
-from generate.gen_scene import LEG_SPECS, SNB_F90, SHARED, DIFF_THERM  # noqa: E402
+from generate.gen_scene import (  # noqa: E402
+    LEG_SPECS, SNB_F90, SHARED, DIFF_THERM, driver_radtrans_active, _par_kv,
+)
 
 # 树级补丁（按文件名判定是否已打；补丁内容不在此描述）
 TREE_PATCHES = (
@@ -188,6 +190,42 @@ def precheck(scene: Path, sides: List[str], distro: str,
         log(f"[{side}] 树: {t or '未找到'}", "OK" if t else "ERROR")
         ok &= bool(t)
     return ok
+
+
+def radiation_linkage_check(scene: Path, side: str,
+                            par_name: Optional[str]) -> bool:
+    """★★★ par 辐射开关 ↔ Driver 变体联动护栏 (docs/04 §2)。
+
+    par 任一辐射三开关为 .true. 时, 部署的 Driver_evolveFlash.F90 必须
+    含**活**的 `call RadTrans` —— 作者原版把两处调用注释了, 三开关形同
+    虚设 (trad 冻结在初值, 实测与开辐射差 1700×)。此闸在部署前拦截,
+    防止"开关写着开、物理实际关"的静默失真。
+    """
+    if not LEG_SPECS[side]["has_snb"]:
+        return True
+    inp = scene / f"sim_{side}" / "flash_input"
+    par = inp / (par_name or LEG_SPECS[side]["par"])
+    if not par.exists():
+        return True                                   # precheck 已另行报错
+    kv = _par_kv(par)
+    on = [k for k in P.RADIATION_SWITCHES if kv.get(k) == ".true."]
+    if not on:
+        return True                                   # 辐射关 → 不要求 radON
+    missing = [k for k in P.RADIATION_SWITCHES if k not in kv]
+    if missing:
+        log(f"[{side}] par 辐射开关 {on} 为 .true. 但缺 {missing} "
+            f"(三开关应显式齐全, 见 docs/04 §1)", "WARN")
+    driver = inp / "Driver_evolveFlash.F90"
+    if driver_radtrans_active(driver):
+        log(f"[{side}] 辐射联动 ✓: par {on} ↔ Driver radON (活 call RadTrans)",
+            "OK")
+        return True
+    log(f"[{side}] ★ 辐射联动**失败**: par {on} 为 .true., 但 "
+        f"Driver_evolveFlash.F90 无活 call RadTrans (作者原版 → 辐射永不推进)。"
+        f"修复: 用 gen_scene.py (默认 --driver-variant radon) 重新生成, "
+        f"或用 variants/Driver_evolveFlash_radON.F90 覆盖 flash_input 后重编。",
+        "ERROR")
+    return False
 
 
 def deploy(side: str, scene: Path, tree: str, distro: str) -> bool:
@@ -463,12 +501,19 @@ def main() -> int:
 
     if args.check_only:
         ok = precheck(scene, sides, args.distro, par_map, tables)
+        for _s in sides:
+            ok = radiation_linkage_check(scene, _s, args.par) and ok
         print()
         log("前置检查通过 ✓" if ok else "前置检查未通过", "OK" if ok else "ERROR")
         return 0 if ok else 1
 
     if not precheck(scene, sides, args.distro, par_map, tables):
         return 1
+
+    # ★★★ 辐射联动护栏 (docs/04 §2): par 辐射开 ↔ Driver 必须 radON
+    for _s in sides:
+        if not radiation_linkage_check(scene, _s, args.par):
+            return 2
 
     results: Dict[str, bool] = {}
     for side in sides:

@@ -254,6 +254,20 @@ def _need(p: Path) -> bool:
     return True
 
 
+def driver_radtrans_active(driver_path: Path) -> bool:
+    """★ 判定 Driver_evolveFlash.F90 是否为 radON 变体 (存在活的 call RadTrans)。
+
+    作者原版把两处 `call RadTrans(blockCount, blockList, dr_dt)` 整行注释 →
+    无论 par 三开关怎么设, 辐射求解器根本不会被调用 (docs/04 §2, 实测
+    trad 差 1700×)。判据: 所有 `call RadTrans(` 行都必须**不被注释**。
+    """
+    if not driver_path.exists():
+        return False
+    txt = driver_path.read_text(encoding="utf-8", errors="replace")
+    calls = [ln for ln in txt.splitlines() if "call RadTrans(" in ln]
+    return bool(calls) and all(not ln.strip().startswith("!") for ln in calls)
+
+
 def deploy_leg(leg: str, out_dir: Path, args, radiation_on: bool,
                species: List[str], rad_tag: str = "") -> Dict[str, Any]:
     """部署一条腿。
@@ -325,6 +339,19 @@ def deploy_leg(leg: str, out_dir: Path, args, radiation_on: bool,
                 applied.append(f"{key}→{target}")
         if applied:
             log(f"已应用诊断变体: {', '.join(applied)}", "WARN")
+
+        # ★★★ 辐射联动护栏 (docs/04 §2, 2026-09-24 定案为默认行为):
+        #   par 辐射开 ↔ SNB 腿的 Driver 必须是 radON 变体 (活 call RadTrans)。
+        #   缺此护栏时, --driver-variant none + --radiation on 会生成
+        #   "三开关形同虚设"的场景 (辐射永不推进, trad 冻结在初值)。
+        if spec["has_snb"] and radiation_on:
+            drv = inp / "Driver_evolveFlash.F90"
+            if not driver_radtrans_active(drv):
+                log(f"★ par 辐射**开** 但 Driver 无活 call RadTrans "
+                    f"(作者原版, 辐射永不推进) → 拒绝生成该组合。"
+                    f"请用默认 --driver-variant radon, 或 --radiation off。",
+                    "ERROR")
+                res["fatal"] = "radiation-driver-linkage"
 
         # 表
         for m in P.SPECIES.values():
@@ -590,6 +617,14 @@ def main() -> int:
         return 2
     species = [x.strip() for x in args.species.split(",") if x.strip()]
 
+    # ★★★ 辐射联动前置校验 (docs/04 §2): 辐射开 + 作者原版驱动 = 三开关形同虚设
+    if args.radiation in ("on", "both") and args.driver_variant == "none" \
+            and "snb" in legs:
+        log("--radiation on/both 与 --driver-variant none 组合被拒绝: "
+            "作者原版 Driver 把 call RadTrans 注释了 → 辐射永不推进。"
+            "开辐射必须用 radon 变体 (默认)。", "ERROR")
+        return 2
+
     print("\n" + "=" * 78)
     print(" SNB 场景生成器 (核心模块 = SNB/SNB)")
     print(f" 输出: {out_dir}")
@@ -611,6 +646,8 @@ def main() -> int:
         for leg in legs:
             for rad_tag, rad_on in rad_list:
                 r = deploy_leg(leg, out_dir, args, rad_on, species, rad_tag)
+                if r.get("fatal"):
+                    return 2
                 entries.append((f"{leg}/{rad_tag or 'default'}", leg,
                                 r.get("par", LEG_SPECS[leg]["par"])))
     else:

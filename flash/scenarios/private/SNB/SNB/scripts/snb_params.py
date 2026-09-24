@@ -63,6 +63,14 @@ LASER: Dict[str, Any] = {
 # ══════════════════════════════════════════════════════════════
 # 三、辐射 MGD（N 群需 N+1 个边界）
 # ══════════════════════════════════════════════════════════════
+# ★★ 辐射三开关 (运行时 par 键, 2026-09-24 定案为 SNB 场景默认值):
+#   本模块 RADIATION 默认**全 .true.** (辐射开启)。配套铁律 (docs/04 §2):
+#   par 三开关必须与 **radON 驱动变体**联动 —— 作者原版
+#   Driver_evolveFlash.F90 把两处 `call RadTrans` 注释了, 三开关形同虚设
+#   (trad 冻结在初值, 实测差异 1700×)。联动护栏见 gen_scene.py /
+#   run_scene.py 的 radiation linkage check。
+RADIATION_SWITCHES = ("rt_useMGD", "useOpacity", "useRadTrans")
+
 RADIATION: Dict[str, Any] = {
     "rt_useMGD": True,
     "rt_mgdNumGroups": 10,          # ★ 必须 == setup 的 mgd_meshgroups

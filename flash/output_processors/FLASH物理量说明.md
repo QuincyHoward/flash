@@ -264,7 +264,7 @@ VARIABLE MGDC
 2. **logical 以 0/1 存储**，无布尔字面量；
 3. **string 定长、空格填充**（如 `basenm = "snbonechug_"`），比较前先 `strip()`；
 4. **激光脉冲参数未设置时默认 −1.0（哨兵）**，判"是否启用"用 `> 0`（§1.4）；
-5. **`+ug` 运行没有 AMR 参数**：`lrefine_max`/`refine_var_*` 仅 AMR 运行注册，
+5. **`+ug` 运行没有 AMR 参数**：`lrefine_max`/`refine_var_*` 仅 AMR 运行注册，`res = dir_delta/(nxb*nblock*2^(lrefine-1))`，
    `+ug` chk 中查不到属**正常现象**；网格由 `dx = (xmax−xmin)/(nxb·nblockx)` 唯一确定
    （实测：(0.01−(−0.04)) cm/(128×8) = 0.4883 µm）；
 6. `sim info` 是**重建算例配置的权威入口**（setup 命令行、编译器、编译时间/选项）。
