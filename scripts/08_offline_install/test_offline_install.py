@@ -27,17 +27,27 @@ import os
 import shutil
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+# ★ start_flash.py 在**项目根**，不在本脚本所在目录 ⇒ 只把 HERE 加进
+#   sys.path 会ImportError，导致 test_switch_matrix整节被静默跳过
+#   （09-10 实测 58/59，误报"start_flash 导入失败"，而实际手动导入完全正常）。
+PROJECT_ROOT = HERE.parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import _wh_common as wh  # noqa: E402
 
 try:
     import start_flash  # noqa: E402
-except Exception:
-    start_flash = None  # 允许只测_common 部分
+except Exception as _exc:  # pragma: no cover
+    start_flash = None  # 允许只测 _common 部分
+    START_FLASH_IMPORT_ERR = f"{type(_exc).__name__}: {_exc}"
+else:
+    START_FLASH_IMPORT_ERR = None
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +161,8 @@ def test_pyproject_parsing(root: Path) -> None:
 def test_switch_matrix() -> None:
     section("[4] ★ 在线/离线开关判定矩阵（防所有在线用户被误切离线）")
     if start_flash is None:
-        check("可导入 start_flash", False, "start_flash 导入失败，跳过")
+        check("可导入 start_flash", False,
+              f"导入失败({START_FLASH_IMPORT_ERR}) —— 开关矩阵整节无法验证")
         return
 
     A = argparse.Namespace(offline=False, wheelhouse=None, profile=None)
@@ -395,6 +406,290 @@ def test_autolocate_paths() -> None:
 
 # ---------------------------------------------------------------------------
 
+def test_no_stale_wheel() -> None:
+    """[11] ★ 造包不得静默使用陈旧 wheel（09-10 事故）。
+
+    背景：build 失败时旧实现会从 dist/ 拷一个历史 wheel 当成功，09-10 实测
+    拷进 wheelhouse 的是 9-08 的旧包 —— 少 2650 个文件（含
+    flash/_core/credentials/hpc_config.py），体积 1.5MB vs 正常 4.8MB。
+    """
+    section("[11] ★ 陈旧 wheel 防护（造包不得静默用旧包）")
+    sys.path.insert(0, str(HERE))
+    import build_wheelhouse as bwh
+
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        # 造一个"上一轮遗留"的 wheel
+        old = tmp / "flash_sim-0.1.7-py3-none-any.whl"
+        old.write_bytes(b"PK\x03\x04STALE")
+
+        bwh._quarantine_previous_wheels(tmp)
+        check("隔离: 旧 wheel 被挪走", not old.exists())
+        check("隔离: 落到 .stale/ 下",
+              any((tmp / ".stale").glob("flash_sim-*.whl")))
+        check("隔离: out_dir 不再残留 wheel",
+              not list(tmp.glob("flash_sim-*.whl")))
+
+        # 空目录不应报错
+        empty = Path(tempfile.mkdtemp())
+        bwh._quarantine_previous_wheels(empty)
+        check("隔离: 空目录无异常", True)
+
+        #体积哨兵：过大/过小都要告警（用返回值不便断言，查日志字符串）
+        src = (HERE / "build_wheelhouse.py").read_text(encoding="utf-8")
+        check("哨兵: 存在体积区间常量", "WHEEL_SIZE_OK" in src)
+        check("哨兵: 偏大时告警", "偏大" in src)
+        check("哨兵: 偏小时告警", "偏小" in src)
+        check("哨兵: 比 pyproject 旧时告警", "还旧" in src)
+
+        # 退回 dist/ 必须显式开关
+        check("旧包退路需显式 --allow-legacy-dist",
+              "--allow-legacy-dist" in src)
+        check("默认不再静默 copy dist/",
+              src.count("shutil.copy2(legacy") == 1)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_wheel_size_sanity(root: Path) -> None:
+    """[12] ★ wheel 体积哨兵：产物必须是 MB 级（.gitignore 管不到 wheel 构建）。"""
+    section("[12] ★ wheel 体积与 exclude 卫生")
+    pp = root / "pyproject.toml"
+    if not pp.is_file():
+        check("存在 pyproject.toml", False)
+        return
+    text = pp.read_text(encoding="utf-8")
+
+    # 关键：根 .gitignore 有裸 `*` ⇒ hatchling 的 VCS 排除会整体失效
+    gi = root / ".gitignore"
+    has_bare_star = False
+    if gi.is_file():
+        has_bare_star = any(l.strip() == "*"
+                            for l in gi.read_text(encoding="utf-8").splitlines())
+    check("根 .gitignore 含裸 `*`（故 pyproject 必须自带 exclude）", has_bare_star)
+
+    # 这些大目录必须被 pyproject 显式排除
+    must_exclude = [
+        ("flash_input/flash_output", "flash/scenarios/**/flash_input/**"),
+        ("测试产物 _out/", "**/_out/**"),
+        ("Multi1D++ 便携包", "**/Multi1D*/**"),
+        ("FLASH 引擎源码 SNBtest", "**/SNBtest/src/**"),
+        ("helm_table.dat", "helm_table.dat"),
+        ("BADGER 分发表 Others_data", "Others_data/**"),
+    ]
+    for label, pat in must_exclude:
+        check(f"exclude 含 {label}", pat in text)
+
+    # wheel 与 sdist 必须成对（只写一侧是历史 bug 来源）
+    w_start = text.find("[tool.hatch.build.targets.wheel]")
+    s_start = text.find("[tool.hatch.build.targets.sdist]")
+    wheel_blk = text[w_start:s_start] if 0 < w_start < s_start else ""
+    sdist_blk = text[s_start:]
+    for label, pat in [("_out", "**/_out/**"),
+                       ("SNBtest/src", "**/SNBtest/src/**"),
+                       ("Others_data", "Others_data/**")]:
+        check(f"成对维护: {label} 同时在 wheel 与 sdist",
+              pat in wheel_blk and pat in sdist_blk)
+
+    # ★★ 禁止**整目录**排除 private/：09-10 第三轮实测，写
+    #   `flash/scenarios/private/tracer/**` 虽挡下 62GB 产物，却误伤
+    #   116 个 git 已跟踪源码（151 .py / 33 .md / 9 .sh），含 SNBOneCH_ml.py、
+    #   run_cores_parallel.py 等**自研 SNB 场景主线**⇒ 离线机装完跑不了场景。
+    #   体积问题只能用**精确子目录/文件**规则解决，不能整目录砍。
+    blanket = [x for x in ("flash/scenarios/private/tracer/**",
+                           "flash/scenarios/private/**")
+               if f'"{x}"' in text]
+    check("未整目录排除 private/（会误伤已跟踪源码）", not blanket,
+          f"存在 {blanket}" if blanket else "")
+    # 精确化后的替代规则必须在位
+    for label, pat in [("docs_diag", "private/tracer/**/docs_diag/**"),
+                       ("plots", "private/tracer/**/plots/**"),
+                       ("temp_delete", "private/tracer/temp_delete/**")]:
+        check(f"private/tracer 精确排除含 {label}",
+              pat in wheel_blk and pat in sdist_blk)
+
+
+def test_pypi_overwrite_guard() -> None:
+    """[13] ★★ 本体 wheel 不得被 PyPI 同名包覆盖（09-10 严重事故）。
+
+    背景：flash-sim 0.1.7 已发布在 PyPI（1.53MB）。造包时
+    `pip download flash_sim[full,dev] --find-links <本地目录>` 中，
+    --find-links **不保证本地优先**，pip 会以"bad hash. Re-downloading."
+    为由下载公开旧包覆盖本地构建产物（实测 4.76MB/902条目 → 1.53MB/224条目）。
+    后果：离线机安静地装上过期公开代码；日志仍打印 [ok]，肉眼极难发现。
+    """
+    section("[13] ★★ PyPI 同名包覆盖防护")
+    sys.path.insert(0, str(HERE))
+    import build_wheelhouse as bwh
+    import _wh_common as whc
+
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        w = tmp / "flash_sim-0.1.7-py3-none-any.whl"
+        w.write_bytes(b"PK\x03\x04" + b"LOCAL" * 100)
+
+        # ① 正常路径：指纹一致 → 不报错
+        bwh._LOCAL_WHEEL_FINGERPRINT.clear()
+        bwh._LOCAL_WHEEL_FINGERPRINT.update(
+            sha256=whc.sha256_file(w), size=w.stat().st_size,
+            entries=bwh._wheel_entry_count(w))
+        try:
+            bwh._ensure_local_wheel_intact(w)
+            check("指纹一致时不误报", True)
+        except SystemExit:
+            check("指纹一致时不误报", False, "一致却被判为覆盖")
+
+        # ② 被覆盖 → 必须中止
+        w.write_bytes(b"PK\x03\x04" + b"PYPI-OLD-PKG" * 100)
+        try:
+            bwh._ensure_local_wheel_intact(w)
+            check("被覆盖时中止", False, "★护栏漏检★")
+        except SystemExit as e:
+            check("被覆盖时中止", True)
+            check("报错信息点明 PyPI 同名包",
+                  "PyPI" in str(e) and "flash-sim" in str(e))
+
+        # ③ 条目数过少（残包）→ 中止。用**真zip** 造一个条目数少的包，
+        #    否则非 zip 文件读不出条目数（-1），测的就不是同一件事了。
+        import zipfile as _zf
+        real = tmp / "flash_sim-0.1.7-py3-none-any.whl"
+        with _zf.ZipFile(real, "w") as zf:
+            zf.writestr("flash/__init__.py", "# tiny\n")
+        bwh._LOCAL_WHEEL_FINGERPRINT.clear()
+        bwh._LOCAL_WHEEL_FINGERPRINT.update(
+            sha256=whc.sha256_file(real), size=10 * 1024 * 1024, entries=902)
+        try:
+            bwh._ensure_local_wheel_intact(real)
+            check("残包(条目过少)时中止", False, "未拦截")
+        except SystemExit:
+            check("残包(条目过少)时中止", True)
+
+        # ④ 无指纹时不误伤（首次运行/单测场景）
+        bwh._LOCAL_WHEEL_FINGERPRINT.clear()
+        try:
+            bwh._ensure_local_wheel_intact(w)
+            check("无指纹时静默跳过", True)
+        except SystemExit:
+            check("无指纹时静默跳过", False)
+
+        # ⑤ 源码里必须真的接上了这个校验
+        src = (HERE / "build_wheelhouse.py").read_text(encoding="utf-8")
+        check("Step2 已接入 _ensure_local_wheel_intact",
+              "local_wheel=local_wheel" in src)
+        check("Step1 记录 sha256 指纹", "_LOCAL_WHEEL_FINGERPRINT" in src)
+
+        # ⑥★ 根因修复：pip download 目标列表**不得含项目本体**，
+        #    否则 pip 会从 PyPI 下载同名包覆盖本地 wheel（见上）。
+        #    本体 wheel 由 Step 1 直接放入 wheelhouse，根本不经pip。
+        root = wh.find_project_root()
+        for prof in ("full", "runtime", "lite"):
+            pkgs = bwh.build_pip_freeze_list(root, Path("."), prof)
+            names = {wh.canonical_name(wh.requirement_name(p)) for p in pkgs}
+            check(f"{prof} 档: download 列表不含本体",
+                  wh.canonical_name(wh.PROJECT_DIST) not in names,
+                  f"含本体 -> 会拉 PyPI 包")
+            check(f"{prof} 档: 列表非空且含关键包",
+                  len(pkgs) > 0
+                  and "numpy" in {wh.canonical_name(wh.requirement_name(p))
+                                  for p in pkgs})
+        # 关键依赖必须齐（09-09 整批缺包的教训）
+        full_names = {wh.canonical_name(wh.requirement_name(p))
+                      for p in bwh.build_pip_freeze_list(root, Path("."), "full")}
+        for need in ("h5py", "matplotlib", "yt", "pandas", "pytest",
+                     "scipy", "paramiko"):
+            check(f"full 档含 {need}", need in full_names)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        bwh._LOCAL_WHEEL_FINGERPRINT.clear()
+
+
+def test_leak_audit_guard(root: Path) -> None:
+    """[14] ★★ 泄漏审计护栏自身必须可信（09-10 教训：护栏自己骗了我）。
+
+    本脚本首版用 `subprocess.run(text=True)` 喂 `git check-ignore`，Windows 走
+    ANSI 代码页（GBK/cp1252）把 CJK 路径弄坏 ⇒ 同一输入报 1733 条 vs 正确
+    1855 条，**漏报 94.5%**，差点让100.5MB 的 wheel 通过审计。
+    ⇒ 这里断言：① 用bytes 而非 text；② §3 判据按**路径分量**而非子串；
+    ③ dist-info/ 被剔除；④ 负向样本必须真的 FAIL（rc=1）。
+    """
+    section("[14] ★★ 泄漏审计护栏自检")
+    sys.path.insert(0, str(HERE))
+    try:
+        import wheel_leak_audit as wla
+    except Exception as exc:
+        check("可导入 wheel_leak_audit", False, f"{type(exc).__name__}: {exc}")
+        return
+
+    src = (HERE / "wheel_leak_audit.py").read_text(encoding="utf-8")
+
+    # ① 必须喂 bytes（text=True 是 94.5% 漏报的根因）
+    #    ★★ 断言**运行时行为**而非源码文本：函数 docstring 里就写着
+    #    "text=True 会漏报" 的告警，grep 源码必然误报（09-10 已踩过一次）。
+    #    这里真的调一次 git_ignored，用 CJK + 空格路径验证它能识别忽略项。
+    check("git_ignored 用 bytes 而非 text=True",
+          'input=b"\\0".join' in src)
+    # 真调一次：构造一个 git 确实忽略的 CJK 路径，看能否识别出来
+    cjk = "flash/input_gen/gen_eos_op/中文 目录/临时产物.log"
+    try:
+        got = wla.git_ignored([cjk, "flash/__init__.py"])
+        check("git_ignored 能识别 CJK+空格路径", cjk in got,
+              f"返回 {sorted(got)[:3]}")
+    except Exception as exc:
+        check("git_ignored 可调用", False, f"{type(exc).__name__}: {exc}")
+    check("自行 UTF-8 解码", 'decode("utf-8", "replace")' in src)
+    check("用 -z 分隔（路径含空格/CJK 安全）", '"-z"' in src)
+
+    # ② §3 判据按路径分量，不按子串（否则 MultiEOSOP格式说明.md 误报）
+    check("§3 用路径分量集合而非子串",
+          isinstance(getattr(wla, "FLASH_STRONG_PARTS", None), frozenset))
+    check("§3 目录前缀单独处理",
+          isinstance(getattr(wla, "FLASH_STRONG_DIRS", None), tuple))
+    check("MultiEOSOP格式说明.md 不再误报",
+          not wla.is_flash_material(
+              "flash/input_gen/gen_eos_op/src/multi_docs/MultiEOSOP格式说明.md"))
+    check("真§3 材料仍能命中（flash_src/EosMain.F90）",
+          wla.is_flash_material("flash/flash_src/EosMain.F90"))
+    check("真 §3 材料仍能命中（Multi1D++Portable 目录）",
+          wla.is_flash_material("flash/x/Multi1D++Portable3.0/y.txt"))
+    check("helm_table.dat 仍命中",
+          wla.is_flash_material("a/b/helm_table.dat"))
+
+    # ③ dist-info 剔除（否则每次审计 2 条假阳性）
+    check("dist-info 已被剔除",
+          getattr(wla, "DIST_INFO", "") and
+          wla.DIST_INFO in src)
+
+    # ④ 容差按体积而非文件数（残余 50 个 results/*.json 共 384KB 可接受）
+    check("泄漏容差按体积设定", 0 < wla.LEAK_BYTES_OK <= 8 * 1024 * 1024)
+    check("单文件上限已设定", 0 < wla.LEAK_FILE_BYTES_OK < wla.LEAK_BYTES_OK)
+    check("体积区间含实测 5.5MB", wla.WHEEL_BYTES_OK[0] <= int(5.5 * 1048576)
+          <= wla.WHEEL_BYTES_OK[1])
+
+    # ⑤ 负向样本必须真的 FAIL —— 未证明会失败的护栏不算护栏
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        neg = tmp / "neg.whl"
+        with zipfile.ZipFile(neg, "w") as z:
+            z.writestr("flash/__init__.py", "x" * 10)
+            z.writestr("flash/flash_src/EosMain.F90", "y" * 10)
+            z.writestr("flash/a/big.log", "z" * (wla.LEAK_FILE_BYTES_OK + 1024))
+        argv = sys.argv
+        sys.argv = ["wheel_leak_audit", str(neg)]
+        try:
+            import io
+            import contextlib
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = wla.main()
+        finally:
+            sys.argv = argv
+        check("负向样本 rc=1（护栏真的会失败）", rc == 1, f"实际 rc={rc}")
+        check("负向报告点名 flash_src",
+              "flash_src" in buf.getvalue())
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="离线安装链路回归自检")
     ap.parse_args()
@@ -415,6 +710,10 @@ def main() -> int:
     test_pip_download_flags()
     test_preflight_accepts_path_only()
     test_autolocate_paths()
+    test_no_stale_wheel()
+    test_wheel_size_sanity(root)
+    test_pypi_overwrite_guard()
+    test_leak_audit_guard(root)
 
     passed = sum(1 for _, ok, _ in _RESULTS if ok)
     total = len(_RESULTS)

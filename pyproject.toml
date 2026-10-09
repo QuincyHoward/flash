@@ -160,7 +160,85 @@ exclude = [
     "flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/Au-imx*/**",
     "flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/*-BADGER-*/**",
     "flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/CH-QC-1-001*/**",
+    # ★ 同上，BADGER-TOPS 分发表在**兄弟目录** Others_data/ 下（8.5MB / 4 文件）。
+    #   旧规则 `*-BADGER-*/**` 只写了 Gen_eos_op_data/ 一层 ⇒ Others_data/ 漏网。
+    "flash/input_gen/gen_eos_op/eos_op_data/Others_data/**",
+    # === ★★ 测试过程产物 _out/（09-10 实测:275MB，占 wheel 94.5% 的大头）===
+    # eosop_pro/test/eosopdata/stepNN_*/_out/ = 各 step 生成的 feos/txt/表副本，
+    #   由 .gitignore:99（eosop_pro/test/**/_out/）忽略，纯中间产物，可随时重生成。
+    "**/test/**/_out/**",
+    "**/_out/**",
+    # 各 step 的样例输入数据（非 _out，但同属test 夹具）
+    "flash/input_gen/gen_eos_op/eosop_pro/test/eosopdata/**",
+    "flash/input_gen/gen_eos_op/eosop_pro/test/parsers/**",
+    "flash/input_gen/gen_flychk_his/test/data/**",
+    "flash/input_gen/gen_flychk_his/test/out/**",
+    # === ★★ SNBtest/src（1.3GB 磁盘 / 29MB 入包, License §3）===
+    # .gitignore:220 已用 `**/SNBtest/**` 排除，但★ pyproject 侧缺失 ⇒
+    #   4 份 helm_table.dat（各 7.31MB）+ 整套 EosMain F90 源码被打进 wheel。
+    #   另：private/ 下 221 个文件是**已跟踪**的自研 SNB 代码，不能整目录排除。
+    "**/SNBtest/src/**",
+    "flash/scenarios/private/**/helm_table.dat",
+    # --- private/tracer/ 精确化（09-10 第三轮修正：整目录排除误伤源码）---
+    # ★ 此前写 `private/tracer/**` 整目录排除：虽挡下62GB 产物，却**误伤 116 个
+    #   git 已跟踪源码**（151 .py / 33 .md / 9 .sh），含 SNBOneCH_ml.py、
+    #   run_cores_parallel.py 等**自研 SNB 场景主线**⇒ 不可接受。
+    #   实测：flash_output/** 与 flash_input/** 已由上面的通用规则覆盖；
+    #   去掉整目录排除后真正漏网的仅 ~13.9MB，逐条挡如下（各有实测依据）。
+    #   - docs_diag/：诊断快照（含 432 个无扩展名 chk，09-09 已单列过）
+    "flash/scenarios/private/tracer/**/docs_diag/**",
+    #   - plots/：散落的诊断图 PNG（14.5MB / 65 个，非 flash_output 下）
+    "flash/scenarios/private/tracer/**/plots/**",
+    #   - temp_delete/：临时删除区（5 文件）；__pycache__/：.pyc 兜底
+    "flash/scenarios/private/tracer/temp_delete/**",
+    "flash/scenarios/private/tracer/**/__pycache__/**",
+    #★ 今后凡新增 private/ 排除，必须先核对 `git ls-files flash/scenarios/private`
+    #   的已跟踪清单——**禁止**整目录排除（曾误伤 116 个源码文件）。
+    # 场景私有的 BADGER-TOPS 分发表（各 2.13MB，git 未跟踪；
+    #   权威副本已在 eos_op_data/Gen_eos_op_data/Z*.cn4 随包分发）
+    "flash/scenarios/private/**/source/tables/**",
+    # === 编辑器/备份残留 ===
+    "**/*.bak",
+    "**/*.bak[0-9]*",
+    # 带时间戳的备份：.bak_20260912_165215（*.bak[0-9]* 匹配不到）
+    "**/*.bak_*",
+    "**/*.orig",
+    "**/*~",
+    # === ★ 过程日志/中间产物（按扩展名；已核multi_src 下被跟踪的
+    #   399 个文件全是 .py/.md/.C/.H/.dat/.tsv，**零个** .txt/.json/.log/
+    #   .out/.csv ⇒ 按扩展名排除不会误伤源码）===
+    "**/*.log",
+    "**/*.out",
+    "**/*.tmp",
+    # multi_src 下的探针输出/清单/日志（155 个文件 / 3.6MB）
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.txt",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.json",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.csv",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.out",
+    # PDF 抽文本产物（版权衍生物，且体积大）
+    "**/docs/extracted/**",
+    "flash/input_gen/gen_eos_op/eosop_pro/test/_tmp/**",
 ]
+
+# ======================================================================
+#★★ 为何必须在这里显式写这些规则（.gitignore 明明写了却不管用）===
+#
+#   根 .gitignore:11 有一条裸 `*`（"忽略所有无扩展名文件"）+ `!*.*` + `!*/`。
+#   git 能正确处理它；但 **hatchling 的 VCS 排除有个安全阀**：
+#
+#       exclude_spec = pathspec.GitIgnoreSpec.from_lines(patterns)
+#       if exclude_spec.match_file(self.root):
+#           return []          # ← 静默丢弃**全部** VCS 规则
+#
+#   裸 `*` 匹配到项目根自身 ⇒ 命中该安全阀 ⇒ 536 条 .gitignore 规则**全部失效**。
+#   于是 wheel 把 git 忽略的 336.8MB 测试产物 + FLASH 引擎源码一并打包。
+#
+#   ⇒ 结论：**本仓库的 .gitignore 无法充当 wheel 排除规则**，两者必须成对手写。
+#   改动 .gitignore:11 那条 `*` 风险高（会同时改变 git 的忽略语义），故不动；
+#   改为在此处显式补齐，并用 scripts/08_offline_install/wheel_leak_audit.py
+#   做回归守护（构建后跑一次，git-ignored 却入包的文件必须为 0）。
+#   详见 MEMORY.md「wheel 体积铁律」与 reference §P2。
+# ======================================================================
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -272,6 +350,51 @@ exclude = [
     "*.imx",
     "*.ses",
     "*.png",
+    # === ★★ 与 wheel target 成对维护（09-10）===
+    # BADGER-TOPS 分发表在兄弟目录 Others_data/ 下，旧规则只覆盖 Gen_eos_op_data/。
+    "flash/input_gen/gen_eos_op/eos_op_data/Others_data/**",
+    # 测试过程产物 _out/（实测 275MB）+ eosop test 夹具 + flychk test 数据
+    "**/test/**/_out/**",
+    "**/_out/**",
+    "flash/input_gen/gen_eos_op/eosop_pro/test/eosopdata/**",
+    "flash/input_gen/gen_eos_op/eosop_pro/test/parsers/**",
+    "flash/input_gen/gen_flychk_his/test/data/**",
+    "flash/input_gen/gen_flychk_his/test/out/**",
+    # FLASH 引擎源码（SNBtest/src / helm_table.dat, License §3）
+    "**/SNBtest/src/**",
+    "flash/scenarios/private/**/helm_table.dat",
+    # --- private/tracer/ 精确化（09-10 第三轮修正：整目录排除误伤源码）---
+    # ★ 此前写 `private/tracer/**` 整目录排除：虽挡下62GB 产物，却**误伤 116 个
+    #   git 已跟踪源码**（151 .py / 33 .md / 9 .sh），含 SNBOneCH_ml.py、
+    #   run_cores_parallel.py 等**自研 SNB 场景主线**⇒ 不可接受。
+    #   实测：flash_output/** 与 flash_input/** 已由上面的通用规则覆盖；
+    #   去掉整目录排除后真正漏网的仅 ~13.9MB，逐条挡如下（各有实测依据）。
+    #   - docs_diag/：诊断快照（含 432 个无扩展名 chk，09-09 已单列过）
+    "flash/scenarios/private/tracer/**/docs_diag/**",
+    #   - plots/：散落的诊断图 PNG（14.5MB / 65 个，非 flash_output 下）
+    "flash/scenarios/private/tracer/**/plots/**",
+    #   - temp_delete/：临时删除区（5 文件）；__pycache__/：.pyc 兜底
+    "flash/scenarios/private/tracer/temp_delete/**",
+    "flash/scenarios/private/tracer/**/__pycache__/**",
+    #★ 今后凡新增 private/ 排除，必须先核对 `git ls-files flash/scenarios/private`
+    #   的已跟踪清单——**禁止**整目录排除（曾误伤 116 个源码文件）。
+    "flash/scenarios/private/**/source/tables/**",
+    # 编辑器/备份残留
+    "**/*.bak",
+    "**/*.bak[0-9]*",
+    "**/*.bak_*",
+    "**/*.orig",
+    "**/*~",
+    # 过程日志/中间产物（与 wheel target 成对维护）
+    "**/*.log",
+    "**/*.out",
+    "**/*.tmp",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.txt",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.json",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.csv",
+    "flash/input_gen/gen_eos_op/src/multi_src/**/*.out",
+    "**/docs/extracted/**",
+    "flash/input_gen/gen_eos_op/eosop_pro/test/_tmp/**",
 ]
 
 [tool.pytest.ini_options]

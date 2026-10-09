@@ -1,53 +1,82 @@
 # 离线安装（Offline Install）指南
 
-**适用场景**：目标电脑**无网络**（内网/涉密/物理隔离），但需要部署本仓库的
-`flash-sim` 包及其全部依赖。
+本项目**同一个入口**支持两种安装方式，联网机与离线机各走一条：
 
-**核心思路**：在**联网机**上把包下载到一个自包含目录（wheelhouse），经U 盘
-拷贝到**离线机**，用 `pip --no-index --find-links` 本地安装，全程不联网。
-
----
-
-## ★ 设计要点：在线/离线双模式
-
-改造后 `start_flash.py` **同时支持在线与离线**，共用同一套逻辑，仅一个开关之差：
-
-```
-                    start_flash.py（唯一入口）
-                              │
-                ──────────────┴──────────────
-                             run_pip()← 唯一分叉点
-                  ┌──────────────┴──────────────┐
-              在线（默认）│                     │ 离线
-  pip install -e ".[full,dev]"      pip install --no-index
-          scipy paramiko            --find-links=<wheelhouse>
-                  │                     │
-                  └──────────────┬──────────────┘
-                                 ▼
-        check_env_health → 自愈重建 → 三套测试 → INSTALL_TEST_REPORT.txt
-                        （两模式共用同一套校验与报告）
-```
-
-切换开关（三选一，优先级从上到下）：
-
-| 方式 | 在线 | 离线 |
-|------|------|------|
-| 命令行 | `python start_flash.py` | `python start_flash.py --offline` |
-| 环境变量 | 默认 | `set FLASH_OFFLINE=1` |
-| 自动探测 | 强制 `FLASH_FORCE_ONLINE=1` | 项目根有 `wheelhouse/MANIFEST.json` → 自动转离线 |
-
-> **为什么不自动跑**：`--no-index` 是硬闸门，pip 物理上无法访问 PyPI，缺包会
-> **立即失败**并指名缺哪个包，而不会静默联网补装。离线部署最常见的翻车点就是
-> "装到一半才发现漏包，venv 半残，必须从头再来"。
+| 你的情况 | 走哪条 | 命令 |
+|---------|-------|------|
+| **有网络** | 直接在线安装 | `python start_flash.py` |
+| **无网络**，但手上有U 盘包 | 离线安装 | `python start_flash.py --offline` |
 
 ---
 
-## 一、联网机：造包
+## 目录
+
+- [一、联网机：直接开始（最常用）](#一联网机直接开始最常用)
+- [二、联网机：造 U 盘离线包](#二联网机造-u-盘离线包)
+- [三、拷贝到 U 盘（尽量轻量）](#三拷贝到-u-盘尽量轻量)
+- [四、离线机：安装](#四离线机安装)
+- [★ 三道安装前闸门](#--三道安装前闸门)
+- [常见问题](#常见问题)
+- [目录收纳](#目录收纳)
+- [换机 / 升级](#换机--升级)
+
+---
+
+## 一、联网机：直接开始（最常用）
+
+**有网络就不需要 U 盘、不需要造包**，直接跑：
+
+```bash
+# Windows
+python start_flash.py
+
+# 或双击项目根目录下的 start_flash.bat
+```
+
+它会自动完成：
+
+1. 检查 Python 版本 → 建虚拟环境 `.venv\`（已存在则复用）
+2. `pip install -e ".[full,dev]" scipy paramiko` 装全部依赖
+3. 健康检查；不合格则**自动清零重建**
+4. 跑三套测试，生成 `INSTALL_TEST_REPORT.txt`
+
+> **首次约需 3–5 分钟**（要下载 70+ 个包）；之后重跑约 20 秒（跳过已装依赖）。
+
+### 联网机常用参数
+
+```bash
+python start_flash.py --help        # 看全部选项
+python start_flash.py --quick       # 装完不跑测试，快
+python start_flash.py --reinstall   # 强制重建环境
+```
+
+### 想手动控制档位（体积更小）
+
+`full` 档带开发工具链（pytest/black/ruff），日常只出图不需要：
+
+```bash
+python start_flash.py --profile runtime   # 保留 yt 出图，去掉 dev 工具
+python start_flash.py --profile lite      # 再去掉 yt/matplotlib/pandas
+```
+
+| 档位 | 内容 | 装完占用 | 适用 |
+|------|------|---------|------|
+| `full`（默认） | base + `[full]` + `[dev]`，可跑三套测试 | ~632 MB | 开发/测试 |
+| `runtime` | base + `[full]`，保留 yt，**无 pytest/black/ruff** | ~480 MB | 日常出图 |
+| `lite` | 无 yt/matplotlib/pandas | ~180 MB | 只需数值与 HDF5 读取 |
+
+> 三套测试只在 `full` 档下运行；`runtime`/`lite` 档会跳过测试并给出提示。
+
+---
+
+## 二、联网机：造 U 盘离线包
+
+只有在**目标电脑无网络**时才需要这一步。
 
 双击 `scripts\08_offline_install\build_wheelhouse.bat`，或命令行：
 
 ```bash
-# 默认：full 档 + 附带 Python 安装程序（推荐）
+# 默认：full 档 + 附带 Python 安装程序（离线机没Python 时需要）
 python scripts/08_offline_install/build_wheelhouse.py
 
 # 精简档（保留 yt 出图，去掉 dev 工具链）
@@ -56,48 +85,131 @@ python scripts/08_offline_install/build_wheelhouse.py --profile runtime
 # 最精简（无 yt/matplotlib/pandas）
 python scripts/08_offline_install/build_wheelhouse.py --profile lite
 
-# 离线机已有Python，不要附带安装程序
+# 离线机已有 Python，不要附带安装程序（省 25MB）
 python scripts/08_offline_install/build_wheelhouse.py --no-interpreter
 
 # 只看计划不实际下载
 python scripts/08_offline_install/build_wheelhouse.py --dry-run
 ```
 
-产物结构：
+### 产物结构
 
 ```
-offline_pkg/wheelhouse/          ← 拷这个目录
-├── flash_sim-0.1.7-py3-none-any.whl    ← 项目本体（本地构建）
+offline_pkg/wheelhouse/          ← ★ 只拷这个目录
+├── flash_sim-0.1.7-py3-none-any.whl    ← 项目本体（本地构建，约 5MB）
 ├── numpy-*.whl / scipy-*.whl
 ├── yt-*.whl / matplotlib-*.whl / ...
-├── python-3.13.9-amd64.exe      ← 离线机无 Python 时才需要
-└── MANIFEST.json                ← size + SHA256 全清单
+├── python-3.13.9-amd64.exe      ← 离线机无 Python 时才需要（25MB）
+├── MANIFEST.json                ← size + SHA256 全清单
+└── .stale/                      ← 上一轮被隔离的旧包（可删）
 ```
 
-三档profile 对比：
+### 实测体积（09-10 第三轮，Windows/Python 3.13）
 
-| 档位 | 内容 | 典型体积 | 适用 |
-|------|------|---------|------|
-| `full`（默认） | base + `[full]` + `[dev]`，可跑三套测试 | ~1GB | 开发/测试机 |
-| `runtime` | base + `[full]`，无 pytest/black/ruff，保留 yt | ~600MB | 日常出图 |
-| `lite` | 精简（无 yt/matplotlib/pandas） | ~200MB | 只需数值与 HDF5 读取 |
+| 档位 | wheelhouse 大小 | 装完 `.venv` | 备注 |
+|------|---------------|-----------|------|
+| `full` | **130 MB**（71 包） | **647 MB**（实测） | 可跑三套测试 |
+| `runtime` | 约 100 MB | ~480 MB | 去 dev 工具链 |
+| `lite` | **56 MB**（14 包） | ~180 MB | 无 yt/matplotlib/pandas |
+| `--no-interpreter` | 少 25 MB | — | 离线机已有 Python 时用 |
 
-> **注意**：档位必须**造包与安装两端一致**，否则预检会拦下。
+> ★ 上表 `full` 与 `lite` 为 09-10 **实测值**，`runtime` 为估算。
+> 体积大头是 `scipy`(35MB)、`yt`(15MB)、`numpy`(12MB)、`pandas`(9MB)、
+> `matplotlib`(9MB)。**若离线机只需要跑仿真、不需要出图，选 `lite` 档最省**
+> （实测 56MB，是 full 的 43%）。
 
----
+> ★★ **本体 wheel 只有 5.5 MB**（1028 条目），造包耗时 4 s。
+> 09-10 修复前是 **100.5 MB**（2873 条目）——`.gitignore` 管不到 wheel，
+> 详见下方「为什么 wheel 会变大」。
 
-## 二、拷贝到U 盘
+### 为什么 wheel 会变大（09-10 血泪教训）
 
-必须拷**整个 `wheelhouse/` 目录**（含 `MANIFEST.json`），**不能只拷 `.whl`**。
-建议同时拷项目源码（离线机要用 `start_flash.py` 和 `tests/`）：
+根 `.gitignore:11` 有一条裸 `*`（忽略所有无扩展名文件）。git 能正确处理它，
+但 **hatchling 的 VCS 排除有个安全阀**：
+
+```python
+exclude_spec = pathspec.GitIgnoreSpec.from_lines(patterns)
+if exclude_spec.match_file(self.root):
+    return []          # ← 静默丢弃**全部** VCS 规则
+```
+
+裸 `*` 匹配到项目根自身 ⇒ 命中安全阀 ⇒ **536 条 .gitignore 规则全部失效**。
+于是 git 忽略的 336.8MB 测试产物 + FLASH 引擎源码（License §3 违规）
+被一并打进 wheel（占 94.5%）。
+
+⇒ **本仓库的 `.gitignore` 无法充当 wheel 排除规则**，两者必须成对手写
+（写在 `pyproject.toml` 的 `[tool.hatch.build.targets.wheel/sdist].exclude`）。
+
+### 泄漏审计（构建后自动跑）
 
 ```bash
-python scripts/04_backup/usb_backup.py E:\usb_src
+python scripts/08_offline_install/wheel_leak_audit.py            # 审计默认 wheelhouse
+python scripts/08_offline_install/wheel_leak_audit.py <wheel>     # 指定 wheel
 ```
+
+检查四项：**体积 / 条目数 / FLASH License §3 材料 / git-ignored 泄漏**。
+`build_wheelhouse.py` 在写完 MANIFEST 后会自动跑它，不通过即**中止造包**
+（`--no-audit` 可逃逸，但不建议）。
+
+> ★ 判据按**体积**而非文件数：修正误排除后残余 50 个文件 / 384KB
+> （`results/*.json`、`metrics_*.csv` 等科研快照），对离线使用者有参考价值，
+> 不必为 0.1% 的体积把它们全砍掉。
+> ★ 审计器自身已做两次修复：`text=True` 漏报 94.5%（Windows ANSI 代码页
+> 弄坏 CJK 路径）、`§3` 子串匹配误报自研文档（`MultiEOSOP格式说明.md`）。
+> **报喜不报忧的护栏比没有护栏更危险** —— 改它务必重跑负向样本。
 
 ---
 
-## 三、离线机：安装
+## 三、拷贝到 U 盘（尽量轻量）
+
+### ★ 只拷这些
+
+| 拷什么 | 大小 | 为什么 |
+|--------|------|-------|
+| `wheelhouse/` | 130 MB | **必需**（含 `MANIFEST.json`，一个都不能少） |
+| 项目源码 | **17.2 MB**（1391 文件） | 离线机要用 `start_flash.py` 和 `test/` |
+
+源码用现成脚本导出（只拷 git 跟踪的内容，自动排除所有数据/产物）：
+
+```bash
+python scripts/04_backup/usb_backup.py --mode gitee E:\usb_target
+```
+
+> ★ 该脚本的文件列表来自 `git ls-files --cached --others --exclude-standard`
+> ⇒ **git 忽略的一律不拷**。09-10 实测：导出 1391 文件 / 17.2 MB，
+> 而 `flash/` 目录在磁盘上是 71 GB。
+
+### ✗ 千万不要拷这些
+
+| 别拷 | 磁盘实测 | 原因 |
+|------|---------|------|
+| 场景数据 `flash_output/`、`flash_input/` | **~62 GB** | 仿真产物，可重新生成 |
+| `SNBtest/src/`（FLASH 引擎源码） | **1.3 GB** | FLASH 版权材料，且体积巨大 |
+| `Multi1D++Portable*` | ~1.5 GB | 第三方参考解，非自研代码 |
+| `.venv/` | 647 MB | 离线机自己会建 |
+| `eosop_pro/test/**/_out/` | 275 MB | 测试过程产物 |
+| `dist/`、`build/` | 变化 | 造包中间产物 |
+
+> ★ `flash/` 整个目录在磁盘上是 **71 GB**，但 `usb_backup.py --mode gitee`
+> 只导 **17.2 MB**（1391 文件）。差别全在上面这张表里。
+> **务必用该脚本导出源码**，手工整目录拷会把 71 GB 全带走。
+
+> ★ 上述目录**已在 `pyproject.toml` 的 exclude 中排除**，所以不会进 wheel ——
+> 但如果你手工整目录拷到 U 盘，它们仍会被一并带走。
+
+### 一条命令搞定（推荐）
+
+```bash
+# 联网机：造包 + 导出源码，一起放到 U 盘
+python scripts/08_offline_install/build_wheelhouse.py --zip
+```
+
+`--zip` 会额外生成 `wheelhouse.zip`（约 90MB），单个文件拷 U 盘更省事，
+且能在传输后校验完整性。
+
+---
+
+## 四、离线机：安装
 
 1. 若离线机**没有 Python**，先双击 `wheelhouse\python-*-amd64.exe`
    安装（建议勾选 *Add Python to PATH*）。
@@ -108,14 +220,23 @@ python scripts/04_backup/usb_backup.py E:\usb_src
 ```bash
 python scripts/08_offline_install/install_offline.py            # 自动找 wheelhouse/
 python scripts/08_offline_install/install_offline.py D:\pkg\wheelhouse   # 显式指定
-python scripts/08_offline_install/install_offline.py --check-only       # 只校验不安装
-python scripts/08_offline_install/install_offline.py --no-tests# 快速装环境不跑测试
+python scripts/08_offline_install/install_offline.py --check-only# 只校验不安装
+python scripts/08_offline_install/install_offline.py --quick     # 快速装环境不跑测试
+```
+
+或走统一入口（等价于上面第2 步）：
+
+```bash
+python start_flash.py --offline --wheelhouse D:\pkg\wheelhouse
 ```
 
 安装完成后：
 - 虚拟环境：`.venv\`（项目根专属，与其他项目完全隔离）
 - 测试报告：`INSTALL_TEST_REPORT.txt`
 - 激活：`.venv\Scripts\activate`
+
+> **离线模式一律装真 wheel，不用 `-e .`**：editable 会往 `.venv` 写指向
+> 源码树的**绝对路径**，换机即失效。
 
 ---
 
@@ -130,6 +251,44 @@ python scripts/08_offline_install/install_offline.py --no-tests# 快速装环境
 3. **依赖覆盖度预检** —— 比对 `pyproject.toml` 的依赖闭包 ⊆ wheelhouse 实际
    文件，缺一个就报**全清单**并指出该用哪个档位重造包。
 
+`--no-index` 是硬闸门：pip 物理上无法访问 PyPI，缺包会**立即失败**并指名缺哪个包，
+而不会静默联网补装。离线部署最常见的翻车点就是"装到一半才发现漏包，
+venv 半残，必须从头再来"。
+
+---
+
+## ★ 双模式实现要点
+
+```
+                start_flash.py（唯一入口）
+                          │
+            ──────────────┴──────────────
+                       run_pip()      ← 唯一分叉点
+              ┌──────────────┴──────────────┐
+          在线（默认）                 离线
+  pip install -e ".[full,dev]"    pip install --no-index
+          scipy paramiko          --find-links=<wheelhouse>
+              │            │
+              └──────┬───────────────┘
+                     ▼
+    check_env_health → 自愈重建 → 三套测试 → INSTALL_TEST_REPORT.txt
+                  （两模式共用同一套校验与报告）
+```
+
+切换开关（三选一，优先级从上到下）：
+
+| 方式 | 在线 | 离线 |
+|------|------|------|
+| 命令行 | 默认 | `python start_flash.py --offline` |
+| 环境变量 | 默认 | `set FLASH_OFFLINE=1` |
+| 自动探测 | 强制 `FLASH_FORCE_ONLINE=1` | 项目根有 `wheelhouse/MANIFEST.json` → 自动转离线 |
+
+> **自动探测的判据只能是 `wheelhouse/MANIFEST.json` 本身**，绝不能用
+> 「`scripts/08_offline_install/` 目录存在」这类间接信号 —— 该目录随仓库分发，
+> 联网机上永远存在，拿它当判据会把**所有在线用户**误切成离线模式。
+
+在线路径行为**完全不变**（仍为 `pip install -e ".[full,dev]" scipy paramiko`）。
+
 ---
 
 ## 常见问题
@@ -141,6 +300,9 @@ python scripts/08_offline_install/install_offline.py --no-tests# 快速装环境
 | `[SHA256 不符]` | U 盘拷贝损坏 | 重新拷贝整个目录 |
 | `No matching distribution found` | wheelhouse 缺传递依赖 | 联网机重跑 `build_wheelhouse.py` |
 | 离线机没 Python | 造包时加了 `--no-interpreter` | 双击 wheelhouse 内安装程序，或重造包 |
+| `[stale] 已隔离上一轮产物` | 正常提示：造包前会挪走旧 wheel | 无需处理；`.stale/` 可删 |
+| `[WARN] wheel 体积 ... 偏大/偏小` | pyproject exclude 可能漏了新目录 | 核对 `pyproject.toml` 的 `[wheel].exclude` |
+| `build 未产出 wheel` 中止 | 构建失败（磁盘满/语法错/exclude 排太狠） | 看上方 build 报错；确认后可加 `--allow-legacy-dist` |
 
 ---
 
@@ -154,18 +316,20 @@ scripts/08_offline_install/
 ├── _wh_common.py        公共工具：依赖解析 / 文件名归一化 / MANIFEST / 预检
 ├── build_wheelhouse.py  联网机：造离线包
 ├── install_offline.py   离线机：一键安装 + 校验
-├── build_wheelhouse.bat 联网机启动器（ASCII/CRLF）
-├── install_offline.bat  离线机启动器（ASCII/CRLF）
+├── build_wheelhouse.bat 联网机启动器
+├── install_offline.bat  离线机启动器
 └── README.md            本文档
 ```
 
-对 `start_flash.py` 的改动是**最小侵入**的：仅在 `run_pip()` 加离线分支、
-新增 `--offline/--wheelhouse/--profile` 参数、离线前置校验，以及报告里
-多记录安装模式；在线路径行为**保持不变**。
+回归自检（64 项断言，不需要网络）：
+
+```bash
+python scripts/08_offline_install/test_offline_install.py
+```
 
 ---
 
-## 换机/ 升级
+## 换机 / 升级
 
 - **换机**：把 `wheelhouse/` + 项目源码一起拷到新机，重跑
   `install_offline.py` 即可。

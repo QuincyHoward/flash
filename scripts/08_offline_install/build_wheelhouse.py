@@ -99,7 +99,8 @@ def run(cmd: list, cwd=None, timeout=3600, check=True) -> subprocess.CompletedPr
 # Step 1: 构建 flash 本体 wheel
 # ---------------------------------------------------------------------------
 
-def build_project_wheel(root: Path, out_dir: Path, dry_run: bool) -> Path | None:
+def build_project_wheel(root: Path, out_dir: Path, dry_run: bool,
+                        allow_legacy_dist: bool = False) -> Path | None:
     """构建 flash_sim-*.whl。
 
     ★ 用 `python -m build --wheel --no-isolation`：--no-isolation 复用当前
@@ -127,24 +128,95 @@ def build_project_wheel(root: Path, out_dir: Path, dry_run: bool) -> Path | None
         run([sys.executable, "-m", "pip", "install", "hatchling"])
 
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ★ 关键：**构建前**先隔离 out_dir 里的旧 wheel，只认本次构建的产物。
+    #   build 可能 rc!=0 而没产出任何东西，此时残留的旧 wheel 会被随后的
+    #   glob 命中并当成成功返回（09-10 实测：把 9-08 的旧 wheel 写进了
+    #   MANIFEST，该 wheel 少 2650 个文件）。必须挪走而不是删除，
+    #   以便用户还能手工比对。
+    _quarantine_previous_wheels(out_dir)
+
     log("[info] python -m build --wheel --no-isolation（可能需 1~3 分钟）...")
     r = run([sys.executable, "-m", "build", "--wheel", "--no-isolation",
              "-o", str(out_dir)], cwd=root, timeout=1800, check=False)
 
     wheels = sorted(out_dir.glob("flash_sim-*.whl"))
+
     if not wheels:
-        # 退路：直接从已构建的 dist/ 拿（若历史遗留）
+        #退路：dist/ 里的历史 wheel。★ 必须显式 --allow-legacy-dist 才准用。
+        #   09-10 事故：build 失败后此处静默 copy 了 9-08 的旧 wheel，
+        #   该 wheel 少 2650 个文件（含 flash/_core/credentials/hpc_config.py），
+        #   且体积 1.5MB vs 正常 4.8MB —— 不查体积根本发现不了。
         legacy = sorted((root / "dist").glob("flash_sim-*.whl"))
-        if legacy:
-            log(f"[warn] build 未产出 wheel，改用已有 {legacy[-1].name}")
+        if legacy and allow_legacy_dist:
+            log(f"[warn] 使用 dist/ 遗留 wheel: {legacy[-1].name}")
+            log("       ⚠ 该wheel 可能是旧代码构建，务必确认与当前源码一致！")
             shutil.copy2(legacy[-1], out_dir / legacy[-1].name)
             return out_dir / legacy[-1].name
+        if legacy:
+            die("build 未产出 wheel，而 dist/ 里有历史遗留 wheel。\n"
+                "    为避免把**旧代码**误当成当前版本发布，已中止。\n"
+                "    请先排查上方 build 报错（常见：磁盘满 / pyproject 语法错 /\n"
+                "    exclude 规则把包全排除了）。确需使用旧 wheel 时显式加\n"
+                "    --allow-legacy-dist。")
         die("未能构建 flash_sim wheel。请检查上方 build 输出。"
             "注意 pyproject 用 hatchling，磁盘需有写权限。")
 
     w = wheels[-1]
+    _warn_if_implausible_size(w, root)
     log(f"[ok] 本体 wheel: {w.name}  ({wh.human_size(w.stat().st_size)})")
+    # 记录指纹：Step 2 的 pip download 可能用 PyPI 同名包覆盖它（见下）
+    _LOCAL_WHEEL_FINGERPRINT.clear()
+    _LOCAL_WHEEL_FINGERPRINT.update(
+        sha256=wh.sha256_file(w),
+        size=w.stat().st_size,
+        entries=_wheel_entry_count(w),
+    )
+    log(f"[info] 本体 wheel 指纹: sha256={_LOCAL_WHEEL_FINGERPRINT['sha256'][:16]} "
+        f"size={wh.human_size(_LOCAL_WHEEL_FINGERPRINT['size'])} "
+        f"entries={_LOCAL_WHEEL_FINGERPRINT['entries']}")
     return w
+
+
+#: Step 1 记录的本地 wheel 指纹（Step 2 后据此校验未被 PyPI 覆盖）
+_LOCAL_WHEEL_FINGERPRINT: dict = {}
+
+
+#: 正常 wheel 体积区间（09-10 实测 4.76MB；>20MB 说明 exclude 又漏了）
+WHEEL_SIZE_OK = (1 * 1024 * 1024, 20 * 1024 * 1024)
+
+
+def _quarantine_previous_wheels(out_dir: Path) -> None:
+    """把 out_dir 里**已存在**的 flash_sim wheel 挪进 .stale/。
+
+    ★ 为什么必须隔离而不是直接删：造包中断后重跑时，若build 这轮没产出，
+      `sorted(out_dir.glob("flash_sim-*.whl"))` 会命中上一轮的包并当成功返回
+      —— 09-10 实测就是这样把 9-08 的旧 wheel（少 2650 个文件）写进了
+      MANIFEST。挪走而非删除，是为了让用户还能手工比对。
+    """
+    olds = sorted(out_dir.glob("flash_sim-*.whl"))
+    if not olds:
+        return
+    q = out_dir / ".stale"
+    q.mkdir(parents=True, exist_ok=True)
+    for old in olds:
+        stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime(old.stat().st_mtime))
+        dest = q / f"{old.stem}__{stamp}{old.suffix}"
+        shutil.move(str(old), str(dest))
+        log(f"  [stale] 已隔离上一轮产物 -> .stale/{dest.name}")
+
+
+def _warn_if_implausible_size(w: Path, root: Path) -> None:
+    """体积哨兵：GB 级 = exclude 漏了大目录；<1MB = 可能是残包/旧包。"""
+    sz = w.stat().st_size
+    if sz > WHEEL_SIZE_OK[1]:
+        log(f"[WARN] wheel 体积 {wh.human_size(sz)} 偏大 —— 检查 pyproject exclude"
+            " 是否漏了新场景目录。")
+    elif sz < WHEEL_SIZE_OK[0]:
+        log(f"[WARN] wheel 体积 {wh.human_size(sz)} 偏小 —— 确认包内容完整。")
+    pyproject = root / "pyproject.toml"
+    if pyproject.is_file() and w.stat().st_mtime < pyproject.stat().st_mtime:
+        log("[WARN] wheel 比 pyproject.toml 还旧 ⇒  exclude 改动可能未生效。")
 
 
 # ---------------------------------------------------------------------------
@@ -152,15 +224,20 @@ def build_project_wheel(root: Path, out_dir: Path, dry_run: bool) -> Path | None
 # ---------------------------------------------------------------------------
 
 def build_pip_freeze_list(root: Path, wh_dir: Path, profile: str) -> list[str]:
-    """返回传给 `pip download` 的 requirement 列表（**含项目本体**）。
+    """返回传给 `pip download` 的 requirement 列表（**不含项目本体**）。
 
-    结构: "flash_sim[full,dev]" + pyproject base/extras 全量 + scipy/paramiko 等补装项。
+    ★★ 09-10 事故：本体**不能**进 `pip download` 的目标列表。本项目已发布在
+      PyPI（flash-sim 0.1.7），而 `--find-links` **不保证本地优先** ——
+      pip 会以"bad hash. Re-downloading."为由下载公开旧包**覆盖**本地构建
+      产物（实测 4.76MB/902 条目 → 1.53MB/224 条目，712 个文件消失）。
+      ⇒ 正确做法：把 pyproject 的 base + extras **全部展开后逐项列出**，
+      让 pip 只解析第三方依赖；本体 wheel 由 Step 1 直接放进 wheelhouse，
+      根本不经过 pip。
 
-    ★ 项目本体用**本地刚构建的 wheel**参与解析，靠 `--find-links <wh_dir>`
-      让 pip 从本地取到它，从而顺带把 base/extras 的传递闭包全部解析下载。
-      （若不传 flash_sim，pip 只会下scipy/paramiko 等少数几项，
-        h5py/matplotlib/yt/pandas/pytest 会**整批缺失** —— 这是必须显式
-        带上本体的根本原因。）
+    ★ 为什么"不传本体"曾经导致整批缺包（09-09）：当时只传了 extra_pkgs
+      （scipy/paramiko 等少数项），h5py/matplotlib/yt/pandas/pytest 全缺。
+      现在 `required_packages()` 返回的 human 列表**已含 base + extras 全量
+      展开**，逐项传给 pip 即可拿全 71 个包的传递闭包，无需借助本体解析。
 
     ★ scipy / paramiko 未写进 pyproject 的 full/dev extras（paramiko 是
       remote_deploy 的 SSH 依赖），但 start_flash.py 会装，必须在此补齐。
@@ -168,36 +245,43 @@ def build_pip_freeze_list(root: Path, wh_dir: Path, profile: str) -> list[str]:
     spec = wh.PROFILES[profile]
     _, human = wh.required_packages(root / "pyproject.toml", profile)
 
+    proj = wh.canonical_name(wh.PROJECT_DIST)
     reqs: list[str] = []
-    # 第 1 项是 _wh_common 插入的 project 本体（带 extras）
-    for r in human:
-        name = wh.requirement_name(r)
-        if name == wh.canonical_name(wh.PROJECT_DIST):
-            reqs.append(r)
-            break
-    # 其余直接依赖（去重，保持 pyproject 声明顺序）
-    seen = {wh.canonical_name(wh.PROJECT_DIST)}
+    seen: set[str] = set()
     for r in human:
         n = wh.canonical_name(wh.requirement_name(r))
-        if n in seen:
-            continue
+        if n == proj or n in seen:
+            continue          # ★ 跳过本体（见上方事故说明）
         seen.add(n)
         reqs.append(r)
-    # 补装项（scipy/paramiko/setuptools/wheel/pip）—— 去重后追加
-    for p in spec["extra_pkgs"]:
-        if wh.canonical_name(p) not in seen:
-            seen.add(wh.canonical_name(p))
+
+    # 补装项：pyproject 未声明但 start_flash.py 会装的包
+    for p in spec.get("extra_pkgs", []):
+        n = wh.canonical_name(p)
+        if n not in seen:
+            seen.add(n)
             reqs.append(p)
     return reqs
 
 
 def download_deps(out_dir: Path, pkgs: list[str], python_exe: str,
-                  dry_run: bool, no_binary: bool = False) -> None:
+                  dry_run: bool, no_binary: bool = False,
+                  local_wheel: Path | None = None) -> None:
     """pip download 全部依赖到 out_dir。
 
     ★ --find-links <out_dir>：让 pip 能从**本地刚构建的 flash_sim wheel**
       解析项目本体，从而顺带解出 base/extras 的全部传递依赖。
       此时不加 --no-index（还需从 PyPI 下载第三方包）。
+
+    ★★ `--find-links` **不保证本地优先**（09-10 实测踩坑）：
+      flash-sim 0.1.7 已发布在 **PyPI**（1.53MB）。pip 解析
+      `flash_sim[full,dev]` 时会认为 PyPI 上那个同样满足要求，于是
+      **下载并覆盖掉我们刚构建的 wheel** —— 日志仍打印"[ok] 4.8 MB"
+      （那是覆盖前的体积），而目录里已是 1.53MB 的公开旧包。
+      后果：离线机安静地装上一份**过期的公开代码**，且体积/条目数
+      都不对（224 vs 902 条目）。仅看体积或日志都发现不了。
+      ⇒ 对策：下载结束后**用 SHA256 校验本地 wheel 仍在**，
+      被覆盖就立即报错（见_ensure_local_wheel_intact）。
 
     ★ --upgrade 不能用：`pip download` **不支持**该选项（只有 install 有），
       传入会直接 rc=2 报 "no such option: --upgrade"。
@@ -222,7 +306,50 @@ def download_deps(out_dir: Path, pkgs: list[str], python_exe: str,
     log("[info] 下载中（yt/numba/matplotlib 体积大，约 5~15 分钟）...")
     t0 = time.time()
     run(cmd, timeout=5400)
+    _ensure_local_wheel_intact(local_wheel)
     log(f"[ok] 下载完成，耗时 {time.time() - t0:.0f}s")
+
+
+def _ensure_local_wheel_intact(local_wheel: Path | None) -> None:
+    """确认本地构建的 flash_sim wheel 没被 PyPI 同名包覆盖（09-10 事故）。
+
+    用 **SHA256 指纹**比对，而非只看体积 —— 同名同版本的覆盖包体积可能
+    接近，只有指纹能给出确定结论。
+    """
+    if local_wheel is None or not local_wheel.is_file():
+        return
+    fp = _LOCAL_WHEEL_FINGERPRINT
+    if not fp:
+        return
+    now_sha = wh.sha256_file(local_wheel)
+    n_entries = _wheel_entry_count(local_wheel)
+    log(f"[info] 本体 wheel 校验: sha256={now_sha[:16]} "
+        f"size={wh.human_size(local_wheel.stat().st_size)} entries={n_entries}")
+    if now_sha != fp["sha256"]:
+        die("本体 wheel 在下载依赖后**被覆盖**了！\n"
+            f"    构建时 sha256={fp['sha256'][:16]} / {fp['entries']} 条目 / "
+            f"{wh.human_size(fp['size'])}\n"
+            f"    现在 sha256={now_sha[:16]} / {n_entries} 条目 / "
+            f"{wh.human_size(local_wheel.stat().st_size)}\n"
+            "    原因：`pip download flash_sim[full,dev]` 只用 --find-links 提供\n"
+            "    本地包，但该选项**不保证本地优先**；本项目已发布在 PyPI\n"
+            "    （flash-sim 0.1.7），pip 会下载公开旧包覆盖本地构建结果。\n"
+            "    ⇒ 离线机将会装上**过期公开代码**。\n"
+            "    对策：① 临时提升 pyproject 版本号（如 0.1.8）使 PyPI 版本\n"
+            "         不再满足要求；或② 造包后手动把本地 wheel 拷回覆盖。")
+    # 条目数哨兵：只在**能读出条目数**时生效（entries=-1 表示非 zip/读失败），
+    # 否则会把单测里的小文件误判成残包。
+    if 0 <= n_entries < 100:
+        die(f"本体 wheel 只有 {n_entries} 个条目，明显是残包/旧包，已中止。")
+
+
+def _wheel_entry_count(w: Path) -> int:
+    try:
+        import zipfile
+        with zipfile.ZipFile(w) as z:
+            return len(z.namelist())
+    except Exception:
+        return -1
 
 
 # ---------------------------------------------------------------------------
@@ -318,6 +445,38 @@ def _project_version(root: Path) -> str:
     return m.group(1) if m else "unknown"
 
 
+def run_leak_audit(wh_dir: Path, root: Path, strict: bool) -> bool:
+    """构建后跑泄漏审计（体积/条目/§3/git-ignored 四项）。
+
+    ★ 为什么必须有这一步：根`.gitignore:11` 的裸`*` 会触发 hatchling 的
+      VCS 排除安全阀（`if exclude_spec.match_file(self.root): return []`），
+      **536 条 .gitignore 规则全部失效** ⇒ git 忽略的测试产物、FLASH 引擎
+      源码（License §3）会被打进 wheel。09-10 实测泄漏 336.8MB / 94.5%。
+    ★ 为什么审计器本身要能失败：本项目已栽过两次「护栏自己骗我」
+      ——审计器用 text=True 漏报 94.5%、§3 用子串匹配误报自研文档。
+      故审计器自带负向自测，且此处按其退出码决定是否中止。
+    """
+    audit_py = Path(__file__).resolve().parent / "wheel_leak_audit.py"
+    if not audit_py.is_file():
+        log("[warn] 未找到 wheel_leak_audit.py，跳过泄漏审计")
+        return True
+    log("")
+    log("[audit] 泄漏审计（体积 / 条目 / License §3 / git-ignored）...")
+    r = run([sys.executable, str(audit_py), str(wh_dir)],
+            cwd=root, timeout=600, check=False)
+    if r.returncode == 0:
+        log("[ok] 泄漏审计通过")
+        return True
+    msg = (r.stdout or "")[-800:]
+    if strict:
+        die("泄漏审计未通过 —— wheel 里混入了 git 忽略的文件或 FLASH 版权材料。\n"
+            "    详见上方报告；修法：在 pyproject.toml 的 wheel/sdist exclude 中\n"
+            "    补规则（★ 必须 wheel 与 sdist **成对**写），或用 --no-audit 临时跳过。\n"
+            f"---- 审计输出尾部 ----\n{msg}")
+    log("[warn] 泄漏审计未通过，但已指定 --no-audit ⇒ 继续（风险自负）")
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Step 5: 打包 zip（可选）
 # ---------------------------------------------------------------------------
@@ -369,7 +528,13 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--allow-sdist", action="store_true",
                     help="允许 sdist（默认只要 wheel；离线机通常无 C 编译器）")
     ap.add_argument("--zip", action="store_true", help="打包为 zip")
+    ap.add_argument("--allow-legacy-dist", action="store_true",
+                    help="build 失败时允许退回 dist/ 里的旧 wheel（★危险："
+                         "旧 wheel 可能缺文件，09-10 事故根因）")
     ap.add_argument("--dry-run", action="store_true", help="只打印计划，不实际下载")
+    ap.add_argument("--no-audit", action="store_true",
+                    help="跳过构建后的泄漏审计（★不建议：.gitignore 因裸`*` "
+                         "安全阀而对 wheel 完全失效，无审计等于裸奔）")
     return ap.parse_args()
 
 
@@ -397,11 +562,12 @@ def main() -> int:
     log(f"[info] 直接依赖: {' '.join(pkgs)}")
 
     # ---- Step 1 ----
-    build_project_wheel(root, wh_dir, args.dry_run)
+    local_wheel = build_project_wheel(root, wh_dir, args.dry_run,
+                                      allow_legacy_dist=args.allow_legacy_dist)
 
     # ---- Step 2 ----
     download_deps(wh_dir, pkgs, sys.executable, args.dry_run,
-                  no_binary=args.allow_sdist)
+                  no_binary=args.allow_sdist, local_wheel=local_wheel)
 
     # ---- Step 3 ----
     if not args.no_interpreter:
@@ -412,6 +578,9 @@ def main() -> int:
     if not args.dry_run:
         verify_against_pip(wh_dir, root, args.profile)
         write_manifest(wh_dir, root, args.profile, platform.python_version())
+
+        # ★ Step 4.5: 泄漏审计（必须在写完清单后、宣布成功前）
+        run_leak_audit(wh_dir, root, strict=not args.no_audit)
 
         # 汇总
         house = wh.WheelHouse(wh_dir)
