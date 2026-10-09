@@ -49,13 +49,44 @@ start_flash.py — flash 包「环境自检自愈 + 从零安装 + 全局测试�
   FLASH_VENV_DIR       虚拟环境绝对路径（默认 <项目根目录>/.venv）
   FLASH_FORCE_CLEAN=1  强制清零重建（原语义保留）
   FLASH_NO_AUTO_REBUILD=1  禁用自动重建（仅检查与报告，不重建；用于诊断）
+  FLASH_OFFLINE=1      ★ 离线安装模式：pip 改走本地 wheelhouse（--no-index）
+  FLASH_WHEELHOUSE=<dir>  ★ wheelhouse 路径（默认<项目根>/wheelhouse）
+  FLASH_PROFILE=<name>    ★ 离线预检档位: full / runtime / lite（默认 full）
+
+★ 在线 / 离线双模式（同一脚本，按开关切换）
+--------------------------------------------------------------------
+两种模式**共用**全部逻辑：venv 健康检查 → 自愈清零重建 → 三套测试 →
+INSTALL_TEST_REPORT.txt。唯一分叉点是 run_pip()：
+
+  在线（默认）  pip install -e ".[full,dev]" scipy paramiko
+  离线          pip install --no-index --find-links=<wheelhouse> \
+                                "flash_sim[full,dev]" scipy paramiko
+
+  · --no-index 是**硬闸门**：pip 物理上无法访问 PyPI。缺包立即报
+    "No matching distribution found" 并指名缺哪个，而不是静默联网补装
+    （后者是离线部署最常见的翻车点：装到一半发现漏包，venv 半残需从头再来）。
+  · 因此离线模式在装之前先做 wheelhouse **覆盖度预检**（preflight_wheelhouse），
+    缺一个就报全清单并当场中止，绝不进入"装到一半才发现缺"。
+  · ★ 离线**不能**沿用 `-e .`：可编辑安装要解析源码树里的依赖声明，
+    而离线机上的源码树可能来自 sdist（不含 tests/docs）。离线一律装
+    build_wheelhouse.py 预先构建的 flash_sim-*.whl。
+  · 离线若目录内附了 Python 安装程序且本机无可用 base 解释器，会提示
+    先双击安装（不自动执行 —— 装解释器属于系统级变更，必须用户亲自确认）。
+
+用法：
+  python start_flash.py                              # 在线（默认）
+  python start_flash.py --offline                     # 离线，自动找 wheelhouse/
+  python start_flash.py --offline --wheelhouse E:\\offline_pkg\\wheelhouse
+  set FLASH_OFFLINE=1 && python start_flash.py        # 环境变量方式（bat 用）
 """
 
+import argparse
 import datetime
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # 常量与路径
@@ -92,6 +123,24 @@ ENV_KEY_MODULES = [
     "paramiko", "cryptography", "nacl",
     "setuptools", "yt",
 ]
+
+# ---------------------------------------------------------------------------
+# 离线安装模式（在线 / 离线双模式）
+# ---------------------------------------------------------------------------
+
+#: 离线时安装的 project 本体名（pyproject name = flash-sim → dist 名 flash_sim）
+#: ★ 离线**不用** `-e .`，改装预构建的 wheel（理由见文件头）。
+OFFLINE_DIST = "flash_sim"
+
+#: 离线预检档位（与 scripts/08_offline_install/_wh_common.py 的 PROFILES 对齐）
+OFFLINE_PROFILES = ("full", "runtime", "lite")
+
+#: pip 离线硬闸门：这两个参数让 pip **物理上**无法访问 PyPI
+OFFLINE_PIP_FLAGS = ("--no-index",)
+
+#: 运行期由 main() 填充（模块级是因为 run_pip() 沿用既有全局风格）
+OFFLINE = False
+WHEELHOUSE = ""
 
 
 # ---------------------------------------------------------------------------
@@ -145,10 +194,23 @@ def run(cmd: list, cwd=None, env=None, timeout=3600) -> subprocess.CompletedProc
 
 
 def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
-    """带网络重试的 pip 调用。"""
+    """带网络重试的 pip 调用。
+
+    ★ 在线 / 离线双模式的**唯一分叉点**。
+
+    在线：原样执行 args。
+    离线：强制前置 `--no-index --find-links=<wheelhouse>`。--no-index 是硬闸门，
+          pip 无法访问 PyPI，缺包立即失败并指名缺哪个（不会静默联网补装）。
+          同时**关闭重试**——离线重试毫无意义（同样的 wheelhouse 必然同样失败），
+          改为立刻报错，便于用户看清缺哪个包。
+    """
     venv_pip = os.path.join(VENV_DIR, "Scripts", "pip.exe")
+    if OFFLINE:
+        args = list(OFFLINE_PIP_FLAGS) + [f"--find-links={WHEELHOUSE}"] + list(args)
+        retries = 1
     for i in range(1, retries + 1):
-        log(f"[pip] {step}（第 {i}/{retries} 次尝试）...")
+        log(f"[pip] {step}（第 {i}/{retries} 次尝试"
+            f"{'，离线模式' if OFFLINE else ''}）...")
         try:
             r = subprocess.run(
                 [venv_pip, "install"] + args, cwd=cwd, env=clean_env(),
@@ -171,6 +233,14 @@ def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
                 log("  stdout 尾部: " + tail_out)
             if tail_err:
                 log("  stderr 尾部: " + "\n  ".join(tail_err))
+            if OFFLINE and r is not None:
+                # 离线失败几乎必然是 wheelhouse 缺包 —— 直接给出可操作指引
+                log("")
+                log("  ★ 离线安装失败：wheelhouse 中缺少所需包。")
+                log(f"    wheelhouse: {WHEELHOUSE}")
+                log("    处理：在联网机重跑 scripts\\08_offline_install\\build_wheelhouse.py")
+                log("          （确认 --profile 与本机一致），重新拷贝整个 wheelhouse 目录。")
+                raise SystemExit(f"[FATAL] 离线安装失败: {step}")
         if i < retries:
             log("[wait] 疑似网络中断，等待 60s 后重试 ...")
             time_sleep(60)
@@ -180,6 +250,126 @@ def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
 def time_sleep(sec: float) -> None:
     import time
     time.sleep(sec)
+
+
+# ---------------------------------------------------------------------------
+# 离线模式：wheelhouse 定位与覆盖度预检
+# ---------------------------------------------------------------------------
+def _load_wh_common():
+    """导入同目录的 scripts/08_offline_install/_wh_common.py。
+
+    start_flash.py 会被 sdist 一起分发，而 scripts/ 不在 sdist 内（见
+    pyproject [tool.hatch.build.targets.sdist].exclude 的 "/scripts/**"），
+    故此处**必须优雅降级**：模块不存在时给出明确指引而非 ImportError 堆栈。
+    """
+    p = os.path.join(PROJECT_DIR, "scripts", "08_offline_install")
+    if p not in sys.path:
+        sys.path.insert(0, p)
+    try:
+        import _wh_common# noqa: E402
+        return _wh_common
+    except ImportError as e:
+        raise SystemExit(
+            f"[FATAL] 离线模式需要 scripts/08_offline_install/_wh_common.py，"
+            f"但导入失败: {e}\n"
+            f"       请确认拷贝了完整的 scripts 目录，或改用在线模式"
+            f"（去掉 --offline / FLASH_OFFLINE）。"
+        )
+
+
+def setup_offline(wh_arg: str | None, profile: str) -> None:
+    """离线模式初始化：定位 wheelhouse + 校验清单 + 覆盖度预检。
+
+    三道闸门（任一不过即中止，绝不带病安装）：
+      1. wheelhouse 目录存在
+      2. MANIFEST.json 校验 —— 文件齐全 + 大小相符 + SHA256 相符
+         （U盘拷贝是最容易静默损坏的传输环节，必须先于 pip 拦截）
+      3. 依赖覆盖度预检 —— pyproject 依赖闭包 ⊆ wheelhouse 实际文件
+    """
+    global WHEELHOUSE
+
+    wh = _load_wh_common()
+    profile = (profile or "full").strip().lower()
+    if profile not in OFFLINE_PROFILES:
+        raise SystemExit(
+            f"[FATAL] 未知档位 '{profile}'（可选: {'/'.join(OFFLINE_PROFILES)}）")
+
+    log(f"[offline] 档位: {profile} — {wh.PROFILES[profile]['desc']}")
+
+    house = wh.resolve_wheelhouse(wh_arg, start=PROJECT_DIR)
+    WHEELHOUSE = str(house.root)
+    log(f"[offline] wheelhouse: {WHEELHOUSE}")
+
+    # ---- 闸门 2: MANIFEST 校验 ----
+    problems, notes = house.verify_manifest(deep=True)
+    for n in notes:
+        log(f"[offline] {n}")
+    if problems:
+        log("")
+        log("[FATAL] wheelhouse 清单校验未通过（拷贝不完整或文件损坏）：")
+        for p in problems[:25]:
+            log(f"        - {p}")
+        if len(problems) > 25:
+            log(f"        ... 另有 {len(problems) - 25} 个")
+        raise SystemExit(
+            "[FATAL] 中止安装。请在联网机重跑 build_wheelhouse.py 生成 wheelhouse，"
+            "并完整拷贝整个目录（不要只拷 .whl 文件）。")
+    log("[ok] wheelhouse 清单校验通过")
+
+    # ---- 闸门 3: 依赖覆盖度预检 ----
+    # ★ 必须传 Path 而非 str：preflight → required_packages →
+    #   parse_pyproject_requirements 内部要调 .read_text()。
+    missing, present = house.preflight(
+        Path(os.path.join(PROJECT_DIR, "pyproject.toml")), profile)
+    log(f"[offline] 依赖覆盖度: 直接依赖 {len(present)} 项已就位")
+    if missing:
+        log("")
+        log(f"[FATAL] wheelhouse 缺少 {len(missing)} 个**直接依赖**，无法离线安装：")
+        for m in missing:
+            log(f"        - {m}")
+        log("")
+        log("  ★ 这些是 pyproject 声明的直接依赖，缺失说明 wheelhouse 造包时用的是")
+        log("    其它档位或下载中断。请在联网机执行：")
+        log(f"        python scripts\\08_offline_install\\build_wheelhouse.py --profile {profile}")
+        log("    然后重新拷贝整个 wheelhouse 目录。")
+        raise SystemExit("[FATAL] 中止安装（预检未通过，未创建/改动 venv）。")
+    log(f"[ok] 依赖覆盖度预检通过（档位 {profile}）")
+
+    # ---- base 解释器提示 ----
+    if not os.path.isfile(BASE_PY):
+        inst = wh.find_python_installer(house)
+        if inst:
+            log("")
+            log("  ★ 本机未找到可用的 base Python，而 wheelhouse 内含安装程序：")
+            log(f"        {inst}")
+            log(f"    请先双击它完成安装（建议勾选 Add Python to PATH），")
+            log(f"    然后重跑本脚本。目标版本应与构建机一致。")
+            log("")
+            log("    ★ 脚本不会自动执行安装程序 —— 安装解释器是系统级变更，必须由你确认。")
+        raise SystemExit(
+            "[FATAL] 找不到 base Python。请先安装 Python 3.10+，或设置 "
+            "FLASH_BASE_PY 指向已安装的解释器绝对路径。")
+
+    # ---- 提示体积 ----
+    total = sum(p.stat().st_size for p in house.archives())
+    log(f"[offline] wheelhouse 体积: {wh.human_size(total)}"
+        f"（{len(house.archives())} 个归档）")
+    log("[offline] pip 将使用: --no-index --find-links=<wheelhouse>（物理上无法联网）")
+
+
+def offline_install_args() -> list:
+    """离线模式下 install_flash_package() 传给 pip 的参数。
+
+    ★ 关键差异：不带 `-e`（editable），改装预构建 wheel。
+      editable 需要解析源码树中的依赖声明，而离线机上的源码树可能来自
+      sdist（不含 tests/docs），且 -e 会在 .venv 里写入指向源码树的绝对路径，
+      U 盘换机后直接失效。
+    """
+    extras = ",".join(_load_wh_common().PROFILES[
+        os.environ.get("FLASH_PROFILE", "full").strip().lower() or "full"]["extras"])
+    target = f"{OFFLINE_DIST}[{extras}]" if extras else OFFLINE_DIST
+    # 参数顺序：-e 换成 wheel 名；scipy/paramiko 仍需显式列出（pyproject 未声明）
+    return [target, "scipy", "paramiko"]
 
 
 def parse_pytest(out: str, rc: int) -> dict:
@@ -384,7 +574,8 @@ def fix_setuptools() -> None:
     """修复 setuptools（覆盖 base 内置损坏副本）。"""
     log("[info] 修复 setuptools（覆盖 base 内置损坏副本） ...")
     run_pip(["--ignore-installed", "--no-deps", "setuptools"],
-            step="安装干净 setuptools")
+            step="安装干净 setuptools"
+                 + ("（离线：取自 wheelhouse）" if OFFLINE else ""))
     r = subprocess.run(
         [VENV_PY, "-c",
          "import setuptools, setuptools.build_meta; print('setuptools', setuptools.__version__, 'build_meta OK')"],
@@ -400,9 +591,17 @@ def install_flash_package() -> str:
     # 注意: 额外补装 paramiko —— flash_run.remote.remote_deploy 顶层 import
     # paramiko（SSH/SFTP 依赖），但 pyproject.toml 的 full/dev extras 未声明，
     # 从零安装后 framework 测试收集会因此报错。此处脚本层面补装，不改仓库文件。
-    log("[info] 从零安装 flash 包: pip install -e \".[full,dev]\" scipy paramiko ...")
-    run_pip(["-e", ".[full,dev]", "scipy", "paramiko"],
-            step="安装 flash 包及全部依赖（含 paramiko: remote_deploy 的 SSH 依赖）",
+    if OFFLINE:
+        args = offline_install_args()
+        log("[info] 离线安装 flash 包: pip install --no-index "
+            f"--find-links={WHEELHOUSE} {' '.join(args)}")
+    else:
+        args = ["-e", ".[full,dev]", "scipy", "paramiko"]
+        log('[info] 从零安装 flash 包: pip install -e ".[full,dev]" scipy paramiko ...')
+    run_pip(args,
+            step=("离线安装 flash 包及全部依赖（含 paramiko: remote_deploy 的 SSH 依赖）"
+                  if OFFLINE else
+                  "安装 flash 包及全部依赖（含 paramiko: remote_deploy 的 SSH 依赖）"),
             cwd=PROJECT_DIR)
 
     # 安装验证: flash 解析路径 + physimx_core 已移除
@@ -439,8 +638,17 @@ def provision() -> str:
 
 
 def run_suites() -> dict:
-    """运行三套测试，返回 {套件名: parse_pytest 结果}。"""
+    """运行三套测试，返回 {套件名: parse_pytest 结果}。
+
+    FLASH_SKIP_TESTS=1 时跳过（仅装环境、不验证）—— 供 install_offline.py
+    --no-tests 的快速部署路径使用。跳过后 results 为空 dict，
+    汇总阶段显示"未运行"，core_ok 保持 True。
+    """
     results = {}
+    if os.environ.get("FLASH_SKIP_TESTS", "").strip() == "1":
+        log("\n[step] 运行全局测试: 已按 FLASH_SKIP_TESTS=1 跳过 "
+            "（--no-tests：仅安装环境，不跑测试）")
+        return results
     log("\n[step] 运行全局测试（三套件） ...")
     for name, rel in TEST_SUITES:
         path = os.path.join(PROJECT_DIR, rel)
@@ -478,8 +686,67 @@ def run_suites() -> dict:
 # ---------------------------------------------------------------------------
 # 主流程
 # ---------------------------------------------------------------------------
+def parse_args() -> argparse.Namespace:
+    """命令行参数。在线为默认；--offline 切到离线模式。"""
+    ap = argparse.ArgumentParser(
+        prog="start_flash.py",
+        description="flash 包从零安装 + 全局测试（在线/离线双模式，环境自检自愈）",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "示例:\n"
+            "  python start_flash.py                 在线安装（默认）\n"
+            "  python start_flash.py --offline        离线安装（自动找 wheelhouse/）\n"
+            "  python start_flash.py --offline --wheelhouse D:\\pkg\\wheelhouse\n"
+            "  python start_flash.py --profile lite   离线预检用精简档\n"
+            "\n环境变量等价开关: FLASH_OFFLINE=1 / FLASH_WHEELHOUSE=<dir> / FLASH_PROFILE=<档位>\n"
+        ),
+    )
+    ap.add_argument("--offline", action="store_true",
+                    help="离线安装：pip 走本地 wheelhouse（--no-index），物理上无法联网")
+    ap.add_argument("--wheelhouse", default=None,
+                    help="wheelhouse 目录路径（默认 <项目根>/wheelhouse）")
+    ap.add_argument("--profile", default=None,
+                    choices=list(OFFLINE_PROFILES),
+                    help="离线预检档位（默认 full）")
+    return ap.parse_args()
+
+
+def resolve_offline_mode(args: argparse.Namespace) -> bool:
+    """三路开关求或：命令行 --offline > 环境变量 FLASH_OFFLINE=1。
+
+    另加**自动探测**兜底：项目根存在 wheelhouse/MANIFEST.json 时，
+    即使没显式传 --offline 也自动转离线（避免离线机上误走在线分支，
+    白等 40 分钟超时）。可用 FLASH_FORCE_ONLINE=1 强制关掉自动探测。
+
+    ★ 探测信号只能是 MANIFEST.json **本身**，绝不能用「scripts/08_offline_install/
+      目录存在」这类间接信号 —— 该目录随仓库分发，联网机上永远存在，
+      拿它当判据会把**所有在线用户**误切成离线模式（09 开发时踩过，
+      由 resolve_offline_mode 的独立单测抓出）。
+    """
+    if args.offline or os.environ.get("FLASH_OFFLINE", "").strip() == "1":
+        return True
+    if os.environ.get("FLASH_FORCE_ONLINE", "").strip() == "1":
+        return False
+    wh = args.wheelhouse or os.environ.get("FLASH_WHEELHOUSE", "").strip()
+    cand = wh or os.path.join(PROJECT_DIR, "wheelhouse")
+    # ★ 唯一判据：wheelhouse 目录里确实躺着 MANIFEST.json
+    if os.path.isfile(os.path.join(cand, "MANIFEST.json")):
+        log(f"[auto] 检测到 {cand}\\MANIFEST.json → 自动切换离线模式"
+            f"（如需强制在线请设 FLASH_FORCE_ONLINE=1）")
+        return True
+    return False
+
+
 def main() -> int:
-    global VENV_DIR, VENV_PY, BASE_PY
+    global VENV_DIR, VENV_PY, BASE_PY, OFFLINE
+
+    args = parse_args()
+    OFFLINE = resolve_offline_mode(args)
+
+    # 离线档位需在 setup_offline 之前落进环境（offline_install_args 会读）
+    if args.profile:
+        os.environ["FLASH_PROFILE"] = args.profile
+    os.environ.setdefault("FLASH_PROFILE", "full")
 
     BASE_PY = find_base_python()
     VENV_DIR = os.environ.get("FLASH_VENV_DIR", DEFAULT_VENV_DIR).strip()
@@ -492,12 +759,20 @@ def main() -> int:
     log(f"[info] 项目目录 : {PROJECT_DIR}")
     log(f"[info] base 解释器: {BASE_PY}")
     log(f"[info] 虚拟环境 : {VENV_DIR}")
+    log(f"[info] 安装模式 : {'★ 离线（--no-index，不联网）' if OFFLINE else '在线（PyPI）'}")
 
     auto_rebuild = os.environ.get("FLASH_NO_AUTO_REBUILD") != "1"
     force_clean = os.environ.get("FLASH_FORCE_CLEAN") == "1"
 
     # ---- Step 0: 前置校验 -------------------------------------------------
-    if not os.path.isfile(BASE_PY):
+    # 注意：base解释器存在性在离线模式下由 setup_offline 的专门分支处理
+    #       （那里能给"wheelhouse 内附安装程序"的可操作提示）。
+    if OFFLINE:
+        log("\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）...")
+        setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
+        if not os.path.isfile(BASE_PY):
+            raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
+    elif not os.path.isfile(BASE_PY):
         raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
     for name, rel in TEST_SUITES:
         if not os.path.isdir(os.path.join(PROJECT_DIR, rel)):
@@ -645,7 +920,16 @@ def main() -> int:
     lines.append(f"Git commit: {git_sha}")
     lines.append(f"Python(venv): {py_ver}")
     lines.append(f"虚拟环境 : {VENV_DIR}")
-    lines.append(f"安装命令 : pip install -e \".[full,dev]\" scipy paramiko")
+    if OFFLINE:
+        lines.append(f"安装模式 : ★ 离线（--no-index，未联网）")
+        lines.append(f"wheelhouse : {WHEELHOUSE}")
+        lines.append(f"预检档位 : {os.environ.get('FLASH_PROFILE', 'full')}")
+        lines.append(f"安装命令 : pip install --no-index "
+                     f"--find-links=<wheelhouse> "
+                     f"{' '.join(offline_install_args())}")
+    else:
+        lines.append("安装模式 : 在线（PyPI）")
+        lines.append('安装命令 : pip install -e ".[full,dev]" scipy paramiko')
     lines.append(f"安装方式 : {install_mode or '（未记录）'}")
     lines.append("")
     lines.append("-" * 72)
@@ -712,6 +996,14 @@ def main() -> int:
                  "克隆/发布环境无需手动准备。")
     lines.append("- 完整测试日志见 pytest_framework.log / pytest_input_gen.log / pytest_output_processors.log。")
     lines.append("- 虚拟环境为项目专属 .venv（项目根目录），与共享环境 envs/default 完全隔离。")
+    if OFFLINE:
+        lines.append(f"- 本次为**离线安装**：pip 全程带 --no-index，从 wheelhouse 本地取包，"
+                     f"物理上未访问 PyPI。")
+        lines.append(f"- 离线模式**不使用** `-e .`（可编辑安装）：它会往 .venv 写入指向"
+                     f"源码树的绝对路径，U盘换机后即失效；且需要源码树含依赖声明。")
+        lines.append(f"- 需要更新依赖时：在联网机重跑 "
+                     f"scripts\\08_offline_install\\build_wheelhouse.py，"
+                     f"重新拷贝整个 wheelhouse 目录（含 MANIFEST.json）。")
     lines.append("")
 
     report = "\n".join(lines)

@@ -98,8 +98,50 @@ exclude = [
     "flash/**/inputfiles/**",
     "flash/**/temp/**",
     "flash/**/demo_task/**",
+    # === 场景生成的输入/输出数据（★ 必须排除，否则 wheel 会膨胀到 GB 级）===
+    # flash_input/  由 ch_center/gen_flash_inputs.py 经 input_gen 生成
+    #               （.par / Makefile / Config / F90 / run脚本 / cn4 / 诊断图 / 日志）
+    # flash_output/ 分析输出目录（plots 等）
+    # ★ 这两条与 .gitignore:403-404 的规则**必须成对维护**：
+    #   历史上 pyproject 侧漏了它们，而 .gitignore 侧有 → wheel 构建会静默
+    #   打包进 SNBOneCH_m 等场景的 7.4GB 数据（09-09 实测：build 跑 20 分钟
+    #   未完成，被迫中止）。.gitignore 只管 git，不管 wheel/sdist 构建。
+    #   排查手法：build 前先确认 wheel 体积仍为 MB 级。
+    "flash/scenarios/**/flash_input/**",
+    "flash/scenarios/**/flash_output/**",
+    "**/flash_input_old/**",
     "flash/input_gen/test/**",
     "flash/output_processors/test/**",
+    # === ★ 大体积第三方参考数据（必须排除，否则 wheel 达 GB 级）===
+    # Multi1D++ 便携包 ≈1.5GB（.dat 参考数据 + .rar 压缩包），是外部
+    #   第三方参考解，**不是**本包自研代码，随包分发无意义。
+    # ★ .gitignore:72-73,132-133 早已排除，pyproject 侧历史上一直缺失
+    #   → 09-09 实测构建出 **1.43GB** 的 wheel（正确值应为 MB 级）。
+    "**/src/Multi1D++Portable*/**",
+    "**/Multi1D*/**",
+    "**/Multi1D*.rar",
+    # === 工作副本目录（内容与原目录重复，各占 ~1.5GB）===
+    "flash/input_gen/*_copy/**",
+    "flash/input_gen/*副本*/**",
+    "flash/input_gen/*_copy*",
+    "flash/input_gen/*副本*",
+    "**/*_copy/**",
+    "**/*_Copy/**",
+    "**/*_COPY/**",
+    "**/*副本*/**",
+    # === 打包归档（源/固件tar 球，git 未跟踪但会被 build 扫入）===
+    "**/*.rar",
+    "**/*.tar",
+    "**/*.tgz",
+    "**/*.tar.gz",
+    # === 诊断遗留/ 临时工作区（09-09 实测: tracer/ 下 _flash_output_contaminated_* 占 354MB）===
+    # ★ 这些是**污染快照与调试输出**，不是可复用代码或参考数据：
+    #   - docs_diag/_flash_output_contaminated_*/  = 出问题的 chk/log 快照
+    #   - .workbuddy/**                          = AI 工作区临时文件
+    "**/_flash_output_contaminated_*/**",
+    "**/*contaminated*/**",
+    "flash/**/.workbuddy/**",
+    "flash/**/docs_diag/_*/**",
     # === 用户临时调试脚本 (非通用发布代码, 含硬编码路径) ===
     "flash/flash_run/remote/remote_check.py",
     "flash/flash_run/remote/remote_workflow.py",
@@ -189,6 +231,31 @@ exclude = [
     "**/output/**",
     "**/inputfiles/**",
     "**/temp/**",
+    # === 场景生成的输入/输出数据（与 wheel target 成对维护，见上方注释）===
+    "flash/scenarios/**/flash_input/**",
+    "flash/scenarios/**/flash_output/**",
+    "**/flash_input_old/**",
+    # === ★ 大体积第三方参考数据 + 打包归档（与 wheel target 成对维护）===
+    # Multi1D++ 便携包 ≈1.5GB（第三方参考解）；副本目录内容重复；
+    # tar/rar/tgz 归档非代码。详见 wheel target 上方的说明。
+    "**/src/Multi1D++Portable*/**",
+    "**/Multi1D*/**",
+    "**/Multi1D*.rar",
+    "flash/input_gen/*_copy/**",
+    "flash/input_gen/*副本*/**",
+    "**/*_copy/**",
+    "**/*_Copy/**",
+    "**/*_COPY/**",
+    "**/*副本*/**",
+    "**/*.rar",
+    "**/*.tar",
+    "**/*.tgz",
+    "**/*.tar.gz",
+    # === 诊断遗留 / AI 工作区临时文件（与 wheel target 成对维护）===
+    "**/_flash_output_contaminated_*/**",
+    "**/*contaminated*/**",
+    "flash/**/.workbuddy/**",
+    "flash/**/docs_diag/_*/**",
     # === Other exclusions ===
     "flash/output_processors/inputfiles/**",
     "test/outputfiles/**",

@@ -522,3 +522,15 @@ flash/scenarios/sandwich/**/*.png
 flash/input_gen/gen_eos_op/src/**/*.out
 test/_extract_chk_params.out
 **/pipeline_*.out
+
+# ================================================================
+# 离线安装包（scripts/08_offline_install/）
+#   offline_pkg/  —— build_wheelhouse.py 的产物（wheelhouse + zip）
+#   wheelhouse/   —— start_flash.py --offline 的默认查找位置
+#   ★ 必须放在 .gitignore 的**末尾**：本文件开头有 `*` + `!*.*` + `!*/`
+#     的"忽略一切无扩展名文件"规则，gitignore 后定义的规则才对其生效。
+#   ★ 与裸 `env/` 的坑同类（见 gen_eos_op 段）：不要写成不锚定的相对名，
+#     否则会误吞已跟踪的同名源码目录。统一锚定为根级路径。
+# ================================================================
+/offline_pkg/
+/wheelhouse/

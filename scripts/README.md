@@ -56,6 +56,16 @@ scripts/
 │   ├── remove_flash_copyrighted.sh #  移除 FLASH 版权材料 (合规)
 │   └── manage.bat                #   凭据管理中心入口 (双击)
 │
+├── 07_private_keep/              # 私有保留 (不随发布包分发)
+│
+├── 08_offline_install/           # 离线安装（联网机制包→U盘→离线机）
+│   ├── _wh_common.py             #   公共工具: 依赖解析/文件名归一化/MANIFEST/预检
+│   ├── build_wheelhouse.py       #   联网机造 wheelhouse (full/runtime/lite 三档)
+│   ├── install_offline.py        #   离线机一键安装 + 三道校验
+│   ├── build_wheelhouse.bat      #   联网机启动器 (双击, ASCII/CRLF)
+│   ├── install_offline.bat       #   离线机启动器 (双击, ASCII/CRLF)
+│   └── README.md                 #   离线安装完整文档
+│
 └── git-hooks/                    # Git 钩子脚本 (自动触发, 勿移动)
     ├── pre-commit                #   提交前: Black 格式检查 + 导入检查
     └── pre-push                  #   推送前: 框架 pytest 测试
@@ -78,6 +88,8 @@ scripts/
 | Git | `03_git_publish/tag-release.sh` | 完整发布流程 | `bash scripts/03_git_publish/tag-release.sh v0.2.0` |
 | 备份 | `04_backup/usb_backup.py` | USB/本地备份 | `python scripts/04_backup/usb_backup.py --mode gitee E:\` |
 | 测试 | `05_test/run_global_tests.py` | 全局三套测试 | `python scripts/05_test/run_global_tests.py` |
+| 离线 | `08_offline_install/build_wheelhouse.py` | 联网机造离线包 | `python scripts/08_offline_install/build_wheelhouse.py` |
+| 离线 | `08_offline_install/install_offline.py` | 离线机一键安装 | `python scripts/08_offline_install/install_offline.py` |
 | 管理 | `06_migration/manage.bat` | 凭据管理入口 | 双击 `manage.bat` |
 
 ---
