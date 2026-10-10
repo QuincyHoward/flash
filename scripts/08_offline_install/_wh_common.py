@@ -81,8 +81,18 @@ LITE_EXCLUDE = [
     "black", "ruff", "pytest", "pytest-cov", "coverage", "build", "twine",
 ]
 
-#: Windows 上 start_flash.py 依赖的 venv 布局
-VENV_SUBPATH = ("Scripts", "python.exe")
+#: venv 内解释器的**平台相关**布局。
+#: ★ 必须跨平台（09-10 修复）：此前硬编码 ("Scripts", "python.exe")，
+#:   在 Linux/WSL 上 `python -m venv` 生成的是 `bin/python`（无 .exe），
+#:   ⇒ start_flash.py 报「创建 venv 失败」，健康检查也恒判失败并反复清零重建。
+#:   真实故障日志（Linux/WSL）：
+#:     [FATAL] 创建 venv 失败:
+#:     [warn] venv 解释器无法启动（.../.venv/Scripts/python.exe）: [Errno 2]
+VENV_SUBPATH_WINDOWS = ("Scripts", "python.exe")
+VENV_SUBPATH_POSIX = ("bin", "python")
+
+#: 保持旧名兼容（外部引用），值随平台变化
+VENV_SUBPATH = VENV_SUBPATH_WINDOWS if os.name == "nt" else VENV_SUBPATH_POSIX
 
 #: 离线机若无 Python 时 wheelhouse 里可能存在的解释器安装程序
 PYTHON_INSTALLER_PATTERNS = [

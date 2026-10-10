@@ -204,7 +204,13 @@ def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
           同时**关闭重试**——离线重试毫无意义（同样的 wheelhouse 必然同样失败），
           改为立刻报错，便于用户看清缺哪个包。
     """
-    venv_pip = os.path.join(VENV_DIR, "Scripts", "pip.exe")
+    # ★ pip 路径也必须跨平台（09-10 修复）：
+    #   Windows 是 Scripts\pip.exe，Linux/WSL 是 bin/pip（无 .exe、无 Scripts）。
+    #   旧硬编码在 Linux 上⇒ "创建 venv 失败"（pip 文件根本不存在）。
+    if os.name == "nt":
+        venv_pip = os.path.join(VENV_DIR, "Scripts", "pip.exe")
+    else:
+        venv_pip = os.path.join(VENV_DIR, "bin", "pip")
     if OFFLINE:
         args = list(OFFLINE_PIP_FLAGS) + [f"--find-links={WHEELHOUSE}"] + list(args)
         retries = 1
@@ -566,7 +572,16 @@ def create_venv() -> None:
         timeout=600,
     )
     if r.returncode != 0 or not os.path.isfile(VENV_PY):
-        raise SystemExit(f"[FATAL] 创建 venv 失败:\n{r.stderr[-400:]}")
+        # ★ 诊断信息要能区分「venv 命令本身失败」与「解释器路径找不到」——
+        #   09-10 前者只报 stderr 空��一片，后者才是路径布局问题。
+        hint = ""
+        if r.returncode == 0 and not os.path.isfile(VENV_PY):
+            hint = (f"\n    venv 命令返回 0，但预期解释器不存在: {VENV_PY}\n"
+                    f"    ⇒ 平台布局不匹配。Windows 应为 Scripts\\python.exe，"
+                    f"Linux/WSL 应为 bin/python（当前 os.name={os.name!r}）")
+        raise SystemExit(
+            f"[FATAL] 创建 venv 失败 (rc={r.returncode}):\n{r.stderr[-400:]}{hint}"
+        )
     log(f"[ok] venv 已创建: {VENV_PY}")
 
 
@@ -750,7 +765,18 @@ def main() -> int:
 
     BASE_PY = find_base_python()
     VENV_DIR = os.environ.get("FLASH_VENV_DIR", DEFAULT_VENV_DIR).strip()
-    VENV_PY = os.path.join(VENV_DIR, "Scripts", "python.exe")
+    # ★ venv 内解释器路径**必须跨平台**（09-10 修复）：Windows 是
+    #   Scripts\python.exe，Linux/WSL 是 bin/python（无 .exe、无 Scripts）。
+    #   此前硬编码 Windows 布局 ⇒ Linux 上「创建 venv 失败」，且健康检查
+    #   恒判失败 → 反复清零重建。
+    #   优先用 _wh_common（与 install_offline.py 同一来源，避免漂移）；
+    #   它在 sdist 里可能缺失，故用本地等价判断兜底。
+    try:
+        VENV_PY = str(_load_wh_common().venv_python(VENV_DIR))
+    except SystemExit:
+        VENV_PY = os.path.join(
+            VENV_DIR, "Scripts", "python.exe" if os.name == "nt" else "bin/python"
+        )
 
     start = datetime.datetime.now()
     log("=" * 72)
