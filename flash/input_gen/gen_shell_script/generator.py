@@ -481,12 +481,45 @@ ed_maxPulseSections=300 \
             "",
             '# Determine script directory',
             'SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
-            # 输出收集目录: 可被环境变量 FLASH_COLLECT_DIR 运行时覆盖
-            # (runner.run_wsl 按 run_id 注入 run_NNNNNN 子目录);
-            # 缺省回落: config["collect_dir"] 或 <脚本目录>/outputfiles
-            f'COLLECT_DIR="${{FLASH_COLLECT_DIR:-{cfg["collect_dir"]}}}"'
+            # 输出收集目录: 两种模式 (与 runner.run_wsl 的收纳形态一致):
+            #   * runner 模式: 环境变量 FLASH_COLLECT_DIR 显式注入 (已含 run_NNNNNN);
+            #   * 手动模式: 未设 FLASH_COLLECT_DIR 时自治分配 — 扫描
+            #     <base>/run_NNNNNN* 与 $SCRIPT_DIR/run_NNNNNN* 取 max+1,
+            #     输出归 <base>/run_NNNNNN/, 输入快照归 $SCRIPT_DIR/run_NNNNNN/
+            #     (对齐 runner.run_wsl 的 allocate_run_id 规则, 兼容历史 4 位目录)。
+            'if [ -n "${FLASH_COLLECT_DIR:-}" ]; then',
+            '    COLLECT_DIR="$FLASH_COLLECT_DIR"',
+            'else',
+            f'    COLLECT_BASE="{cfg["collect_dir"]}"'
             if cfg.get("collect_dir")
-            else 'COLLECT_DIR="${FLASH_COLLECT_DIR:-$SCRIPT_DIR/outputfiles}"',
+            else '    COLLECT_BASE="$SCRIPT_DIR/outputfiles"',
+            '    max_id=0',
+            '    for d in "$COLLECT_BASE"/run_* "$SCRIPT_DIR"/run_*; do',
+            '        [ -d "$d" ] || continue',
+            '        n=$(basename "$d")',
+            '        case "$n" in',
+            '            run_[0-9]*) n=${n#run_}; n=${n%%[!0-9]*};;',
+            '            *) continue;;',
+            '        esac',
+            '        n=$((10#$n))',
+            '        if [ "$n" -gt "$max_id" ]; then max_id=$n; fi',
+            '    done',
+            '    RUN_DIR_NAME=$(printf "run_%06d" "$((max_id + 1))")',
+            '    COLLECT_DIR="$COLLECT_BASE/$RUN_DIR_NAME"',
+            '    echo "  Manual run: auto-assigned $RUN_DIR_NAME"',
+            '    echo "    output -> $COLLECT_DIR"',
+            '    # 输入快照 (与 runner.run_wsl 一致): 输入文件归 $SCRIPT_DIR/run_NNNNNN/',
+            '    IN_SNAP="$SCRIPT_DIR/$RUN_DIR_NAME"',
+            '    mkdir -p "$IN_SNAP"',
+            '    for f in "$SCRIPT_DIR"/Config "$SCRIPT_DIR"/Makefile \\',
+            '             "$SCRIPT_DIR"/Simulation_*.F90 \\',
+            '             "$SCRIPT_DIR"/*.cn4 "$SCRIPT_DIR"/*.json \\',
+            '             "$SCRIPT_DIR"/*.png "$SCRIPT_DIR"/submit_flash.sh \\',
+            '             "$SCRIPT_DIR/$PAR_FILE" "$SCRIPT_DIR/run_flash.sh"; do',
+            '        [ -f "$f" ] && cp "$f" "$IN_SNAP/" || true',
+            '    done',
+            '    echo "    input snapshot -> $IN_SNAP"',
+            'fi',
             'echo "=== FLASH Full Pipeline ==="',
             'echo "  FLASH_HOME:   $FLASH_HOME"',
             'echo "  Object dir:   $OBJ_DIR"',

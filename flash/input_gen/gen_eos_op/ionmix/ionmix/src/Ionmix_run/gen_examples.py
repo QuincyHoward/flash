@@ -2,15 +2,16 @@
 """
 gen_examples.py — 通用示例批量生成脚本
 
-包含 5 个通用示例:
+包含 4 个通用示例:
 - CH: 碳氢混合物 (ICF 常见材料)
 - Si: 硅等离子体
-- Au: 金等离子体 (高 Z)
-- V: 钒等离子体
-- Ti: 钛等离子体
+- Au: 金等离子体 (高 Z) — 温度/密度网格与其他示例完全一致，能群完全对应
+- He: 氦等离子体 (填充)
+- C: 碳等离子体
 
 用法:
-    python gen_examples.py
+    python gen_examples.py            # 运行全部示例
+    python gen_examples.py Au         # 仅运行名称含 "Au" 的示例
 
 输出:
     outputfiles/cn4/gen_examples/Z{izgas}_{fracsp}-{timestamp}/
@@ -139,6 +140,41 @@ def build_params_list() -> list:
 
 
     # ================================================================
+    # 示例 3: Au 金等离子体 (高 Z, izgas=79 有默认电离势)
+    # 注意: 温度/密度网格与 CH/Si/C 完全一致, 能群完全对应
+    # ================================================================
+    params_list.append({
+        '_name': 'Au 金等离子体',
+        'ngases': 1,
+        'izgas': {1: 79},
+        'atomwt': {1: 196.97},
+        'fracsp': {1: 1.0},
+        'ntemp': 51,        #温度点数
+        'dlgtmp': 0.08602,      #温度对数增量
+        'tplsma': {1: 1.0}, #起始温度[eV]
+        'ndens': 31,        #密度点数
+        'dlgden': 0.31003,     #密度对数增量
+        'densnn': 1.0e16,   #起始离子数密度[cm^{-3}]
+        'ntrad': 0,
+        'trad': 200.0,
+        'nptspg': 200,
+        'nfrqbb': 15,
+        'dtheat': 0.01,
+        'iplot': {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1},
+        'isw': {
+            5: 0,   # 复制输入文件到输出文件
+            6: 3,   # 完整三体过程
+            8: 3,   # 输出格式：新CONRAD格式
+            13: 1,  # 能群边界：用户指定
+            15: 8,  # 电子激发数：5（平衡计算精度和效率）(默认值 2 表示基态主量子数加 2)
+            21: 1,  # 输出eos.cn4
+            24: 1,  # 控制光子能量网格类型
+            25: 1,  # 控制是否添加线中心和电离边缘点
+        },
+        'grupbd': [1.0e-1, 1.0e+0, 1.0e+01, 1.0e+02, 1.0e+03, 1.0e+04, 1.0e+05]
+    })
+
+    # ================================================================
     # 示例 4: He 氦等离子体 (填充)
     # ================================================================
     params_list.append({
@@ -240,6 +276,51 @@ def build_params_list() -> list:
         'grupbd': [1.0e-1, 1.0e+0, 1.0e+01, 1.0e+02, 1.0e+03, 1.0e+04, 1.0e+05]
     })
 
+    # ================================================================
+    # 示例 6: Au 金等离子体 — 10 群 (FLASH MGD 场景匹配版)
+    # 温度/密度网格与示例 3 (6 群 Au) 完全一致 (51x31, 1eV->2e4eV,
+    # 1e16->2e25 cm^-3); 仅能群边界改为 FLASH layer_tracer 场景
+    # rt_mgdBounds_1..11 的 11 个值 (10 群, 0.1->1e5 eV, 每群 0.6 decade)。
+    # 原因: FLASH op_readIonmix4Tables 校验 (1) 表 ngrups == rt_mgdNumGroups
+    # (2) 表内 grupbd 与 par rt_mgdBounds_N 逐值相对误差 < 1e-4,
+    # 6 群表在 10 群 MGD 场景初始化时即 abort。
+    # ================================================================
+    params_list.append({
+        '_name': 'Au10 金等离子体 10群',
+        'ngases': 1,
+        'izgas': {1: 79},
+        'atomwt': {1: 196.97},
+        'fracsp': {1: 1.0},
+        'ntemp': 51,        #温度点数
+        'dlgtmp': 0.08602,      #温度对数增量
+        'tplsma': {1: 1.0}, #起始温度[eV]
+        'ndens': 31,        #密度点数
+        'dlgden': 0.31003,     #密度对数增量
+        'densnn': 1.0e16,   #起始离子数密度[cm^{-3}]
+        'ntrad': 0,
+        'trad': 200.0,
+        'nptspg': 200,
+        'nfrqbb': 15,
+        'dtheat': 0.01,
+        'iplot': {1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1},
+        'isw': {
+            5: 0,   # 复制输入文件到输出文件
+            6: 3,   # 完整三体过程
+            8: 3,   # 输出格式：新CONRAD格式
+            13: 1,  # 能群边界：用户指定
+            15: 8,  # 电子激发数：5（平衡计算精度和效率）(默认值 2 表示基态主量子数加 2)
+            21: 1,  # 输出eos.cn4
+            24: 1,  # 控制光子能量网格类型
+            25: 1,  # 控制是否添加线中心和电离边缘点
+        },
+        # 10 groups: 与 FLASH rt_mgdBounds_1..11 完全一致 (0.1 -> 1e5 eV)
+        'grupbd': [
+            1.0e-1, 3.981072e-1, 1.584893e+0, 6.309573e+0,
+            2.511886e+1, 1.0e+2, 3.981072e+2, 1.584893e+3,
+            6.309573e+3, 2.511886e+4, 1.0e+5
+        ]
+    })
+
 
     # ================================================================
     # IONMIX 默认电离势（在 abjt_03.f 的 BLOCK DATA MENU 中定义）:
@@ -269,8 +350,17 @@ def main():
     print(f"输出目录: {output_dir}")
     print()
 
-    gen = IONMIXInputGen()
+    # 可选: 命令行过滤, 仅运行名称包含指定关键字的示例
+    # 用法: python gen_examples.py Au  ->  只运行 "Au 金等离子体"
     params_list = build_params_list()
+    only = [a for a in sys.argv[1:] if not a.startswith('-')]
+    if only:
+        params_list = [p for p in params_list
+                       if any(k.lower() in p['_name'].lower() for k in only)]
+        print(f"过滤: 仅运行名称含 {only} 的示例 (共 {len(params_list)} 个)")
+        print()
+
+    gen = IONMIXInputGen()
     results = gen.batch_run(params_list, output_dir)
 
     print("=" * 60)

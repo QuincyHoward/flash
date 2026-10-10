@@ -194,6 +194,25 @@ class EOSOpacityGenerator:
             description="硅 (Si, Z=14)，ionmix 新生成表 ntemp=51",
             spec={**DEFAULT_SPEC, "ntemp": 51, "ndens": 31},
         ),
+        EOSMaterial(
+            canonical="au_ionmix_2026",
+            filename="Others_data/Au/Z79_1.00-20261009_1131.cn4",
+            aliases=["au_ionmix_2026", "au-ionmix-2026", "z79", "z79_1.00",
+                     "Z79_1.00-20261009_1131", "z79_1.00-20261009_1131",
+                     "au_gen", "金_生成", "au_ionmix"],
+            description="金 (Au, Z=79)，ionmix 新生成表 ntemp=51, ndens=31 (2026-10-09 gen_examples, ngrups=6)",
+            spec={**DEFAULT_SPEC, "ntemp": 51, "ndens": 31},
+        ),
+        EOSMaterial(
+            canonical="au_ionmix10",
+            filename="Others_data/Au/Z79_1.00-20261009_1256.cn4",
+            aliases=["au_ionmix10", "au-ionmix10", "Z79_1.00-20261009_1256",
+                     "z79_1.00-20261009_1256", "au10", "金_10群"],
+            description="金 (Au, Z=79)，ionmix 新生成表 ntemp=51, ndens=31, ngrups=10 "
+                        "(T/D 网格与 au_ionmix_2026 完全一致, grupbd 精确=layer_tracer "
+                        "rt_mgdBounds_1..11, 供 FLASH MGD 10 群场景 VAuTi 引用)",
+            spec={**DEFAULT_SPEC, "ntemp": 51, "ndens": 31},
+        ),
         # ── BADGER-TOPS / QC 自生成表 (原 layer_tracer 场景, ntemp=61, ndens=71) ──
         # 来源: 原 private/tracer/tmp runfiles 中的自研 ionmix 表, 规范迁移至此;
         # 供 layer_tracer CH/Ti 场景与 gold 变体使用。

@@ -1161,6 +1161,11 @@ chmod +x abjt_03
 ### 8.2 代码限制
 
 - **默认电离势**仅覆盖 H, He, Li, Be, B, C, N, O, F, Ne, Na, Mg, Al, Si, P, S, Cl, Ar, K, Ca, Sc, Ti, V, Cr, Mn, Fe, Ni, Cu, Kr, Xe（共 30 种元素）
+> （在修改后 abjt_03.f 的 BLOCK DATA MENU 中定义）:
+    #   H(1), He(2), Li(3), Be(4), B(5)*, C(6), N(7), O(8), F(9)*,
+    #   Ne(10), Mg(12), Al(13), Si(14), S(16), Cl(17), Ar(18), K(19),
+    #   Fe(26), Cu(29), Ta(73), Au(79)
+
 - 其他元素需通过 `ATOMnn.DAT` 文件由用户提供电离势（设置 `isw(1)=1`），格式为**每行一个电离势值**（中性原子、一次电离、二次电离...）
 - **SESAME 格式输出**（`isw(8)=2`）**未实现**（代码中有 `STOP` 提示）
 
