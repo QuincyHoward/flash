@@ -249,7 +249,33 @@ python scripts/08_offline_install/build_wheelhouse.py --zip
    安装（建议勾选 *Add Python to PATH*）。
    —— 脚本**不会自动运行**安装程序：装解释器属系统级变更，必须用户亲自确认。
 
-2. 双击 `scripts\08_offline_install\install_offline.bat`，或：
+2. **Linux / WSL 无需任何前置操作** ★（09-10 起）
+
+   Ubuntu 默认**不装** `python3.x-venv`，此时 `python3 -m venv` 会失败并提示
+   `apt install python3.10-venv`。很多用户第一反应是「先去联网 apt install」
+   —— 这违背离线部署初衷。
+
+   **本脚本已内置离线自举**：检测到缺 `ensurepip` 时，自动
+   1. 用 `python3 -m venv --without-pip` 建骨架
+   2. 从 **wheelhouse 里自带的 `pip-*.whl`** 把 pip 装进新 venv
+   3. 继续正常流程（装 setuptools → 装 flash 包 → 跑三套测试）
+
+   全程 `--no-index`，**不联网、不碰 apt**。日志形如：
+
+   ```
+   [warn] venv 创建失败：base 解释器缺 ensurepip 模块（Ubuntu/WSL 默认不装 python3.x-venv）
+   [info] 改用--without-pip 建骨架 + wheelhouse 离线自举 pip ...
+         ★ 无需联网 apt install —— wheelhouse 内已含 pip wheel
+   [ok] venv 骨架已创建（无 pip）: /path/.venv/bin/python
+   [info] 用 wheelhouse 里的 pip 自举（pip-26.2.1-py3-none-any.whl）...
+   [ok] pip 自举成功（无需 apt install python3.x-venv）
+   ```
+
+   ⇒ **所以「1.1 前置检查」这一步在 Linux/WSL 上已经不需要了，直接跑第 3 步即可。**
+
+   > 若 wheelhouse 不完整（缺 `pip-*.whl`），脚本会明确提示重新造包。
+
+3. 双击 `scripts\08_offline_install\install_offline.bat`，或：
 
 ```bash
 python scripts/08_offline_install/install_offline.py            # 自动找 wheelhouse/
@@ -258,31 +284,35 @@ python scripts/08_offline_install/install_offline.py --check-only# 只校验不�
 python scripts/08_offline_install/install_offline.py --quick     # 快速装环境不跑测试
 ```
 
-或走统一入口（等价于上面第2 步）：
+或走统一入口（等价于上面第 3 步）：
 
 ```bash
 python start_flash.py --offline --wheelhouse D:\pkg\wheelhouse
 ```
 
 安装完成后：
-- 虚拟环境：`.venv\`（项目根专属，与其他项目完全隔离）
+- 虚拟环境：`.venv\`（Windows）/ `.venv/`（Linux，项目根专属，与其他项目完全隔离）
 - 测试报告：`INSTALL_TEST_REPORT.txt`
-- 激活：`.venv\Scripts\activate`
+- 激活：`.venv\Scripts\activate`（Windows）/ `source .venv/bin/activate`（Linux）
 
 > **离线模式一律装真 wheel，不用 `-e .`**：editable 会往 `.venv` 写指向
 > 源码树的**绝对路径**，换机即失效。
 
 ---
 
-## ★ 三道安装前闸门
+## ★ 四道安装前闸门
 
-`install_offline.py` / `start_flash.py --offline` 在安装**前**依次把三道关，
+`install_offline.py` / `start_flash.py --offline` 在安装**前**依次把四道关，
 任一不过即中止，**绝不产出半残 venv**：
 
 1. **wheelhouse 目录存在** —— 找不到就打印已尝试的路径并给可操作指引。
 2. **MANIFEST 校验** —— 每个归档的存在性 + 大小 + **SHA256**。
    U 盘拷贝是最容易静默损坏的传输环节，必须先于 pip 拦截。
-3. **依赖覆盖度预检** —— 比对 `pyproject.toml` 的依赖闭包 ⊆ wheelhouse 实际
+3. **平台 / Python 版本一致性**（09-10 新增）—— 比对 `MANIFEST.json` 里的
+   `platform_tag` / `python_tag` 与本机。wheel 带 `cp3XX-` ABI 标签，
+   跨版本装不上时 pip 只会说 "No matching distribution found"，
+   **不会告诉你是版本问题** ⇒ 这里提前拦下并给出重造指引。
+4. **依赖覆盖度预检** —— 比对 `pyproject.toml` 的依赖闭包 ⊆ wheelhouse 实际
    文件，缺一个就报**全清单**并指出该用哪个档位重造包。
 
 `--no-index` 是硬闸门：pip 物理上无法访问 PyPI，缺包会**立即失败**并指名缺哪个包，

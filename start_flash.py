@@ -584,8 +584,72 @@ print('[ok] venv removed, {:.0f}s'.format(time.time() - t))
     log("[ok] 已删除旧 .venv（并行删除）")
 
 
+def _venv_has_pip() -> bool:
+    """检查刚建的 venv 里是否已有可用的 pip。"""
+    if os.name == "nt":
+        return os.path.isfile(os.path.join(VENV_DIR, "Scripts", "pip.exe"))
+    return os.path.isfile(os.path.join(VENV_DIR, "bin", "pip"))
+
+
+def _bootstrap_pip_from_wheelhouse() -> bool:
+    """用 wheelhouse 里的 pip/setuptools/wheel wheel 让 venv 具备 pip。
+
+    ★ 背景（09-10 用户实测）：Ubuntu 默认**不装** `python3.10-venv`，
+      此时 `python -m venv` 因缺 `ensurepip` 直接失败并报
+      `No module named 'ensurepip'` ⇒ 离线机必须先联网 `apt install` 才能装。
+      但 wheelhouse 里**本来就带** `pip-*.whl`（造包时列为 extra_pkgs），
+      所以完全可以**离线自举**，不必依赖 apt / 系统包。
+
+    做法：`python -m venv --without-pip` 建骨架 → 用该解释器把
+          wheelhouse 里的 pip wheel 装进去。
+    """
+    wh = WHEELHOUSE
+    if not wh or not os.path.isdir(wh):
+        return False
+    pip_wheels = sorted(
+        f for f in os.listdir(wh) if f.startswith("pip-") and f.endswith(".whl"))
+    if not pip_wheels:
+        return False
+    setuptools_wheels = sorted(
+        f for f in os.listdir(wh) if f.startswith("setuptools-") and f.endswith(".whl"))
+    wheel_wheels = sorted(
+        f for f in os.listdir(wh) if f.startswith("wheel-") and f.endswith(".whl"))
+
+    log(f"[info] 用 wheelhouse 里的 pip 自举（{pip_wheels[-1]}）...")
+    # venv 缺 ensurepip ⇒ 连 pip 都没有；用「把 wheel 放进 sys.path 后
+    # 直接跑 pip 的 __main__」的方式装，比 get-pip.py 更干净且不需要联网。
+    # ★★ requirement 必须直接给**绝对路径**，且**不能加 `path=` 前缀**
+    #   （09-10 连续踩了三个坑，逐一实测排除）：
+    #     ① 传裸文件名 → pip 去**cwd** 找 ⇒ "does not exist"
+    #     ② `sys.path.insert` 只解决「pip 代码可 import」，不解决
+    #        「pip 自己解析 requirement」——两者是不同机制
+    #     ③ `path=/abs/x.whl` → pip 不认path= 前缀，会把它当文件名的一部分
+    #        ⇒ 报 ".../tempt/path=/abs/x.whl does not exist"
+    #   正确写法：`pip install --no-index --find-links <wh> <abs path1> <abs path2>`
+    targets = [os.path.join(wh, g[-1])
+               for g in (pip_wheels, setuptools_wheels, wheel_wheels) if g]
+    argv_items = ", ".join(repr(t) for t in targets)
+    code = (
+        "import sys, runpy;"
+        f"sys.path.insert(0, {targets[0]!r});"   # 让 pip 代码本身可 import
+        "sys.argv=['pip','install','--no-index','--find-links',"
+        f"{wh!r},'--upgrade',{argv_items}];"
+        "runpy.run_module('pip', run_name='__main__')"
+    )
+    r = subprocess.run([VENV_PY, "-c", code], env=clean_env(),
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=900)
+    ok = r.returncode == 0 and _venv_has_pip()
+    if ok:
+        log("[ok] pip 自举成功（无需 apt install python3.x-venv）")
+    else:
+        log(f"[warn] pip 自举失败 (rc={r.returncode}): "
+            f"{(r.stderr or r.stdout or '')[-300:]}")
+    return ok
+
+
 def create_venv() -> None:
-    """创建全新虚拟环境。"""
+    """创建全新虚拟环境（缺 ensurepip 时自动离线自举 pip）。"""
     log("[info] 创建全新虚拟环境 ...")
     r = subprocess.run(
         [BASE_PY, "-m", "venv", VENV_DIR], env=clean_env(),
@@ -593,16 +657,54 @@ def create_venv() -> None:
         timeout=600,
     )
     if r.returncode != 0 or not os.path.isfile(VENV_PY):
-        # ★ 诊断信息要能区分「venv 命令本身失败」与「解释器路径找不到」——
-        #   09-10 前者只报 stderr 空��一片，后者才是路径布局问题。
+        #★ 诊断信息要能区分「venv 命令本身失败」与「解释器路径找不到」——
+        #   09-10 前者只报 stderr 空一片，后者才是路径布局问题。
+        stderr = (r.stderr or "")
+        stdout = (r.stdout or "")
         hint = ""
         if r.returncode == 0 and not os.path.isfile(VENV_PY):
             hint = (f"\n    venv 命令返回 0，但预期解释器不存在: {VENV_PY}\n"
                     f"    ⇒ 平台布局不匹配。Windows 应为 Scripts\\python.exe，"
                     f"Linux/WSL 应为 bin/python（当前 os.name={os.name!r}）")
+        # ── 回退 1：缺 ensurepip（Ubuntu 默认不装 python3.x-venv）──
+        # ★ 症状判定必须**同时看 stdout 与 stderr**：ensurepip 缺失时，
+        #   Debian/Ubuntu 的 venv 把提示打在 **stdout** 而 stderr 全空
+        #   （09-10 实测，只查 stderr 会漏判 ⇒ 自举不触发，白白失败）。
+        #   典型文本含 "ensurepip is not available" / "python3-venv" / "apt install"。
+        blob = f"{stderr}\n{stdout}"
+        if "ensurepip" in blob or "python3-venv" in blob or "python3.10-venv" in blob:
+            log("[warn] venv 创建失败：base 解释器缺 ensurepip 模块"
+                "（Ubuntu/WSL 默认不装 python3.x-venv）")
+            log("[info] 改用--without-pip 建骨架 + wheelhouse 离线自举 pip ...")
+            log("      ★ 无需联网 apt install —— wheelhouse 内已含 pip wheel")
+            rb = subprocess.run(
+                [BASE_PY, "-m", "venv", "--without-pip", VENV_DIR],
+                env=clean_env(), capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=600,
+            )
+            if rb.returncode == 0 and os.path.isfile(VENV_PY):
+                log(f"[ok] venv 骨架已创建（无 pip）: {VENV_PY}")
+                if _bootstrap_pip_from_wheelhouse():
+                    return
+                raise SystemExit(
+                    "[FATAL] venv 已创建，但无法从 wheelhouse 自举 pip。\n"
+                    "    原因通常是 wheelhouse 不完整（缺 pip-*.whl）。\n"
+                    "    ⇒ 请在联网机重跑 build_wheelhouse.py 后重新拷贝整个目录。\n"
+                    f"---- venv stdout ----\n{(rb.stdout or '')[-300:]}")
+            raise SystemExit(
+                "[FATAL] venv 创建失败，且 `--without-pip` 回退也失败。\n"
+                "    ★ Ubuntu/WSL 缺 python3.x-venv 时可先装它（需联网）：\n"
+                "        sudo apt install -y python3.10-venv\n"
+                f"---- venv stdout ----\n{stdout[-300:]}\n---- stderr ----\n{stderr[-300:]}{hint}")
+
         raise SystemExit(
-            f"[FATAL] 创建 venv 失败 (rc={r.returncode}):\n{r.stderr[-400:]}{hint}"
+            f"[FATAL] 创建 venv 失败 (rc={r.returncode}):\n{stderr[-400:]}{hint}"
         )
+    if not _venv_has_pip():
+        # venv 骨架建成了但没有 pip（如 base 自带损坏副本）⇒ 同样走离线自举
+        log("[warn] venv 中未找到 pip，尝试从 wheelhouse 自举")
+        if _bootstrap_pip_from_wheelhouse():
+            return
     log(f"[ok] venv 已创建: {VENV_PY}")
 
 

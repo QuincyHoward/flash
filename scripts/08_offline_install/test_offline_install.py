@@ -788,6 +788,69 @@ def test_platform_adaptivity(root: Path) -> None:
           "Python 版本" in whc.PLATFORM_DIFF_NOTE)
 
 
+def test_ensurepip_bootstrap(root: Path) -> None:
+    """[16] ★★缺 ensurepip 时应能**离线自举 pip**（无需 apt install）。
+
+    背景（09-10 用户实测）：Ubuntu/WSL 默认**不装** `python3.x-venv`，
+    此时 `python -m venv` 失败并提示 `apt install python3.10-venv`
+    ⇒ 离线机必须先联网才能装，违背离线部署初衷。
+    但 wheelhouse 里本就带`pip-*.whl`（造包时列为 extra_pkgs）⇒ 可离线自举。
+
+    本节验证实现层面的三个**实测踩坑点**：
+      ① 症状判定必须**同时看 stdout 与 stderr** —— Debian/Ubuntu 把
+         "ensurepip is not available" 打在 **stdout**，stderr 全空；
+         只查 stderr 会漏判 ⇒ 自举不触发。
+      ② pip 的 requirement 必须是**绝对路径**且**不带 `path=` 前缀**：
+         传裸文件名 → pip 去 cwd 找；加 `path=` → pip 当成文件名的一部分。
+      ③ `--without-pip` 骨架 + 用 wheelhouse 的 pip wheel 装入即可。
+    """
+    section("[16] ★★ 缺 ensurepip 的离线 pip 自举")
+    src = (root / "start_flash.py").read_text(encoding="utf-8")
+
+    # ① 症状判定须同时看 stdout / stderr
+    check("ensurepip 判据含 stdout（★真实提示在 stdout）",
+          'blob = f"{stderr}\\n{stdout}"' in src)
+    check("ensurepip 判据含 stderr", "blob = f" in src and "stdout" in src)
+    check("覆盖 python3.10-venv 关键字（Debian 提示文本）",
+          "python3.10-venv" in src)
+
+    # ② requirement 必须是绝对路径、不带 path= 前缀（09-10 连踩两坑）
+    boot = src[src.find("def _bootstrap_pip_from_wheelhouse"):
+               src.find("def create_venv")]
+    check("自举函数存在", bool(boot))
+    check("requirement 用 os.path.join 拼绝对路径",
+          "os.path.join(wh," in boot)
+    check("★ 不使用 path= 前缀（pip 不认，会当文件名）",
+          "path={t}" not in boot and '"path=' not in boot)
+    check("argv 用 repr() 正确加引号", "argv_items" in boot and "repr(" in boot)
+    check("同时 --no-index --find-links（离线硬闸门）",
+          "--no-index" in boot and "--find-links" in boot)
+    check("sys.path.insert 只用于 import pip 代码（不作 requirement）",
+          "sys.path.insert" in boot)
+
+    # ③ 回退链路完整
+    check("回退用 --without-pip 建骨架", '"--without-pip"' in src)
+    check("自举成功即 return（不重复走标准路径）",
+          "if _bootstrap_pip_from_wheelhouse():" in src)
+    check("骨架建成但无 pip 时也会自举",
+          "if not _venv_has_pip():" in src)
+    check("_venv_has_pip 跨平台判断",
+          "_venv_has_pip" in src and ("Scripts" in src or "bin" in src))
+
+    # 负向样本：wheelhouse 无 pip wheel 时必须返回 False 而非静默成功
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        wh = tmp / "wh"
+        wh.mkdir()
+        (wh / "numpy-1.0-cp310-cp310.whl").write_bytes(b"x")  # 只有无关包
+        check("源码：无 pip wheel 时早退返回 False",
+              "if not pip_wheels:" in boot and "return False" in boot)
+        check("源码：wh 目录不存在时也返回 False",
+              "if not wh or not os.path.isdir(wh):" in boot)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="离线安装链路回归自检")
     ap.parse_args()
@@ -813,6 +876,7 @@ def main() -> int:
     test_pypi_overwrite_guard()
     test_leak_audit_guard(root)
     test_platform_adaptivity(root)
+    test_ensurepip_bootstrap(root)
 
     passed = sum(1 for _, ok, _ in _RESULTS if ok)
     total = len(_RESULTS)
