@@ -44,6 +44,13 @@
 temp_delete/
 # 项目专属虚拟环境（start_flash.py 使用；.venv 为 IDE 标准命名，默认）
 .venv/
+# 按平台区分的 venv（09-10）：Windows 用 .venv-win，Linux/WSL 用 .venv-linux。
+# ★ 两平台的 venv 物理上不能共用（PE vs ELF + win_amd64 vs manylinux wheel），
+#   故目录名带平台后缀，来回切换时各自保留、互不覆盖。
+.venv-win/
+.venv-linux/
+.venv-mac/
+.venv-*/
 # 旧命名虚拟环境（历史遗留，一并忽略）
 flash_venv/
 # 备份核对调试记录

@@ -347,20 +347,54 @@ pydantic>=2.0        # 数据校验
 
 仓库根目录提供两个开箱即用的脚本，覆盖「安装验证」与「场景仿真」两类日常操作。
 
-**① `start_flash.py` — 环境自检自愈 + 一键安装 + 全局测试 + 报告**
+**① `start_flash.py` — 统一入口：安装验证 / 造离线包 / 导出 U 盘**
 
-自动完成：检查/创建项目专属虚拟环境 `.venv`（含**环境健康检查**：关键依赖可导入 + pytest 可启动）→ 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `INSTALL_TEST_REPORT.txt`（含**环境版本快照**）。
+所有部署相关操作都从这里发起，**不必记住分散的脚本**（它们仍可独立运行，
+`start_flash.py` 只做参数翻译与转发，逻辑不会漂移）。
 
 ```bash
-python start_flash.py   # 用系统 Python 运行（自动创建 .venv，约 3-4 分钟）
+# ---- 联网机 ----
+python start_flash.py --make-wheelhouse# 造 wheelhouse（等价 build_wheelhouse.py）
+python start_flash.py --make-wheelhouse --export-profile lite   # 精简档
+python start_flash.py --export-usb D:\usb_pkg                 # 导出到 U 盘（等价 usb_backup.py）
+
+# ---- 离线机（安装 + 测试）----
+python start_flash.py --offline --wheelhouse D:\pkg\wheelhouse# 离线安装 + 三套测试
+python start_flash.py --offline --check      # 只校验，不安装不改动任何文件
+python start_flash.py --offline --no-tests   # 快速安装（跳过三套测试）
+
+# ---- 在线机 ----
+python start_flash.py                        # 在线安装 + 三套测试 + 报告
+python start_flash.py --no-tests# 只装环境
 ```
 
-- **自愈机制（重要）**：`.venv` 环境健康检查不通过（关键依赖缺失 / pytest 无法启动）或三套件全部「0 用例启动失败」时，脚本**自动清零重建并重测**——无需手动设置 `FLASH_FORCE_CLEAN=1`、不依赖重启机器。测试环境不正常 → 清零重建后重测。
-- 虚拟环境：项目根目录 `.venv`（被 .gitignore 排除、不随仓库分发；不存在时自动全新创建，存在则健康检查后复用）；
-  首次运行需要手动设置一下 *Python解释器*
+自动完成：检查/创建项目专属虚拟环境（含**环境健康检查**：关键依赖可导入 + pytest 可启动）→ 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `INSTALL_TEST_REPORT.txt`（含**环境版本快照**）。
+
+| 参数 | 作用 |
+|---|---|
+| `--make-wheelhouse` | 联网机造 wheelhouse（转发到 `build_wheelhouse.py`） |
+| `--export-profile` | 造包档位 `full`/`runtime`/`lite`（默认 `full`） |
+| `--export-usb <DEST>` | 导出源码+wheelhouse 到 U 盘（转发到 `usb_backup.py --mode gitee`） |
+| `--offline` | 离线安装：pip 走本地 wheelhouse（`--no-index`），物理上无法联网 |
+| `--wheelhouse <路径>` | wheelhouse 目录（默认自动探测） |
+| `--profile <档位>` | 离线预检档位 |
+| `--check` | **只校验**：清单 + 平台 + 依赖覆盖度，不创建/改动 venv，不安装、不测试 |
+| `--no-tests` | 装好环境后跳过三套测试（快速安装） |
+
+- **自愈机制（重要）**：venv 环境健康检查不通过（关键依赖缺失 / pytest 无法启动）或三套件全部「0 用例启动失败」时，脚本**自动清零重建并重测**——无需手动设置 `FLASH_FORCE_CLEAN=1`、不依赖重启机器。
 - 报告内容：安装验证、环境版本快照（关键依赖真实版本统一记录）、三套件统计（framework / input_gen / output_processors）、失败明细
-- 环境隔离：统一使用项目专属 `.venv`，绝不触碰共享环境（如 `envs/default`）
-- 高级变量：`FLASH_FORCE_CLEAN=1` 强制重建；`FLASH_NO_AUTO_REBUILD=1` 禁用自动重建（仅诊断用）
+- 高级变量：`FLASH_VENV_DIR` 指定 venv 路径；`FLASH_FORCE_CLEAN=1` 强制重建；`FLASH_NO_AUTO_REBUILD=1` 禁用自动重建（仅诊断用）；`FLASH_SIM_USER_DIR` 指定 FLASH 安装用户名
+
+> ★ **venv 目录按平台区分**（09-10）：`Windows → .venv-win`、`Linux/WSL → .venv-linux`。
+>
+> 原因：两平台的 venv **物理上不能共用** —— 解释器一个是 PE（`.venv\Scripts\python.exe`）
+> 一个是 ELF（`.venv/bin/python`），且 numpy/scipy/h5py 等已编译扩展分别是
+> `win_amd64` 与 `manylinux` wheel，同一 `.venv` 只能装其中一种。
+> 分目录后可**在Windows 与 WSL 之间来回切换**，各自环境独立保留、互不覆盖。
+>
+> 向后兼容：旧的无后缀 `.venv` 若**正好属于本平台**仍会被沿用；
+> 若属于另一平台，脚本会改用本平台目录并**保留原目录不删**。
+> 显式设`FLASH_VENV_DIR` 时以你的指定为准。
 
 **② `laserslab1d_local_custom.py` — LaserSlab 1D 场景仿真（超算 / 本地 WSL 双模式）**
 

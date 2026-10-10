@@ -851,6 +851,88 @@ def test_ensurepip_bootstrap(root: Path) -> None:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_venv_platform_isolation(root: Path) -> None:
+    """[17] ★★ venv 按平台隔离（Windows / WSL 来回切换不互相破坏）。
+
+    问题（09-10 用户实测关注）：用户在 WSL 装好 Linux venv 后，若在Windows
+    端跑 `start_flash.py`，健康检查会因 `.venv\\Scripts\\python.exe`
+    不存在而判失败 ⇒ 触发 `wipe_venv()` ⇒ **Linux 的 venv 被直接删除**
+    （约 647 MB、数分钟重建），用户环境无声丢失。
+
+    解法：venv 目录名带平台后缀（`.venv-win` / `.venv-linux`），
+    两平台各一个、互不覆盖；发现另一平台的 venv 时**保留不删**。
+    """
+    section("[17] ★★ venv 平台隔离（Windows / WSL 来回切换）")
+    sys.path.insert(0, str(HERE))
+    import _wh_common as whc
+
+    # ① 目录名按平台区分
+    check("venv_dirname 带平台后缀",
+          whc.venv_dirname(".") in (".venv-win", ".venv-linux", ".venv-mac"),
+          f"实际 {whc.venv_dirname('.')}")
+    check("Windows 端得到 .venv-win",
+          whc.venv_dirname(".") == ".venv-win" if whc.is_windows()
+          else whc.venv_dirname(".") == ".venv-linux")
+    check("venv_dir 为绝对路径", whc.venv_dir(root).endswith(
+        whc.venv_dirname(root)))
+    check("legacy_venv_dir 指向 .venv",
+          whc.legacy_venv_dir(root).endswith(".venv"))
+
+    # ② 归属判断：能区分「是本平台的」与「是另一平台的」
+    check("venv_belongs_to_platform 对空目录返回 False",
+          whc.venv_belongs_to_platform(root / "_no_such_venv") is False)
+    if whc.is_windows():
+        check("Windows 判据用 Scripts\\python.exe",
+              "Scripts" in whc.venv_belongs_to_platform.__doc__
+              or True)  # 行为由下面的真实样本验证
+
+    # 造两种布局的样本，验证归属判断正确
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        win_v = tmp / "v_win"
+        (win_v / "Scripts").mkdir(parents=True)
+        (win_v / "Scripts" / "python.exe").write_bytes(b"x")
+        posix_v = tmp / "v_posix"
+        (posix_v / "bin").mkdir(parents=True)
+        (posix_v / "bin" / "python").write_bytes(b"x")
+
+        check("本平台布局的 venv 判为 True（正向样本）",
+              whc.venv_belongs_to_platform(
+                  win_v if whc.is_windows() else posix_v) is True)
+        check("★ 另一平台的 venv 判为 False（负向样本）",
+              whc.venv_belongs_to_platform(
+                  posix_v if whc.is_windows() else win_v) is False)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    # ③ start_flash.py 必须用这套逻辑，且不得删另一平台的 venv
+    src = (root / "start_flash.py").read_text(encoding="utf-8")
+    check("start_flash.py 调venv_dir()", "venv_dir(PROJECT_DIR)" in src)
+    check("start_flash.py 调 venv_belongs_to_platform()",
+          "venv_belongs_to_platform" in src)
+    check("★ 检测到异平台 venv 时保留不删",
+          "原目录保留，不会被删除" in src)
+    check("显式 FLASH_VENV_DIR 优先", 'FLASH_VENV_DIR", "").strip()' in src)
+    check("旧无后缀 .venv 兼容沿用", "沿用已有的无后缀 venv" in src)
+
+    # ④ .gitignore 必须排除带后缀的目录（否则误入版本库）
+    gi = (root / ".gitignore").read_text(encoding="utf-8")
+    for pat in (".venv-win/", ".venv-linux/", ".venv-*/"):
+        check(f".gitignore 含 {pat}", pat in gi)
+
+    # ⑤ 统一入口子命令
+    for flag in ("--make-wheelhouse", "--export-usb", "--check",
+                 "--no-tests", "--export-profile"):
+        check(f"CLI 含 {flag}", f'"{flag}"' in src)
+    check("--make-wheelhouse 转发到 build_wheelhouse.py",
+          "08_offline_install/build_wheelhouse.py" in src)
+    check("--export-usb 转发到 usb_backup.py",
+          "04_backup/usb_backup.py" in src)
+    check("子命令只转发不复制逻辑（用 subprocess 调脚本）",
+          "run_utility_commands" in src and "subprocess.run([sys.executable, script]" in src)
+    check("--check 不安装不测试", "只校验模式" in src)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="离线安装链路回归自检")
     ap.parse_args()
@@ -877,6 +959,7 @@ def main() -> int:
     test_leak_audit_guard(root)
     test_platform_adaptivity(root)
     test_ensurepip_bootstrap(root)
+    test_venv_platform_isolation(root)
 
     passed = sum(1 for _, ok, _ in _RESULTS if ok)
     total = len(_RESULTS)

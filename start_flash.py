@@ -846,6 +846,21 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--profile", default=None,
                     choices=list(OFFLINE_PROFILES),
                     help="离线预检档位（默认 full）")
+
+    # ── 统一入口子命令（09-10 新增）────────────────────────────────
+    # 目标：联网机/离线机的**全部**操作都从start_flash.py 发起，
+    #      不必记住 build_wheelhouse.py / usb_backup.py 等分散脚本。
+    ap.add_argument("--make-wheelhouse", action="store_true",
+                    help="联网机：造 wheelhouse（等价 build_wheelhouse.py）")
+    ap.add_argument("--export-usb", metavar="DEST", default=None,
+                    help="导出离线包到 U 盘目录（等价 usb_backup.py --mode gitee）")
+    ap.add_argument("--check", action="store_true",
+                    help="只校验 wheelhouse/依赖覆盖度，不安装不跑测试")
+    ap.add_argument("--no-tests", action="store_true",
+                    help="装好环境后跳过三套测试（快速安装）")
+    ap.add_argument("--export-profile", default=None,
+                    choices=list(OFFLINE_PROFILES),
+                    help="--make-wheelhouse 用的档位（默认 full）")
     return ap.parse_args()
 
 
@@ -875,10 +890,70 @@ def resolve_offline_mode(args: argparse.Namespace) -> bool:
     return False
 
 
+def run_utility_commands(args: argparse.Namespace) -> int:
+    """统一入口的「造包 / 导 U 盘」子命令（09-10）。
+
+    设计原则：**只做转发，不复制逻辑** —— 真正干活的仍是
+    `build_wheelhouse.py` / `usb_backup.py`，这里负责参数翻译与
+    友好输出。好处：两处逻辑永不漂移，且保留各脚本的独立可执行性。
+    """
+    log("=" * 72)
+    log("  start_flash.py — 离线部署工具（造包 / 导出）")
+    log("=" * 72)
+
+    def _run(script_rel: str, argv: list[str]) -> int:
+        script = os.path.join(PROJECT_DIR, *script_rel.split("/"))
+        if not os.path.isfile(script):
+            log(f"[FATAL] 找不到脚本: {script}", "ERROR")
+            log(f"       请确认拷贝了完整的仓库（含 {script_rel.split('/')[0]}/ 目录）",
+                "ERROR")
+            return 2
+        log(f"[exec] {script_rel} {' '.join(argv)}")
+        r = subprocess.run([sys.executable, script] + argv,
+                           cwd=PROJECT_DIR, env=clean_env())
+        return r.returncode
+
+    rc = 0
+    if args.make_wheelhouse:
+        prof = args.export_profile or os.environ.get("FLASH_PROFILE", "full")
+        log(f"[info] 联网机造包，档位: {prof}")
+        log(f"[info] Python: {sys.version.split()[0]} / 平台: {sys.platform}")
+        argv = ["--profile", prof]
+        if args.wheelhouse:
+            argv += ["--out", args.wheelhouse]
+        rc = _run("scripts/08_offline_install/build_wheelhouse.py", argv)
+        if rc != 0:
+            return rc
+        log("")
+        log("[next] 下一步: 把整个 offline_pkg/wheelhouse/ 目录（含 MANIFEST.json）")
+        log("       与源码一起拷到 U 盘 —— 可用：")
+        log("       python start_flash.py --export-usb <U盘目录>")
+
+    if args.export_usb:
+        dest = args.export_usb
+        log("")
+        log(f"[info] 导出离线包到: {dest}")
+        rc = _run("scripts/04_backup/usb_backup.py", ["--mode", "gitee", dest])
+        if rc != 0:
+            return rc
+        log("")
+        log("[done] 导出完成。U 盘内容应为：")
+        log("       flash/                (源码，git跟踪的约 17 MB)")
+        log("       offline_pkg/wheelhouse/ (含 MANIFEST.json)")
+        log("       ★ 不要用 --mode full：flash/ 目录在磁盘上可达 71 GB")
+    return rc
+
+
 def main() -> int:
     global VENV_DIR, VENV_PY, BASE_PY, OFFLINE
 
     args = parse_args()
+
+    # ── 统一入口分流（09-10）：造包 / 导 U盘 这两个动作与「安装」互斥，
+    #    放最前面处理，避免为造包去建 venv（那是离线机才需要的）。
+    if args.make_wheelhouse or args.export_usb:
+        return run_utility_commands(args)
+
     OFFLINE = resolve_offline_mode(args)
 
     # 离线档位需在 setup_offline 之前落进环境（offline_install_args 会读）
@@ -887,11 +962,44 @@ def main() -> int:
     os.environ.setdefault("FLASH_PROFILE", "full")
 
     BASE_PY = find_base_python()
-    VENV_DIR = os.environ.get("FLASH_VENV_DIR", DEFAULT_VENV_DIR).strip()
+    # ★ venv 目录**按平台区分**（09-10）：Windows 用 .venv-win、
+    #   Linux/WSL 用 .venv-linux。理由：两平台的 venv 物理上不能共用
+    #   （解释器分别是 PE / ELF，numpy 等扩展也是win_amd64 vs manylinux），
+    #   共用会导致「在 Windows 跑 start_flash.py 把 WSL 的 venv 删掉重建」。
+    #   FLASH_VENV_DIR 显式指定时仍以用户为准。
+    _whc_v = None
+    try:
+        _whc_v = _load_wh_common()
+    except SystemExit:
+        pass
+    if os.environ.get("FLASH_VENV_DIR", "").strip():
+        VENV_DIR = os.environ["FLASH_VENV_DIR"].strip()
+    elif _whc_v is not None:
+        VENV_DIR = _whc_v.venv_dir(PROJECT_DIR)
+    else:
+        VENV_DIR = (DEFAULT_VENV_DIR if os.name == "nt"
+                    else DEFAULT_VENV_DIR.replace(".venv", ".venv-linux"))
+    # 兼容已有环境：若本平台目录不存在、但旧版无后缀 .venv 恰好属于本平台，
+    # 就继续用它（避免让老用户重新装一遍）。
+    _legacy = DEFAULT_VENV_DIR
+    if (not os.path.isdir(VENV_DIR) and os.path.isdir(_legacy)
+            and VENV_DIR != _legacy):
+        _belongs = False
+        if _whc_v is not None:
+            _belongs = _whc_v.venv_belongs_to_platform(_legacy)
+        else:
+            _belongs = (os.path.isfile(os.path.join(_legacy, "Scripts", "python.exe"))
+                        if os.name == "nt"
+                        else os.path.isfile(os.path.join(_legacy, "bin", "python")))
+        if _belongs:
+            log(f"[info] 沿用已有的无后缀 venv: {_legacy}")
+            VENV_DIR = _legacy
+        elif os.path.isdir(_legacy):
+            # ★ 旧目录属于**另一种平台** ⇒ 绝不能删它，只是不用它。
+            log(f"[warn] 检测到 {_legacy} 属于其他平台的 venv，已改用 {VENV_DIR}"
+                f"（原目录保留，不会被删除）")
     # ★ venv 内解释器路径**必须跨平台**（09-10 修复）：Windows 是
     #   Scripts\python.exe，Linux/WSL 是 bin/python（无 .exe、无 Scripts）。
-    #   此前硬编码 Windows 布局 ⇒ Linux 上「创建 venv 失败」，且健康检查
-    #   恒判失败 → 反复清零重建。
     #   优先用 _wh_common（与 install_offline.py 同一来源，避免漂移）；
     #   它在 sdist 里可能缺失，故用本地等价判断兜底。
     try:
@@ -935,6 +1043,26 @@ def main() -> int:
     log("\n[step 1/5] 检查虚拟环境与健康自检 ...")
     install_mode = ""
     rebuild_count = 0
+
+    # ★ --check（09-10）：只校验、不安装、不跑测试、不碰 venv。
+    #   Step 0（离线时）已完成 wheelhouse 清单 + 平台 + 依赖覆盖度三道校验，
+    #   这里直接汇报并退出 —— 供「拷贝到离线机后先验一下」用。
+    if args.check:
+        log("[check] 只校验模式：不创建/改动 venv，不安装，不跑测试")
+        if OFFLINE:
+            log(f"[ok] wheelhouse: {WHEELHOUSE}")
+            log("[ok] 清单 + 平台/Python 版本 + 依赖覆盖度：三道校验全部通过")
+        else:
+            log("[info] 当前为在线模式，无 wheelhouse 可校验")
+            log("       如需校验离线包，请加 --offline --wheelhouse <路径>")
+        venv_state = "健康" if (os.path.isdir(VENV_DIR)
+                                and check_env_health(VENV_PY)[0]) else (
+            "不存在" if not os.path.isdir(VENV_DIR) else "不健康")
+        log(f"[info] 本平台 venv: {VENV_DIR}（{venv_state}）")
+        log(f"[info] venv 目录按平台区分：Windows=.venv-win / Linux=.venv-linux")
+        log(f"[info]              另一平台的 venv 不会被本脚本删除")
+        log("\n[done] 校验完成（未做任何改动）")
+        return 0
 
     if os.path.isdir(VENV_DIR):
         if force_clean:
@@ -1005,7 +1133,15 @@ def main() -> int:
         log("[ok] 安装后环境复检通过")
 
     # ---- Step 4: 全局测试（pytest 启动崩溃 → 自动重建重测） -----------------
-    results = run_suites()
+    if args.no_tests:
+        # ★ 09-10 新增：--no-tests 跳过三套测试（快速安装）。
+        #   环境健康复检已在 Step 3 完成，跳过测试不会漏掉环境问题。
+        log("\n[step 4/5] 全局测试 —— 已按 --no-tests 跳过 ...")
+        log("[info] 如需完整验证请不带 --no-tests 重跑，或执行：")
+        log(f"       {os.path.join(VENV_DIR, 'Scripts' if os.name == 'nt' else 'bin', 'pytest')} flash")
+        results = {}
+    else:
+        results = run_suites()
     if auto_rebuild and suites_crashed(results) and rebuild_count < 2:
         log("\n[info] 三套件全部「0 用例启动失败」→ pytest 环境异常（非测试失败），"
             "自动清零重建后重测 ...")

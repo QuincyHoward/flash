@@ -140,6 +140,61 @@ LITE_EXCLUDE = [
     "black", "ruff", "pytest", "pytest-cov", "coverage", "build", "twine",
 ]
 
+
+#: venv 目录名的**平台后缀**（09-10 新增，★解决「WSL 与 Windows 来回切换」）
+#:
+#: 问题：两平台的 venv **不能共用**同一个 `.venv` ——
+#:   - Linux venv: `.venv/bin/python`（ELF 动态链接，依赖 glibc）
+#:   - Win venv:   `.venv\Scripts\python.exe`（PE，可执行）
+#:   两者的解释器、路径布局、已编译扩展（numpy/scipy/h5py 的
+#:   `manylinux` vs `win_amd64` wheel）**全都不同**，物理上无法互换。
+#:   同一 `.venv` 里只能装其中一种平台的可执行文件。
+#:
+#: ★ 危害（实测推导）：用户在 WSL 装好 Linux venv 后，若在 Windows 端
+#:   跑 `start_flash.py`，健康检查会因 `.venv\Scripts\python.exe`
+#:   不存在而判失败 ⇒ 触发 `wipe_venv()` ⇒ **Linux 的 venv 被直接删除**
+#:   （约 647 MB、数分钟重建），且用户的 Linux 环境无声丢失。
+#:
+#: 解法：venv 目录名带平台后缀，两平台各一个，**互不干扰**：
+#:   Windows → `.venv-win`   Linux/WSL → `.venv-linux`
+#: 旧的无后缀 `.venv` 仍会被识别（兼容已有环境），
+#: 但一旦发现它是**另一种平台**的venv，就换用本平台的目录而不是删它。
+
+#: venv 目录名的**平台短名**（09-10新增，★解决「WSL 与 Windows 来回切换」）
+VENV_DIR_SUFFIX = {"windows": "win", "linux": "linux", "macos": "mac"}
+
+
+def venv_dirname(project_dir) -> str:
+    """本平台的 venv 目录名（`.venv-win` / `.venv-linux` / `.venv-mac`）。"""
+    return f".venv-{VENV_DIR_SUFFIX.get(current_platform_tag(), 'other')}"
+
+
+def venv_dir(project_dir) -> str:
+    """本平台 venv 的完整路径。"""
+    return os.path.join(str(project_dir), venv_dirname(project_dir))
+
+
+def legacy_venv_dir(project_dir) -> str:
+    """旧版无后缀 venv 的路径（`.venv`）。"""
+    return os.path.join(str(project_dir), ".venv")
+
+
+def venv_belongs_to_platform(venv_dir_path) -> bool:
+    """判断某个 venv 目录**是否属于本平台**。
+
+    判据：按本平台布局找解释器 —— Windows 找 `Scripts\\python.exe`，
+    POSIX 找 `bin/python`。两者都不存在 ⇒ 不属于任一平台（半成品目录）。
+
+    ★ 实现注意：`import os.path as _o` 得到的是 **posixpath/ntpath 模块**，
+      不是 `os`，用它做 `_o.name` 会抛
+      `AttributeError: module 'ntpath' has no attribute 'name'`
+      （09-10 实测踩到）。此处直接用模块顶层的 `os`（本模块已 import）。
+    """
+    d = str(venv_dir_path)
+    if os.name == "nt":
+        return os.path.isfile(os.path.join(d, "Scripts", "python.exe"))
+    return os.path.isfile(os.path.join(d, "bin", "python"))
+
 #: venv 内解释器的**平台相关**布局。
 #: ★ 必须跨平台（09-10 修复）：此前硬编码 ("Scripts", "python.exe")，
 #:   在 Linux/WSL 上 `python -m venv` 生成的是 `bin/python`（无 .exe），
