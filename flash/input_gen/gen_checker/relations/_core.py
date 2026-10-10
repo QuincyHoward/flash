@@ -25,6 +25,9 @@ __all__ = [
     "REGISTRY",
 ]
 
+# 行尾注释剥离与 par 解析规则共用同一实现，避免两处逻辑漂移
+from ._parsers import strip_par_comment  # noqa: E402
+
 # 规则 id -> 规则函数（由 relation_rule 装饰器填充）
 REGISTRY: Dict[str, Callable[..., "RelationResult"]] = {}
 
@@ -78,14 +81,25 @@ class RelationContext:
         return self._cached("par_path", lambda: self.file("*.par"))
 
     def par_params(self) -> Dict[str, str]:
-        """解析 .par 为 {参数名: 原始值字符串} 字典。"""
+        """解析 .par 为 {参数名: 原始值字符串} 字典。
+
+        ★★ 必须剥离**行尾注释**（09-10 实测 bug，fresh-clone 端到端测试暴露）：
+          生成的 .par 大量使用对齐的行尾注释，例如
+              op_chamFileName = "Z02_1.00-20260708_0851.cn4"     # cham opacity...
+          旧实现只 `line.strip()`，把整行（含注释）当值，于是
+          `par_cn4_on_disk` / `par_cn4_in_config_datafiles` /
+          `config_table_parameter` 三条规则同时误报「文件不存在」，
+          阻断 `laserslab1d_local_custom.py` 的自检步骤。
+          ★ 关键：**只按第一个 `#` 切，且该 `#` 必须在引号之外** ——
+            否则路径里含 `#` 的合法值会被截断。
+        """
         def _load() -> Dict[str, str]:
             p = self.par_path()
             if p is None:
                 return {}
             out: Dict[str, str] = {}
             for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
-                line = line.strip()
+                line = strip_par_comment(line).strip()
                 if not line or line.startswith("#"):
                     continue
                 m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$", line)

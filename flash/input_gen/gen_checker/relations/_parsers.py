@@ -4,6 +4,7 @@ relations._parsers — 关联检查公共解析工具
 
 供各规则复用的辅助函数：
   - unquote            : 去除字符串两端引号
+  - strip_par_comment  : 剥离 .par 行尾注释（★ 引号外的第一个 #）
   - par_refs_of_prefix : 收集 .par 中某前缀参数引用的文件（去引号）
   - strip_f90_vars     : 提取 Fortran 中声明的变量名
   - strip_init_gets    : 提取 Simulation_init.F90 中 RuntimeParameters_get 读取的键
@@ -17,11 +18,39 @@ from typing import Dict, List
 
 __all__ = [
     "unquote",
+    "strip_par_comment",
     "par_refs_of_prefix",
     "f90_save_vars",
     "init_get_keys",
     "setup_cmd_from",
 ]
+
+
+def strip_par_comment(line: str) -> str:
+    """剥离 .par / Config 行尾注释，返回注释之前的部分。
+
+    ★ 09-10 fresh-clone 端到端测试暴露的根因修复：生成的 .par 大量使用
+      **对齐的行尾注释**，例如
+          op_chamFileName = "Z02_1.00-20260708_0851.cn4"     # cham opacity...
+      旧解析器只 `strip()` 不去注释 ⇒「文件存在性」类规则把整行（含注释）
+      当文件名 ⇒ 误报「表文件不存在」，并阻断
+      `laserslab1d_local_custom.py` 的自检步骤。
+
+    ★ 关键：**只认引号之外的第一个 `#`**（扫描时维护引号状态）。
+      否则路径中合法含 `#` 的值（如 `a#b.cn4`）会被错误截断。
+      整行注释（`#` 在行首、前面只有空白）同样由本函数处理。
+    """
+    s = line
+    quote = ""            # 当前所处引号："" / "'" / '"'
+    for i, ch in enumerate(s):
+        if quote:
+            if ch == quote:
+                quote = ""
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "#":
+            return s[:i]
+    return s
 
 
 def unquote(s: str) -> str:
