@@ -27,8 +27,9 @@ https://gitee.com/physimx/flash
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
 | **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
 
-> 发布包已通过全局测试 (**236 passed / 1 skipped**: framework 132 / input_gen 78 /
-> output_processors 26) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 /
+> output_processors 45) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 离线部署自检另计 **183 项** (`scripts/08_offline_install/test_offline_install.py`)。
 
 ---
 
@@ -387,9 +388,9 @@ python start_flash.py --no-tests# 只装环境
 
 > ★ **venv 目录按平台区分**（09-10）：`Windows → .venv-win`、`Linux/WSL → .venv-linux`。
 >
-> 原因：两平台的 venv **物理上不能共用** —— 解释器一个是 PE（`.venv\Scripts\python.exe`）
-> 一个是 ELF（`.venv/bin/python`），且 numpy/scipy/h5py 等已编译扩展分别是
-> `win_amd64` 与 `manylinux` wheel，同一 `.venv` 只能装其中一种。
+> 原因：两平台的 venv **物理上不能共用** —— 解释器一个是 PE（`.venv-win\Scripts\python.exe`）
+> 一个是 ELF（`.venv-linux/bin/python`），且 numpy/scipy/h5py 等已编译扩展分别是
+> `win_amd64` 与 `manylinux` wheel，同一目录只能装其中一种。
 > 分目录后可**在Windows 与 WSL 之间来回切换**，各自环境独立保留、互不覆盖。
 >
 > 向后兼容：旧的无后缀 `.venv` 若**正好属于本平台**仍会被沿用；
@@ -402,7 +403,11 @@ python start_flash.py --no-tests# 只装环境
 
 ```bash
 # 本地 WSL 模式（★脚本默认 RUN_MODE = "wsl"，零修改即可跑）
-.venv\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+# Windows — 内部经 wsl bash -c 转发
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+
+# Linux / WSL — 直接跑
+.venv-linux\bin\python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py
 
 # 超算模式：将脚本顶部 RUN_MODE 改为 "hpc"（需 SSH 凭据 flash_ssh）
 # 也可用环境变量临时覆盖，无需改文件：
@@ -411,12 +416,12 @@ set FLASH_RUN_MODE=hpc   # Windows CMD
 
 - 运行模式：脚本顶部 `RUN_MODE = "wsl"`（本地 WSL，**默认**）/ `"hpc"`（超算），一行切换；
   环境变量 `FLASH_RUN_MODE` 优先级更高（也可用于 `--profile` 之外的临时覆盖）
-- **跨平台（09-10 实测）**：Windows 上以 `.venv\Scripts\python.exe` 调用，内部经
+- **跨平台（09-10 实测）**：Windows 上以 `.venv-win\Scripts\python.exe` 调用，内部经
   `wsl bash -c` 转发；**若已在 WSL 内**（如离线机把仓库放在 `/mnt/e/...` 并用 Linux
   解释器执行），脚本自动改用 `bash -c`，路径转换也幂等，两种方式都可直接跑。
 - **FLASH 安装位置解析（09-10）**：依次为
   1. 环境变量 `FLASH_SIM_USER_DIR`（最高优先级）
-  2. 加密凭据里的 `default_user_name`（`~/.flash_sim/credentials.enc`）
+  2. 加密凭据里的 `default_user_name`（`~/.physimx/flash/credentials.enc`）
   3. 自动扫描 `$HOME/*/FLASH/FLASH4.8`（判据：同时有 `setup` 与
      `source/Simulation/SimulationMain`）
   4. 以上都无 ⇒ 回落到字面量 `hello`（`~/hello/FLASH/FLASH4.8`）
@@ -630,7 +635,9 @@ flash-sim 支持三平台部署：
 | ParaCloud NC-E | SSH port 22 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/hello/FLASH/local/hypre/` | 4 |
 | ParaCloud BSCC-T6 | SSH port 8443 | `module load mpich/3.2-gcc9.3` | `module load hdf5/1.8.18` | 用户空间 `~/hello/FLASH/local/hypre/` | 4 |
 
-> **关键提示**: FLASH的默认安装路径为"~/hello/FLASH/FLASH4.8"，其中"hello"为**默认用户名**（通过 `flash/_core/credentials` 的 `get_user_name()` 动态获取，可用 `manage.py` 交互式修改）。
+> **关键提示**: FLASH 的默认安装路径为 `~/hello/FLASH/FLASH4.8`，其中 `hello` 是**回落用的字面量默认值**。实际解析顺序为：
+> `FLASH_SIM_USER_DIR` 环境变量 → 加密凭据的 `default_user_name`（`~/.physimx/flash/credentials.enc`，可用 `manage.py` 交互式修改）→ 自动扫描 `$HOME/*/FLASH/FLASH4.8` → 字面量 `hello`。
+> ★ 第3 步的自动扫描是为**干净克隆 / 离线机**准备的 —— 这类环境没有 `credentials.enc`，第 2 步会回落 `hello` 而实际 FLASH 可能装在 `~/QC` 等其他用户目录下。
 > **HPC 关键提示**: 超算上 HYPRE_PATH 可能因符号链接 `/public1/home → /publicfs01/fs1-e/home` 导致编译失败。必须使用 `readlink -f` 解析真实路径后写入 `Makefile.h`。
 ---
 
@@ -806,8 +813,9 @@ generation → FLASH compile & run → HDF5 output processing → adaptive visua
 (1D/2D/3D) and physical analysis.
 
 > **Status**: the release package passes the global test suite
-> (**236 passed / 1 skipped**: framework 132 / input_gen 78 / output_processors 26)
-> and the FLASH license-compliance check.
+> (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45)
+> and the FLASH license-compliance check. The offline-deployment self-check
+> adds **183 further checks** (`scripts/08_offline_install/test_offline_install.py`).
 > **Scope note**: this package does **not** redistribute any FLASH source,
 > binaries, distributed EOS/opacity tables or IONMIX/MultiEOS data (FLASH License §3).
 
@@ -841,10 +849,15 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   package); the scenario's `ensure_sim_input()` and the engine auto-generate
   them before a run, so clean clones and published wheels work out of the box.
 - **Self-Healing One-Command Setup** (`start_flash.py`): creates the project
-  `.venv`, health-checks it (key dependencies importable + pytest launchable),
+  venv (`.venv-win` / `.venv-linux` / `.venv-mac`, one per platform),
+  health-checks it (key dependencies importable + pytest launchable),
   **automatically rebuilds from scratch when unhealthy**, re-runs the global
   test suites if pytest crashes at startup, and writes an
   `INSTALL_TEST_REPORT.txt` including a **dependency version snapshot**.
+  It is also the single entry point for air-gapped deployment
+  (`--make-wheelhouse` / `--export-usb` / `--offline` / `--check` / `--no-tests`).
+  ★ A venv belonging to the *other* platform is detected and **kept, never
+  deleted**, so switching between Windows and WSL is safe.
 - **Input Generation** (`input_gen/`): a family of generators
   (`gen_par` / `gen_config` / `gen_makefile` / `gen_sim_data` / `gen_sim_init` /
   `gen_sim_initblock` / `gen_shell_script`), EOS & opacity table tooling
@@ -880,6 +893,63 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
 - **Dual Mode**: standalone Python package (`flash.*`) or PhySimX plugin
   (`physimx_sim.flash.*`).
 
+## Air-Gapped Deployment (offline install)
+
+For sites without internet access, `start_flash.py` is the **single entry
+point** for the whole workflow — building the wheelhouse, exporting to USB,
+installing and testing. It only *forwards* to the underlying scripts
+(`build_wheelhouse.py` / `usb_backup.py`), so the logic never drifts and those
+scripts remain independently runnable.
+
+```bash
+# --- connected machine ---
+python start_flash.py --make-wheelhouse                # build the wheelhouse
+python start_flash.py --make-wheelhouse --export-profile lite
+python start_flash.py --export-usb /media/usb/pkg     # export sources + wheels
+
+# --- air-gapped machine ---
+python start_flash.py --offline --wheelhouse D:\pkg\wheelhouse   # install + test
+python start_flash.py --offline --check               # verify only, changes nothing
+python start_flash.py --offline --no-tests            # fast install, skip the suites
+
+# --- online machine ---
+python start_flash.py                                 # install + test + report
+python start_flash.py --no-tests                      # install only
+```
+
+Four gates run **before** anything is created or modified — any failure aborts
+without leaving a half-built venv:
+
+1. **wheelhouse exists** and contains `MANIFEST.json`
+2. **manifest verification** — presence + size + **SHA256** of every archive
+   (USB transfer is the most likely place for silent corruption)
+3. **platform / Python version match** — wheel names carry `cp3XX` ABI tags, so
+   a cross-version install is impossible; pip only says *"No matching
+   distribution found"* and never mentions the version, so this is checked
+   explicitly and reported with an actionable fix
+4. **dependency coverage** — `pyproject.toml`'s closure must be ⊆ wheelhouse
+
+`--no-index` is the hard gate: pip physically cannot reach PyPI.
+
+**No `apt` required on Linux/WSL.** Ubuntu ships without `python3.x-venv`, so
+`python3 -m venv` normally fails with *ensurepip is not available*. The script
+detects this and **bootstraps pip offline** from the `pip-*.whl` already shipped
+inside the wheelhouse (`--without-pip` skeleton → install pip from the local
+wheel), so an air-gapped machine needs no network and no system packages.
+
+**Platform-isolated venv.** The venv directory carries a platform suffix —
+`Windows → .venv-win`, `Linux/WSL → .venv-linux`, `macOS → .venv-mac`. The two
+*cannot* share one directory (the interpreter is PE vs ELF, and compiled wheels
+are `win_amd64` vs `manylinux`). With separate directories you can **switch
+freely between Windows and WSL**: each side keeps its own environment, and the
+other platform's venv is **never deleted**.
+
+**Sizes differ by platform — and that is expected.** `full` measures
+130 MB / 71 packages on Windows (Python 3.13) but 165 MB / 78 packages on Linux
+(Python 3.10). The difference is driven mainly by the **Python version** (3.10
+needs `typing-extensions` / `tomli` / `exceptiongroup` shims, and pandas drops
+to 2.x), not the OS. **Use the same Python version on both machines.**
+
 ## Quick Start
 
 ```python
@@ -894,8 +964,25 @@ output = engine.run(run_flash=False)   # dry-run: generate inputs only
 One-command setup + global test (self-healing):
 
 ```bash
-python start_flash.py     # .venv check → auto-rebuild if broken → 3 test suites → report
+python start_flash.py     # venv check → auto-rebuild if broken → 3 test suites → report
+python start_flash.py --no-tests   # install the environment only
 ```
+
+Run the built-in 1D LaserSlab scenario (`RUN_MODE` defaults to `"wsl"`, so no
+editing is required):
+
+```bash
+# Windows — forwarded to WSL internally
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+
+# Linux / WSL — runs directly
+.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py
+```
+
+The FLASH installation directory is resolved automatically: the
+`FLASH_SIM_USER_DIR` environment variable → the encrypted credential store →
+a scan of `$HOME/*/FLASH/FLASH4.8` → the literal `hello`. The scan matters
+because clean clones and air-gapped machines have no `credentials.enc`.
 
 Generate scenario input files explicitly (optional; normally auto-generated):
 
