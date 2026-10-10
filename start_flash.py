@@ -322,6 +322,27 @@ def setup_offline(wh_arg: str | None, profile: str) -> None:
             "并完整拷贝整个目录（不要只拷 .whl 文件）。")
     log("[ok] wheelhouse 清单校验通过")
 
+    # ---- 闸门 2.5: 平台 / Python 版本一致性 ----
+    # ★ 09-10 新增：wheel 带 cp3XX+平台标签，跨版本装不上时 pip 只说
+    #   "No matching distribution found"，**不会提示是版本问题**，
+    #   用户无从判断（实测：Windows/py3.13 造 71 包，Linux/py3.10 造 78 包，
+    #   两者不可互换）。这里提前给出可操作的结论。
+    plat_problems, plat_notes = house.platform_check()
+    for n in plat_notes:
+        log(f"[offline] {n}")
+    if plat_problems:
+        log("")
+        log("[FATAL] wheelhouse 与本机平台/Python 版本不匹配：")
+        for p in plat_problems:
+            log(f"        - {p}")
+        log("")
+        log("  ★ 包数不同不一定是 bug：差异主要来自 Python 版本（3.10 需要")
+        log("    typing-extensions/tomli/exceptiongroup 等兼容垫片，pandas 也降级到 2.x）。")
+        log("  ★ 修法：在**本机**（或同 Python 版本的机器）上重造 wheelhouse：")
+        log(f"        python scripts\\08_offline_install\\build_wheelhouse.py --profile {profile}")
+        raise SystemExit("[FATAL] 中止安装（平台不匹配，未创建/改动 venv）。")
+    log("[ok] 平台与Python 版本一致")
+
     # ---- 闸门 3: 依赖覆盖度预检 ----
     # ★ 必须传 Path 而非 str：preflight → required_packages →
     #   parse_pyproject_requirements 内部要调 .read_text()。

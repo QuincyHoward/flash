@@ -690,6 +690,104 @@ def test_leak_audit_guard(root: Path) -> None:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_platform_adaptivity(root: Path) -> None:
+    """[15] ★★ 平台自适应与平台一致性闸门（09-10 用户实测需求）。
+
+    背景：full 档 Windows 实测 71 包 / 130 MB，Linux 实测 78 包 / 165.4 MB。
+    逐包对比后确认**主因是 Python 版本而非平台**：3.11+ 才内置 tomllib /
+    exceptiongroup，3.10 需 typing-extensions / tomli / exceptiongroup /
+    importlib-metadata / zipp 等垫片，且pandas 在 3.10 上降级到 2.x。
+    平台本身只贡献 colorama + pywin32-ctypes（Win）与 jeepney +
+    secretstorage（Linux）两处。
+
+    ⇒ 本节验证：① 平台函数存在且返回合理值；② 平台条件依赖已接入
+      download 列表；③ MANIFEST 记录 platform_tag/python_tag；
+      ④ **负向样本**：清单里的平台与本机不符时必须报错拦下。
+    """
+    section("[15] ★★ 平台自适应与平台一致性闸门")
+    sys.path.insert(0, str(HERE))
+    import _wh_common as whc
+
+    # ① 平台探测函数
+    for fn in ("is_windows", "current_platform_tag", "python_tag",
+               "platform_extra_pkgs"):
+        check(f"{fn}() 存在", callable(getattr(whc, fn, None)))
+    tag = whc.current_platform_tag()
+    check("platform_tag 返回已知平台",
+          tag in ("windows", "linux", "macos"), f"实际 {tag!r}")
+    check("python_tag 形如 3.13",
+          whc.python_tag().count(".") == 1
+          and all(p.isdigit() for p in whc.python_tag().split(".")),
+          f"实际 {whc.python_tag()!r}")
+
+    # ② 平台条件依赖：Linux 才装 jeepney/secretstorage，Windows 不装
+    extra = whc.platform_extra_pkgs()
+    check("platform_extra_pkgs 与 os.name 一致",
+          (extra == [] if whc.is_windows() else "jeepney" in extra),
+          f"os.name={whc.os.name!r} extra={extra}")
+
+    # ③ 已接入 download 列表（★不能只是定义了函数却没被调用）
+    import build_wheelhouse as bwh
+    reqs = bwh.build_pip_freeze_list(root, root / "_nonexistent_wh", "full")
+    names = {whc.canonical_name(whc.requirement_name(r)) for r in reqs}
+    if whc.is_windows():
+        check("Windows 不把 jeepney 写进 download 列表", "jeepney" not in names)
+    else:
+        check("Linux 把 jeepney 写进 download 列表", "jeepney" in names)
+        check("Linux 把 secretstorage 写进 download 列表",
+              "secretstorage" in names)
+
+    # ④ MANIFEST 必须记录平台标记
+    src = (HERE / "build_wheelhouse.py").read_text(encoding="utf-8")
+    for key in ("platform_tag", "python_tag", "platform_diff_note"):
+        check(f"MANIFEST meta 含 {key}", f'"{key}"' in src)
+
+    # ⑤ 负向样本：清单平台与本机不符 ⇒ 必须拦下（未证明会失败的护栏不算护栏）
+    tmp = Path(tempfile.mkdtemp())
+    try:
+        wh_dir = tmp / "wheelhouse"
+        wh_dir.mkdir(parents=True)
+        man = {"entries": [], "meta": {
+            "platform_tag": "__opposite_platform__",
+            "python_tag": "0.99",
+            "platform_diff_note": whc.PLATFORM_DIFF_NOTE,
+        }}
+        (wh_dir / "MANIFEST.json").write_text(
+            json.dumps(man), encoding="utf-8")
+        problems, notes = whc.WheelHouse(wh_dir).platform_check()
+        check("平台不符时报错（负向样本）", len(problems) >= 1,
+              f"problems={problems}")
+        check("错误信息含平台关键词",
+              any("平台" in p for p in problems), f"{problems[:2]}")
+        check("错误信息含 Python 版本关键词",
+              any("Python" in p for p in problems), f"{problems[:2]}")
+        check("错误信息含重造指引",
+              any("build_wheelhouse" in p for p in problems))
+
+        # 平台相同 ⇒ 放行
+        man2 = {"entries": [], "meta": {
+            "platform_tag": whc.current_platform_tag(),
+            "python_tag": whc.python_tag(),
+        }}
+        (wh_dir / "MANIFEST.json").write_text(
+            json.dumps(man2), encoding="utf-8")
+        problems2, notes2 = whc.WheelHouse(wh_dir).platform_check()
+        check("平台相符时放行（正向样本）", not problems2, f"{problems2}")
+
+        # 旧版清单（无字段）⇒ 只提示不拦，保持向后兼容
+        (wh_dir / "MANIFEST.json").write_text(
+            json.dumps({"entries": [], "meta": {}}), encoding="utf-8")
+        problems3, notes3 = whc.WheelHouse(wh_dir).platform_check()
+        check("旧版清单跳过检查不拦（向后兼容）", not problems3)
+        check("旧版清单给出提示", any("旧版" in n for n in notes3))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    # ⑥ 平台差异说明必须存在且点明「主因是Python 版本」
+    check("PLATFORM_DIFF_NOTE 点明主因",
+          "Python 版本" in whc.PLATFORM_DIFF_NOTE)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="离线安装链路回归自检")
     ap.parse_args()
@@ -714,6 +812,7 @@ def main() -> int:
     test_wheel_size_sanity(root)
     test_pypi_overwrite_guard()
     test_leak_audit_guard(root)
+    test_platform_adaptivity(root)
 
     passed = sum(1 for _, ok, _ in _RESULTS if ok)
     total = len(_RESULTS)

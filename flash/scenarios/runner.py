@@ -67,14 +67,31 @@ def resolve_run_mode(default: str = "wsl") -> str:
 def get_sim_user_dir() -> str:
     """获取仿真用户目录名（即 FLASH 安装前缀目录）。
 
-    回落顺序: credentials get_user_name() → 环境变量 FLASH_SIM_USER_DIR → "hello"。
+    回落顺序（09-10 修正，与 docstring 一致）:
+      1. 环境变量 ``FLASH_SIM_USER_DIR``（**最高优先级**）
+      2. credentials 的 ``get_user_name()``
+      3. 字面量 "hello"
+
+    ★ 09-10 实测bug：旧实现把环境变量放在**最后**、且只在 ``get_user_name()``
+      抛异常时才生效 ⇒ 只要凭据模块能import（无论是否真读到值），
+      ``FLASH_SIM_USER_DIR`` 就**完全不起作用**（实测设了仍返回 'hello'）。
+      而 ``get_user_name()`` 读的是加密凭据库 ``__meta__.default_user_name``，
+      干净克隆 / 离线机上没有 ``credentials.enc`` ⇒ 回落 ``DEFAULT_USER_NAME``（'hello'）
+      ⇒ ``FLASH_HOME=~/hello/FLASH/FLASH4.8`` 不存在 ⇒ 报
+      ``FLASH_HOME not found``，而机器上明明有 ``~/QC/FLASH/FLASH4.8``。
+      ⇒ 环境变量必须**先于**凭据查，才能让离线机显式指定。
     """
+    env_user = os.environ.get("FLASH_SIM_USER_DIR", "").strip()
+    if env_user:
+        return env_user
     try:
         from flash._core.credentials import get_user_name
-        return get_user_name()
+        name = (get_user_name() or "").strip()
+        if name:
+            return name
     except Exception:  # noqa: BLE001
         pass
-    return os.environ.get("FLASH_SIM_USER_DIR", "hello")
+    return "hello"
 
 
 def user_flash_home(user: Optional[str] = None, tilde: bool = True) -> str:
@@ -83,6 +100,41 @@ def user_flash_home(user: Optional[str] = None, tilde: bool = True) -> str:
     if tilde:
         return f"~/{user}/FLASH/FLASH4.8"
     return f"$HOME/{user}/FLASH/FLASH4.8"
+
+
+def discover_flash_home() -> Optional[str]:
+    """在 $HOME 下**自动发现**已安装的 FLASH（09-10 新增）。
+
+    ★ 为什么需要：``get_sim_user_dir()`` 依赖加密凭据库，离线机 / 干净克隆
+      里没有 ``credentials.enc`` ⇒ 回落 ``'hello'`` ⇒ ``~/hello/FLASH/FLASH4.8``
+      不存在 ⇒ 直接报 ``FLASH_HOME not found``，而机器上其实装着
+      ``~/QC/FLASH/FLASH4.8``（用户名写在凭据里，脚本却读不到）。
+      ⇒ 与其让用户手工查用户名，不如**扫目录**。
+
+    判据（须同时满足，避免把无关目录误认成 FLASH）:
+      - ``<dir>/FLASH/FLASH4.8/setup`` 存在（FLASH 源码树的标志）
+      - ``<dir>/FLASH/FLASH4.8/source/Simulation/SimulationMain`` 存在
+
+    Returns:
+        ``$HOME/<user>/FLASH/FLASH4.8`` 形式的路径；找不到返回 None。
+        ★ 返回**带$HOME 前缀**的形式，便于直接嵌入 shell 命令。
+    """
+    home = os.environ.get("HOME") or os.path.expanduser("~")
+    if not home or not os.path.isdir(home):
+        return None
+    try:
+        entries = sorted(os.listdir(home))
+    except OSError:
+        return None
+    for name in entries:
+        root = os.path.join(home, name, "FLASH", "FLASH4.8")
+        if not os.path.isfile(os.path.join(root, "setup")):
+            continue
+        if not os.path.isdir(os.path.join(root, "source", "Simulation",
+                                           "SimulationMain")):
+            continue
+        return f"$HOME/{name}/FLASH/FLASH4.8"
+    return None
 
 
 # ── 维度感知资源默认值 ───────────────────────────────────
@@ -242,10 +294,12 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
         run_plots = plots_dir / run_id_name(run_id)
         # 输入快照: 不同 id 的输入文件可能不同, 归档到 flash_input/run_NNNNNN/
         # (崩溃记录用; 运行成功后再全量收纳根目录文件, 见 run_wsl 末尾)
+        # 注意: 只排除 wsl_ 前缀运行日志; run_flash.sh 也是 run_ 前缀,
+        # 不能按 run_ 排除 (否则崩溃快照永久缺 run_flash.sh)
         in_snap = input_dir / run_id_name(run_id)
         in_snap.mkdir(parents=True, exist_ok=True)
         for f in input_dir.iterdir():
-            if f.is_file() and not f.name.startswith(("wsl_", "run_")) \
+            if f.is_file() and not f.name.startswith("wsl_") \
                     and (f.suffix.lower() in
                          (".par", ".cn4", ".f90", ".sh", ".png", ".json")
                          or f.name in ("Config", "Makefile")):

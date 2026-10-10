@@ -261,6 +261,14 @@ def build_pip_freeze_list(root: Path, wh_dir: Path, profile: str) -> list[str]:
         if n not in seen:
             seen.add(n)
             reqs.append(p)
+    # ★ 平台条件依赖（09-10）：jeepney/secretstorage 仅 Linux 存在，
+    #   colorama/pywin32-ctypes 仅 Windows 存在 ⇒ 必须按平台条件化，
+    #   硬写进通用列表会让另一平台直接缺包（--no-index 下无法补装）。
+    for p in wh.platform_extra_pkgs():
+        n = wh.canonical_name(p)
+        if n not in seen:
+            seen.add(n)
+            reqs.append(p)
     return reqs
 
 
@@ -429,12 +437,23 @@ def write_manifest(wh_dir: Path, root: Path, profile: str, interpreter: str) -> 
         "git_sha": git_sha(root),
         "python_version": interpreter,
         "platform": f"{platform.system()}-{platform.machine()}",
+        # ★ 09-10新增：把「包集合差异」的两个决定因素显式写进清单。
+        #   离线机据此能核对是否同平台同Python 版本——wheel 文件名带cp3XX-
+        #   ABI 标签，跨版本直接缺包，且 pip 只会报"No matching distribution"
+        #   而不会提示「平台/版本不匹配」。
+        "platform_tag": wh.current_platform_tag(),
+        "python_tag": wh.python_tag(),
+        "platform_extra_pkgs": wh.platform_extra_pkgs(),
+        "platform_diff_note": wh.PLATFORM_DIFF_NOTE,
         "pip_flags": list(wh.OFFLINE_PIP_FLAGS) if hasattr(wh, "OFFLINE_PIP_FLAGS")
                      else ["--no-index"],
     }
     p = house.write_manifest(meta)
     man = house.read_manifest()
     log(f"[ok] {p.name}: {len(man['entries'])} 个条目")
+    log(f"[info] 平台标记: {meta['platform_tag']} / Python {meta['python_tag']}")
+    if meta["platform_extra_pkgs"]:
+        log(f"[info] 平台条件依赖: {' '.join(meta['platform_extra_pkgs'])}")
     return p
 
 

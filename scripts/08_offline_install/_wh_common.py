@@ -73,6 +73,65 @@ PROFILES: dict[str, dict] = {
     },
 }
 
+# ======================================================================
+# ★★ 平台自适应（09-10 用户要求）
+#
+# 问题：`full` 档 Windows 实测 **71 包 / 130 MB**，Linux 实测 **78 包 / 165.4 MB**。
+#逐包对比后确认：**差异来自 Python 版本，不是平台本身**——
+#
+#   Windows 有、Linux 无（2 个，纯平台差异）：
+#     colorama（Windows 终端 ANSI 色彩）、pywin32-ctypes（Windows API ctypes）
+#   Linux 有、Windows 无（9 个，纯**Python 3.10兼容垫片**）：
+#     typing-extensions / tomli / exceptiongroup / importlib-metadata / zipp /
+#     backports.tarfile（3.10 缺 typing/tomllib/exceptiongroup 内置）
+#     pytz（被 pandas 2.x 依赖）
+#     jeepney / secretstorage（paramiko 的 Linux 密钥后端，可选）
+#
+# 即：**同一 Python 版本下，Windows/Linux 的包集合本应一致**（pip 会为当前
+# 解释器选到对应的平台 wheel）。真正的不一致来自 Python 版本（3.13 vs 3.10）。
+#
+# ⇒ 本节的作用：把这些差异**显式化、可控化**，而不是让用户从包数差异里猜原因。
+# ======================================================================
+
+def is_windows() -> bool:
+    return os.name == "nt"
+
+
+def current_platform_tag() -> str:
+    """当前平台的可读标识（写入 MANIFEST，便于离线机核对是否同平台）。"""
+    if os.name == "nt":
+        return "windows"
+    if sys.platform.startswith("darwin"):
+        return "macos"
+    return "linux"
+
+
+def python_tag() -> str:
+    """形如 `3.13` / `3.10`，写入 MANIFEST。"""
+    return f"{sys.version_info.major}.{sys.version_info.minor}"
+
+
+def platform_extra_pkgs() -> List[str]:
+    """平台相关的**条件依赖**（三档 PROFILES 之外需显式补装的）。
+
+    - Windows：colorama 让 tqdm/rich 在 cmd/PowerShell 有颜色输出
+    - Linux  ：jeepney + secretstorage 是 paramiko 的 keyring 后端
+               （若目标机器用了 SSH agent/密钥文件则非必需，但装上无害）
+    ★ 这些包在另一平台上**不存在**，硬写进通用列表会导致另一平台缺包，
+      所以必须按平台条件化。
+    """
+    return [] if is_windows() else ["jeepney", "secretstorage"]
+
+
+#: 平台差异说明（供文档与 MANIFEST 引用，避免两处漂移）
+PLATFORM_DIFF_NOTE = (
+    "full 档实测：Windows/py3.13 = 71 包 130 MB；Linux/py3.10 = 78 包 165 MB。"
+    "差异主因是 **Python 版本**（3.10 需 typing-extensions/tomli/exceptiongroup 等"
+    "兼容垫片，pandas 降级到 2.x 而非 3.x），平台本身只贡献 colorama / "
+    "pywin32-ctypes（Win）与 jeepney / secretstorage（Linux）两处。"
+    "⇒ 联网机与离线机应使用**同Python 版本**，包集合即可对齐。"
+)
+
 #: lite 档要**额外排除**的包（它们是 full 档 yt/matplotlib 的传递依赖）
 LITE_EXCLUDE = [
     "yt", "matplotlib", "pandas", "contourpy", "fonttools", "kiwisolver",
@@ -492,6 +551,58 @@ class WheelHouse:
         missing = [n for n in need if n not in have]
         present = [n for n in need if n in have]
         return missing, present
+
+    def platform_check(self) -> tuple[list[str], list[str]]:
+        """比对 MANIFEST 记录的造包平台与本机，返回 (problems, notes)。
+
+        ★ 为什么必须有这道检查（09-10 用户实测踩坑）：
+          wheel 文件名带 `cp3XX-` ABI 标签，跨 Python 版本/平台**根本装不上**；
+          但 pip 只会说 "No matching distribution found for xxx"，
+          **不会告诉你是平台或版本不匹配** —— 用户只能自己猜。
+          典型现象：Windows/py3.13 造包 71 包，Linux/py3.10 造包 78 包，
+          两者不能互换（差异来自 Python 版本，非平台本身，见 PLATFORM_DIFF_NOTE）。
+
+        旧版 MANIFEST（无 platform_tag/python_tag 字段）跳过检查并给出提示，
+        以保持向后兼容。
+        """
+        notes: list[str] = []
+        problems: list[str] = []
+        man = self.read_manifest()
+        if not man:
+            return problems, ["MANIFEST 无法读取，跳过平台一致性检查"]
+
+        # ★ MANIFEST 结构是 {"schema", "meta", "entries"}，平台标记在 meta 内。
+        #   09-10 首版误从顶层读 ⇒ 字段永远取不到 ⇒ 检查静默失效（负向样本抓到）。
+        meta = man.get("meta") or {}
+
+        # 09-10 之前生成的清单没有这两个字段 ⇒ 只能提示，不能拦
+        built_tag = meta.get("platform_tag")
+        built_py = meta.get("python_tag")
+        if not built_tag or not built_py:
+            notes.append(
+                "MANIFEST 无 platform_tag/python_tag 字段（旧版清单），"
+                "跳过平台一致性检查；建议在联网机用最新版重造 wheelhouse")
+            return problems, notes
+
+        cur_tag = current_platform_tag()
+        cur_py = python_tag()
+        notes.append(f"造包平台: {built_tag} / Python {built_py}")
+        notes.append(f"本机平台: {cur_tag} / Python {cur_py}")
+
+        if built_tag != cur_tag:
+            problems.append(
+                f"平台不匹配：wheelhouse 造于 **{built_tag}**，本机是 **{cur_tag}**。"
+                f"wheel 带平台标签（win_amd64 / manylinux），跨平台无法安装。"
+                f"⇒ 请在 {cur_tag} 机器上重造："
+                f"python scripts/08_offline_install/build_wheelhouse.py")
+        if built_py != cur_py:
+            problems.append(
+                f"Python 版本不匹配：wheelhouse 造于 **{built_py}**，本机是 **{cur_py}**。"
+                f"wheel 带 cp3XX ABI 标签，跨小版本无法安装。"
+                f"⇒ 请用 Python {built_py} 造包，或在 {cur_py} 机器上重造："
+                f"python scripts/08_offline_install/build_wheelhouse.py")
+
+        return problems, notes
 
 
 # ---------------------------------------------------------------------------

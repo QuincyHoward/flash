@@ -364,19 +364,35 @@ python start_flash.py   # 用系统 Python 运行（自动创建 .venv，约 3-4
 
 **② `laserslab1d_local_custom.py` — LaserSlab 1D 场景仿真（超算 / 本地 WSL 双模式）**
 
-`scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
+`flash/scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
 
 ```bash
-# 超算模式（默认，需 SSH 凭据 flash_ssh）
-.venv\Scripts\python.exe scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+# 本地 WSL 模式（★脚本默认 RUN_MODE = "wsl"，零修改即可跑）
+.venv\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
 
-# 本地 WSL 模式：将脚本顶部 RUN_MODE 改为 "wsl" 后运行
+# 超算模式：将脚本顶部 RUN_MODE 改为 "hpc"（需 SSH 凭据 flash_ssh）
+# 也可用环境变量临时覆盖，无需改文件：
+set FLASH_RUN_MODE=hpc   # Windows CMD
 ```
 
-- 运行模式：脚本顶部 `RUN_MODE = "hpc"`（超算）/ `"wsl"`（本地 WSL），一行切换
+- 运行模式：脚本顶部 `RUN_MODE = "wsl"`（本地 WSL，**默认**）/ `"hpc"`（超算），一行切换；
+  环境变量 `FLASH_RUN_MODE` 优先级更高（也可用于 `--profile` 之外的临时覆盖）
+- **跨平台（09-10 实测）**：Windows 上以 `.venv\Scripts\python.exe` 调用，内部经
+  `wsl bash -c` 转发；**若已在 WSL 内**（如离线机把仓库放在 `/mnt/e/...` 并用 Linux
+  解释器执行），脚本自动改用 `bash -c`，路径转换也幂等，两种方式都可直接跑。
+- **FLASH 安装位置解析（09-10）**：依次为
+  1. 环境变量 `FLASH_SIM_USER_DIR`（最高优先级）
+  2. 加密凭据里的 `default_user_name`（`~/.flash_sim/credentials.enc`）
+  3. 自动扫描 `$HOME/*/FLASH/FLASH4.8`（判据：同时有 `setup` 与
+     `source/Simulation/SimulationMain`）
+  4. 以上都无 ⇒ 回落到字面量 `hello`（`~/hello/FLASH/FLASH4.8`）
+
+  ★ 干净克隆 / 离线机**没有** `credentials.enc`，第2 步读不到 ⇒ 会误指向
+  `~/hello/...` 而报 `FLASH_HOME not found`；第 3 步的自动扫描正是为此准备的。
+  需要强制指定时：`export FLASH_SIM_USER_DIR=QC`。
 - **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_processors 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
 - EOS 表：cn4 源文件存放于 `flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/`（`ch_mix` / `helium_hires` 等自研 ionmix 表随仓库分发），由 `EOSOpacityGenerator` 复制到 `flash_input/`
-- 输出：`scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地）
+- 输出：`flash/scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地 WSL）
 
 ### 1. 场景系统 — 即插即用（推荐）
 

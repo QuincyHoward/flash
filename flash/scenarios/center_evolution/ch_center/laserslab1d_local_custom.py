@@ -79,15 +79,28 @@ if str(_PARENT) not in sys.path:
 # ── RemoteSession 导入 ───────────────────────────────
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-# ── 用户信息（统一走 runner.get_sim_user_dir: credentials → env → hello）──
+# ── 用户信息（统一走 runner.get_sim_user_dir）──
 def _get_sim_user_dir() -> str:
     from flash.scenarios.runner import get_sim_user_dir as _sud
     return _sud()
 
+
 SIM_USER_DIR = _get_sim_user_dir()
 
-# 超算环境配置
-FLASH_HOME = f"~/{SIM_USER_DIR}/FLASH/FLASH4.8"
+# ── 超算环境配置 ──
+# FLASH 安装前缀。优先级（09-10 新增自动发现）：
+#   1. 环境变量 FLASH_SIM_USER_DIR（get_sim_user_dir 已作最高优先级处理）
+#   2. 凭据里的用户名 → ~/<user>/FLASH/FLASH4.8
+#   3. ★ 自动扫描 $HOME —— 离线机 / 干净克隆没有 credentials.enc，
+#      get_sim_user_dir() 会回落 'hello'，而实际装在别处（如 ~/QC）。
+#      扫描判据：同时存在 setup 与 source/Simulation/SimulationMain。
+#   4. 都找不到 ⇒ 保留原路径，由 run_flash.sh 报出可操作的错误。
+try:
+    from flash.scenarios.runner import discover_flash_home as _discover
+    FLASH_HOME = _discover() or f"~/{SIM_USER_DIR}/FLASH/FLASH4.8"
+except Exception:            # noqa: BLE001 —— 发现失败不该阻断脚本导入
+    FLASH_HOME = f"~/{SIM_USER_DIR}/FLASH/FLASH4.8"
+
 MODULES_LOAD = (
     "module purge 2>/dev/null; "
     "source /public1/soft/modules/module.sh 2>/dev/null; "
@@ -390,10 +403,15 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
         "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
-        # FLASH_HOME 用 $HOME/{SIM_USER_DIR} 形式（生成器输出为
+        # FLASH_HOME 用 $HOME/<user> 形式（生成器输出为
         # FLASH_HOME="$HOME/hello/FLASH/FLASH4.8"，双引号内 $HOME 可展开；
-        # 若用 ~ 会被双引号包裹而无法展开，导致目录检查失败）
-        "flash_home": f"$HOME/{SIM_USER_DIR}/FLASH/FLASH4.8",
+        # 若用 ~ 会被双引号包裹而无法展开，导致目录检查失败）。
+        # ★ 09-10：用上面解析出的 FLASH_HOME，不再按 SIM_USER_DIR 重新拼 ——
+        #   自动发现到 ~/QC 时，凭据里的用户名仍是 'hello'，重拼会指错目录。
+        "flash_home": FLASH_HOME if FLASH_HOME.startswith("$HOME/") else (
+            FLASH_HOME.replace("~", "$HOME", 1)
+            if FLASH_HOME.startswith("~") else FLASH_HOME
+        ),
     }
     script_gen = ShellScriptGenerator(config=script_config)
     script_gen.save(str(INPUT_DIR / "run_flash.sh"), "wsl", par_file=par_filename)
@@ -685,11 +703,21 @@ def download_analysis_results(session: RemoteSession, remote_dir: str) -> int:
 
 
 def _to_wsl_path(win_path: Path) -> str:
-    """Windows 路径 → WSL (/mnt/<drive>/...) 路径。
+    """归一为 WSL 路径（/mnt/<drive>/...），**幂等**。
 
     例: E:\\PhySimX\\...\\flash_input → /mnt/e/PhySimX/.../flash_input
+
+    ★ 09-10 修复：**已在 WSL 内运行时**（离线机常直接把仓库放在 /mnt/e 下，
+      用 Linux 解释器执行本脚本），传入的已是 `/mnt/e/...` 形式 ——
+      旧实现无条件按 `:` 分割 ⇒ `ValueError: not enough values to unpack`
+      ⇒ 步骤 2 直接崩。此处先识别已有 WSL 路径并原样返回。
     """
     s = str(win_path)
+    # 已是 WSL / POSIX 绝对路径 ⇒ 原样返回（幂等的关键）
+    if s.startswith("/"):
+        return s
+    if ":" not in s:                      # 相对路径等异常形态，交给调用方报错
+        return s.replace("\\", "/")
     drive, rest = s.split(":", 1)
     return "/mnt/" + drive.lower() + rest.replace("\\", "/")
 
@@ -726,8 +754,17 @@ def _run_wsl_with_progress(cmd: str, console_log: Path,
         (WSL 返回码, 日志文件当前全部内容)。
     """
     start = time.monotonic()
+    # ★ 09-10 修复：**已在 Linux/WSL 内运行**时不要再套一层 `wsl`——
+    #   WSL 内部没有 `wsl` 命令（旧实现 Popen(["wsl","bash","-c",...])
+    #   ⇒ FileNotFoundError: 未找到 wsl 命令 ⇒ 步骤 3 直接失败）。
+    #   离线机常把仓库放在 /mnt/e 下并用 Linux 解释器直接跑本脚本，
+    #   此时 `bash -c` 就是正确调用。Windows 上则仍走 wsl 中转。
+    if os.name == "nt":
+        argv = ["wsl", "bash", "-c", cmd]
+    else:
+        argv = ["bash", "-c", cmd]
     proc = subprocess.Popen(
-        ["wsl", "bash", "-c", cmd],
+        argv,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     last_report = start

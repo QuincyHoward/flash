@@ -104,19 +104,53 @@ offline_pkg/wheelhouse/          ← ★ 只拷这个目录
 └── .stale/                      ← 上一轮被隔离的旧包（可删）
 ```
 
-### 实测体积（09-10 第三轮，Windows/Python 3.13）
+### 实测体积（09-10，两平台实测）
 
-| 档位 | wheelhouse 大小 | 装完 `.venv` | 备注 |
-|------|---------------|-----------|------|
-| `full` | **130 MB**（71 包） | **647 MB**（实测） | 可跑三套测试 |
-| `runtime` | 约 100 MB | ~480 MB | 去 dev 工具链 |
-| `lite` | **56 MB**（14 包） | ~180 MB | 无 yt/matplotlib/pandas |
-| `--no-interpreter` | 少 25 MB | — | 离线机已有 Python 时用 |
+| 档位 | Windows / Py 3.13 | Linux / Py 3.10 | 装完 `.venv` | 备注 |
+|------|-------------------|-----------------|-----------|------|
+| `full` | **130 MB**（71 包） | **165 MB**（78 包） | **647 MB**（Win 实测） | 可跑三套测试 |
+| `runtime` | 约 100 MB | 约 130 MB | ~480 MB | 去 dev 工具链 |
+| `lite` | **56 MB**（14 包） | 约 70 MB | ~180 MB | 无 yt/matplotlib/pandas |
+| `--no-interpreter` | 少 25 MB | 不适用 | — | 离线机已有 Python 时用 |
 
-> ★ 上表 `full` 与 `lite` 为 09-10 **实测值**，`runtime` 为估算。
-> 体积大头是 `scipy`(35MB)、`yt`(15MB)、`numpy`(12MB)、`pandas`(9MB)、
-> `matplotlib`(9MB)。**若离线机只需要跑仿真、不需要出图，选 `lite` 档最省**
-> （实测 56MB，是 full 的 43%）。
+> ★ 上表 `full` 两列与 `lite` 均为09-10 **实测值**，`runtime` 为估算。
+
+### ★★ 为什么两平台包数不同（71 vs 78）—— 主因是 **Python 版本**，不是平台
+
+逐包对比结论：
+
+| 差异包 | 归属 | 原因 |
+|--------|------|------|
+| `colorama`、`pywin32-ctypes` | 平台 | Windows 终端 ANSI 色彩 / Win32API ctypes |
+| `jeepney`、`secretstorage` | 平台 | paramiko 的 Linux 密钥后端 |
+| `typing-extensions`、`tomli`、`exceptiongroup`、`importlib-metadata`、`zipp`、`backports.tarfile` | **Python 3.10** | 3.11+ 才内置 `tomllib`/`exceptiongroup`，3.10 需外部垫片 |
+| `pytz` | **Python 3.10** | 被 pandas 2.x 依赖（pandas 3.x 已不需） |
+
+另：`numpy`/`scipy`/`matplotlib`/`pandas` 在 3.10 上只能取到较旧版本
+（如 numpy 2.2.6 vs 3.13 上的 2.5.3），体积也随之不同。
+
+⇒ **同一 Python 版本下，Windows/Linux 的包集合应当一致**（pip 会为当前解释器
+选到对应平台 wheel）。**联网机与离线机请使用同Python 版本**。
+
+### 平台一致性闸门（09-10 新增）
+
+`MANIFEST.json` 现在记录 `platform_tag` / `python_tag` / `platform_extra_pkgs`。
+离线机安装前会比对，**不匹配直接中止并给出可操作提示**：
+
+```
+[FATAL] wheelhouse 与本机平台/Python 版本不匹配:
+   - Python 版本不匹配：wheelhouse 造于 **3.10**，本机是 **3.13**。
+     wheel 带 cp3XX ABI 标签，跨小版本无法安装。
+     ⇒ 请用 Python 3.10 造包，或在 3.13 机器上重造：
+       python scripts/08_offline_install/build_wheelhouse.py
+```
+
+> ★ 为什么需要：wheel 文件名带 `cp3XX-` **ABI 标签**，跨版本根本装不上，
+> 而 pip 只会说 "No matching distribution found"，**不会告诉你是版本问题**。
+> 旧版 MANIFEST 无这两个字段时会**跳过检查并提示重造**（向后兼容）。
+
+> ★ **体积大头**是 `scipy`、`yt`、`numpy`、`pandas`、`matplotlib`。
+> **若离线机只需要跑仿真、不需要出图，选 `lite` 档最省**（Win 实测 56MB，是 full 的 43%）。
 
 > ★★ **本体 wheel 只有 5.5 MB**（1028 条目），造包耗时 4 s。
 > 09-10 修复前是 **100.5 MB**（2873 条目）——`.gitignore` 管不到 wheel，
