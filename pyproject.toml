@@ -67,6 +67,10 @@ flash-setup = "flash.config:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["flash"]
+# 仓库根目录的 MCP server 随 wheel 分发为 flash/mcp_server.py
+# (供 `python -m flash.mcp_server` 或 Agent 直连使用; 源码仓库场景仍以根目录文件为准)。
+# 注意: 与 exclude 成对维护 —— 新增 include 前须核对 wheel_leak_audit 护栏。
+force-include = {"mcp_server.py" = "flash/mcp_server.py"}
 exclude = [
     # === FLASH 版权材料与引擎相关 (License §3) ===
     "flash/flash_src/**",
