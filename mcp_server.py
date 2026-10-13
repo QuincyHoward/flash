@@ -18,11 +18,12 @@
 
 WorkBuddy 接入方法
 ------------------
-在 `~/.workbuddy/mcp.json` 的 `mcpServers` 中添加::
+在 `~/.workbuddy/mcp.json` 的 `mcpServers` 中添加 (路径按实际环境替换,
+**本文件不含任何硬编码绝对路径**; args 的第二个元素即本文件的绝对路径)::
 
     "flash-docs": {
-        "command": "C:\\\\Users\\\\Administrator\\\\.workbuddy\\\\binaries\\\\python\\\\versions\\\\3.13.12\\\\python.exe",
-        "args": ["E:\\\\PhySimX\\\\PhySimX\\\\simulation\\\\flash_test\\\\layer3\\\\flash\\\\mcp_server.py"]
+        "command": "<python.exe 绝对路径>",
+        "args": ["<本文件绝对路径>"]
     }
 
 保存后重启会话, 并在「连接器管理页」对该 MCP server 点击 **Trust** 激活。
@@ -479,6 +480,82 @@ macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux
 9. **WSL .sh 必须 LF 换行**: CRLF 会导致 `$'\\r'` 错误、Fortran 编译异常、.par
    解析失败。仓库 .gitattributes 强制 `* text=auto eol=lf`; 引擎生成的
    run_flash.sh / submit_flash.sh 均为 LF; 自建脚本也要保证 LF。
+
+10. **HDF5 "real scalars" 是复合类型不是 group**: 结构化数组
+    `[(name, S80), (value, f8)]`, 不能 `f["real scalars"]["time"]`; 须遍历
+    `rs["name"][i].decode().strip() == "time"` 取 `rs["value"][i]`。
+
+11. **x-t 图禁用 imshow**: chk 按步数写出, Δt 高度非均匀 (实测 52.7×);
+    FlashPlotter.plot_xt_map 用 pcolormesh + 每帧真实时间, 自建图也要如此。
+""",
+    # ── 操作规范 (docs/flash_operation_standard.md 摘要) ──
+    "operation_standard": """\
+# 仿真操作规范 (operation_standard, 源: docs/flash_operation_standard.md)
+
+## 绘图规范 (强制)
+- **所有绘图元素全英文**: title / xlabel / ylabel / legend / colorbar;
+  控制台日志、代码注释、文档可中文。
+- **字号 ≥ 18pt (PPT 友好)**: title 22 / 轴标签 20 / 刻度·图例·colorbar·注释 18;
+  禁止手工 fontsize=8/10/12/13/14。
+- 统一入口 `output_processors/plotter/plot_style.py`:
+  `apply_plot_style()` 一键全局样式 (≥18pt, 全英文, dpi=200);
+  `english(text)` 清洗 Unicode (μm→um, g/cm³→g/cm^3);
+  `save_figure(fig, path)` 保存 (dpi=200 + tight)。
+- 合规检查: `python scripts/01_env_diagnose/check_plot_style.py` 扫描全包。
+
+## 行尾规范
+所有文本文件 LF (禁 CRLF): .py/.F90/.sh/.bat/.par/.cn4/.md/.json/.toml…
+CRLF 危害: shell `$'\\r'` 错、Fortran Illegal character、.par 解析异常。
+
+## 一次仿真最少 8 个文件
+Config / `<name>.par` / Makefile / Simulation_data.F90 / Simulation_init.F90 /
+Simulation_initBlock.F90 / 2 个 `<ionmix4>.cn4` (靶材+腔室)。
+
+## 仿真验证标准
+| 检查项 | PASS 判定 |
+|---|---|
+| 仿真完成 | 日志含 `exiting: reached max SimTime` |
+| 输出文件 | ≥1 个 `*hdf5_chk_*` |
+| 网格自适应 | 日志含 `refined: total blocks` |
+| 物理量有效 | dens > 0 且 tele > 0 |
+| AMR 正常 | leaf blocks > 初始 blocks |
+
+## 代码规范
+- 路径管理: 以包根为基准 sys.path.insert, 禁止绝对路径硬编码。
+- FlashDataContainer 属性标准名: `ndim` (非 dimension) / `data` (非 variables)
+  / `derived` / `grid`。
+""",
+    # ── FLASH 执行知识库 (docs/flash_simulation_execution_knowledge.md 摘要) ──
+    "flash_execution_knowledge": """\
+# FLASH 仿真执行知识库 (flash_execution_knowledge, 源: FLASH4.8 UG 提取)
+
+## Setup 快捷键 (LaserSlab 典型)
+`./setup -auto LaserSlab -1d +cartesian -nxb=16 +hdf5typeio species=cham,targ
++mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10`
+- `+laser` 激光射线追踪 / `+mtmmmt` 多物种多温度 / `+uhd3t` 3T 非分裂流体
+  / `+mgd` 多群辐射扩散 / `+ug` 均匀网格 (AMR 失效, 见 common_pitfalls #6)。
+编译: `cd object/ && make`; 运行: `mpirun -np N ./flash4`。
+
+## 激光参数 (ed_*)
+- 脉冲: `ed_numberofPulses` + `(ed_power_1_1, ed_time_1_1)` 功率-时间点对 (W, s)。
+- 光束: `ed_wavelength_1` (m, 351nm=3.5e-7); lens 在**仿真域外**仅定义方向
+  (1D 中 ed_lensX=-1 → 左入射), target 在**域内**是照射点; 能量沉积发生在
+  射线穿过域内时。`ed_maxPulses`/`ed_maxBeams` 是 setup 期上限。
+- 激光 IO: `ed_useLaserIO=.true.` + ed_laserIOMaxNumberOfRays/Positions。
+
+## 输出文件
+- chk `*_hdf5_chk_*`: float64, ~44 变量, 重启用; plt `*_hdf5_plt_cnt_*`:
+  float32, ~9 变量, 可视化用。形状 (nblocks, Nz, Ny, Nx), 边界框 (nblocks,3,2)。
+- "real scalars" 复合类型取法见 common_pitfalls #10。
+
+## HPC 批量规范 (摘要)
+- 目录命名 `~/<SIM_USER_DIR>/AI/Aitemp/flash_batch_<ts>_p<power_factor>/`;
+  submit_flash.sh 内置 SLURM_SUBMIT_DIR / SLURM_NTASKS 回退, 输出目录
+  `outputfiles_<ts>/` 须动态 `ls -d` 查找。
+- 资源自动计算 (resource_config.json): mem/ntasks 由 node 资源 × max_cpu_percent
+  ÷ max_parallel 派生, ShellScriptGenerator 按 dimension+platform 加载。
+- 远程分析: python/3.9.6 是唯一带 h5py 的超算模块 (3.10.8/3.8.6 无, 已验证);
+  分析结果 (JSON+PNG) 下载本地, HDF5 保留超算。
 """,
 }
 
@@ -519,6 +596,31 @@ def tool_module_map() -> str:
 def tool_api_reference() -> str:
     """返回 README「核心类」表 + loader/plotter 典型用法代码片段。"""
     return API_REFERENCE_TEXT
+
+
+def tool_docs_index() -> str:
+    """动态枚举项目内全部 *.md 文档 (路径 + 大小 + 首个标题), 零硬编码。
+
+    Agent 可据此决定用 read_doc / resources/read 深读哪份文档。
+    """
+    lines = ["# flash-sim 文档索引 (动态扫描)"]
+    for path in _iter_md_files():
+        rel = _rel(path)
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            title = next(
+                (ln.lstrip("# ").strip() for ln in text.splitlines() if ln.strip().startswith("#")),
+                "(无标题)",
+            )
+            n_lines = text.count("\n") + 1
+        except OSError as exc:
+            title, n_lines = f"(读取失败: {exc})", 0
+        lines.append(f"- **{rel}** ({n_lines} 行) — {title}")
+    lines.append(
+        "\n深读方式: `read_doc(rel_path)` 或 resources/read (file:// URI); "
+        "关键词定位用 `search_docs(query)`。"
+    )
+    return "\n".join(lines)
 
 
 def tool_workflow_guide(topic: str) -> str:
@@ -787,7 +889,8 @@ def _build_tools() -> Dict[str, Tuple[Dict[str, Any], Callable[..., str]]]:
     )
     add(
         "workflow_guide",
-        "返回指定主题的工作流指南。topic: full_simulation | par_generation | hdf5_analysis | remote_hpc | offline_deploy | common_pitfalls。",
+        "返回指定主题的工作流指南 (8 主题): full_simulation | par_generation | hdf5_analysis | "
+        "remote_hpc | offline_deploy | common_pitfalls | operation_standard | flash_execution_knowledge。",
         {"topic": {"type": "string", "description": "指南主题", "enum": list(GUIDE_TOPICS)}},
         ["topic"], tool_workflow_guide,
     )
@@ -813,6 +916,11 @@ def _build_tools() -> Dict[str, Tuple[Dict[str, Any], Callable[..., str]]]:
         "env_check",
         "环境自检: Python 版本、.venv-win/.venv-linux 是否存在、flash 包可导入性、FLASH_HOME 探测链。",
         {}, [], tool_env_check,
+    )
+    add(
+        "docs_index",
+        "动态枚举项目内全部 *.md 文档 (相对路径 + 行数 + 首个标题), 用于决定深读哪份。",
+        {}, [], tool_docs_index,
     )
     add(
         "module_map",
