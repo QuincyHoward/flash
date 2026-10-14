@@ -16,7 +16,7 @@ start_flash.py — flash 包「环境自检自愈 + 从零安装 + 全局测试�
   5. 运行全局三套测试:  framework / input_gen / output_processors
      - 若三套件全部「0 用例启动失败」（pytest 崩溃特征）→ 判定为环境问题
        → 自动清零重建 → 重新测试
-  6. 生成纯文本测试报告 INSTALL_TEST_REPORT.txt
+  6. 生成纯文本测试报告 test/reports/INSTALL_TEST_REPORT.txt
      （含「环境版本快照」：关键依赖的真实版本统一记录）并在终端完整显示
 
 设计原则（用户明确要求）：
@@ -102,7 +102,10 @@ DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, ".venv")
 # 不在此硬编码本机用户路径（start_flash.py 会随 sdist 发布，避免隐私泄漏）。
 DEFAULT_BASE_PY: list = []
 
-REPORT_FILE = os.path.join(PROJECT_DIR, "INSTALL_TEST_REPORT.txt")
+# 测试报告与 pytest 日志统一写入 <PROJECT>/test/reports/ (运行时自动创建),
+# 不再散落在仓库根目录。REPORT_FILE / pytest_*.log 路径均由此派生。
+REPORT_DIR = os.path.join(PROJECT_DIR, "test", "reports")
+REPORT_FILE = os.path.join(REPORT_DIR, "INSTALL_TEST_REPORT.txt")
 
 # 三套测试: (套件名, 相对测试目录)  — 标准布局: 包代码在 flash/ 下
 TEST_SUITES = [
@@ -809,8 +812,9 @@ def run_suites() -> dict:
                              "failed_lines": ["[TIMEOUT] 测试超时被终止"]}
             continue
         out = r.stdout + "\n" + r.stderr
-        # 保存完整日志便于排查
-        logfile = os.path.join(PROJECT_DIR, f"pytest_{name}.log")
+        # 保存完整日志便于排查 (统一放 test/reports/, 不污染根目录)
+        os.makedirs(REPORT_DIR, exist_ok=True)
+        logfile = os.path.join(REPORT_DIR, f"pytest_{name}.log")
         with open(logfile, "w", encoding="utf-8") as f:
             f.write(out)
         res = parse_pytest(out, r.returncode)
@@ -1279,7 +1283,8 @@ def main() -> int:
     lines.append("- output_processors 套件测试数据（inputfiles/，.gitignore 排除）"
                  "由 flash/output_processors/test/gen_test_data.py 在测试会话中自动生成，"
                  "克隆/发布环境无需手动准备。")
-    lines.append("- 完整测试日志见 pytest_framework.log / pytest_input_gen.log / pytest_output_processors.log。")
+    lines.append("- 完整测试日志见 test\\reports\\ 下的 pytest_framework.log / "
+                 "pytest_input_gen.log / pytest_output_processors.log。")
     lines.append("- 虚拟环境为项目专属 .venv（项目根目录），与共享环境 envs/default 完全隔离。")
     if OFFLINE:
         lines.append(f"- 本次为**离线安装**：pip 全程带 --no-index，从 wheelhouse 本地取包，"
@@ -1292,6 +1297,7 @@ def main() -> int:
     lines.append("")
 
     report = "\n".join(lines)
+    os.makedirs(REPORT_DIR, exist_ok=True)
     with open(REPORT_FILE, "w", encoding="utf-8") as f:
         f.write(report)
     log(f"[report] 报告已写入: {REPORT_FILE}")

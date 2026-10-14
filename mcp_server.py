@@ -493,7 +493,7 @@ macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux
 # 仿真操作规范 (operation_standard, 源: docs/flash_operation_standard.md)
 
 ## 绘图规范 (强制)
-- **所有绘图元素全英文**: title / xlabel / ylabel / legend / colorbar;
+- **所有绘图元素全英文**（即英文文献插图风格）: title / xlabel / ylabel / legend / colorbar;
   控制台日志、代码注释、文档可中文。
 - **字号 ≥ 18pt (PPT 友好)**: title 22 / 轴标签 20 / 刻度·图例·colorbar·注释 18;
   禁止手工 fontsize=8/10/12/13/14。

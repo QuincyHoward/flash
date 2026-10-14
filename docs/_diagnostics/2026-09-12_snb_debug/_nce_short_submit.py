@@ -12,7 +12,7 @@ FLASH_ROOT = Path(r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
 SCENE = (FLASH_ROOT / "flash" / "scenarios" / "private" / "tracer" / "SNB"
          / "SNBOneCH_ml" / "SNBOneCH_ml.py")
 PY = r"C:\Users\Administrator\.workbuddy\binaries\python\envs\default\Scripts\python.exe"
-LOG = FLASH_ROOT / "_nce_short_run.txt"
+LOG = Path(__file__).resolve().parent / "_nce_short_run.txt"  # 相对本脚本, 不污染仓库根目录
 
 cmd = [PY, str(SCENE), "--mode", "hpc", "--account", "flash_ssh",
        "--tmax", "2.0e-10", "--nproc", "131", "--poll-timeout", "14400"]

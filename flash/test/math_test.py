@@ -541,13 +541,18 @@ def extract_shock_front(
 def quick_test_1d(
     wavelength_nm: float = 351.0,
     peak_power: float = 1e13,
-    output_path: str = "quick_test_1d.h5",
+    output_path: Optional[str] = None,
 ) -> Dict[str, Any]:
     """便捷函数: 1D 快速测试。
+
+    output_path 默认保存到本模块所在目录 (flash/test/quick_test_1d.h5),
+    与调用者的 CWD 无关 —— 避免在仓库根目录等处散落产物。
 
     Returns:
         结果摘要字典
     """
+    if output_path is None:
+        output_path = str(Path(__file__).resolve().parent / "quick_test_1d.h5")
     tester = LaserSlabCa1D(
         wavelength_nm=wavelength_nm,
         peak_power_w_cm2=peak_power,

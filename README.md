@@ -369,7 +369,7 @@ python start_flash.py                        # 在线安装 + 三套测试 + 报
 python start_flash.py --no-tests# 只装环境
 ```
 
-自动完成：检查/创建项目专属虚拟环境（含**环境健康检查**：关键依赖可导入 + pytest 可启动）→ 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `INSTALL_TEST_REPORT.txt`（含**环境版本快照**）。
+自动完成：检查/创建项目专属虚拟环境（含**环境健康检查**：关键依赖可导入 + pytest 可启动）→ 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `test/reports/INSTALL_TEST_REPORT.txt`（含**环境版本快照**；pytest 日志同目录）。
 
 | 参数 | 作用 |
 |---|---|
@@ -647,7 +647,7 @@ flash-sim 支持三平台部署：
 
 - **行尾**: 所有文件强制 Unix LF（`.gitattributes` 已配置）
 - **格式化**: Black (`--line-length=120`), Ruff linting
-- **绘图**: 全英文字符，标题≥24pt，标签≥20pt，DPI≥450
+- **绘图**: 全英文字符，标题≥24pt，标签≥20pt，DPI≥450，即英文文献插图风格
 - **Python**: 3.10+，类型注解优先
 
 ### 运行测试
@@ -853,7 +853,7 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   health-checks it (key dependencies importable + pytest launchable),
   **automatically rebuilds from scratch when unhealthy**, re-runs the global
   test suites if pytest crashes at startup, and writes an
-  `INSTALL_TEST_REPORT.txt` including a **dependency version snapshot**.
+  `test/reports/INSTALL_TEST_REPORT.txt` including a **dependency version snapshot**.
   It is also the single entry point for air-gapped deployment
   (`--make-wheelhouse` / `--export-usb` / `--offline` / `--check` / `--no-tests`).
   ★ A venv belonging to the *other* platform is detected and **kept, never

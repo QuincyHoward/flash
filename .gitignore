@@ -55,9 +55,12 @@ temp_delete/
 flash_venv/
 # 备份核对调试记录
 备份核对报告.md
-# start_flash.py 生成的测试报告与日志
+# start_flash.py 生成的测试报告与日志 (2026-10-14 起统一写 test/reports/, 不再落根目录)
 INSTALL_TEST_REPORT.txt
 pytest_*.log
+test/reports/
+# flash/test/math_test.py quick_test_1d() 的默认输出 (模块目录, 与 CWD 无关)
+flash/test/quick_test_1d.h5
 # laserslab1d 场景运行产物（EOS 元数据 / WSL 运行日志）
 *.eosmeta.json
 wsl_run.log

@@ -111,11 +111,13 @@ class TestLaserSlabCa1D:
         assert "tele" in result
 
     def test_quick_test_1d_saves_hdf5(self):
-        """quick_test_1d() 自动保存 HDF5 文件到 CWD。"""
+        """quick_test_1d() 自动保存 HDF5 到模块目录 (flash/test/), 与 CWD 无关。"""
         import h5py
 
+        from flash.test import math_test as mt
+
         result = quick_test_1d()
-        h5_path = os.path.join(os.getcwd(), "quick_test_1d.h5")
+        h5_path = os.path.join(os.path.dirname(os.path.abspath(mt.__file__)), "quick_test_1d.h5")
         try:
             assert os.path.exists(h5_path), "quick_test_1d.h5 未被创建"
             with h5py.File(h5_path, "r") as f:
