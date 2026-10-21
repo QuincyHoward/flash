@@ -93,8 +93,6 @@ wsl_run.log
 *.txt
 
 
-
-
 # ================================================================
 # ★ 同步自 flash/input_gen/gen_eos_op/.gitignore (2026-09-16)
 # ----------------------------------------------------------------
@@ -412,6 +410,9 @@ wheels/
 # flash_output/ 为分析输出目录 (plots 等)。
 flash/scenarios/**/flash_input/
 flash/scenarios/**/flash_output/
+flash/scenarios/**/scripts/*
+flash/scenarios/**/*.html
+
 
 # ==============================
 # Credentials (never commit)

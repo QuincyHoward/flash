@@ -61,9 +61,11 @@ class TestRelationChecker:
     """内在关联检查器（check_relations.py）测试。"""
 
     # ch_center 场景的生成目录（已验证内部一致）
+    # ★ 2026-10-21: 公开示例整理进 scenarios/public/ 后，此处仍指旧路径 →
+    #   两个用例静默 skip（83 → 81 passed + 2 skipped）。路径随目录同步。
     _SCENARIO_DIR = (
         Path(__file__).resolve().parents[2]
-        / "scenarios" / "center_evolution" / "ch_center" / "flash_input"
+        / "scenarios" / "public" / "center_evolution" / "ch_center" / "flash_input"
     )
 
     def test_import_relation_checker(self):

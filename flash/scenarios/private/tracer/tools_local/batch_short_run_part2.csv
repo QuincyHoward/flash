@@ -1,0 +1,5 @@
+﻿scene,rc,chk,n_species,material_ok,mismatch,seconds,note
+SNB/SNBOneCH_m/SNBOneCH_m.py,0,SNB/SNBOneCH_m/flash_output/snbonechmug_hdf5_chk_0000,8,PASS,,51,
+SNB/SNBOneCH_ml/SNBOneCH_ml.py,0,SNB/SNBOneCH_ml/flash_output/snbonechug_hdf5_chk_0000,8,PASS,,46,
+SNB/SNBVTi1um/SNBVTi1um.py,1,,,NO_CHK,,1,
+SNB/SNBVTi2/SNBVTi2.py,1,,,NO_CHK,,1,

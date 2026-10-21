@@ -1,0 +1,471 @@
+run_comment = "VTi_oldstyle 3um (clone of ReDo042sp_CH042sp3um8.00e-02, xmin=-500um xmax=150um, tmax=2.5ns)"
+log_file    = "lasslab.log"
+basenm      = "lasslab_"
+
+# This particular parfile is used as an example that is described in
+# detail in the users guide.
+
+##########################
+#                        #
+#     I/O PARAMETERS     #
+#                        #
+##########################
+
+### Checkpoint Options  ###
+checkpointFileIntervalTime = 1.0
+checkpointFileIntervalStep = 50  # 生成的参数
+
+### Plot Options ###
+plotFileNumber       = 0
+plotFileIntervalStep = 500  # 生成的参数
+plot_var_1           = "dens"
+plot_var_2           = "depo"
+plot_var_3           = "tele"
+plot_var_4           = "tion"
+plot_var_5           = "trad"
+plot_var_6           = "ye  "
+plot_var_7           = "sumy"
+plot_var_8           = "cham"
+plot_var_9           = "targ"
+plot_var_10          = "shld"
+plot_var_11          = "samp"
+plot_var_12          = "fllm"
+
+### Restart Options ###
+restart              = .false.
+checkpointFileNumber = 0
+
+########################################
+#                                      #
+#     RADIATION/OPACITY PARAMETERS     #
+#                                      #
+########################################
+rt_useMGD       = .true.
+rt_mgdNumGroups = 10
+rt_mgdBounds_1  = 1.000000000e-01
+rt_mgdBounds_2  = 3.981072000e-01
+rt_mgdBounds_3  = 1.584893000e+00
+rt_mgdBounds_4  = 6.309573000e+00
+rt_mgdBounds_5  = 2.511886000e+01
+rt_mgdBounds_6  = 1.000000000e+02
+rt_mgdBounds_7  = 3.981072000e+02
+rt_mgdBounds_8  = 1.584893000e+03
+rt_mgdBounds_9  = 6.309573000e+03
+rt_mgdBounds_10 = 2.511886000e+04
+rt_mgdBounds_11 = 1.000000000e+05
+rt_mgdFlMode    = "fl_harmonic"
+rt_mgdFlCoef    = 1.0
+
+
+
+
+
+
+rt_mgdXlBoundaryType = "vacuum"
+rt_mgdXrBoundaryType = "vacuum"
+
+useOpacity     = .true.
+
+### SET CHAMBER (HELIUM) OPACITY OPTIONS ###
+op_chamAbsorb   = "op_tabpa"
+op_chamEmiss    = "op_tabpe"
+op_chamTrans    = "op_tabro"
+op_chamFileType = "ionmix4"
+op_chamFileName = "He-BADGER-TOPS-Final.cn4"
+
+### SET TARG (XXX) OPACITY OPTIONS ###
+op_targAbsorb   = "op_tabpa"
+op_targEmiss    = "op_tabpe"
+op_targTrans    = "op_tabro"
+op_targFileType = "ionmix4"
+op_targFileName = "Ti-BADGER-TOPS.cn4"
+
+
+### SET  (XXX) OPACITY OPTIONS ###
+op_sampAbsorb   = "op_tabpa"
+op_sampEmiss    = "op_tabpe"
+op_sampTrans    = "op_tabro"
+op_sampFileType = "ionmix4"
+#op_sampFileName = "Au-imx.cn4"
+op_sampFileName = "CH-QC-1-001.cn4"  # 材料更换
+
+### SET  (XXX) OPACITY OPTIONS ###
+op_shldAbsorb   = "op_tabpa"
+op_shldEmiss    = "op_tabpe"
+op_shldTrans    = "op_tabro"
+op_shldFileType = "ionmix4"
+op_shldFileName = "V-BADGER-TOPS.cn4"
+
+############################
+#                          #
+#     LASER PARAMETERS     #
+#                          #
+############################
+useEnergyDeposition = .true.
+ed_maxRayCount = 10000  # 生成的参数
+ed_gradOrder        = 2
+
+### LASER IO OPTIONS ###
+ed_useLaserIO                  = .false.
+ed_laserIOMaxNumberOfPositions = 10000
+ed_laserIOMaxNumberOfRays      = 128
+
+### SETUP LASER PULSES ###
+ed_numberOfPulses = 1  # 总脉冲数量
+
+# Define Pulse 1:
+ed_numberOfSections_1 = 82  # 时间功率组（1x82)
+
+
+### SETUP LASER BEAM ###
+ed_numberOfBeams = 1  # 总光束数量
+
+ed_lensX_1 = -1.0  # 远
+ed_targetX_1 = 0.000000000e+00  # 近
+ed_pulseNumber_1              =  1
+ed_wavelength_1 = 0.351  # 文献波长
+ed_crossSectionFunctionType_1 = "uniform"  # 光强分布
+ed_numberOfRays_1             =  1
+ed_gridType_1                 = "regular1D"
+ed_gridnRadialTics_1          =  512
+
+
+ed_time_1_82 =      2.208686300e-09  # 时间点
+ed_time_1_81 =      2.181419300e-09  # 时间点
+ed_time_1_80 =      2.154151300e-09  # 时间点
+ed_time_1_79 =      2.126883300e-09  # 时间点
+ed_time_1_78 =      2.099615300e-09  # 时间点
+ed_time_1_77 =      2.072348300e-09  # 时间点
+ed_time_1_76 =      2.045080300e-09  # 时间点
+ed_time_1_75 =      2.017812300e-09  # 时间点
+ed_time_1_74 =      1.990544300e-09  # 时间点
+ed_time_1_73 =      1.963277300e-09  # 时间点
+ed_time_1_72 =      1.936009300e-09  # 时间点
+ed_time_1_71 =      1.908741300e-09  # 时间点
+ed_time_1_70 =      1.881473300e-09  # 时间点
+ed_time_1_69 =      1.854206300e-09  # 时间点
+ed_time_1_68 =      1.826938300e-09  # 时间点
+ed_time_1_67 =      1.799670300e-09  # 时间点
+ed_time_1_66 =      1.772403300e-09  # 时间点
+ed_time_1_65 =      1.745135300e-09  # 时间点
+ed_time_1_64 =      1.717867300e-09  # 时间点
+ed_time_1_63 =      1.690599300e-09  # 时间点
+ed_time_1_62 =      1.663332300e-09  # 时间点
+ed_time_1_61 =      1.636064300e-09  # 时间点
+ed_time_1_60 =      1.608796300e-09  # 时间点
+ed_time_1_59 =      1.581528300e-09  # 时间点
+ed_time_1_58 =      1.554261300e-09  # 时间点
+ed_time_1_57 =      1.526993300e-09  # 时间点
+ed_time_1_56 =      1.499725300e-09  # 时间点
+ed_time_1_55 =      1.472457300e-09  # 时间点
+ed_time_1_54 =      1.445190300e-09  # 时间点
+ed_time_1_53 =      1.417922300e-09  # 时间点
+ed_time_1_52 =      1.390654500e-09  # 时间点
+ed_time_1_51 =      1.363386800e-09  # 时间点
+ed_time_1_50 =      1.336119100e-09  # 时间点
+ed_time_1_49 =      1.308851300e-09  # 时间点
+ed_time_1_48 =      1.281583600e-09  # 时间点
+ed_time_1_47 =      1.254315800e-09  # 时间点
+ed_time_1_46 =      1.227048100e-09  # 时间点
+ed_time_1_45 =      1.199780400e-09  # 时间点
+ed_time_1_44 =      1.172512600e-09  # 时间点
+ed_time_1_43 =      1.145244900e-09  # 时间点
+ed_time_1_42 =      1.117977200e-09  # 时间点
+ed_time_1_41 =      1.090709400e-09  # 时间点
+ed_time_1_40 =      1.063441700e-09  # 时间点
+ed_time_1_39 =      1.036174000e-09  # 时间点
+ed_time_1_38 =      1.008906200e-09  # 时间点
+ed_time_1_37 =      9.816385000e-10  # 时间点
+ed_time_1_36 =      9.543707000e-10  # 时间点
+ed_time_1_35 =      9.271030000e-10  # 时间点
+ed_time_1_34 =      8.998353000e-10  # 时间点
+ed_time_1_33 =      8.725675000e-10  # 时间点
+ed_time_1_32 =      8.452998000e-10  # 时间点
+ed_time_1_31 =      8.180321000e-10  # 时间点
+ed_time_1_30 =      7.907643000e-10  # 时间点
+ed_time_1_29 =      7.634966000e-10  # 时间点
+ed_time_1_28 =      7.362288000e-10  # 时间点
+ed_time_1_27 =      7.089611000e-10  # 时间点
+ed_time_1_26 =      6.816934000e-10  # 时间点
+ed_time_1_25 =      6.544256000e-10  # 时间点
+ed_time_1_24 =      6.271579000e-10  # 时间点
+ed_time_1_23 =      5.998902000e-10  # 时间点
+ed_time_1_22 =      5.726224000e-10  # 时间点
+ed_time_1_21 =      5.453547000e-10  # 时间点
+ed_time_1_20 =      5.180870000e-10  # 时间点
+ed_time_1_19 =      4.908192200e-10  # 时间点
+ed_time_1_18 =      4.635514800e-10  # 时间点
+ed_time_1_17 =      4.362837500e-10  # 时间点
+ed_time_1_16 =      4.090160100e-10  # 时间点
+ed_time_1_15 =      3.817482700e-10  # 时间点
+ed_time_1_14 =      3.544805400e-10  # 时间点
+ed_time_1_13 =      3.272128000e-10  # 时间点
+ed_time_1_12 =      2.999450700e-10  # 时间点
+ed_time_1_11 =      2.726773000e-10  # 时间点
+ed_time_1_10 =      2.454096000e-10  # 时间点
+ed_time_1_9 =      2.181419000e-10  # 时间点
+ed_time_1_8 =      1.908741000e-10  # 时间点
+ed_time_1_7 =      1.636064000e-10  # 时间点
+ed_time_1_6 =      1.363386000e-10  # 时间点
+ed_time_1_5 =      1.090709000e-10  # 时间点
+ed_time_1_4 =      8.180320000e-11  # 时间点
+ed_time_1_3 =      5.453540000e-11  # 时间点
+ed_time_1_2 =      2.726770000e-11  # 时间点
+ed_time_1_1 =      0.000000000e+00  # 时间点
+ed_power_1_82 =      8.603973000e-02  # 功率点
+ed_power_1_81 =      1.535882670e+00  # 功率点
+ed_power_1_80 =      2.295930105e+01  # 功率点
+ed_power_1_79 =      2.895546465e+02  # 功率点
+ed_power_1_78 =      3.103373700e+03  # 功率点
+ed_power_1_77 =      2.846823840e+04  # 功率点
+ed_power_1_76 =      2.250775800e+05  # 功率点
+ed_power_1_75 =      1.544194575e+06  # 功率点
+ed_power_1_74 =      9.254520450e+06  # 功率点
+ed_power_1_73 =      4.876436250e+07  # 功率点
+ed_power_1_72 =      2.273493600e+08  # 功率点
+ed_power_1_71 =      9.436344750e+08  # 功率点
+ed_power_1_70 =      3.507843150e+09  # 功率点
+ed_power_1_69 =      1.174737060e+10  # 功率点
+ed_power_1_68 =      3.564303750e+10  # 功率点
+ed_power_1_67 =      9.852409350e+10  # 功率点
+ed_power_1_66 =      2.494446255e+11  # 功率点
+ed_power_1_65 =      5.814758250e+11  # 功率点
+ed_power_1_64 =      1.254317715e+12  # 功率点
+ed_power_1_63 =      2.516083605e+12  # 功率点
+ed_power_1_62 =      4.715616150e+12  # 功率点
+ed_power_1_61 =      8.295313950e+12  # 功率点
+ed_power_1_60 =      1.375701390e+13  # 功率点
+ed_power_1_59 =      2.160026820e+13  # 功率点
+ed_power_1_58 =      3.224151000e+13  # 功率点
+ed_power_1_57 =      4.593055950e+13  # 功率点
+ed_power_1_56 =      6.268408650e+13  # 功率点
+ed_power_1_55 =      8.225311500e+13  # 功率点
+ed_power_1_54 =      1.041329520e+14  # 功率点
+ed_power_1_53 =      1.276134615e+14  # 功率点
+ed_power_1_52 =      1.518588855e+14  # 功率点
+ed_power_1_51 =      1.760001390e+14  # 功率点
+ed_power_1_50 =      1.992230415e+14  # 功率点
+ed_power_1_49 =      2.208386880e+14  # 功率点
+ed_power_1_48 =      2.403289665e+14  # 功率点
+ed_power_1_47 =      2.573650170e+14  # 功率点
+ed_power_1_46 =      2.718024750e+14  # 功率点
+ed_power_1_45 =      2.836590120e+14  # 功率点
+ed_power_1_44 =      2.930817960e+14  # 功率点
+ed_power_1_43 =      3.003106050e+14  # 功率点
+ed_power_1_42 =      3.056423895e+14  # 功率点
+ed_power_1_41 =      3.093996465e+14  # 功率点
+ed_power_1_40 =      3.119051565e+14  # 功率点
+ed_power_1_39 =      3.134626425e+14  # 功率点
+ed_power_1_38 =      3.143434455e+14  # 功率点
+ed_power_1_37 =      3.147778620e+14  # 功率点
+ed_power_1_36 =      3.149500410e+14  # 功率点
+ed_power_1_35 =      3.149954955e+14  # 功率点
+ed_power_1_34 =      3.150000000e+14  # 功率点
+ed_power_1_33 =      3.149991810e+14  # 功率点
+ed_power_1_32 =      3.149786115e+14  # 功率点
+ed_power_1_31 =      3.148736535e+14  # 功率点
+ed_power_1_30 =      3.145697730e+14  # 功率点
+ed_power_1_29 =      3.139031700e+14  # 功率点
+ed_power_1_28 =      3.126626055e+14  # 功率点
+ed_power_1_27 =      3.105932445e+14  # 功率点
+ed_power_1_26 =      3.074037435e+14  # 功率点
+ed_power_1_25 =      3.027774015e+14  # 功率点
+ed_power_1_24 =      2.963888235e+14  # 功率点
+ed_power_1_23 =      2.879267580e+14  # 功率点
+ed_power_1_22 =      2.771231085e+14  # 功率点
+ed_power_1_21 =      2.637870480e+14  # 功率点
+ed_power_1_20 =      2.478418425e+14  # 功率点
+ed_power_1_19 =      2.293598475e+14  # 功率点
+ed_power_1_18 =      2.085901650e+14  # 功率点
+ed_power_1_17 =      1.859717475e+14  # 功率点
+ed_power_1_16 =      1.621252395e+14  # 功率点
+ed_power_1_15 =      1.378190835e+14  # 功率点
+ed_power_1_14 =      1.139092290e+14  # 功率点
+ed_power_1_13 =      9.125685450e+13  # 功率点
+ed_power_1_12 =      7.063604100e+13  # 功率点
+ed_power_1_11 =      5.264654850e+13  # 功率点
+ed_power_1_10 =      3.764911500e+13  # 功率点
+ed_power_1_9 =      2.573776485e+13  # 功率点
+ed_power_1_8 =      1.675479015e+13  # 功率点
+ed_power_1_7 =      1.034452755e+13  # 功率点
+ed_power_1_6 =      6.032098800e+12  # 功率点
+ed_power_1_5 =      3.307695300e+12  # 功率点
+ed_power_1_4 =      1.697953320e+12  # 功率点
+ed_power_1_3 =      8.121654450e+11  # 功率点
+ed_power_1_2 =      3.602362050e+11  # 功率点
+ed_power_1_1 =      0.000000000e+00  # 功率点
+#################################
+#                               #
+#     CONDUCTION PARAMETERS     #
+#                               #
+#################################
+useConductivity = .true.
+diff_useEleCond = .true.
+useDiffuse      = .true.
+
+diff_eleFlMode = "fl_minmax"  # 限流模式
+diff_eleFlCoef = 0.08  # 限流因子
+diff_thetaImplct = 1.0
+
+diff_eleXlBoundaryType = "neumann"
+diff_eleXrBoundaryType = "neumann"
+
+
+####################################
+#                                  #
+#     HEAT EXCHANGE PARAMETERS     #
+#                                  #
+####################################
+useHeatexchange = .true.
+
+
+##########################
+#                        #
+#     EOS PARAMETERS     #
+#                        #
+##########################
+eosModeInit      = "dens_temp_gather"
+smallt           = 1.0
+smallx           = 1.0e-99
+eos_useLogTables = .false.
+
+
+############################
+#                          #
+#     HYDRO PARAMETERS     #
+#                          #
+############################
+useHydro = .true.
+ 
+order            = 3        # Interpolation order (first/second/third/fifth order)
+slopeLimiter     = "minmod" # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
+LimitedSlopeBeta = 1.       # Slope parameter for the "limited" slope by Toro
+charLimiting     = .true.   # Characteristic limiting vs. Primitive limiting
+use_avisc        = .true.   # use artificial viscosity (originally for PPM)
+cvisc            = 0.1      # coefficient for artificial viscosity
+use_flattening   = .false.  # use flattening (dissipative) (originally for PPM)
+use_steepening   = .false.  # use contact steepening (originally for PPM)
+use_upwindTVD    = .false.  # use upwind biased TVD slope for PPM (need nguard=6)
+RiemannSolver    = "hllc"   # Roe, HLL, HLLC, LLF, Marquina, hybrid
+entropy          = .false.  # Entropy fix for the Roe solver
+shockDetect = .true.  # more??
+use_hybridOrder  = .true.   # Enforce Riemann density jump
+
+# Hydro boundary conditions:
+xl_boundary_type = "outflow"
+xr_boundary_type = "outflow"
+
+
+##############################
+#                            #
+#     INITIAL CONDITIONS     #
+#                            #
+##############################
+
+sim_targetHeight = 0.000000000e+00  # 靶高度
+sim_shldRadius = 0.1e-04
+sim_sampRadius = 3.000000000e-04  # 材料更换
+sim_targetRadius = 1.000000000e-05  # Ti厚度
+sim_sampHeight = 5.000000000e-03  # 材料更换
+
+
+# Chamber material defaults set for Helium at pressure 1.6 mbar:
+sim_rhoCham  = 1.0e-06
+sim_teleCham = 290.11375
+sim_tionCham = 290.11375
+sim_tradCham = 290.11375
+ms_chamA = 4.002602
+ms_chamZ = 2.0
+eos_chamEosType = "eos_tab"
+eos_chamSubType = "ionmix4"
+eos_chamTableFile = "He-BADGER-TOPS-Final.cn4"
+
+
+
+# XXX material defaults set for XXX at room temperature:
+sim_rhoShld  = 6.11
+sim_teleShld = 290.11375
+sim_tionShld = 290.11375
+sim_tradShld = 290.11375
+ms_shldA = 50.9415
+ms_shldZ = 23
+ms_shldZMin = 1e-23
+eos_shldEosType = "eos_tab"
+eos_shldSubType = "ionmix4"
+eos_shldTableFile = "V-BADGER-TOPS.cn4"
+
+
+# XXX material defaults set for XXX at room temperature:
+#sim_rhoSamp  = 19.32
+#sim_teleSamp = 290.11375
+#sim_tionSamp = 290.11375
+#sim_tradSamp = 290.11375
+#ms_sampA = 196.966569
+#ms_sampZ = 79
+#ms_sampZMin = 1e-23
+#eos_sampEosType = "eos_tab"
+#eos_sampSubType = "ionmix4"
+#eos_sampTableFile = "Au-imx.cn4"
+
+
+# XXX material defaults set for XXX at room temperature:
+sim_rhoSamp = 1.0  # 材料更换
+sim_teleSamp = 290.11375
+sim_tionSamp = 290.11375
+sim_tradSamp = 290.11375
+ms_sampA = 6.509  # 材料更换
+ms_sampZ = 3.5  # 材料更换
+ms_sampZMin = 1e-23
+eos_sampEosType = "eos_tab"
+eos_sampSubType = "ionmix4"
+eos_sampTableFile = "CH-QC-1-001.cn4"  # 材料更换
+
+
+
+# Target material defaults set for XXX at room temperature:
+sim_rhoTarg  = 4.54
+sim_teleTarg = 290.11375
+sim_tionTarg = 290.11375
+sim_tradTarg = 290.11375
+ms_targA = 47.867
+ms_targZ = 22
+ms_targZMin = 1e-23
+eos_targEosType = "eos_tab"
+eos_targSubType = "ionmix4"
+eos_targTableFile = "Ti-BADGER-TOPS.cn4"
+
+###########################
+#                         #
+#     TIME PARAMETERS     #
+#                         #
+###########################
+tstep_change_factor = 1.10
+cfl            = 0.4
+dt_diff_factor = 1.0e+100 # Disable diffusion dt
+rt_dtFactor    = 1.0e+100 # 原始设置的是0.02
+hx_dtFactor    = 1.0e+100
+tmax = 2.500000000e-09  # 生成的参数
+dtmin = 1.000000000e-16  # 生成的参数
+dtinit = 1.000000000e-15  # 生成的参数
+dtmax = 1.650000000e-09  # 生成的参数
+nend           = 100000000
+
+
+###########################
+#                         #
+#     MESH PARAMETERS     #
+#                         #
+###########################
+geometry = "cartesian"
+
+# Domain size:
+xmin = -5.000000000e-02  # X左边界
+xmax = 1.500000000e-02  # X右边界
+
+# Total number of blocks:
+nblockx = 16  # 生成的参数
+
+lrefine_max = 8  # X_res_min=1.984e-06,
+lrefine_min = 1  # X_res_max=2.539e-04,
+refine_var_1 = "dens"
+refine_var_2 = "tele"

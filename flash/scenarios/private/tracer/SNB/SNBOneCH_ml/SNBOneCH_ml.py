@@ -255,7 +255,10 @@ from flash.scenarios.private.tracer.OneCH_ml.OneCH_ml import (
 )
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 
 # ── SNB 单元覆盖文件 (部署时从 FLASHSNB SNB_1D_laser 原样复制) ──
 SNB_OVERRIDE_FILES = (
@@ -358,24 +361,12 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     # ── 1. par（CH_FLASH_PAR 基线 + SNB 覆写）───────────────
     log("  [1/8] 生成 .par 文件 (SNB 基线)...", "STEP")
-    tmp_params = dict(CH_FLASH_PAR)
-    # 同 OneCH_ml: 剔除 targ 物种专属键与未用几何键 (不能用 "targ" in k
-    # 模糊匹配 — 会误删激光 ed_targetX_1)。
-    _TARG_KEYS = {
-        "sim_targetRadius", "sim_targetHeight",
-        "sim_rhoTarg", "sim_teleTarg", "sim_tionTarg", "sim_tradTarg",
-        "ms_targA", "ms_targZ", "ms_targZMin",
-    }
-    for k in list(tmp_params):
-        if k in _TARG_KEYS or k.startswith(("op_targ", "eos_targ")) \
-                or k == "sim_sampRadius" \
-                or k in ("basenm", "log_file") \
-                or k.startswith("plot_var"):
-            del tmp_params[k]
+    # ★ 2026-10-21: 用"载入族物理基线 + 声明物性"取代历史的
+    #   `dict(CH_FLASH_PAR)` + `_params.clear()` + 逐键重灌。
+    #   基线 (LAYER_TRACER_BASELINE) 由 6 份同机制 par 逐键比对得到, 只含
+    #   族内不变、与材料无关的设置, **不含** ms_*/sim_rho*/eos_*表/op_*表。
     par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
-    par_gen._params.clear()
-    for k, v in tmp_params.items():
-        par_gen.set(k, v)
+    par_gen.reset_to(LAYER_TRACER_BASELINE)
     # 覆写: 几何与材料 (与 OneCH_ml 完全一致; 分层几何经运行时参数控制)
     #   [0, shldR] shld | [shldR, tar1R] samp | [tar1R, tar1R+shldR] tar1 |
     #   [tar1R+shldR, tar2R] samp | [tar2R, tar2R+shldR] tar2 |
@@ -390,15 +381,14 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    par_gen.set("sim_rhoShld", 1.0)
-    # ★ cham (He) EOS/opacity 必须与 CH 同族且覆盖低密度 (CH_FLASH_PAR 基线
-    #   已是 He-BADGER; 此处显式重申, 防基线变动导致 ρ 下限退回)
-    par_gen.set("eos_chamTableFile", cfg["he_cn4"])
-    par_gen.set("op_chamFileName", cfg["he_cn4"])
-    par_gen.set("eos_shldTableFile", cfg["ch_cn4"])
-    par_gen.set("op_shldFileName", cfg["ch_cn4"])
-    par_gen.set("eos_sampTableFile", cfg["ch_cn4"])
-    par_gen.set("op_sampFileName", cfg["ch_cn4"])
+    # ── 物性五元组（sim_rho/ms_A/ms_Z/eos/op）: 唯一真源 = 本场景 species_defs ──
+    # ★★★ 2026-10-21 机制修复: 历史做法用 SHLD_MATERIAL 分支 / 模板占位值
+    #   (tracer/_par_layers.CH_FLASH_PAR) 决定物性, 其 ms_*/sim_rho*/eos_*表/
+    #   op_*表 会作为 par 显式值覆盖 Config 里由 species_defs 注册的正确默认值
+    #   (V/Ti 屏蔽层曾按 CH 的 A/Z 计算 ⇒ t=0 压强高估 15.1 倍)。
+    #   现在一律由 species_defs 逐物种显式声明, 并强制校验 (不一致即 raise)。
+    par_gen.set_species_materials(species_defs)
+    par_gen.assert_material_binding(species_defs)
     # 初始温度覆写 (CH_FLASH_PAR 基线为室温 290.11375; cfg["t_initial"] 可调,
     # 注意 par 里的 sim_tele*/tion*/trad* 与 initBlock 的 builder.set_material
     # 是两套来源 — 运行时真正生效的是这里的 par 参数)
@@ -626,19 +616,18 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     try:
         import numpy as np
         from flash.input_gen.gen_checker.ploter import PulsePlotter, DensityPlotter
-        tsec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_time_1_"))
-        psec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_power_1_"))
-        if tsec and psec:
-            times_ns = np.array([v for _, v in tsec]) * 1e9
-            powers_w = np.array([v for _, v in psec])
+        _pulse = pulse_from_params(LAYER_TRACER_BASELINE)
+        _pulse_t = np.asarray(_pulse["times"], dtype=float)
+        _pulse_p = np.asarray(_pulse["powers"], dtype=float)
+        if _pulse_t.size and _pulse_p.size:
+            times_ns = _pulse_t * 1e9
+            powers_w = _pulse_p
             PulsePlotter().plot_pulse(
                 times_ns, powers_w,
-                title=f"Laser Pulse ({len(tsec)} sections)",
+                title=f"Laser Pulse ({_pulse_t.size} sections)",
                 save_path=INPUT_DIR / "pre_diag_laser_pulse.png",
                 beam_label="Beam 1 (0.351 um)")
-            log(f"    pre_diag_laser_pulse.png ✓ ({len(tsec)} sections)")
+            log(f"    pre_diag_laser_pulse.png ✓ ({_pulse_t.size} sections)")
             result["pre_diag_laser"] = str(INPUT_DIR / "pre_diag_laser_pulse.png")
         xs, dens1d, _ = builder.sample_1d(n_points=4000)
         bounds = [("shld", 0.0), ("samp", delta_cm), ("tar1", L1),
@@ -1809,7 +1798,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="SNBOneCH_ml: OneCH_ml 几何/材料 + SNB 模型 (FLASHSNB; wsl/hpc 一行切换)")
     ap.add_argument("--mode", default=None, choices=["wsl", "hpc"],
-                    help="运行模式: wsl=本地 WSL, hpc=超算 (默认 wsl; 可用 FLASH_RUN_MODE 环境变量)")
+                    help="运行模式: hpc=超算 (默认), wsl=本地 WSL (需 --nproc 按本机核数); "
+                         "可用 FLASH_RUN_MODE 环境变量覆盖")
     ap.add_argument("--account", default="flash_ssh",
                     choices=["flash_ssh", "flash_ssh_2"],
                     help="hpc 模式凭据账号 (flash_ssh=NC-E, flash_ssh_2=BSCC-T6)")
@@ -1867,7 +1857,11 @@ def main() -> int:
     # par iProcs 必须与 mpiexec -n 一致 (+ug 块数=iProcs; AMR 下不匹配同样致命:
     # 实测 +ug 4块/16进程 → Logfile_open io_status=29 → MPI_Abort)
     cfg["nprocs"] = nproc
-    mode = (args.mode or os.environ.get("FLASH_RUN_MODE", "wsl")).lower()
+    mode = (args.mode or os.environ.get("FLASH_RUN_MODE", "hpc")).lower()
+    # ★ 2026-10-21: 默认改为 hpc。理由: 本场景 nprocs 是超算配置 (131)，
+    #   本机 24 核上 131 进程严重超订 —— 实测 36 min 只推进 4 步
+    #   (t=4.6e-15，目标 1e-11)，同场景 24 进程 75 步仅 52 s。SNB 极短
+    #   验证一律走超算; 确需本地跑请显式 --mode wsl --nproc <本机核数>。
     print(f"\n  几何/材料: 同 OneCH_ml (8 物种 12 区, 域 [{cfg['xmin']}, {cfg['xmax']}] cm)")
     print(f"  模型: SNB 非局域热传导 (FLASHSNB 专用, 单元 {SIM_NAME})")
     if not args.amr:

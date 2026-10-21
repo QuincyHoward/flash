@@ -103,7 +103,10 @@ SNB_PKG = SNB / "source" / "snb_package"
 TABLES = SNB / "source" / "tables"
 
 # ── 物理设置: **严格取自 OneCH_ml** ────────────────────────
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR   # noqa: E402
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 from flash.scenarios.private.tracer.OneCH_ml.OneCH_ml import (        # noqa: E402
     config_constants as ONECH_CFG,
 )
@@ -210,8 +213,14 @@ _PLOT_VARS = ["dens", "depo", "tele", "tion", "trad", "ye", "sumy",
 
 def build_par(tmax: float, chk_dt: float, basenm: str, log_file: str,
               tag: str) -> str:
-    """生成 par 文本。基线 = OneCH_ml 的 CH_FLASH_PAR；叠加 SNB 覆写。"""
-    p: Dict[str, Any] = dict(CH_FLASH_PAR)
+    """生成 par 文本。基线 = 通用层 LAYER_TRACER_BASELINE；叠加 SNB 覆写。
+
+    ★ 2026-10-21: 基线从 `_par_layers.CH_FLASH_PAR`（某次 CH 算例的整份 par
+      快照）换为通用层的 ``LAYER_TRACER_BASELINE`` —— 后者经逐键比对确认
+      族内不变，且**不含任何材料身份**（ms_*/sim_rho*/eos_*表/op_*表），
+      物性一律由下方 ④ 按 species_defs 逐物种显式声明。
+    """
+    p: Dict[str, Any] = dict(LAYER_TRACER_BASELINE)
 
     # ① 剔除缺失物种的键
     drop = []

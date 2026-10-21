@@ -132,8 +132,11 @@ SETUP_FLAGS = (
 SIM_NAME = f"LaserSlab_{SCENE_NAME}"
 PAR_FILENAME = f"laserslab_{SCENE_NAME.lower()}.par"
 
-# 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+# 通用层: 族物理基线 (277 键, 无材料身份) + 脉冲波形只读访问器
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 
 # 场景目录
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -232,33 +235,18 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     result: Dict[str, str] = {}
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 物种/几何/材质覆写）──
+    # ── 1. par（族物理基线 + 本场景物种物性/群结构显式声明）──
     log("  [1/9] 生成 .par 文件...", "STEP")
-    tmp_params = dict(CH_FLASH_PAR)
-    # 新场景无 targ 物种且 samp 不声明几何参数: 显式剔除 targ 物种专属键。
-    # 注意不能用 "targ" in k 模糊匹配 — 会误删激光 ed_targetX_1 (target⊃targ)!
-    _TARG_KEYS = {
-        "sim_targetRadius", "sim_targetHeight",
-        "sim_rhoTarg", "sim_teleTarg", "sim_tionTarg", "sim_tradTarg",
-        "ms_targA", "ms_targZ", "ms_targZMin",
-    }
-    for k in list(tmp_params):
-        if k in _TARG_KEYS or k.startswith(("op_targ", "eos_targ")) \
-                or k == "sim_sampRadius" \
-                or k.startswith("plot_var"):
-            del tmp_params[k]
+    # ★ 2026-10-21: 用"载入族物理基线 + 声明物性"取代历史的
+    #   `dict(CH_FLASH_PAR)` + `_params.clear()` + 逐键重灌。
+    par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
+    par_gen.reset_to(LAYER_TRACER_BASELINE)
     # Gen_eos_op_data 表族 (Z14/Z06_*) 为 6 能群结构 (表第 4 行 nEnergyGroups=6,
     # 表内不存边界, FLASH 仅校验群数), par 必须用 6 群 MGD 结构 — 否则
     # op_readIonmix4Tables "bad size of IONMIX4 energy group grid" abort。
-    # 先清除 CH_FLASH_PAR 的 10 群边界 rt_mgdBounds_8..11 (bounds_1..7 随后覆写)。
-    for k in ("rt_mgdBounds_8", "rt_mgdBounds_9", "rt_mgdBounds_10",
-              "rt_mgdBounds_11"):
-        tmp_params.pop(k, None)
-    par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
-    # 清除维度默认参数，仅保留规范参数 + 下方覆写，避免未注册参数混入 par
-    par_gen._params.clear()
-    for k, v in tmp_params.items():
-        par_gen.set(k, v)
+    # 基线为 10 群 ⇒ 先删 bounds_8..11 (bounds_1..7 随后覆写)。
+    par_gen.unset("rt_mgdBounds_8", "rt_mgdBounds_9",
+                  "rt_mgdBounds_10", "rt_mgdBounds_11")
     # 覆写: 几何 (与 OneCH_ml 完全一致的 12 区分层)
     # 分层几何全部经运行时参数控制 (Simulation_initBlock 引用这些参数),
     # 只改 .par 中以下 7 个值即可改变场景几何, 无需改代码:
@@ -275,33 +263,13 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    # 覆写: 腔室 He 表 → 同族 6 能群表 (CH_FLASH_PAR 默认 BADGER 10 群表)
-    par_gen.set("eos_chamTableFile", CHAM_TABLE)
-    par_gen.set("op_chamFileName", CHAM_TABLE)
-    # 覆写: 材质 — 全部固体层单一纯材料 (CH_FLASH_PAR 中 shld/samp 默认为
-    # CH 的 ms_*/eos_*/op_* 值, 必须逐项覆写; tar* 无 par 默认, 由 Config
-    # 按 species_defs 生成 ms_tarXA/ms_tarZ/sim_rhoTarX 默认, 此处显式
-    # 覆写 sim_rhoTarX 以自文档化)
-    par_gen.set("sim_rhoShld", MAT_RHO)
-    par_gen.set("ms_shldA", MAT_A)                      # 默认 6.509 (CH) → MAT_A
-    par_gen.set("ms_shldZ", MAT_Z)                      # 默认 3.5 (CH) → MAT_Z
-    par_gen.set("eos_shldTableFile", MAT_TABLE)
-    par_gen.set("op_shldFileName", MAT_TABLE)
-    par_gen.set("sim_rhoSamp", MAT_RHO)
-    par_gen.set("ms_sampA", MAT_A)                      # 默认 6.509 (CH) → MAT_A
-    par_gen.set("ms_sampZ", MAT_Z)                      # 默认 3.5 (CH) → MAT_Z
-    par_gen.set("eos_sampTableFile", MAT_TABLE)
-    par_gen.set("op_sampFileName", MAT_TABLE)
-    for tar in ("tar1", "tar2", "tar3", "tar4", "tar6"):
-        par_gen.set(f"sim_rho{tar.capitalize()}", MAT_RHO)
-        par_gen.set(f"eos_{tar}EosType", "eos_tab")
-        par_gen.set(f"eos_{tar}SubType", "ionmix4")
-        par_gen.set(f"eos_{tar}TableFile", MAT_TABLE)
-        par_gen.set(f"op_{tar}Absorb", "op_tabpa")
-        par_gen.set(f"op_{tar}Emiss", "op_tabpe")
-        par_gen.set(f"op_{tar}Trans", "op_tabro")
-        par_gen.set(f"op_{tar}FileType", "ionmix4")
-        par_gen.set(f"op_{tar}FileName", MAT_TABLE)
+    # ── 物性五元组（sim_rho/ms_A/ms_Z/eos/op）: 唯一真源 = 本场景 species_defs ──
+    # ★★★ 2026-10-21 机制修复: 历史做法从 tracer/_par_layers.CH_FLASH_PAR
+    #   (一份 CH 算例的整份 par 快照) 继承物性, 其 ms_*/sim_rho*/eos_*表/op_*表
+    #   会作为 par 显式值覆盖 Config 里由 species_defs 注册的正确默认值。
+    #   现在逐物种显式声明 (含 cham 的 Z02 表), 并强制与 species_defs 校验。
+    par_gen.set_species_materials(species_defs)
+    par_gen.assert_material_binding(species_defs)
     # 覆写: MGD 能群结构 — 匹配 Gen_eos_op_data 表族 6 能群
     # (十倍程边界 0.1 eV → 1e5 eV, 与 ch_center 场景对同族表的先例一致;
     #  _F 变体 useOpacity=.false. 不读表, 此结构无害保留)

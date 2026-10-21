@@ -104,6 +104,41 @@ PARAM_COMMENTS: Dict[str, str] = {
 }
 
 
+# ============================================================================
+#  物种参数族识别 — retain_species() / set_species_material() 的共同基础
+#  命名约定必须与 gen_config/generator.py 严格一致:
+#      sim_rho{Cap}  sim_tele{Cap}  sim_tion{Cap}  sim_trad{Cap}  sim_zmin{Cap}
+#      ms_{sp}A  ms_{sp}Z          (★ 无 ms_{sp}ZMin — Config 声明的是 sim_zmin{Cap})
+#      eos_{sp}EosType / SubType / TableFile
+#      op_{sp}Absorb / Emiss / Trans / FileType / FileName
+#      sim_{sp}Radius / Height
+#  ★ 只按"参数名的后缀结构"识别, 不做白名单, 以便新增物种零成本适配。
+# ============================================================================
+_SPECIES_KEY_PATTERNS: Tuple[re.Pattern, ...] = (
+    re.compile(r"^ms_([A-Za-z0-9]+?)(?:A|Z|ZMin)$"),
+    re.compile(r"^sim_rho([A-Za-z0-9]+)$"),
+    re.compile(r"^sim_(?:tele|tion|trad|zmin|eos)([A-Za-z0-9]+)$"),
+    re.compile(r"^eos_([A-Za-z0-9]+?)(?:EosType|SubType|TableFile)$"),
+    re.compile(r"^op_([A-Za-z0-9]+?)(?:Absorb|Emiss|Trans|FileType|FileName)$"),
+    re.compile(r"^sim_([A-Za-z0-9]+?)(?:Radius|Height)$"),
+)
+
+
+def species_of(key: str) -> Optional[str]:
+    """返回参数键所属物种名(小写); 不属于任何物种族时返回 None。
+
+    >>> species_of("ms_shldA"), species_of("sim_rhoShld"), species_of("op_tar1FileName")
+    ('shld', 'shld', 'tar1')
+    >>> species_of("ed_power_1_1") is None
+    True
+    """
+    for pat in _SPECIES_KEY_PATTERNS:
+        m = pat.match(key)
+        if m:
+            return m.group(1).lower()
+    return None
+
+
 @dataclass
 class BeamConfig:
     """单个激光光束配置。
@@ -186,6 +221,8 @@ class ParGeneratorExtended:
         self._params: Dict[str, Any] = {}
         self._pulses: List[Dict[str, Any]] = []
         self._beams: List[Dict[str, Any]] = []
+        self._species: List[str] = []          # 已显式声明的物种 (set_species_material)
+        self._last_pruned: List[str] = []      # 最近一次 retain_species 剪掉的键
 
         if dimension in DIMENSION_PARAMS:
             self._params = copy.deepcopy(DIMENSION_PARAMS[dimension])
@@ -217,6 +254,16 @@ class ParGeneratorExtended:
     def set(self, key: str, value: Any) -> "ParGeneratorExtended":
         """设置单个参数。"""
         self._params[key] = value
+        return self
+
+    def unset(self, *keys: str) -> "ParGeneratorExtended":
+        """删除若干参数键 (不存在时忽略)。
+
+        用于场景对基线做**局部相反覆写**, 例如 6 能群场景删掉基线里的
+        `rt_mgdBounds_8..11`。
+        """
+        for k in keys:
+            self._params.pop(k, None)
         return self
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -281,6 +328,194 @@ class ParGeneratorExtended:
         self._params[f"eos_{prefix}TableFile"] = material.file
         self._params[f"op_{prefix}FileName"] = material.file
         return self
+
+    # ── 场景自声明物性 (取代"整份 par 模板快照") ────────────────────
+
+    def reset_to(self, params: Dict[str, Any]) -> "ParGeneratorExtended":
+        """以给定参数集**替换**当前参数 (清空维度演示默认)。
+
+        用途: 场景装载"族物理基线"(如 ``LAYER_TRACER_BASELINE``) —— 一份
+        **不含任何材料身份**的、经逐键比对确认族内不变的参数集。
+
+        ★ 与历史写法 `par_gen._params.clear()` + 逐键 `set(CH_FLASH_PAR)` 的区别:
+          基线存于通用层 (`flash/input_gen/gen_par/defaults.py`), 且**不含**
+          `ms_*A/Z`、`sim_rho*`、`eos_*TableFile`、`op_*FileName` 等物性键 ——
+          那些必须由 ``set_species_material(s)`` 由场景显式声明。
+
+        Args:
+            params: 参数集 (浅拷贝为副本, 不持有调用方引用)
+
+        Returns:
+            self (链式调用)
+        """
+        self._params = {k: copy.deepcopy(v) for k, v in params.items()}
+        self._species = []
+        self._last_pruned = []
+        return self
+
+    def retain_species(self, names: Any, keep_extra: Any = ()) -> "ParGeneratorExtended":
+        """剪掉**不属于本场景**物种的参数族 (取代 `_params.clear()`)。
+
+        为什么需要它:
+          `DIMENSION_PARAMS[1]` (`PARAMS_1D`) 自带 `targ`/`cham` 的
+          `ms_/sim_/eos_/op_` 族, 以及 `sim_targetRadius`、`sim_targetHeight`、
+          `sim_vacuumHeight`。多数多物种场景**没有 `targ` 物种**, 而 FLASH 对
+          par 中未注册的运行时参数会直接报错 (RuntimeParameters_add 失败);
+          Config 只声明 `species_defs` 里列出的物种。
+
+        为什么不能直接 clear():
+          clear 会把通用默认 (激光光束、MGD 能群边界、网格、plot 骨架等)
+          一并丢弃 —— 这正是历史上场景脚本被迫内嵌一整份 CH par 快照的起因。
+
+        Args:
+            names: 本场景物种名列表 (大小写不敏感), 如 ["cham","shld","samp","tar1"]
+            keep_extra: 额外保留的"物种样"键, 如 ("vacuum",) 保留 sim_vacuumHeight
+
+        Returns:
+            self (链式调用); 剪掉的键记录在 ``self._last_pruned``
+        """
+        if isinstance(names, str):
+            names = [n for n in re.split(r"[,\s]+", names) if n]
+        allowed = {str(n).lower() for n in names} | {str(k).lower() for k in keep_extra}
+        dropped: List[str] = []
+        for key in list(self._params):
+            sp = species_of(key)
+            if sp is not None and sp not in allowed:
+                dropped.append(key)
+                del self._params[key]
+        self._last_pruned = dropped
+        return self
+
+    def set_species_material(
+        self,
+        name: str,
+        *,
+        rho: float,
+        A: float,
+        Z: float,
+        eos_file: str,
+        op_file: Optional[str] = None,
+        zmin: Optional[float] = None,
+        t_init: Optional[float] = 290.11375,
+    ) -> "ParGeneratorExtended":
+        """显式声明**一个物种**的物性五元组 (场景唯一真源)。
+
+        写入: `sim_rho{Cap}`、`sim_tele/tion/trad{Cap}`、`ms_{sp}A/Z`、
+        `eos_{sp}EosType/SubType/TableFile`、`op_{sp}Absorb/Emiss/Trans/FileType/FileName`。
+
+        ★ 不写 `ms_{sp}ZMin`: Config 生成器把它映射为 `sim_zmin{Cap}`,
+          若 par 写 `ms_*ZMin` 会因未注册而报错 (已由 SNBOneCH 实测确认)。
+        ★ 这里写入的是 par **显式值**, 运行期会覆盖 Config 的 PARAMETER 默认值。
+          因此本方法的结果必须与 Config 的来源 (`species_defs`) 一致 ——
+          由 ``assert_material_binding()`` 强制校验。
+
+        Args:
+            name: 物种名 (小写, 与 Config 的 `ms_{name}A` 一致), 如 "shld"
+            rho: 初始密度 [g/cm^3]
+            A: 原子量
+            Z: 原子序数
+            eos_file: EOS 表 (.cn4) 文件名
+            op_file: 不透明度表文件名; None 时取 eos_file
+            zmin: 最小电离度; None 时不写 `sim_zmin{Cap}`
+            t_init: 初始 tele/tion/trad [K]; None 时不写
+        """
+        if not name or not str(name).isalnum():
+            raise ValueError(f"物种名必须是纯字母数字: {name!r}")
+        cap = name.capitalize()
+        self._params[f"sim_rho{cap}"] = float(rho)
+        if t_init is not None:
+            for pfx in ("tele", "tion", "trad"):
+                self._params[f"sim_{pfx}{cap}"] = float(t_init)
+        self._params[f"ms_{name}A"] = float(A)
+        self._params[f"ms_{name}Z"] = float(Z)
+        self._params.pop(f"ms_{name}ZMin", None)
+        if zmin is not None:
+            self._params[f"sim_zmin{cap}"] = float(zmin)
+        self._params[f"eos_{name}EosType"] = "eos_tab"
+        self._params[f"eos_{name}SubType"] = "ionmix4"
+        self._params[f"eos_{name}TableFile"] = eos_file
+        self._params[f"op_{name}Absorb"] = "op_tabpa"
+        self._params[f"op_{name}Emiss"] = "op_tabpe"
+        self._params[f"op_{name}Trans"] = "op_tabro"
+        self._params[f"op_{name}FileType"] = "ionmix4"
+        self._params[f"op_{name}FileName"] = op_file or eos_file
+        if name.lower() not in self._species:
+            self._species.append(name.lower())
+        return self
+
+    def set_species_materials(self, species_defs: List[Dict[str, Any]]) -> "ParGeneratorExtended":
+        """批量版 ``set_species_material``: 按声明表逐物种写入。
+
+        Args:
+            species_defs: [{"name","rho","A","Z","file", 可选 "opacity_file"/"zmin"/"t_init"}, ...]
+        """
+        for sp in species_defs:
+            self.set_species_material(
+                sp["name"],
+                rho=sp["rho"],
+                A=sp["A"],
+                Z=sp["Z"],
+                eos_file=sp["file"],
+                op_file=sp.get("opacity_file"),
+                zmin=sp.get("zmin", sp.get("ZMin")),
+                t_init=sp.get("t_init", 290.11375),
+            )
+        return self
+
+    def material_binding_report(
+        self, species_defs: List[Dict[str, Any]], rtol: float = 1e-12,
+    ) -> List[Dict[str, Any]]:
+        """比对 par 中的物性五元组与声明表, 返回不一致清单 (空 = 一致)。"""
+        bad: List[Dict[str, Any]] = []
+        for sp in species_defs:
+            name = sp["name"]
+            cap = name.capitalize()
+            checks = (
+                ("rho", f"sim_rho{cap}", sp.get("rho")),
+                ("A", f"ms_{name}A", sp.get("A")),
+                ("Z", f"ms_{name}Z", sp.get("Z")),
+                ("eos", f"eos_{name}TableFile", sp.get("file")),
+                ("op", f"op_{name}FileName", sp.get("opacity_file") or sp.get("file")),
+            )
+            for attr, key, want in checks:
+                if want is None:
+                    continue
+                if key not in self._params:
+                    bad.append({"species": name, "attr": attr, "key": key,
+                                "expected": want, "actual": "<missing>"})
+                    continue
+                got = self._params[key]
+                if isinstance(want, str) or isinstance(got, str):
+                    same = str(got) == str(want)
+                else:
+                    same = abs(float(got) - float(want)) <= rtol * max(
+                        1.0, abs(float(want)))
+                if not same:
+                    bad.append({"species": name, "attr": attr, "key": key,
+                                "expected": want, "actual": got})
+        return bad
+
+    def assert_material_binding(
+        self, species_defs: List[Dict[str, Any]], strict: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """物性一致性门禁: 不一致即 raise (strict) 或仅返回清单。
+
+        Raises:
+            ValueError: 存在不一致且 ``strict=True``; 消息逐条列出
+                物种 / 参数键 / 声明值 / par 实际值。
+        """
+        bad = self.material_binding_report(species_defs)
+        if bad and strict:
+            lines = [
+                f"  {b['species']:6s} {b['key']:24s} "
+                f"声明={b['expected']!s:<22} par={b['actual']!s}"
+                for b in bad
+            ]
+            raise ValueError(
+                "物性绑定不一致 (par 显式值会覆盖 Config 默认值, 故必须一致):\n"
+                + "\n".join(lines)
+            )
+        return bad
 
     def set_domain(
         self,

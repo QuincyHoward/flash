@@ -647,7 +647,7 @@ flash-sim 支持三平台部署：
 
 - **行尾**: 所有文件强制 Unix LF（`.gitattributes` 已配置）
 - **格式化**: Black (`--line-length=120`), Ruff linting
-- **绘图**: 全英文字符，标题≥24pt，标签≥20pt，DPI≥450，即英文文献插图风格
+- **绘图**: 全英文字符，标题≥24pt，标签≥20pt，DPI≥450，即英文文献插图风格，默认字体 Times New Roman
 - **Python**: 3.10+，类型注解优先
 
 ### 运行测试

@@ -23,7 +23,50 @@ __all__ = [
     "f90_save_vars",
     "init_get_keys",
     "setup_cmd_from",
+    "config_parameter_defaults",
 ]
+
+
+def config_parameter_defaults(lines: List[str]) -> Dict[str, object]:
+    """解析 Config 里 `PARAMETER <name> <TYPE> <default>` 的默认值。
+
+    ★ 为什么需要它：Config 的 `PARAMETER` 值与 .par 的显式赋值会同时存在，
+      运行期 .par 胜出。只比对"键是否存在"（旧规则 `par_sim_in_config` 的做法）
+      无法发现"Config 里是 V 的 50.9415、par 里是 CH 的 6.509"这类静默错配。
+
+    支持的形式（均出现在 gen_config 的产物中）::
+
+        PARAMETER ms_shldA REAL 50.9415
+        PARAMETER sim_rhoTarg   REAL 2.7
+        PARAMETER eos_shldTableFile STRING "V-BADGER-TOPS.cn4"
+        PARAMETER sim_initGeom STRING "slab" ["slab","sphere"]   # 尾部枚举表
+
+    Returns:
+        {参数名: float | str}；STRING 取第一个引号内内容，其余取首个数值 token。
+    """
+    out: Dict[str, object] = {}
+    for raw in lines:
+        line = strip_par_comment(raw).strip()
+        if not line:
+            continue
+        m = re.match(r"^PARAMETER\s+([A-Za-z_][A-Za-z0-9_]*)\s+"
+                     r"(STRING|REAL|INTEGER|LOGICAL)\s+(.+)$", line, re.I)
+        if not m:
+            continue
+        name, ptype, rest = m.group(1), m.group(2).upper(), m.group(3).strip()
+        if ptype == "STRING":
+            q = re.match(r'^"([^"]*)"', rest) or re.match(r"^'([^']*)'", rest)
+            out[name] = q.group(1) if q else rest.split()[0]
+        elif ptype == "LOGICAL":
+            out[name] = rest.split()[0].strip(".").lower() in ("true", "t")
+        else:
+            tok = re.match(r"^[-+]?[\d.]+(?:[eEdD][-+]?\d+)?", rest)
+            if tok:
+                try:
+                    out[name] = float(tok.group(0).replace("d", "e").replace("D", "e"))
+                except ValueError:
+                    continue
+    return out
 
 
 def strip_par_comment(line: str) -> str:

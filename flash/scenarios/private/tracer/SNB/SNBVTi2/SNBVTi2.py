@@ -355,7 +355,10 @@ SPECIES_LIST = ("cham", "shld", "samp", "tar1", "tar2", "tar3", "tar4", "tar6")
 TAR_LAYERS = ("tar1", "tar2", "tar3", "tar4", "tar6")
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 
 # ── SNB 单元覆盖文件 (部署时从 FLASHSNB SNB_1D_laser 原样复制) ──
 SNB_OVERRIDE_FILES = (
@@ -524,22 +527,12 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     # ── 1. par（CH_FLASH_PAR 基线 + SNB 覆写 + V/Ti 材料覆写）──
     log("  [1/9] 生成 .par 文件 (SNB 基线 + V/Ti 材料)...", "STEP")
-    tmp_params = dict(CH_FLASH_PAR)
-    _TARG_KEYS = {
-        "sim_targetRadius", "sim_targetHeight",
-        "sim_rhoTarg", "sim_teleTarg", "sim_tionTarg", "sim_tradTarg",
-        "ms_targA", "ms_targZ", "ms_targZMin",
-    }
-    for k in list(tmp_params):
-        if k in _TARG_KEYS or k.startswith(("op_targ", "eos_targ")) \
-                or k == "sim_sampRadius" \
-                or k in ("basenm", "log_file") \
-                or k.startswith("plot_var"):
-            del tmp_params[k]
+    # ★ 2026-10-21: 用"载入族物理基线 + 声明物性"取代历史的
+    #   `dict(CH_FLASH_PAR)` + `_params.clear()` + 逐键重灌。
+    #   基线 (LAYER_TRACER_BASELINE) 由 6 份同机制 par 逐键比对得到, 只含
+    #   族内不变、与材料无关的设置, **不含** ms_*/sim_rho*/eos_*表/op_*表。
     par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
-    par_gen._params.clear()
-    for k, v in tmp_params.items():
-        par_gen.set(k, v)
+    par_gen.reset_to(LAYER_TRACER_BASELINE)
     # 覆写: 几何 (分层几何经运行时参数控制)
     # ★ 8 物种多层栈 (2026-09-14) —— 同 SNBOneCH_ml 的 6 层示踪几何:
     #   [0,shldR] shld | [shldR,L1] samp | [L1,L1+shldR] tar1 |
@@ -552,48 +545,14 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     # ★★★ 材料分组绑定 (CH_FLASH_PAR 基线默认为 CH; 逐个覆写非 CH 物种)
     #   组 1: CH 族 (cham 用 He 表, samp + 4 个 CH tar 用 CH 表)
-    par_gen.set("eos_chamTableFile", cfg["he_cn4"])
-    par_gen.set("op_chamFileName", cfg["he_cn4"])
-    par_gen.set("eos_sampTableFile", cfg["ch_cn4"])
-    par_gen.set("op_sampFileName", cfg["ch_cn4"])
-    #   组 2: shld (本场景 V 6.11; 模板占位 rho=1 为 CH, 必须覆写)
-    if SHLD_MATERIAL == "V":
-        par_gen.set("sim_rhoShld", _MAT_V["rho"])
-        par_gen.set("ms_shldA", _MAT_V["A"])
-        par_gen.set("ms_shldZ", _MAT_V["Z"])
-        par_gen.set("eos_shldTableFile", _MAT_V["file"])
-        par_gen.set("op_shldFileName", _MAT_V["file"])
-    elif SHLD_MATERIAL == "Ti":
-        par_gen.set("sim_rhoShld", _MAT_TI["rho"])
-        par_gen.set("ms_shldA", _MAT_TI["A"])
-        par_gen.set("ms_shldZ", _MAT_TI["Z"])
-        par_gen.set("eos_shldTableFile", _MAT_TI["file"])
-        par_gen.set("op_shldFileName", _MAT_TI["file"])
-    else:
-        par_gen.set("sim_rhoShld", _MAT_CH["rho"])
-        par_gen.set("eos_shldTableFile", cfg["ch_cn4"])
-        par_gen.set("op_shldFileName", cfg["ch_cn4"])
-    #   组 3: tar* 材料绑定 — **逐层显式覆写** (TI_LAYER = Ti, 其余 = CH)
-    #   ★ 显式写出全部 6 层 (而非只写 Ti 层依赖模板默认), 便于 par 审计:
-    #     凡 cfg→par 传递点必须能直接从产物文本核对 (2026-09-13 教训)。
-    for _t in TAR_LAYERS:
-        _mat = _MAT_TI if (TI_LAYER is not None and _t == TI_LAYER) else _MAT_CH
-        _tag = "Ti" if _mat is _MAT_TI else "CH"
-        _cap = _t.capitalize()                # tar1 → Tar1
-        par_gen.set(f"sim_rho{_cap}", _mat["rho"])
-        par_gen.set(f"ms_{_t}A", _mat["A"])
-        par_gen.set(f"ms_{_t}Z", _mat["Z"])
-        par_gen.set(f"eos_{_t}EosType", "eos_tab")
-        par_gen.set(f"eos_{_t}SubType", "ionmix4")
-        par_gen.set(f"eos_{_t}TableFile", _mat["file"])
-        par_gen.set(f"op_{_t}Absorb", "op_tabpa")
-        par_gen.set(f"op_{_t}Emiss", "op_tabpe")
-        par_gen.set(f"op_{_t}Trans", "op_tabro")
-        par_gen.set(f"op_{_t}FileType", "ionmix4")
-        par_gen.set(f"op_{_t}FileName", _mat["file"])
-        log(f"    {_t} = {_tag} {_mat['rho']} g/cc + {_mat['file']} ✓")
-    log(f"    材质分配: shld={SHLD_MATERIAL}, {TI_LAYER}=Ti, "
-        f"其余 {[t for t in TAR_LAYERS if t != TI_LAYER]} = CH ✓")
+    # ── 物性五元组（sim_rho/ms_A/ms_Z/eos/op）: 唯一真源 = 本场景 species_defs ──
+    # ★★★ 2026-10-21 机制修复: 历史做法用 SHLD_MATERIAL 三分支 + _MAT_* 字典
+    #   决定 par 物性, 而 tracer/_par_layers.CH_FLASH_PAR 的 ms_*/sim_rho*/
+    #   eos_*表/op_*表 会作为 par 显式值覆盖 Config 里由 species_defs 注册的
+    #   正确默认值 (V/Ti 屏蔽层曾按 CH 的 A/Z 计算 ⇒ t=0 压强高估 15.1 倍)。
+    #   现在一律由 species_defs 逐物种显式声明, 并强制校验 (不一致即 raise)。
+    par_gen.set_species_materials(species_defs)
+    par_gen.assert_material_binding(species_defs)
 
     # 初始温度覆写 (par 里的 sim_tele*/tion*/trad* 是运行时真正生效的来源)
     for _zone in ("Cham", "Shld", "Samp"):
@@ -656,11 +615,11 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     #   par_gen.set() **从未被调用** ⇒ cfg 里 align_domain() 吸附后的
     #   域值根本没写进 par, deploy/objdir 拿到的仍是模板原值。
     #   (实测: 日志打印了吸附值但 par 第 402 行仍是 -0.04)
-    if abs(cfg["xmin"] - float(CH_FLASH_PAR["xmin"])) > 1e-15 or \
-       abs(cfg["xmax"] - float(CH_FLASH_PAR["xmax"])) > 1e-15:
-        par_gen.set("xmin", cfg["xmin"])
-        par_gen.set("xmax", cfg["xmax"])
-        log(f"    域覆写: xmin={cfg['xmin']:.10f}, xmax={cfg['xmax']:.10f} ✓")
+    # ★ 2026-10-21: 域边界一律显式写入 cfg 值 (不再与基线比较后条件写入)。
+    #   历史教训 (2026-09-13): 曾因漏调 par_gen.set() 导致 deploy/objdir 拿到
+    #   基线的 xmin=-0.04/xmax=0.01, 而 cfg 里 align_domain() 吸附后的域值没进 par。
+    par_gen.set("xmin", cfg["xmin"])
+    par_gen.set("xmax", cfg["xmax"])
     # 覆写: plotfile 输出变量白名单
     for i, v in enumerate(_PLOT_VARS, start=1):
         par_gen.set(f"plot_var_{i}", f"{v:<4s}")
@@ -797,19 +756,18 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     try:
         import numpy as np
         from flash.input_gen.gen_checker.ploter import PulsePlotter, DensityPlotter
-        tsec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_time_1_"))
-        psec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_power_1_"))
-        if tsec and psec:
-            times_ns = np.array([v for _, v in tsec]) * 1e9
-            powers_w = np.array([v for _, v in psec])
+        _pulse = pulse_from_params(LAYER_TRACER_BASELINE)
+        _pulse_t = np.asarray(_pulse["times"], dtype=float)
+        _pulse_p = np.asarray(_pulse["powers"], dtype=float)
+        if _pulse_t.size and _pulse_p.size:
+            times_ns = _pulse_t * 1e9
+            powers_w = _pulse_p
             PulsePlotter().plot_pulse(
                 times_ns, powers_w,
-                title=f"Laser Pulse ({len(tsec)} sections)",
+                title=f"Laser Pulse ({_pulse_t.size} sections)",
                 save_path=INPUT_DIR / "pre_diag_laser_pulse.png",
                 beam_label="Beam 1 (0.351 um)")
-            log(f"    pre_diag_laser_pulse.png ✓ ({len(tsec)} sections)")
+            log(f"    pre_diag_laser_pulse.png ✓ ({_pulse_t.size} sections)")
             result["pre_diag_laser"] = str(INPUT_DIR / "pre_diag_laser_pulse.png")
         xs, dens1d, _ = builder.sample_1d(n_points=4000)
         # 分层边界标注 (与 initBlock 的 13 边界一致)

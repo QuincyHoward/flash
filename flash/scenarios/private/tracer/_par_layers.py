@@ -1,8 +1,31 @@
-"""layer_tracer 场景规范物理参数 (自包含).
+"""layer_tracer 场景规范物理参数 — 【已退役 · 只读留存 · 禁止 import】
 
-原 private/tracer/tmp 中 runfiles 的 flash.par 全文解析后内嵌于此,
-tmp/ 已删除, 场景脚本不再依赖本地参考目录。
-CH = layer_tracer_CH, TI = layer_tracer_Ti。
+★★★ 2026-10-21 起本模块**不再被任何场景脚本使用**，仅作历史参考保留，
+    事故复盘 / 与旧算例 par 逐字节对照时可查，最终改造完成后删除。
+
+为什么退役（根因）:
+    本文件是**某一次 CH 算例 `flash.par` 的全文快照**（337 键），其中物性键
+        ms_shldA=6.509  ms_shldZ=3.5  sim_rhoShld=1.0
+        eos_shldTableFile = op_shldFileName = "CH-QC-1-001.cn4"
+    被各场景 `dict(CH_FLASH_PAR)` + `par_gen._params.clear()` + 逐键 `set()`
+    整块写进 `.par`。而 FLASH 运行期 **`.par` 显式赋值覆盖 Config 的
+    `PARAMETER` 默认值** ⇒ Config 里由 `species_defs` 注册的正确物性被静默压掉。
+    VTi 场景的 V 屏蔽层因此按 CH 的 A/Z 反算 abar/Ye 送 EOS，t=0 时该层压强
+    高估约 15 倍（3.93e11 → 5.92e12 dyn/cm²），屏蔽层 0.3 ns 内爆开成 −40 µm
+    稀薄冕区。因无任何"值比对"护栏，此错误可通过生成→编译→运行→出图全流程。
+
+现在的正确做法（见 PAR_MATERIAL_BINDING_GUIDE.md）:
+    · 物理/数值基线 → 通用层 `flash.input_gen.gen_par.defaults.LAYER_TRACER_BASELINE`
+      （277 键，经 6 份同机制 par 逐键比对确认族内不变，**不含任何材料身份**）
+    · 物性五元组   → 各场景对自己 `species_defs` 逐物种显式声明：
+      `par_gen.set_species_materials(species_defs)` +
+      `par_gen.assert_material_binding(species_defs)`（不一致即 raise）
+    · 独立护栏     → gen_checker 规则 `par_material_in_config`（par 值 vs Config 默认值）
+
+原内容保留如下（只读参考）:
+    原 private/tracer/tmp 中 runfiles 的 flash.par 全文解析后内嵌于此,
+    tmp/ 已删除, 场景脚本不再依赖本地参考目录。
+    CH = layer_tracer_CH, TI = layer_tracer_Ti。
 """
 
 from typing import Any, Dict

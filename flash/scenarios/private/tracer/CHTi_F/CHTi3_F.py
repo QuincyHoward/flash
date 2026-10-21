@@ -128,8 +128,12 @@ RADIATION_OFF = True    # True=关闭辐射输运 (F 变体)
 SIM_NAME = f"LaserSlab_{SCENE_NAME}"
 PAR_FILENAME = f"laserslab_{SCENE_NAME.lower()}.par"
 
-# 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+# 通用层: 族物理基线 (277 键, 无材料身份) + 脉冲波形只读访问器
+# ★ 2026-10-21 起不再从 tracer/_par_layers.py 的整份 par 快照取参数。
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 
 # 场景目录
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -232,26 +236,14 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     result: Dict[str, str] = {}
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 物种/几何覆写）──
+    # ── 1. par（族物理基线 + 本场景物种物性自声明）──
     log("  [1/9] 生成 .par 文件...", "STEP")
-    tmp_params = dict(CH_FLASH_PAR)
-    # 新场景无 targ 物种且 samp 不声明几何参数: 显式剔除 targ 物种专属键。
-    # 注意不能用 "targ" in k 模糊匹配 — 会误删激光 ed_targetX_1 (target⊃targ)!
-    _TARG_KEYS = {
-        "sim_targetRadius", "sim_targetHeight",
-        "sim_rhoTarg", "sim_teleTarg", "sim_tionTarg", "sim_tradTarg",
-        "ms_targA", "ms_targZ", "ms_targZMin",
-    }
-    for k in list(tmp_params):
-        if k in _TARG_KEYS or k.startswith(("op_targ", "eos_targ")) \
-                or k == "sim_sampRadius" \
-                or k.startswith("plot_var"):
-            del tmp_params[k]
+    # ★ 2026-10-21: 用"载入族物理基线 + 声明物性"取代历史的
+    #   `dict(CH_FLASH_PAR)` + `_params.clear()` + 逐键重灌。
+    #   基线 (LAYER_TRACER_BASELINE, 277 键) 由 6 份同机制 par 逐键比对得到,
+    #   只含族内不变、与材料无关的设置, **不含** ms_*/sim_rho*/eos_*表/op_*表。
     par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
-    # 清除维度默认参数，仅保留规范参数 + 下方覆写，避免未注册参数混入 par
-    par_gen._params.clear()
-    for k, v in tmp_params.items():
-        par_gen.set(k, v)
+    par_gen.reset_to(LAYER_TRACER_BASELINE)
     # 覆写: 几何 (分层全部经运行时参数控制, Simulation_initBlock 引用)
     # 只改 .par 中以下 7 个值即可改变场景几何, 无需改代码:
     #   [0, shldR] shld | [shldR, tar1R] samp | [tar1R, tar1R+shldR] tar1 |
@@ -267,29 +259,13 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    # 覆写: 屏蔽层材质绑定 (VCH 系: shld=V 6.11 + V 表; 纯 CH 系: 模板默认
-    # sim_rhoShld=1 + CH 表已正确, 无需覆写)
-    if SHLD_MATERIAL == "V":
-        par_gen.set("sim_rhoShld", 6.11)   # V 真实密度 (模板占位 1 为 CH)
-        par_gen.set("eos_shldTableFile", "V-BADGER-TOPS.cn4")
-        par_gen.set("op_shldFileName", "V-BADGER-TOPS.cn4")
-    # 新增: tar1-tar4/tar6 表绑定 (CH, 与 samp 同表)
-    for tar in ("tar1", "tar2", "tar3", "tar4", "tar6"):
-        par_gen.set(f"eos_{tar}EosType", "eos_tab")
-        par_gen.set(f"eos_{tar}SubType", "ionmix4")
-        par_gen.set(f"eos_{tar}TableFile", "CH-QC-1-001.cn4")
-        par_gen.set(f"op_{tar}Absorb", "op_tabpa")
-        par_gen.set(f"op_{tar}Emiss", "op_tabpe")
-        par_gen.set(f"op_{tar}Trans", "op_tabro")
-        par_gen.set(f"op_{tar}FileType", "ionmix4")
-        par_gen.set(f"op_{tar}FileName", "CH-QC-1-001.cn4")
-    # Ti 示踪层绑定: TI_LAYER 物种材质 CH → Ti (深度见 docstring, 厚度 delta)。
-    # 密度 4.54 g/cm^3 同参考 ReDo042sp (sim_rhoTarg); A/Z 经 Config 由
-    # species_defs 自动注册, 此处覆写运行时三处绑定 (密度/EOS 表/不透明度表)。
-    if TI_LAYER is not None:
-        par_gen.set(f"sim_rho{TI_LAYER.capitalize()}", 4.54)
-        par_gen.set(f"eos_{TI_LAYER}TableFile", "Ti-BADGER-TOPS.cn4")
-        par_gen.set(f"op_{TI_LAYER}FileName", "Ti-BADGER-TOPS.cn4")
+    # ── 物性五元组（sim_rho/ms_A/ms_Z/eos/op）: 唯一真源 = 本场景 species_defs ──
+    # ★★★ 2026-10-21 机制修复: 历史做法从 tracer/_par_layers.CH_FLASH_PAR
+    #   (一份 CH 算例的整份 par 快照) 继承物性, 该显式值会在运行期覆盖 Config
+    #   里由 species_defs 注册的正确默认值 —— V/Ti 屏蔽层曾因此按 CH 的 A/Z
+    #   计算, t=0 压强高估 15.1 倍。现在逐物种显式声明并强制校验。
+    par_gen.set_species_materials(species_defs)
+    par_gen.assert_material_binding(species_defs)
     # 关闭辐射输运 (F 变体, RADIATION_OFF=True) — 机制学习自参考
     # ReDo042sp_CH042sp*umF8.00e-02 vs *umL8.00e-02 对比: 源码/setup/编译
     # 完全不变 (Makefile/全部 F90 逐字节相同), 纯运行时关闭三处开关:
@@ -492,19 +468,19 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         from flash.input_gen.gen_checker.ploter import PulsePlotter, DensityPlotter
 
         # (a) 激光脉冲时间-功率曲线 (ed_time_1_* / ed_power_1_*, s / W)
-        tsec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_time_1_"))
-        psec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_power_1_"))
-        if tsec and psec:
-            times_ns = np.array([v for _, v in tsec]) * 1e9
-            powers_w = np.array([v for _, v in psec])
+        # ★ 2026-10-21: 改读通用基线的波形, 不再从场景内 par 模板字典捞键
+        _pulse = pulse_from_params(LAYER_TRACER_BASELINE)
+        _pulse_t = np.asarray(_pulse["times"], dtype=float)
+        _pulse_p = np.asarray(_pulse["powers"], dtype=float)
+        if _pulse_t.size and _pulse_p.size:
+            times_ns = _pulse_t * 1e9
+            powers_w = _pulse_p
             PulsePlotter().plot_pulse(
                 times_ns, powers_w,
-                title=f"Laser Pulse ({len(tsec)} sections)",
+                title=f"Laser Pulse ({_pulse_t.size} sections)",
                 save_path=INPUT_DIR / "pre_diag_laser_pulse.png",
                 beam_label="Beam 1 (0.351 um)")
-            log(f"    pre_diag_laser_pulse.png ✓ ({len(tsec)} sections)")
+            log(f"    pre_diag_laser_pulse.png ✓ ({_pulse_t.size} sections)")
             result["pre_diag_laser"] = str(INPUT_DIR / "pre_diag_laser_pulse.png")
 
         # (b) 初始密度分层 (GridBuilder 均匀采样 + 区域边界标注)

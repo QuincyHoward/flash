@@ -116,7 +116,10 @@ SIM_NAME = "LaserSlab_VCHml"
 PAR_FILENAME = "laserslab_vchml.par"
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+from flash.input_gen.gen_par.defaults import (  # noqa: E402
+    LAYER_TRACER_BASELINE,
+    pulse_from_params,
+)
 
 # 场景目录
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -211,24 +214,12 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     # ── 1. par（内嵌规范参数 CH_FLASH_PAR + 物种/几何覆写）──
     log("  [1/9] 生成 .par 文件...", "STEP")
-    tmp_params = dict(CH_FLASH_PAR)
-    # 新场景无 targ 物种且 samp 不声明几何参数: 显式剔除 targ 物种专属键。
-    # 注意不能用 "targ" in k 模糊匹配 — 会误删激光 ed_targetX_1 (target⊃targ)!
-    _TARG_KEYS = {
-        "sim_targetRadius", "sim_targetHeight",
-        "sim_rhoTarg", "sim_teleTarg", "sim_tionTarg", "sim_tradTarg",
-        "ms_targA", "ms_targZ", "ms_targZMin",
-    }
-    for k in list(tmp_params):
-        if k in _TARG_KEYS or k.startswith(("op_targ", "eos_targ")) \
-                or k == "sim_sampRadius" \
-                or k.startswith("plot_var"):
-            del tmp_params[k]
+    # ★ 2026-10-21: 用"载入族物理基线 + 声明物性"取代历史的
+    #   `dict(CH_FLASH_PAR)` + `_params.clear()` + 逐键重灌。
+    #   基线 (LAYER_TRACER_BASELINE) 由 6 份同机制 par 逐键比对得到, 只含
+    #   族内不变、与材料无关的设置, **不含** ms_*/sim_rho*/eos_*表/op_*表。
     par_gen = ParGeneratorExtended(simulation_name=SIM_NAME, dimension=1)
-    # 清除维度默认参数，仅保留规范参数 + 下方覆写，避免未注册参数混入 par
-    par_gen._params.clear()
-    for k, v in tmp_params.items():
-        par_gen.set(k, v)
+    par_gen.reset_to(LAYER_TRACER_BASELINE)
     # 覆写: 几何与材料 (shld 从零宽 CH 占位 → 0.1um V 实体层)
     # 分层几何全部经运行时参数控制 (Simulation_initBlock 引用这些参数),
     # 只改 .par 中以下 7 个值即可改变场景几何, 无需改代码:
@@ -245,10 +236,16 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("sim_tar4Radius", L4)                   # L4 = 4.0e-4 cm
     par_gen.set("sim_tar6Radius", L6)                   # L6 = 6.0e-4 cm
     par_gen.set("sim_sampHeight", D)                    # D
-    par_gen.set("sim_rhoShld", 6.11)   # 模板占位值为 1 (CH), V 真实密度 6.11 g/cm^3
-    # 覆写: shld 表绑定 CH → V
-    par_gen.set("eos_shldTableFile", "V-BADGER-TOPS.cn4")
-    par_gen.set("op_shldFileName", "V-BADGER-TOPS.cn4")
+    # ── 物性五元组（sim_rho/ms_A/ms_Z/eos/op）: 唯一真源 = 本场景 species_defs ──
+    # ★★★ 2026-10-21 机制修复: 历史做法用 SHLD_MATERIAL 分支 / 模板占位值
+    #   (tracer/_par_layers.CH_FLASH_PAR) 决定物性, 其 ms_*/sim_rho*/eos_*表/
+    #   op_*表 会作为 par 显式值覆盖 Config 里由 species_defs 注册的正确默认值
+    #   (V/Ti 屏蔽层曾按 CH 的 A/Z 计算 ⇒ t=0 压强高估 15.1 倍)。
+    #   现在一律由 species_defs 逐物种显式声明, 并强制校验 (不一致即 raise)。
+    par_gen.set_species_materials(species_defs)
+    par_gen.assert_material_binding(species_defs)
+    assert abs(float(par_gen.get("ms_shldA")) - 50.9415) < 1e-9, "ms_shldA 覆写失败"
+    assert abs(float(par_gen.get("ms_shldZ")) - 23.0) < 1e-9, "ms_shldZ 覆写失败"
     # 新增: tar1-tar4/tar6 表绑定 (CH, 与 samp 同表)
     for tar in ("tar1", "tar2", "tar3", "tar4", "tar6"):
         par_gen.set(f"eos_{tar}EosType", "eos_tab")
@@ -446,19 +443,18 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         from flash.input_gen.gen_checker.ploter import PulsePlotter, DensityPlotter
 
         # (a) 激光脉冲时间-功率曲线 (ed_time_1_* / ed_power_1_*, s / W)
-        tsec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_time_1_"))
-        psec = sorted((int(k.rsplit("_", 1)[1]), v)
-                      for k, v in tmp_params.items() if k.startswith("ed_power_1_"))
-        if tsec and psec:
-            times_ns = np.array([v for _, v in tsec]) * 1e9
-            powers_w = np.array([v for _, v in psec])
+        _pulse = pulse_from_params(LAYER_TRACER_BASELINE)
+        _pulse_t = np.asarray(_pulse["times"], dtype=float)
+        _pulse_p = np.asarray(_pulse["powers"], dtype=float)
+        if _pulse_t.size and _pulse_p.size:
+            times_ns = _pulse_t * 1e9
+            powers_w = _pulse_p
             PulsePlotter().plot_pulse(
                 times_ns, powers_w,
-                title=f"Laser Pulse ({len(tsec)} sections)",
+                title=f"Laser Pulse ({_pulse_t.size} sections)",
                 save_path=INPUT_DIR / "pre_diag_laser_pulse.png",
                 beam_label="Beam 1 (0.351 um)")
-            log(f"    pre_diag_laser_pulse.png ✓ ({len(tsec)} sections)")
+            log(f"    pre_diag_laser_pulse.png ✓ ({_pulse_t.size} sections)")
             result["pre_diag_laser"] = str(INPUT_DIR / "pre_diag_laser_pulse.png")
 
         # (b) 初始密度分层 (GridBuilder 均匀采样 + 区域边界标注)

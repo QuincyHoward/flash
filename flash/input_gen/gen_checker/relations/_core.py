@@ -26,7 +26,7 @@ __all__ = [
 ]
 
 # 行尾注释剥离与 par 解析规则共用同一实现，避免两处逻辑漂移
-from ._parsers import strip_par_comment  # noqa: E402
+from ._parsers import strip_par_comment, config_parameter_defaults  # noqa: E402
 
 # 规则 id -> 规则函数（由 relation_rule 装饰器填充）
 REGISTRY: Dict[str, Callable[..., "RelationResult"]] = {}
@@ -142,6 +142,17 @@ class RelationContext:
                         names.append(parts[1])
             return names
         return self._cached("config_parameters", _load)
+
+    def config_parameter_defaults(self) -> Dict[str, Any]:
+        """Config 中 `PARAMETER <name> <TYPE> <default>` 的默认值字典。
+
+        ★ 与 ``config_parameters()``（只给名字）互补：物性五元组是否"值一致"
+          必须靠这里，否则查不出「Config 是 V、par 是 CH」的静默错配。
+        """
+        return self._cached(
+            "config_parameter_defaults",
+            lambda: config_parameter_defaults(self.config_lines()),
+        )
 
     def simulation_f90(self) -> Dict[str, str]:
         """Simulation_*.F90 文件内容字典 {文件名: 文本}。"""
