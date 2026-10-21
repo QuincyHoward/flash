@@ -407,3 +407,67 @@ VTi1 这一行就是原始缺陷的判据：修复前该层按 CH 的 6.509/3.5 
   为本轮 V6 验证产物（tmax=1e-11，仅 t=0 帧有效），可随时删除。
 - `run_wsl` 的 "HDF5 files: 0" 汇总计数与实际产物不符（收集目录 glob 模式问题），
   属报告口径缺陷，不影响运行，建议后续单独修。
+
+---
+
+# 14. 后续修复与公开示例收尾（2026-10-21 晚）
+
+## 14.1 VAuTi 段错误 —— 基线不该带 plot_var
+
+**现象**：`FLASH exit 139 (SIGSEGV)`，堆栈
+`io_getZeroBasedVarInfo.F90:186` ← `io_create_grid_header` ← `io_writeplotfile`
+← `io_outputInitial`（写初始 plotfile 时崩）。
+
+**根因**：`LAYER_TRACER_BASELINE` 最初含 16 个 `plot_var_*`（提取自 8 物种 par），
+其中 8 条是物种名。VAuTi 只有 **4 物种**（cham/shld/samp/targ），自己写了 12 条后，
+基线残留的 `plot_var_13..16 = tar3/tar4/tar6/fllm` 仍会被写入 ⇒ FLASH 请求不存在的
+变量 ⇒ 段错误。
+
+**修法**：把 `plot_var_*` 全部移出基线（277 → **261 键**）。
+判据是"这条设置是否与材料/物种无关"——`plot_var` 是**输出白名单**，其内容随物种数
+变化，因此不属于族基线。27 个场景本来就各自 `set()` 自己的白名单。
+
+> 附带教训：`batch_short_run` 原先"取目录里最新的 chk_0000"，
+> 场景跑挂时会拿到**上次运行**的 chk 从而误报 PASS（VAuTi 就这样被误判过）。
+> 现已按"运行起始时间戳"过滤，只接受本次产出。
+
+## 14.2 `scenarios/public/` 目录整理后的三处断裂
+
+| 症状 | 根因 | 修复 |
+|---|---|---|
+| `场景包 center_evolution 加载失败: No module named ...` | `scenarios/__init__.py` 的包列表仍是旧一级名 | 改为 `("public", "flash_demo", "private")` |
+| `ch_center` 进了注册表却显示"加载失败" | `register()` 的 `module_path` 缺 `public` | `flash.scenarios.public.center_evolution.ch_center` |
+| 两个 sandwich 场景根本没注册 | `sandwich/__init__.py` **不导入子包** | 补容错导入（同 center_evolution 风格） |
+
+另修：`public/__init__.py` 原是空文件 → 补 4 个专题子包的容错导入；
+`test_gen_checker.py` 的 ch_center 路径同步（此前 2 个用例**静默 skip**，83→81 passed）。
+
+## 14.3 极短验证的提示机制
+
+新增两个文件：
+
+- **`flash/scenarios/hints.py`**
+  `is_short_run(tmax)` + `short_validation_notice(tmax, scene, where, extra)`
+  —— 打印三段信息：本次只保证什么（输入生成 / setup 编译 / 启动写首帧 / 无 NaN）、
+  **不产生物理结果**的原因、正式仿真应该改哪个时间参数。
+- **`flash/scenarios/public/run_demo.py`** —— 公开示例统一入口：
+  ```bash
+  python flash/scenarios/public/run_demo.py --list
+  python flash/scenarios/public/run_demo.py --scene ch_center --tmax 1e-11
+  python flash/scenarios/public/run_demo.py --all --tmax 1e-11
+  ```
+  `WHERE_TO_CHANGE` 里登记了每个示例的正式时间参数位置：
+  `ch_center` → `__init__.py: params['tmax']`（默认 1.2e-9 s）/
+  `laserslab1d_local_custom.py: cfg['tmax_multiplier']`；
+  `grad_dens_sandwich` → `defaults.py: DEFAULT_TMAX = 1.4e-9 s`；
+  `thin_layer_sandwich_si` → `defaults_si.py: DEFAULT_TMAX = 1.2e-9 s`。
+
+## 14.4 结果
+
+| 项 | 结果 |
+|---|---|
+| `pytest flash/input_gen/test` | **83 passed / 0 skipped** |
+| 27 场景重生成 + `par_material_in_config` | 全通过 |
+| 27 场景极短验证（`tmax=1e-11`） | **27/27 PASS**（矩阵见 `tools_local/final_validation_matrix.csv`） |
+| 公开示例极短真跑 | **3/3**：ch_center（chk_0010）、grad_dens_sandwich（chk_0005）、thin_layer_sandwich_si（chk_0033） |
+| VAuTi | 修复后 **rc=0**（修复前 rc=1 + signal 11） |
