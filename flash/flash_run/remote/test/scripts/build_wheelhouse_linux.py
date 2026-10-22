@@ -40,7 +40,9 @@ sys.path.insert(0, str(REPO_ROOT / "scripts" / "08_offline_install"))
 import _wh_common as wh  # noqa: E402
 
 PLATFORMS = ["manylinux2014_x86_64", "manylinux_2_28_x86_64"]
-PY_VERSION = "3.10"
+# ★ 必须写完整版本 3.10.8（不能只写 3.10）：pip 按 Requires-Python 过滤时
+#   "3.10" 被解释为 3.10.0，yt 4.4.0 要求 >=3.10.3 会被误拒（实测踩坑）。
+PY_VERSION = "3.10.8"
 PY_ABIS = ["cp310", "abi3"]
 
 # ★ glibc 上限锁定（2026-10-22 实测：NC-E = CentOS 7 / glibc 2.17 / pip 22.2.2，
