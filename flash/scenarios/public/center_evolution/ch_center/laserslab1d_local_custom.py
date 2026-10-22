@@ -519,6 +519,20 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
             f"sed -i 's/^module /# module (FLASH_NO_MODULE_PURGE) /' "
             f"submit_flash.sh && echo MODULES_DISABLED", timeout=10)
         log("  [run] FLASH_NO_MODULE_PURGE=1 → 已注释全部 module 行 (保留 oneAPI 默认环境)")
+        # ★ 链接期补 Intel MPI 库路径: QC 树 Makefile.h 链接 -lmpi -lmpifort
+        #   (Intel MPI 2022.1, 路径取自登录节点 LIBRARY_PATH 实测)；作业计算节点
+        #   的链接搜索路径不含它 ⇒ 必须显式注入 LIBRARY_PATH/LD_LIBRARY_PATH。
+        impi_env = (
+            "export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
+            "/public1/soft/oneAPI/2022.1/mpi/latest/lib:$LIBRARY_PATH\n"
+            "export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/release:"
+            "/public1/soft/oneAPI/2022.1/mpi/latest/lib:$LD_LIBRARY_PATH\n"
+        )
+        session.run(
+            f"cat > {remote_dir}/flash_impi_env.sh << 'IMPI_EOF'\n{impi_env}IMPI_EOF\n"
+            f"sed -i '/^set -e/a source ./flash_impi_env.sh' submit_flash.sh && "
+            f"echo IMPI_ENV_INJECTED", timeout=30)
+        log("  [run] 已注入 Intel MPI 库路径 (flash_impi_env.sh)")
 
     # ── 尝试 SLURM 提交 ──────────────────────────
     sbatch_cmd = f"cd {remote_dir} && {MODULES_LOAD} && sbatch submit_flash.sh 2>&1"
