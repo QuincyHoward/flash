@@ -595,61 +595,188 @@ def upload_and_run_analysis(
     analysis_hw = cfg["analysis_half_width_um"] * 1e-4
     L0_cm = cfg["L0_um"] * 1e-4
 
-    # ── 尝试使用超算 python/3.9.6 (有 h5py) ────
-    log("  [analyze] 运行分析 (module load python/3.9.6)...", "STEP")
-    analyze_cmd = (
-        f"cd {remote_dir} && "
-        f"module purge 2>/dev/null; "
-        f"module load python/3.9.6 2>/dev/null; "
-        f"export PYTHONIOENCODING=utf-8 && "
-        f"python hpc_analyze_ch_center.py "
-        f"--input-dir {actual_output_dir} "
-        f"--output-dir {remote_dir}/analysis_plots "
-        f"--center-half-width {analysis_hw} "
-        f"--L0 {L0_cm} "
-        f"2>&1"
-    )
-    out, err, code = session.run(analyze_cmd, timeout=600)
-    log(f"    返回码: {code}")
-    if out.strip():
-        for line in out.strip().splitlines()[-15:]:
-            log(f"      {line}")
+    # ── 分析 python 三级回退链 (2026-10-22 三模式统一) ────
+    #   ① FLASH_HPC_PYTHON env 显式指定
+    #   ② $HOME/.venv-hpc-nce/bin/python (离线部署 venv, h5py3.14+yt4.4 已就位)
+    #   ③ module load python/3.9.6 (旧路, 唯一带 h5py 的模块 → WARN 保留)
+    #   ④ 系统 python3 → 均失败则回退本地分析
+    def _remote_py_candidates() -> List[str]:
+        cands: List[str] = []
+        env_py = os.environ.get("FLASH_HPC_PYTHON", "").strip()
+        if env_py:
+            cands.append(env_py)
+        out, _, _ = session.run(
+            "test -x $HOME/.venv-hpc-nce/bin/python && echo VENV_OK", timeout=10)
+        if "VENV_OK" in (out or ""):
+            cands.append("$HOME/.venv-hpc-nce/bin/python")
+        cands.append("module")     # 旧路: module load python/3.9.6
+        cands.append("python3")
+        return cands
 
-    if code != 0:
-        # 回退: 尝试系统 python3
-        log("    回退: 尝试系统 python3...", "INFO")
-        analyze_cmd2 = (
-            f"cd {remote_dir} && "
-            f"export PYTHONIOENCODING=utf-8 && "
-            f"python3 hpc_analyze_ch_center.py "
-            f"--input-dir {remote_dir}/outputfiles "
-            f"--output-dir {remote_dir}/analysis_plots "
-            f"--center-half-width {analysis_hw} "
-            f"--L0 {L0_cm} "
-            f"2>&1 | tail -50"
-        )
-        out2, err2, code2 = session.run(analyze_cmd2, timeout=600)
-        log(f"    回退返回码: {code2}")
-        if out2.strip():
-            for line in out2.strip().splitlines()[-10:]:
+    def _analyze_with(py_expr: str) -> Tuple[int, str]:
+        if py_expr == "module":
+            cmd = (f"cd {remote_dir} && "
+                   f"module purge 2>/dev/null; "
+                   f"module load python/3.9.6 2>/dev/null; "
+                   f"export PYTHONIOENCODING=utf-8 && "
+                   f"python hpc_analyze_ch_center.py ")
+        else:
+            cmd = (f"cd {remote_dir} && "
+                   f"export PYTHONIOENCODING=utf-8 && "
+                   f"{py_expr} hpc_analyze_ch_center.py ")
+        cmd += (f"--input-dir {actual_output_dir} "
+                f"--output-dir {remote_dir}/analysis_plots "
+                f"--center-half-width {analysis_hw} "
+                f"--L0 {L0_cm} 2>&1")
+        out, err, code = session.run(cmd, timeout=600)
+        return code, out or ""
+
+    analysis_done = False
+    for i, cand in enumerate(_remote_py_candidates()):
+        label = ("FLASH_HPC_PYTHON" if i == 0 and os.environ.get("FLASH_HPC_PYTHON")
+                 else ".venv-hpc-nce" if cand.startswith("$HOME")
+                 else "module python/3.9.6 (旧路)" if cand == "module"
+                 else "系统 python3")
+        log(f"  [analyze] 尝试分析 ({label})...", "STEP")
+        code, out = _analyze_with(cand)
+        log(f"    返回码: {code}")
+        if out.strip():
+            for line in out.strip().splitlines()[-10:]:
                 log(f"      {line}")
-        if code2 != 0:
-            log("    分析全部失败, 回退到本地分析", "WARN")
-            return False
+        out, _, _ = session.run(
+            f"ls {remote_dir}/analysis_plots/*.png 2>/dev/null | wc -l", timeout=10)
+        try:
+            if int(out.strip()) > 0:
+                log(f"    HPC 生成 PNG ✓ ({label})", "OK")
+                analysis_done = True
+                break
+        except ValueError:
+            pass
+    if not analysis_done:
+        log("    分析全部失败, 回退到本地分析", "WARN")
+        return False
+    return True
 
-    # 验证 PNG 输出
-    out, _, _ = session.run(
-        f"ls {remote_dir}/analysis_plots/*.png 2>/dev/null | wc -l", timeout=10,
-    )
+
+# =====================================================================
+# hpc-insitu（模式⑤）+ hpc-remote 包目录工作目录（模式④）— 2026-10-22
+# =====================================================================
+
+
+class _LocalHpcShim:
+    """in-situ 会话垫片：驱动脚本已在超算上时，用 LocalExecutor 顶替
+    RemoteSession（run 签名兼容）；upload/download 为同机拷贝/直通。
+    ★ 绝不 SSH 自连。"""
+
+    def __init__(self) -> None:
+        from flash.flash_run.remote.slurm_control import LocalExecutor
+        self._exe = LocalExecutor()
+
+    def run(self, cmd: str, timeout: int = 120):
+        return self._exe.run(cmd, timeout=timeout)
+
+    def upload(self, local: str, remote: str) -> bool:
+        # in-situ: 本地路径即远端路径；仅在两者不同时拷贝
+        try:
+            lp, rp = Path(local), Path(remote)
+            if lp.resolve() != rp.resolve():
+                rp.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(lp, rp)
+        except OSError as e:
+            log(f"  [shim.upload] {e}", "WARN")
+            return False
+        return True
+
+    def download(self, remote: str, local: str) -> bool:
+        try:
+            rp, lp = Path(remote), Path(local)
+            if rp.resolve() != lp.resolve():
+                lp.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(rp, lp)
+        except OSError as e:
+            log(f"  [shim.download] {e}", "WARN")
+            return False
+        return True
+
+
+def _resolve_hpc_pkg_root(session) -> str:
+    """远端 flash_sim 包根（模式④ runs 外置契约的锚点）。
+
+    优先级: FLASH_HPC_PKG_ROOT > $HOME/PhySimX/PhySimX/simulation/flash/flash_sim。
+    hpc-remote 需绝对路径（SFTP 不展开 ~），经 session 探测 $HOME。"""
+    env = os.environ.get("FLASH_HPC_PKG_ROOT", "").strip()
+    if env.startswith("/"):
+        return env
+    out, _, _ = session.run("printf '%s' \"$HOME\"", timeout=10)
+    home = (out or "").strip()
+    return f"{home}/PhySimX/PhySimX/simulation/flash/flash_sim"
+
+
+def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
+    """hpc-insitu 主流程：驱动已在超算登录节点（.venv-hpc-nce）。
+
+    复用 hpc-remote 的 run_flash_on_hpc / upload_and_run_analysis（run 签名
+    兼容，经 _LocalHpcShim 顶替 SSH）；重活（FLASH/分析）仍走 sbatch 作业。
+    产物外置 runs_root()/ch_center/run_NNNNNN/（包目录 git 干净）。"""
+    from flash.flash_run.remote.slurm_control import LocalExecutor, sbatch_available
+    from flash.scenarios.runner import allocate_run_id, run_id_name, runs_root
+
+    exe = LocalExecutor()
+    if not sbatch_available(exe):
+        log("当前环境无 sbatch/sacct —— hpc-insitu 只能在超算上运行 "
+            "(Windows 请用 --mode hpc / FLASH_RUN_MODE=hpc)", "ERROR")
+        return False
+
+    runs_dir = runs_root() / "ch_center"
+    run_id = allocate_run_id(runs_dir)
+    run_dir = runs_dir / run_id_name(run_id)
+    (run_dir / "output").mkdir(parents=True, exist_ok=True)
+    (run_dir / "plots").mkdir(parents=True, exist_ok=True)
+    (run_dir / "logs").mkdir(parents=True, exist_ok=True)
+    log(f"runs 目录: {run_dir} (run_id={run_id:06d}, 输出外置契约)", "OK")
+
+    shim = _LocalHpcShim()
+    remote_dir = str(INPUT_DIR)          # 登录节点上 INPUT_DIR 即"远端"目录
+
+    flash_ok, actual_output = run_flash_on_hpc(shim, remote_dir)
+    if not flash_ok:
+        log("FLASH 运行失败! 跳过分析。", "WARN")
+        return False
+
+    analysis_script = SCRIPT_DIR / "hpc_analyze_ch_center.py"
+    analysis_ok = False
+    if analysis_script.exists():
+        analysis_ok = upload_and_run_analysis(
+            shim, remote_dir, actual_output, analysis_script, cfg)
+    else:
+        log(f"分析脚本不存在: {analysis_script}", "WARN")
+
+    # 分析 PNG → runs plots 目录（外置契约）
+    plots_src = INPUT_DIR / "analysis_plots"
+    if plots_src.is_dir():
+        for p in plots_src.glob("*.png"):
+            shutil.copy2(p, run_dir / "plots" / p.name)
+    # chk 产物 → runs output 目录（chk-only，fetch_policy）
     try:
-        n_png = int(out.strip())
-        if n_png > 0:
-            log(f"    HPC 生成 {n_png} 张 PNG ✓", "OK")
-            return True
-    except ValueError:
-        pass
-    log("    未找到 PNG 文件", "WARN")
-    return False
+        from flash.flash_run.remote.fetch_policy import select_fetch_files
+        outp = Path(actual_output)
+        if outp.is_dir():
+            picked, stats = select_fetch_files(
+                [p.name for p in outp.iterdir() if p.is_file()],
+                basenm="", with_plt=False)
+            for n in picked:
+                shutil.copy2(outp / n, run_dir / "output" / n)
+            log(f"就地收集 {len(picked)} 文件 (plt 跳过={stats['plt_skipped']})",
+                "OK")
+    except Exception as e:  # noqa: BLE001
+        log(f"chk 收集跳过: {e}", "WARN")
+
+    print("\n" + "=" * 65)
+    print(" hpc-insitu 全流程完成!")
+    print(f"  runs 目录: {run_dir}")
+    print(f"  分析图像:  {run_dir / 'plots'} (n={len(list((run_dir / 'plots').glob('*.png')))})")
+    print("=" * 65)
+    return analysis_ok or (run_dir / "output").is_dir()
 
 
 # =====================================================================
@@ -1004,6 +1131,8 @@ def main(credential_name: Optional[str] = None):
     log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
     if run_mode == "wsl":
         return main_wsl(cfg)
+    if run_mode == "hpc-insitu":
+        return main_hpc_insitu(cfg)
 
     # ── 步骤 2-5: 通过 RemoteSession 连接超算 ────
     print("\n[步骤 2/5] 连接超算并部署 (RemoteSession)")
@@ -1014,9 +1143,18 @@ def main(credential_name: Optional[str] = None):
         with RemoteSession(credential_name=credential_name, verbose=True) as session:
             log("SSH 连接成功 ✓")
 
-            # 创建远程目录
+            # 创建远程目录 — ★ 工作目录双模式 (2026-10-22 三模式统一):
+            #   FLASH_HPC_WORKDIR=temp (默认, 模式③) → AI/Aitemp 一次性目录
+            #   FLASH_HPC_WORKDIR=runs (模式④)       → flash_sim_runs/ch_center/hpc_{ts}
+            #     (flash_sim 包同级, 输出外置契约; setup/make 仍在 FLASH 树 objdir)
+            workdir_mode = os.environ.get("FLASH_HPC_WORKDIR", "temp").strip().lower()
             remote_run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-            remote_dir = f"~/{SIM_USER_DIR}/AI/AItemp/flash_custom_{remote_run_id}"
+            if workdir_mode == "runs":
+                _pkg_root = _resolve_hpc_pkg_root(session)
+                remote_dir = f"{_pkg_root.parent}/flash_sim_runs/ch_center/hpc_{remote_run_id}"
+                log(f"工作目录模式: runs (包目录契约, 模式④)")
+            else:
+                remote_dir = f"~/{SIM_USER_DIR}/AI/AItemp/flash_custom_{remote_run_id}"
             session.run(f"mkdir -p {remote_dir}", timeout=10)
             log(f"远程目录: {remote_dir}")
 
