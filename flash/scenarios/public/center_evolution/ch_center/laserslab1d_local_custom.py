@@ -505,17 +505,20 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
         timeout=10,
     )
 
-    # ── NC-E 铁律: 可选禁用 module purge ─────────
-    # QC 通用树的 Makefile.h 按 Intel MPI (-lmpi -lmpifort) 链接；module purge
-    # 会杀掉 NC-E 登录环境预载的 oneAPI ⇒ 链接期 "cannot find -lmpi"
-    # (2026-10-22 in-situ 冒烟实测, 与 SNBOneCH_m._hpc_env_block 同一教训)。
-    # FLASH_NO_MODULE_PURGE=1 时注释掉 submit_flash.sh 的 module purge。
+    # ── NC-E 铁律: 可选禁用 module purge/load ────
+    # QC 通用树的 Makefile.h 按 Intel MPI (-lmpi -lmpifort) 链接，MPI 库依赖
+    # NC-E 默认 oneAPI 环境（无 -L 硬路径）；`module purge` + `module load
+    # mpich/3.2` 会换掉 MPI 栈 ⇒ 链接期 "cannot find -lmpifort/-lmpi"
+    # (2026-10-22 in-situ 冒烟两轮实测, 同 SNBOneCH_m._hpc_env_block 铁律:
+    #  "NC-E 登录已含 oneAPI, 禁 module purge")。
+    # FLASH_NO_MODULE_PURGE=1 时注释掉 submit_flash.sh 的**全部 module 行**，
+    # 作业继承默认 oneAPI 环境（HDF5 的 -L 已硬编码在链接行）。
     if os.environ.get("FLASH_NO_MODULE_PURGE", "").strip().lower() in ("1", "true"):
         session.run(
             f"cd {remote_dir} && "
-            f"sed -i 's/^module purge/# module purge (FLASH_NO_MODULE_PURGE)/' "
-            f"submit_flash.sh && echo PURGE_DISABLED", timeout=10)
-        log("  [run] FLASH_NO_MODULE_PURGE=1 → 已禁用 module purge (保留 oneAPI)")
+            f"sed -i 's/^module /# module (FLASH_NO_MODULE_PURGE) /' "
+            f"submit_flash.sh && echo MODULES_DISABLED", timeout=10)
+        log("  [run] FLASH_NO_MODULE_PURGE=1 → 已注释全部 module 行 (保留 oneAPI 默认环境)")
 
     # ── 尝试 SLURM 提交 ──────────────────────────
     sbatch_cmd = f"cd {remote_dir} && {MODULES_LOAD} && sbatch submit_flash.sh 2>&1"
