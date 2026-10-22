@@ -529,10 +529,17 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
             "/public1/soft/oneAPI/2022.1/mpi/latest/lib:$LD_LIBRARY_PATH\n"
         )
         session.run(
-            f"cat > {remote_dir}/flash_impi_env.sh << 'IMPI_EOF'\n{impi_env}IMPI_EOF\n"
+            f"cd {remote_dir} && "
+            f"cat > flash_impi_env.sh << 'IMPI_EOF'\n{impi_env}IMPI_EOF\n"
             f"sed -i '/^set -e/a source ./flash_impi_env.sh' submit_flash.sh && "
             f"echo IMPI_ENV_INJECTED", timeout=30)
-        log("  [run] 已注入 Intel MPI 库路径 (flash_impi_env.sh)")
+        # ★ 注入命令曾漏 cd → sed 在 $HOME 下找不到文件静默失败 (日志勿无条件打成功)
+        out, _, _ = session.run(
+            f"grep -c flash_impi_env {remote_dir}/submit_flash.sh", timeout=30)
+        if (out or "").strip() == "1":
+            log("  [run] 已注入 Intel MPI 库路径 (flash_impi_env.sh)", "OK")
+        else:
+            log("  [run] ⚠ Intel MPI 路径注入失败 — 链接期可能 -lmpi 缺失", "WARN")
 
     # ── 尝试 SLURM 提交 ──────────────────────────
     sbatch_cmd = f"cd {remote_dir} && {MODULES_LOAD} && sbatch submit_flash.sh 2>&1"
