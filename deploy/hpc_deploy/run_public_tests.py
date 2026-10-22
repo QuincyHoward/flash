@@ -96,7 +96,7 @@ SCENES = {
 def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -> str:
     """生成远端 bash 脚本（LF 行尾）。
 
-    ``lock_file`` 非空时启用 **PID 锁防重入**（★ 启动重试会真的多起实例）。
+    ``lock_file`` 非空时启用 **原子目录锁防重入**（★ 启动重试会真的多起实例）。
     """
     lines: list[str] = []
     a = lines.append
@@ -105,21 +105,30 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
     a("set -u")
     a("export PYTHONUNBUFFERED=1")
     if lock_file:
-        # ★ 防重入锁：已有实例在跑就直接退出（否则每个实例都会提交 sbatch）
-        a(f'LOCK="{lock_file}"')
-        a('if [ -f "$LOCK" ] && kill -0 "$(cat "$LOCK" 2>/dev/null)" 2>/dev/null; then')
-        a('  echo "[LOCK] 已有实例在跑 (pid=$(cat "$LOCK"))，本实例退出"')
-        a("  exit 0")
+        # ★ 防重入锁：用 **mkdir 原子锁**（不是 pid 文件）。
+        #   pid 文件版有两个坑：
+        #     ① `kill -0 "$(cat "$LOCK")"` 的**命令替换会 fork 出子 shell**，
+        #        该子 shell 继承脚本剩余内容 ⇒ 脚本被重复执行（幽灵进程）。
+        #        → 这里改用 `read` 读文件，不用 $()。
+        #     ② 锁名带时间戳 ⇒ 跨轮次不互斥。
+        #   mkdir 是原子的：并发只有一个能成功。
+        a(f'LOCKDIR="{lock_file}"')
+        a('if ! mkdir "$LOCKDIR" 2>/dev/null; then')
+        a('  echo "[LOCK] 已有实例在跑 ($LOCKDIR)，本实例退出"')
+        a("  exit 75")
         a("fi")
-        a('echo $$ > "$LOCK"')
-        a('trap \'rm -f "$LOCK"\' EXIT')
+        a(f'echo $$ > "$LOCKDIR/pid"')
+        a('trap \'rm -rf "$LOCKDIR"\' EXIT')
     a(f'TARGET="{TARGET_DIR}"')
     a(f'VPY="{TARGET_DIR}/{VENV_NAME}/bin/python"')
     a(f'WORK="{WORK_DIR}"')
     a('REPORT="$WORK/PUBLIC_TEST_REPORT.txt"')
     a('mkdir -p "$WORK/logs" "$WORK/out" "$WORK/inputs"')
     a('rm -f "$REPORT"')
-    a('exec > >(tee -a "$WORK/logs/public_test.log") 2>&1')
+    # ★ 用 `exec >> file 2>&1` 而不是 `exec > >(tee -a file) 2>&1`：
+    #   进程替换会 fork 一个子 shell（实测多出幽灵进程 4774，且与锁逻辑
+    #   交互出「脚本被重复执行」的假象）。追加重定向无此副作用。
+    a('exec >> "$WORK/logs/public_test.log" 2>&1')
     a('echo "=== public test start $(date) ==="')
     a("")
     a("# ── 环境自检 ─────────────────────────────────────────")
@@ -252,8 +261,13 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
         a('  B_RC=1; continue')
         a("fi")
         # 轮询 sacct
+        # ★ sacct 的 State 字段**带前导空格**（" COMPLETED"）⇒ 直接 case 匹配
+        #   "COMPLETED" 永远不中 ⇒ 作业早已完成却无限轮询（实测卡死 30+ 分钟）。
+        #   ⇒ 用 awk 取第一列并 trim。
+        a("POLLN=0")
         a("while true; do")
-        a('  ST=$(sacct -j "$JOBID" --format=State --noheader 2>/dev/null | head -1)')
+        a('  ST=$(sacct -j "$JOBID" --format=State --noheader 2>/dev/null '
+          "| awk 'NF{print $1; exit}' | tr -d ' \\r')")
         a(f'  echo "B_POLL {s} jobid=$JOBID state=$ST"')
         a('  case "$ST" in')
         a('    COMPLETED) break;;')
@@ -261,6 +275,11 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
         a(f'      echo "B_RESULT {s} state=$ST"')
         a('      B_RC=1; break;;')
         a("  esac")
+        a("  POLLN=$((POLLN+1))")
+        a('  if [ "$POLLN" -gt 120 ]; then')
+        a(f'    echo "B_RESULT {s} TIMEOUT（轮询 120 次仍无终态）"')
+        a('    B_RC=1; break;')
+        a("  fi")
         a("  sleep 30")
         a("done")
         # 统计 chk
@@ -318,7 +337,9 @@ def main() -> int:
     remote_sh = f"{PKG_DIR_REMOTE}/public_test_{ts}.sh"
     remote_log = f"{PKG_DIR_REMOTE}/public_test_{ts}.log"
     remote_sentinel = f"{PKG_DIR_REMOTE}/public_test_{ts}.done"
-    remote_lock = f"{PKG_DIR_REMOTE}/public_test_{ts}.lock"
+    # ★ 锁路径**固定**（不含时间戳）⇒ 跨轮次也互斥：
+    #   上一轮实例还在跑时，本轮会被挡住，而不是各跑各的。
+    remote_lock = f"{PKG_DIR_REMOTE}/public_test.lock.d"
     remote_report = f"{WORK_DIR}/PUBLIC_TEST_REPORT.txt"
 
     local_sh.write_text(build_remote_script(scenes, phase_b, remote_lock),
@@ -337,10 +358,26 @@ def main() -> int:
         #      多次重试 ⇒ 多个实例并发 ⇒ 每个都提交一次 sbatch ⇒ 作业重复、
         #      队列被占、结果互相覆盖（实测 ch_center 被提交 3 次：
         #      4917970 / 4917971 / 4917975）。
-        #      ⇒ 远端脚本开头做 PID 锁；本地每次启动前先清锁。
+        #      ⇒ 远端脚本开头做 **mkdir 原子锁**（跨轮次互斥）。
         s.run(f"mkdir -p {WORK_DIR}/logs {WORK_DIR}/out {WORK_DIR}/inputs "
-              f"{PKG_DIR_REMOTE} && rm -f {remote_sentinel} {remote_lock} "
-              f"&& rm -f {remote_log}", timeout=120)
+              f"{PKG_DIR_REMOTE} && rm -f {remote_sentinel} && rm -f {remote_log}",
+              timeout=120)
+        # ★ 启动前检查锁：活实例在跑 ⇒ 拒绝启动（不要 rm 锁，那是它的）。
+        #   残留死锁（pid 已不存在）才清理。
+        out, _, _ = s.run(
+            f"if [ -d {remote_lock} ]; then "
+            f"  LP=$(cat {remote_lock}/pid 2>/dev/null); "
+            f"  if [ -n \"$LP\" ] && kill -0 \"$LP\" 2>/dev/null; then "
+            f"    echo LOCKED_ALIVE; else echo LOCK_STALE; fi; "
+            f"else echo NO_LOCK; fi", timeout=60)
+        state = (out or "").strip()
+        if "LOCKED_ALIVE" in state:
+            print("[FATAL] 远端已有 public test 实例在跑（锁目录存在且 pid 存活）——"
+                  "请先等它结束或确认后再重跑（本次不启动，避免重复提交 sbatch）")
+            return 2
+        if "LOCK_STALE" in state:
+            print("[08] 清理残留死锁目录")
+            s.run(f"rm -rf {remote_lock}", timeout=60)
         if not s.upload(str(local_sh), remote_sh):
             print("[FATAL] 上传远端脚本失败")
             return 1
@@ -350,20 +387,28 @@ def main() -> int:
         #   ⇒ 判据：回显 LAUNCHED，或日志已出现 / 哨兵已生成。
         for attempt in range(1, 4):
             try:
+                # ★ 日志用 >> 追加（不用 >）：重试时若真有实例在跑，
+                #   `>` 会把它的输出截断 ⇒ 日志只剩最后一段（实测踩过）。
                 out, err, rc = s.run(
                     f"chmod +x {remote_sh} && cd {PKG_DIR_REMOTE} && "
                     f"nohup bash -lc 'bash {remote_sh}; echo $? > {remote_sentinel}' "
-                    f"> {remote_log} 2>&1 & echo LAUNCHED",
+                    f">> {remote_log} 2>&1 & echo LAUNCHED",
                     timeout=60)
                 if "LAUNCHED" in (out or ""):
                     launched = True
                     break
             except Exception as e:  # noqa: BLE001
                 print(f"  [launch] 第 {attempt} 次异常: {type(e).__name__}: {e}")
+            # ★ 锁被占用 ⇒ 已有实例在跑 ⇒ 判定"已启动"（别再重试多起实例）
             out2, _, _ = s.run(
-                f"if [ -s {remote_log} ] || [ -f {remote_sentinel} ]; "
+                f"if [ -d {remote_lock} ]; then echo LOCK_TAKEN; "
+                f"elif [ -s {remote_log} ] || [ -f {remote_sentinel} ]; then "
                 f"echo ACTUALLY_STARTED; else echo NOT_STARTED; fi",
                 timeout=60)
+            if "LOCK_TAKEN" in (out2 or ""):
+                print("  [launch] 锁已被占用 ⇒ 已有实例在跑，判定已启动")
+                launched = True
+                break
             if "ACTUALLY_STARTED" in (out2 or ""):
                 print("  [launch] 未拿到 LAUNCHED 回显，但日志/哨兵已出现 ⇒ 判定已启动")
                 launched = True
@@ -387,9 +432,15 @@ def main() -> int:
                 timeout=60)
             blob = (out or "")
             tail, _, rcv = blob.partition("||")
-            if rcv.strip() not in ("", "NORC"):
-                done = True
-                break
+            rc = rcv.strip()
+            if rc not in ("", "NORC"):
+                # ★ 哨兵存在 ≠ 完成：被锁挡住的实例会写 exit 75。
+                #   ⇒ 只有 rc=0（正常跑完）才判完成。
+                if rc == "0":
+                    done = True
+                    break
+                print(f"  [poll {n:3d}] 哨兵 rc={rc}（非 0 ⇒ 实例异常退出，见日志）")
+                return 1
             print(f"  [poll {n:3d}] 已等 {n * POLL_INTERVAL // 60:3d}min | 运行中 | "
                   f"尾部: ...{tail.strip()[-140:]!r}")
         if not done:

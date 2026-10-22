@@ -387,7 +387,7 @@ deploy/                        # 根目录一级：安装部署模块
 ├── install_offline.bat        离线机启动器
 ├── test_offline_install.py    回归自检（183 项断言，不需要网络）
 ├── wheel_leak_audit.py        wheel 护栏（体积/条目/§3/git-ignored 四项闸门）
-├── hpc_deploy/                超算离线部署链 run_all.py 01–07（自 remote/test 收编）
+├── hpc_deploy/                超算离线部署链 run_all.py 00–08（自 remote/test 收编）
 └── README.md                  本文档
 
 artifacts/                     # 根目录统一产物区（.gitignore + pyproject 成对排除）
@@ -401,6 +401,97 @@ artifacts/                     # 根目录统一产物区（.gitignore + pyproje
 ```bash
 python deploy/test_offline_install.py
 ```
+
+---
+
+## ★ 超算（NC-E）离线部署链：`deploy/hpc_deploy/`
+
+Windows 本机做**交叉造包 + SSH 驱动**，超算侧**离线安装 + 提交 sbatch 作业**。
+全链 9 步，编排入口 `run_all.py`：
+
+```bash
+python deploy/hpc_deploy/run_all.py                # 全链（00–08）
+python deploy/hpc_deploy/run_all.py --only 08      # 只跑某一步
+python deploy/hpc_deploy/run_all.py --from 05      # 从某步开始
+python deploy/hpc_deploy/run_all.py --skip 03,04   # 跳过某些步
+```
+
+| 步 | 脚本 | 作用 | 关键判据 |
+|---|---|---|---|
+| **00** | `remote_clean.py` | 清空超算安装目录 | 默认 dry-run；`--yes` 归档为 `flash_sim.bak-<ts>`（**可回滚**，同盘 mv）；有活跃作业 ⇒ rc=2 拒绝 |
+| 01a | `local_env_windows.py` | Win 在线建环境 + 三套测试 | — |
+| 01b | `local_env_wsl.py --offline` | WSL 离线预演（复刻超算路径） | — |
+| 02 | `probe_remote_env.py` | 超算只读探测（9 项） | PASS 9/9 |
+| 03 | `build_wheelhouse_linux.py` | 交叉造 Linux wheelhouse（manylinux_2_17 / cp310） | 82 whl / 164.8 MB；泄漏审计 rc=0 |
+| 04 | `build_bundle.py` | git bundle 制作 + verify | rc=0 |
+| 05 | `package_and_upload.py` | tar 上传（**SHA256 双端比对**）+ 远端 clone / 增量 ff 同步 | SHA 一致 + 远端 HEAD == bundle HEAD |
+| 06 | `remote_install.py` | 超算命名环境 `.venv-hpc-nce` 离线安装 + 三套测试 | `--no-index` 硬闸门；三套全绿 |
+| 07 | `run_snb_smoke.py` | SNBOneCH_m `--tmax 1e-11` 极短仿真（**sbatch 提交**） | `RUN_EXIT=0` |
+| **08** | `run_public_tests.py` | **全局 pytest + 三个 public 子场景 sbatch 真跑** | `A1_RC=0` / `A2_RC=0` / `B_RC=0` |
+
+### Step 00：清空超算安装目录
+
+```bash
+python deploy/hpc_deploy/remote_clean.py            # dry-run：列条目+体积+活跃作业检查
+python deploy/hpc_deploy/remote_clean.py --yes      # 执行（归档，非硬删）
+python deploy/hpc_deploy/remote_clean.py --purge --yes   # 删除历史归档
+```
+
+★ **归档腾空（archive）优于硬删**：同盘 `mv` 秒级完成、**可回滚**。
+★ 归档后**只留空目录** —— `git clone` 要求目标目录不存在或为空，
+预建子目录会报 `destination path already exists and is not an empty directory`。
+★ 有活跃 sbatch 作业时**拒绝清理**（rc=2），避免打断在跑的作业。
+
+### Step 08：全局测试 + public 子场景测试（超算侧 sbatch 真跑）
+
+```bash
+python deploy/hpc_deploy/run_public_tests.py                # A + B
+python deploy/hpc_deploy/run_public_tests.py --phase-a      # 只跑阶段 A（不提交作业）
+python deploy/hpc_deploy/run_public_tests.py --scenes ch_center
+```
+
+| 阶段 | 内容 | 执行位置 |
+|---|---|---|
+| **A2**（先跑） | 三个 public 场景 `gen_flash_inputs.py --force` + `DependencyChecker` + ch_center 的 `RelationChecker` | 登录节点 |
+| **A1**（后跑） | 三套全局 pytest：`test/`、`flash/input_gen/test/`、`flash/output_processors/test/` | 登录节点 |
+| **B** | 三个 public 场景**真实 FLASH 仿真**（`sbatch` 提交，串行） | **计算节点** |
+
+★ **A2 必须先于 A1**：生成目录（`flash_input/`、`sim_input*/`）被 `.gitignore` 排除，
+干净克隆上 pytest 先行必然缺 `*.cn4` ⇒ `test_engine_dryrun` 失败。
+先备输入再跑测试，才是真正的干净克隆验证。
+
+★ **阶段 B 复用各场景自带的 `submit_flash.sh`**（内含正确的 FLASH setup 标志，
+不重写 setup flags），只做三处补丁，由 `patch_job.py` 完成（**不用 sed**）：
+
+1. SBATCH 输出路径 → 并行盘 `WORK/out/`（★ 绝不用 `/tmp`，那是计算节点本地盘）
+2. 运行目录 `R=` → 并行盘（`/tmp` 作业结束即丢）
+3. par 的 `tmax`/`dtmax` → 极短值（`1e-11` / `1e-13`，只验证「能跑出 chk」）
+
+`patch_job.py` 用 `shlex.split` 解析 `#SBATCH` 逐选项改写，兼容三种形态：
+长选项（`--output=FILE`）、短选项（`-o NAME_%%j.out`）、**一行多选项**
+（`#SBATCH --job-name=x --output=... --partition=...`）。
+
+★ 超算铁律（写在 `patch_job.py` 的 `ENV_BLOCK` 里）：
+- **禁 `module purge`**（会清掉 hdf5/编译器 runtime 路径）
+- `module load hdf5/1.8.18` + `module load mpich/3.2-gcc9.3` +
+  `LD_LIBRARY_PATH` 追加 `gcc/9.3.0-new/lib64`（回退 9.1.0）
+  ⇒ 解决 `MPII_F_TRUE: undefined symbol`（真因见 `docs/FLASH三模式运行体系.md` §8.0）
+- **登录节点与计算节点 module 解析不同** ⇒ 环境结论必须在计算节点验证
+- `#SBATCH` 只在脚本首个非注释行之前解析 ⇒ 环境块必须排在所有 `#SBATCH` 之后
+
+★ 判定口径（`B_RC`）：
+`PASS` = 产出 chk 数 > 0；`KNOWN_LIMIT` = 撞已知站点限制（如实记录，不改判 PASS）；
+`FAIL` = 编译失败 / 作业 FAILED / 无 chk。
+
+★ **防重入**：远端脚本用 PID 锁（`echo $$ > LOCK` + `trap ... EXIT`）——
+paramiko exec 常丢 `LAUNCHED` 回显，**启动重试每次都会真的多起一个实例**（曾致同一场景被提交 3 次）。
+启动判据改为「回显 LAUNCHED，**或**日志已出现 / 哨兵已生成」。
+
+★ **chk 文件名无 `.h5` 后缀**（形如 `lasslab_hdf5_chk_0007`），
+统计时不能只匹配 `*.h5`。
+
+报告落 `WORK/PUBLIC_TEST_REPORT.txt`（含 `A1_PYTEST_RC` / `A2_RC` / `B_RC`），
+日志落 `WORK/logs/`（`pytest_*.log`、`gencheck_*.log`、`relation_*.log`、`public_test.log`）。
 
 ---
 
