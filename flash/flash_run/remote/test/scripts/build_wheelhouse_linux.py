@@ -54,7 +54,12 @@ VERSION_PINS = {
     "pandas": "2.3.2",           # 2.3.3 只发 2_24+
     "h5py": "3.14.0",            # 3.15/3.16 只发 2_28
     "pillow": "12.2.0",          # 12.3 只发 2_27+
-    "ewah-bool-utils": "1.2.2",  # 1.3.0 只发 2_24（yt 依赖，兼容 yt 4.3）
+    "ewah-bool-utils": "1.2.2",  # 1.3.0 只发 2_24（yt 依赖，兼容 yt 4.4）
+    # ★ yt 4.3.1 在 NC-E（CentOS7/glibc2.17，登录+计算节点均复现）import 即
+    #   SIGSEGV；4.1.4/4.3.0 为 numpy1 构建与 numpy2 ABI 冲突（干净报错）。
+    #   4.4.0（numpy2 构建，requires-python>=3.10.3，cp310+manylinux_2_17）
+    #   实测 2026-10-22 超算 import OK + output_processors 45 全过 ⇒ 锁定。
+    "yt": "4.4.0",
 }
 # ★ Linux/py3.10 平台条件依赖（_wh_common.PLATFORM_DIFF_NOTE 记录的全集）：
 #   jeepney/secretstorage = paramiko 的 Linux keyring 后端；

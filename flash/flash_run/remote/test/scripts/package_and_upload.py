@@ -129,14 +129,26 @@ def main() -> int:
             f"  cd {TARGET_DIR} && git rev-parse HEAD; echo CLONE_EXISTS; "
             f"else echo CLONE_ABSENT; fi", timeout=120)
         blob = (out or "")
+        head_remote = ""
         if "CLONE_EXISTS" in blob:
             head_remote = blob.strip().splitlines()[0]
             if head_remote == head_expect:
                 w(f"[05] [ok] 部署目录已存在且 HEAD 一致（{head_remote[:12]}），跳过 clone")
             else:
-                w(f"[FATAL] 远端 HEAD {head_remote[:12]} != bundle HEAD {head_expect[:12]}"
-                  f" —— 需人工裁决（增量 bundle 同步或重 clone）")
-                return 1
+                # ---- 增量同步：从新 bundle fetch + fast-forward（git 1.8.3 兼容）----
+                w(f"[05] 远端 HEAD {head_remote[:12]} != bundle HEAD {head_expect[:12]}"
+                  f" → 增量同步 (fetch bundle + ff-merge) ...")
+                out, err, rc = s.run(
+                    f"cd {TARGET_DIR} && git fetch {PKG_DIR_REMOTE}/flash_sim_all.bundle "
+                    f"'refs/heads/master:refs/heads/bundle-sync' 2>&1 | tail -2 && "
+                    f"git merge --ff-only bundle-sync 2>&1 | tail -2 && "
+                    f"git branch -d bundle-sync 2>/dev/null; git rev-parse HEAD",
+                    timeout=600)
+                w(f"[05] 增量同步 rc={rc}: {(out or '').strip()[-300:]}")
+                head_after = (out or "").strip().splitlines()[-1]
+                if head_after != head_expect:
+                    w("[FATAL] 增量同步后 HEAD 不一致 —— 需人工裁决")
+                    return 1
         else:
             w(f"[05] git clone bundle -> {TARGET_DIR} ...")
             out, err, rc = s.run(
