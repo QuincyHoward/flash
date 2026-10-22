@@ -321,6 +321,9 @@ def main() -> int:
             print("[FATAL] 上传远端脚本失败")
             return 1
         launched = False
+        # ★★ 启动确认铁律：paramiko exec 的 `nohup ... & echo LAUNCHED` 常常
+        #   拿不到回显（★ exec 失败 ≠ 未执行！），而作业其实已在跑。
+        #   ⇒ 判据：回显 LAUNCHED，或日志已出现 / 哨兵已生成。
         for attempt in range(1, 4):
             try:
                 out, err, rc = s.run(
@@ -333,10 +336,18 @@ def main() -> int:
                     break
             except Exception as e:  # noqa: BLE001
                 print(f"  [launch] 第 {attempt} 次异常: {type(e).__name__}: {e}")
+            out2, _, _ = s.run(
+                f"if [ -s {remote_log} ] || [ -f {remote_sentinel} ]; "
+                f"echo ACTUALLY_STARTED; else echo NOT_STARTED; fi",
+                timeout=60)
+            if "ACTUALLY_STARTED" in (out2 or ""):
+                print("  [launch] 未拿到 LAUNCHED 回显，但日志/哨兵已出现 ⇒ 判定已启动")
+                launched = True
+                break
             print(f"  [launch] 第 {attempt}/3 次未确认，20s 后重试")
             time.sleep(20)
         if not launched:
-            print("[FATAL] 启动 3 次均失败")
+            print("[FATAL] 启动 3 次均失败（且日志/哨兵均未出现）")
             return 1
         print(f"[08] 已后台启动（远端日志 {remote_log}）")
 

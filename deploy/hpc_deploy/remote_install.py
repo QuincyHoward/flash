@@ -120,6 +120,10 @@ def main() -> int:
             print("[FATAL] 上传安装脚本失败")
             return 1
         launched = False
+        # ★★ 启动确认铁律：paramiko exec 的 `nohup ... & echo LAUNCHED` 常常
+        #   拿不到回显（★ exec 失败 ≠ 未执行！老铁律），而此时作业**其实已经
+        #   在跑**（实测：日志已写完、哨兵已生成，脚本却报"启动 3 次均失败"）。
+        #   ⇒ 判据改为「日志已出现 或 哨兵已生成」，二者其一即视为已启动。
         for attempt in range(1, 4):
             try:
                 out, err, rc = s.run(
@@ -131,10 +135,19 @@ def main() -> int:
                     break
             except Exception as e:  # noqa: BLE001
                 print(f"  [launch] 第 {attempt} 次启动异常: {type(e).__name__}: {e}")
+            # 回显没拿到 → 查实际状态：日志已出现 / 哨兵已生成 ⇒ 已启动
+            out2, _, _ = s.run(
+                f"if [ -s {remote_log} ] || [ -f {remote_sentinel} ]; "
+                f"echo ACTUALLY_STARTED; else echo NOT_STARTED; fi",
+                timeout=60)
+            if "ACTUALLY_STARTED" in (out2 or ""):
+                print("  [launch] 未拿到 LAUNCHED 回显，但日志/哨兵已出现 ⇒ 判定已启动")
+                launched = True
+                break
             print(f"  [launch] 第 {attempt}/3 次启动未确认，20s 后重试...")
             time.sleep(20)
         if not launched:
-            print("[FATAL] 启动 3 次均失败")
+            print("[FATAL] 启动 3 次均失败（且日志/哨兵均未出现）")
             return 1
         print(f"[06] 已后台启动（bash -lc 登录 shell，module load python/3.10.8）")
         print(f"[06] 预计 5~25 分钟（WSL 预演实测 432s），每 {POLL_INTERVAL}s 轮询一次")

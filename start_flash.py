@@ -1186,7 +1186,10 @@ def main() -> int:
 
     core_ok = True
     for name, res in results.items():
-        if res is not None and name != "output_processors":
+        # ★ 三套件都要判：output_processors 曾被排除在外，导致它 3 个 FAIL 时
+        #   报告仍写"安装验证通过"（报喜不报忧）。数据缺失属可自愈类问题，
+        #   已在 conftest 导入期预生成修复 ⇒ 这里恢复全量判定。
+        if res is not None:
             if res["errors"] > 0 or res["failed"] > 0:
                 core_ok = False
 

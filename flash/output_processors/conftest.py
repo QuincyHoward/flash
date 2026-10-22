@@ -20,6 +20,33 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
+# ★★ 测试数据必须在 **conftest 导入期** 生成，不能只靠 session fixture。
+#   原因：pytest 的执行顺序是「收集(import 全部测试模块) → 执行 fixture → 跑用例」。
+#   `test/unit_conversion/test_unit_conversion.py` 与 `test/test_extraction_modes.py`
+#   在**模块导入期**就检查 inputfiles 里的文件是否存在（TEST_FILES 字典 +
+#   assert "测试文件不存在"），而 session fixture 要到**第一个用例执行前**才跑
+#   ⇒ 收集阶段文件还不存在 ⇒ 用例直接失败。
+#   实测症状（超算离线安装 2026-10-22）：
+#     ① 第一轮 40 passed / 3 failed（test_flat_plotter_1d_renders）
+#     ② 重建重测 38 passed / 3 failed（test_load_extracted_yields_flat_container）
+#   —— 失败用例每轮都不同，正是「数据在收集阶段尚未就位」的竞态特征。
+#   ⇒ 这里在模块导入期先生成（幂等，秒级），fixture 只保留清理职责。
+def _bootstrap_test_data() -> None:
+    try:
+        from flash.output_processors.test.gen_test_data import (
+            cleanup_test_data_subprocess,
+            ensure_test_data,
+        )
+        cleanup_test_data_subprocess()   # 清上次残留（本次尚无句柄）
+        ensure_test_data()               # ★ 收集阶段之前就把数据备好
+    except Exception as _exc:            # noqa: BLE001
+        # 生成失败不应让整个套件无法收集（下面的用例会各自报"文件不存在"）
+        print(f"[conftest] ⚠ 测试数据预生成失败: {type(_exc).__name__}: {_exc}")
+
+
+_bootstrap_test_data()
+
+
 @pytest.fixture(scope="session")
 def sample_h5_file():
     """Fixture: path to a sample HDF5 file for testing."""
