@@ -144,6 +144,14 @@ pip download --only-binary=:all: \
     | 启动重试用 `> remote_log` | **截断**日志 ⇒ 真实例输出被抹掉，只剩 `[LOCK]` 一行 | 改 `>>` 追加；并新增「锁被占用 ⇒ 判定已启动」分支 |
     | `exec > >(tee -a ...)` 进程替换 | 再 fork 一个幽灵进程 | 改 `exec >> file 2>&1`（无 fork 副作用） |
     | 本地轮询把「哨兵存在」当完成 | 被锁实例的 `exit 0` 也算完成 ⇒ **回收到空报告**、误判 FAIL | 只认 `rc=0`；非 0 立即判失败 |
+15. **★ 多轮混写 + 三处统计/锚定缺陷（2026-10-22 20:00–20:16 实测）**：
+    | 缺陷 | 症状 | 修法 |
+    |---|---|---|
+    | 日志/报告用**固定路径** | 远端残留**上一轮僵尸实例**（实测 19:04/19:25 两轮共 8 个进程并存）都 `exec >>` 写同一日志 ⇒ 多轮内容混写，报告被后一轮覆盖 ⇒ **本地读到的 `B_RC` 属于另一轮** | 日志与报告路径一律带 `run_id`；启动前枚举存活实例并中止（`--kill-stale` 可强杀） |
+    | `pkill -f public_test_` | 该模式**匹配到执行 pkill 的那条 shell 命令自身** ⇒ SSH 会话自杀（rc=-1） | 改为 `ps -eo pid,args` 过滤后**按 PID 精确 kill** |
+    | 统计只 `find "$OUT" "$DST"`，而 `$OUT` 只等于 `out/<tag>_run` | ch_center 把产物 **mv 到 `out/<tag>_outputs/`** ⇒ 37 个文件全在统计视野外 ⇒ **跑成功却 n_files=0 误判 FAIL** | 统计同时覆盖 `_run` / `_outputs` / `$DST` 三处，并补 `*_forced_hdf5_*` 模式 |
+    | `patch_job` 未锚定输入目录 | `dirname "$0"` 在 sbatch 下指向 `/var/spool/slurm/d/jobXXXX` ⇒ `cp: cannot stat '.../job4918047/*.par'` | 新增 `--input-dir`，把 `SCRIPT_DIR=` / `D=$(dirname "$0")` 改写为并行盘绝对路径 |
+    | thin_layer 脚本 `module load mpi/hpcx/2.17.1`（Intel） | 编译 FLASH 报 `RadTrans_computeFluxLimiter.F90(105): error #6404: This name does not have a type` ⇒ 无 `flash4` 可执行 | 归一为站点已验证的 `mpich/3.2-gcc9.3` |
 
 ## 5. 超算最终验证结果（INSTALL_TEST_REPORT.txt，已回收至 results/）
 
@@ -261,7 +269,55 @@ flash/flash_run/remote/test/
 
 ### 8.5 产物位置
 
-- 报告：`WORK/PUBLIC_TEST_REPORT.txt`（含 `A1_PYTEST_RC` / `A2_RC` / `B_RC`）
-- 日志：`WORK/logs/`（`pytest_*.log`、`gencheck_*.log`、`relation_*.log`、`public_test.log`）
+- 报告：`WORK/PUBLIC_TEST_REPORT_{run_id}.txt`（含 `A1_PYTEST_RC` / `A2_RC` / `B_RC`）
+- 日志：`WORK/logs/public_test_{run_id}.log`（+ `pytest_*.log`、`gencheck_*.log`、`relation_*.log`）
 - 场景输出：`WORK/out/{tag}_*.out` / `*.err`
+- 仿真产物：`WORK/out/{tag}_run/`（部分场景）、`WORK/out/{tag}_outputs/`（ch_center 把产物 mv 到此）
+
+★ 日志与报告都带 `run_id`（时间戳）—— 固定路径会被残留的历史实例混写（见 §4 第 15 条）。
+
+---
+
+## 9. 超算实测最终结果（2026-10-22 20:16，run_id=20261022_201558）
+
+**结论：PASS（A1 / A2 / B 全部 rc=0，三个 public 场景 sbatch 真跑全部出 chk）**
+
+| 阶段 | 项目 | 结果 |
+|---|---|---|
+| A1 | `test/`（framework） | rc=0 |
+| A1 | `flash/input_gen/test/` | rc=0 |
+| A1 | `flash/output_processors/test/` | rc=0 |
+| A2 | `ch_center`（gen + gencheck + relation） | OK |
+| A2 | `grad_dens_sandwich`（gen + gencheck） | OK |
+| A2 | `thin_layer_sandwich_si`（gen + gencheck） | OK |
+| B | `ch_center`（作业 4918247） | **PASS n_files=37** |
+| B | `grad_dens_sandwich`（作业 4918248） | **PASS n_files=12** |
+| B | `thin_layer_sandwich_si`（作业 4918249） | **PASS n_files=4** |
+
+作业细节：
+- `ch_center`：138 步，`lasslab_hdf5_chk_0000..0007` + `lasslab_hdf5_plt_cnt_0000..0027`
+  + `lasslab_forced_hdf5_plt_cnt_0000` + `flash_run.log`，共 37 个（已计入统计）
+- `grad_dens_sandwich`：12 个 chk/plt
+- `thin_layer_sandwich_si`：4 个 chk/plt
+
+远端环境：NC-E `scfa2696`，venv `.venv-hpc-nce`（Python 3.10.8，离线 `--no-index`），
+部署目录 `~/PhySimX/PhySimX/simulation/flash/flash_sim`（HEAD 随 bundle 走），
+工作区 `~/PhySimX/PhySimX/simulation/flash/flash_sim_public_runs`。
+
+---
+
+## 10. 增量同步（`sync_incremental.py`）
+
+代码改动只需同步 git 历史，**不必重传 165MB wheelhouse**：
+
+```bash
+.venv/Scripts/python.exe deploy/hpc_deploy/build_bundle.py      # 42MB bundle
+.venv/Scripts/python.exe deploy/hpc_deploy/sync_incremental.py   # 上传 + fetch + ff-merge
+```
+
+- 只上传 `flash_sim_all.bundle`（42MB），远端 `git fetch <bundle> refs/heads/master:refs/heads/bundle-sync`
+  + `git merge --ff-only bundle-sync`（★ 远端 git 1.8.3.1 **不支持 `git -C`**，必须 `cd dir && git`）
+- 双端 SHA256 校验；HEAD 已一致则**幂等跳过**
+- 仅当依赖/EOS 表变化时才需走 `package_and_upload.py`（连 wheelhouse 一起传，212MB）
+
 

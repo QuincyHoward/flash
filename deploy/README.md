@@ -483,15 +483,40 @@ python deploy/hpc_deploy/run_public_tests.py --scenes ch_center
 `PASS` = 产出 chk 数 > 0；`KNOWN_LIMIT` = 撞已知站点限制（如实记录，不改判 PASS）；
 `FAIL` = 编译失败 / 作业 FAILED / 无 chk。
 
-★ **防重入**：远端脚本用 PID 锁（`echo $$ > LOCK` + `trap ... EXIT`）——
+★ **防重入**：远端脚本用 **mkdir 原子锁**（锁目录固定不含时间戳）——
 paramiko exec 常丢 `LAUNCHED` 回显，**启动重试每次都会真的多起一个实例**（曾致同一场景被提交 3 次）。
 启动判据改为「回显 LAUNCHED，**或**日志已出现 / 哨兵已生成」。
+★ **日志/报告必须带 `run_id`（时间戳）**：远端可能残留上一轮僵尸实例，
+都往固定路径追加写 ⇒ 多轮内容混写、报告被覆盖 ⇒ 本地读到的 `B_RC` 属于另一轮
+（实测 8 个僵尸进程并存）。脚本启动前会枚举存活实例并**中止**；
+加 `--kill-stale` 才强杀。
+★ **禁用 `pkill -f public_test_`**：该模式匹配到执行 pkill 的 shell 自身 ⇒ SSH 自杀（rc=-1）。
+须 `ps -eo pid,args` 过滤后按 PID 精确 kill。
 
 ★ **chk 文件名无 `.h5` 后缀**（形如 `lasslab_hdf5_chk_0007`），
 统计时不能只匹配 `*.h5`。
+★ **统计须覆盖三处**：`out/<tag>_run/`、`out/<tag>_outputs/`（ch_center 把产物 mv 到此）、
+`$DST`（部分场景直接写在输入目录）—— 只查其中一处会「跑成功却 n_files=0」。
 
-报告落 `WORK/PUBLIC_TEST_REPORT.txt`（含 `A1_PYTEST_RC` / `A2_RC` / `B_RC`），
-日志落 `WORK/logs/`（`pytest_*.log`、`gencheck_*.log`、`relation_*.log`、`public_test.log`）。
+报告落 `WORK/PUBLIC_TEST_REPORT_{run_id}.txt`（含 `A1_PYTEST_RC` / `A2_RC` / `B_RC`），
+日志落 `WORK/logs/public_test_{run_id}.log`（+ `pytest_*.log`、`gencheck_*.log`、`relation_*.log`）。
+
+**超算实测结果（2026-10-22 20:16）**：`A1_RC=0` / `A2_RC=0` / `B_RC=0`，
+三个 public 场景 sbatch 真跑全部出 chk（ch_center 37 个、grad_dens 12 个、thin_layer 4 个）。
+
+### 增量同步：`sync_incremental.py`
+
+代码改动只需同步 git 历史，**不必重传 165MB wheelhouse**：
+
+```bash
+python deploy/hpc_deploy/build_bundle.py      # 42MB bundle
+python deploy/hpc_deploy/sync_incremental.py   # 上传 + fetch + ff-merge
+```
+
+远端 `git fetch <bundle> refs/heads/master:refs/heads/bundle-sync` + `git merge --ff-only`
+（★ 远端 git 1.8.3.1 **不支持 `git -C`**，必须 `cd dir && git`）；
+双端 SHA256 校验；HEAD 已一致则幂等跳过。
+仅当依赖/EOS 表变化时才需走 `package_and_upload.py`（连 wheelhouse 一起传，212MB）。
 
 ---
 

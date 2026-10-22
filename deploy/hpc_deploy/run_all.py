@@ -9,7 +9,8 @@
   02   probe_remote_env.py      超算只读探测
   03   build_wheelhouse_linux.py 交叉造 Linux wheelhouse
   04   build_bundle.py          git bundle 制作+校验
-  05   package_and_upload.py    打包上传+远端解压 clone
+  05   package_and_upload.py    打包上传+远端解压 clone（★ 含 wheelhouse，212MB）
+  05b  sync_incremental.py      ★ 轻量增量同步（只传 42MB bundle，代码改动用这个）
   06   remote_install.py        超算命名环境离线安装+三套测试
   07   run_snb_smoke.py         SNBOneCH_m 极短仿真验证
   08   run_public_tests.py      ★ public 子场景测试（A 全局自检 + B sbatch 真跑）
@@ -47,7 +48,8 @@ STEPS = [
     ("02",  "probe_remote_env.py",       "超算只读探测"),
     ("03",  "build_wheelhouse_linux.py", "交叉造 Linux wheelhouse"),
     ("04",  "build_bundle.py",           "git bundle 制作+校验"),
-    ("05",  "package_and_upload.py",     "打包上传+远端展开 clone"),
+    ("05",  "package_and_upload.py",     "打包上传+远端展开 clone（含 wheelhouse）"),
+    ("05b", "sync_incremental.py",       "★ 轻量增量同步（只传 bundle，代码改动首选）"),
     ("06",  "remote_install.py",         "超算命名环境离线安装+测试"),
     ("07",  "run_snb_smoke.py",          "SNBOneCH_m 极短仿真验证"),
     ("08",  "run_public_tests.py",       "★ public 子场景测试（A 自检 + B sbatch 真跑）"),
