@@ -27,9 +27,13 @@ if str(_PARENT) not in sys.path:
 
 
 def test_scenarios_package_import():
-    """测试 scenarios 顶级包导入"""
-    from flash.scenarios import (
-        base, registry,
+    """测试 scenarios 顶级包导入
+
+    ★ 2026-10-21 目录重组: 公开场景平铺层已整理进 flash/scenarios/public/
+    (commit 3752b77)，测试同步改为从 public 导入。
+    """
+    from flash.scenarios import base, registry
+    from flash.scenarios.public import (
         plasma_preparation,
         collision_compression,
         center_evolution,
