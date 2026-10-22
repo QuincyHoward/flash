@@ -47,6 +47,11 @@ STEP_ARGS: dict = {"01b": ["--offline"]}
 
 
 def pick_py() -> str:
+    """★ SSH 相关步骤（02/05/06/07）必须用项目 .venv（含 cryptography/paramiko，
+    凭据 Fernet 解密依赖）；managed python 无这些包会 ModuleNotFoundError。"""
+    venv_py = REPO_ROOT / ".venv" / "Scripts" / "python.exe"
+    if venv_py.is_file():
+        return str(venv_py)
     return str(MANAGED_PY) if MANAGED_PY.is_file() else sys.executable
 
 

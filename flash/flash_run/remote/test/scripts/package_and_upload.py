@@ -80,31 +80,38 @@ def main() -> int:
     local_sha = ""
     t_start = time.time()
     with RemoteSession("flash_ssh") as s:
-        # ---- 1-2. 打包 + 上传 ----
+        # ---- 1-2. 打包 + 上传（幂等：远端已有同 SHA 的 tar 则跳过上传） ----
         make_tarball()
         local_sha = sha256_file(TARBALL)
         w(f"[05] 本地 SHA256: {local_sha}")
 
         remote_tar = f"{PKG_DIR_REMOTE}/deploy.tar.gz"
-        w(f"[05] 上传 -> {remote_tar}（约 150MB，视线路 2~15 分钟）...")
-        t0 = time.time()
-        # RemoteSession.upload = paramiko put（3 次重试，自动建父目录）
-        ok = s.upload(str(TARBALL), remote_tar)
-        if not ok:
-            w("[FATAL] 上传失败（RemoteSession.upload 返回 False）")
-            return 1
-        w(f"[05] 上传完成，耗时 {time.time() - t0:.0f}s")
-
-        # ---- 3a. 远端 SHA256 比对 ----
-        out, err, rc = s.run(f"sha256sum {remote_tar}", timeout=300)
+        out, err, rc = s.run(f"sha256sum {remote_tar} 2>/dev/null || echo ABSENT",
+                             timeout=300)
         remote_line = (out or "").strip()
         remote_sha = remote_line.split(" ", 1)[0] if remote_line else ""
-        w(f"[05] 远端 SHA256: {remote_sha}")
-        if remote_sha != local_sha:
-            w("[FATAL] 双端 SHA256 不一致 —— 传输损坏，删除远端文件后重跑本脚本")
-            s.run(f"rm -f {remote_tar}", timeout=60)
-            return 1
-        w("[05] [ok] 双端 SHA256 一致")
+        if remote_sha == local_sha:
+            w("[05] [skip] 远端已有同 SHA256 的 deploy.tar.gz，跳过上传")
+        else:
+            w(f"[05] 上传 -> {remote_tar}（约 230MB，视线路 2~15 分钟）...")
+            t0 = time.time()
+            # RemoteSession.upload = paramiko put（3 次重试，自动建父目录）
+            ok = s.upload(str(TARBALL), remote_tar)
+            if not ok:
+                w("[FATAL] 上传失败（RemoteSession.upload 返回 False）")
+                return 1
+            w(f"[05] 上传完成，耗时 {time.time() - t0:.0f}s")
+
+            # ---- 3a. 远端 SHA256 比对 ----
+            out, err, rc = s.run(f"sha256sum {remote_tar}", timeout=300)
+            remote_line = (out or "").strip()
+            remote_sha = remote_line.split(" ", 1)[0] if remote_line else ""
+            w(f"[05] 远端 SHA256: {remote_sha}")
+            if remote_sha != local_sha:
+                w("[FATAL] 双端 SHA256 不一致 —— 传输损坏，删除远端文件后重跑本脚本")
+                s.run(f"rm -f {remote_tar}", timeout=60)
+                return 1
+            w("[05] [ok] 双端 SHA256 一致")
 
         # ---- 3b. 解压 ----
         out, err, rc = s.run(f"cd {PKG_DIR_REMOTE} && tar xzf deploy.tar.gz && ls -la", timeout=900)
@@ -116,9 +123,10 @@ def main() -> int:
 
         # ---- 3c. git clone（幂等：已存在且 HEAD 一致则跳过） ----
         head_expect = (PKG_DIR / "bundle_head.txt").read_text().split()[0]
+        # ★ 远端 git 1.8.3.1 不支持 `git -C`（1.8.5 引入）—— 必须用 `cd dir && git`
         out, err, rc = s.run(
             f"if [ -d {TARGET_DIR}/.git ]; then "
-            f"  git -C {TARGET_DIR} rev-parse HEAD; echo CLONE_EXISTS; "
+            f"  cd {TARGET_DIR} && git rev-parse HEAD; echo CLONE_EXISTS; "
             f"else echo CLONE_ABSENT; fi", timeout=120)
         blob = (out or "")
         if "CLONE_EXISTS" in blob:
@@ -138,12 +146,12 @@ def main() -> int:
             if rc != 0:
                 return 1
 
-        # ---- 3d/3e. remote 预留 + 生成目录补偿 ----
-        s.run(f"git -C {TARGET_DIR} remote set-url origin {GITEE_URL} "
-              f"&& git -C {TARGET_DIR} remote -v | head -2", timeout=120)
+        # ---- 3d/3e. remote 预留 + 生成目录补偿（同样规避 git -C） ----
+        s.run(f"cd {TARGET_DIR} && git remote set-url origin {GITEE_URL} "
+              f"&& git remote -v | head -2", timeout=120)
         out, err, rc = s.run(
             f"mkdir -p {TARGET_DIR}/dist {TARGET_DIR}/offline_pkg {TARGET_DIR}/test/reports "
-            f"&& git -C {TARGET_DIR} rev-parse HEAD "
+            f"&& cd {TARGET_DIR} && git rev-parse HEAD "
             f"&& test -f {TARGET_DIR}/start_flash.py && echo START_FLASH_OK "
             f"&& test -f {TARGET_DIR}/scripts/08_offline_install/_wh_common.py && echo WH_COMMON_OK",
             timeout=120)
