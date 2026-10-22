@@ -35,10 +35,24 @@ import subprocess
 import sys
 import time
 
-# ── 运行模式 ─────────────────────────────────────────────
-
-RUN_MODES = ("wsl", "hpc")
-RUN_MODE_ALIASES = {"local": "wsl", "remote": "hpc", "slurm": "hpc", "supercomputer": "hpc"}
+# ── 运行模式（三模式统一，2026-10-22）────────────────────
+#
+#   wsl        : 本机执行（Windows 驱动→WSL；★WSL/Linux 内直跑 python 时
+#                同一路径自动降级本地直跑，见 detect_native_linux/bash_launcher）
+#   hpc-remote : 本机驱动 → SSH(RemoteSession) → 超算（远程工作目录可选
+#                AI/Aitemp 临时目录 或 flash_sim_runs 包同级目录）
+#   hpc-insitu : 场景驱动脚本已在超算上（登录节点 .venv-hpc-nce）——直接
+#                sbatch+sacct+就地收集，绝不 SSH 自连（见 insitu_runner.py）
+#
+# 兼容性：全部场景只比较 `== "wsl"`（else 走 hpc 分支），故规范名 hpc-remote
+# 不破坏任何老脚本；"hpc" 别名永续映射 hpc-remote。
+RUN_MODES = ("wsl", "hpc-remote", "hpc-insitu")
+RUN_MODE_ALIASES = {
+    "local": "wsl", "wsl-native": "wsl",
+    "hpc": "hpc-remote", "remote": "hpc-remote", "slurm": "hpc-remote",
+    "supercomputer": "hpc-remote",
+    "insitu": "hpc-insitu", "in-situ": "hpc-insitu", "hpc-in-situ": "hpc-insitu",
+}
 LOG_TAG = {"INFO": "[i]", "OK": "[OK]", "WARN": "[!]", "ERROR": "[X]", "STEP": "[-]"}
 
 
@@ -47,7 +61,7 @@ def log(msg: str, level: str = "INFO") -> None:
 
 
 def normalize_run_mode(mode: str) -> str:
-    """标准化运行模式: local→wsl, remote/hpc→hpc。"""
+    """标准化运行模式: local→wsl, remote/hpc→hpc-remote, insitu→hpc-insitu。"""
     m = (mode or "").strip().lower()
     if m in RUN_MODE_ALIASES:
         return RUN_MODE_ALIASES[m]
@@ -56,10 +70,31 @@ def normalize_run_mode(mode: str) -> str:
     raise ValueError(f"未知运行模式 {mode!r}，可用: {RUN_MODES} (+{list(RUN_MODE_ALIASES)})")
 
 
-def resolve_run_mode(default: str = "wsl") -> str:
-    """解析生效运行模式: 环境变量 FLASH_RUN_MODE 优先，否则默认值。"""
-    env_mode = os.environ.get("FLASH_RUN_MODE", "").strip()
+def resolve_run_mode(default: str = "wsl", explicit: Optional[str] = None,
+                     env_var: str = "FLASH_RUN_MODE") -> str:
+    """解析生效运行模式。
+
+    优先级: explicit(--mode) > 环境变量 env_var(FLASH_RUN_MODE) > default(场景 RUN_MODE)。
+    ★ 不做平台自动兜底——模式切换必须显式（避免登录节点误判等事故）。
+    """
+    if explicit:
+        return normalize_run_mode(explicit)
+    env_mode = os.environ.get(env_var, "").strip()
     return normalize_run_mode(env_mode or default)
+
+
+def detect_native_linux() -> bool:
+    """True = 已在 Linux/WSL 内运行（此时 wsl 模式自动降级为本地直跑）。
+
+    用途：Windows 上 wsl 模式经 ``wsl bash -c`` 进入 Linux；若 python 本身
+    已在 Linux/WSL 内（用户模式②），再套 ``wsl`` 命令会 FileNotFoundError。
+    """
+    return os.name != "nt"
+
+
+def bash_launcher() -> List[str]:
+    """执行 bash 命令的启动器: Windows → ["wsl","bash","-c"], Linux → ["bash","-c"]。"""
+    return ["wsl", "bash", "-c"] if os.name == "nt" else ["bash", "-c"]
 
 
 # ── 用户名 (禁止硬编码) ──────────────────────────────────
@@ -137,6 +172,52 @@ def discover_flash_home() -> Optional[str]:
     return None
 
 
+# ── 目录契约（运行输出外置，2026-10-22）──────────────────
+
+def package_root() -> Path:
+    """flash_sim 包根目录（start_flash.py 所在层）。"""
+    return Path(__file__).resolve().parents[2]
+
+
+def runs_root() -> Path:
+    """运行输出根目录（★ 输出外置：包目录只放代码+venv，git 保持干净）。
+
+    优先级: 环境变量 FLASH_RUNS_DIR > <包根>/../flash_sim_runs（兄弟目录）。
+    布局: flash_sim_runs/<scenario>/run_NNNNNN/{input/, output/, plots/, logs/}。
+    ★ 约束: setup/make 一律在 FLASH 树 objdir 内进行，runs 目录只承载
+      输入快照、sbatch 脚本、作业日志与回收结果。
+    """
+    env = os.environ.get("FLASH_RUNS_DIR", "").strip()
+    if env:
+        return Path(env)
+    return package_root().parent / "flash_sim_runs"
+
+
+def resolve_venv_python() -> Optional[Path]:
+    """解析本平台项目 venv 解释器（与 start_flash.py L968-1014 同规则）。
+
+    优先级: FLASH_VENV_DIR > .venv-win/.venv-linux/.venv-mac（按平台）> 旧 .venv。
+    找不到返回 None（不猜测系统 python）。
+    """
+    env = os.environ.get("FLASH_VENV_DIR", "").strip()
+    cands: List[Path] = []
+    if env:
+        cands.append(Path(env))
+    plat = "win" if os.name == "nt" else ("mac" if sys.platform == "darwin" else "linux")
+    root = package_root()
+    if os.name == "nt":
+        sub = ("Scripts", "python.exe")
+    else:
+        sub = ("bin", "python")
+    cands.append(root / f".venv-{plat}")
+    cands.append(root / ".venv")
+    for c in cands:
+        py = c.joinpath(*sub)
+        if py.is_file():
+            return py
+    return None
+
+
 # ── 维度感知资源默认值 ───────────────────────────────────
 
 def default_nprocs(dimension: int, is_hpc: bool = False,
@@ -208,7 +289,7 @@ def _run_wsl_with_progress(cmd: str, console_log: Path,
     """
     start = time.monotonic()
     proc = subprocess.Popen(
-        ["wsl", "bash", "-c", cmd],
+        [*bash_launcher(), cmd],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     last_report = start
@@ -327,7 +408,7 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
     objdir = spec.objdir
     try:
         subprocess.run(
-            ["wsl", "bash", "-c",
+            [*bash_launcher(),
              f"cd {wsl_dir} && rm -f wsl_run.log {run_log_name} flash_run.log "
              f"&& rm -rf {flash_home}/{objdir}"],
             capture_output=True, timeout=120,
@@ -791,20 +872,100 @@ class HpcRunner:
 # ── 统一入口 ─────────────────────────────────────────────
 
 def run_scenario(wsl_spec: Optional[WslSpec], hpc_spec: Optional[HpcSpec],
-                 cfg: Dict[str, Any], run_mode: Optional[str] = None) -> bool:
-    """按 RUN_MODE 分发: wsl → run_wsl; hpc → HpcRunner.all()。
+                 cfg: Dict[str, Any], run_mode: Optional[str] = None,
+                 insitu_spec: Optional[Any] = None) -> bool:
+    """按 RUN_MODE 分发: wsl → run_wsl; hpc(-remote) → HpcRunner.all();
+    hpc-insitu → insitu_runner.run_insitu()。
 
     Args:
         wsl_spec: WSL 运行规格 (wsl 模式必需)
-        hpc_spec: HPC 运行规格 (hpc 模式必需)
+        hpc_spec: HPC 运行规格 (hpc-remote 模式必需)
         cfg: 场景参数配置
         run_mode: 显式指定模式; None 时用 resolve_run_mode()
+        insitu_spec: InsituSpec (hpc-insitu 模式必需; 延迟导入避免循环依赖)
     """
     mode = resolve_run_mode(run_mode or "wsl")
     if mode == "wsl":
+        if detect_native_linux():
+            log("已在 Linux/WSL 内，wsl 模式自动降级为本地直跑", "INFO")
         if wsl_spec is None:
             raise RuntimeError("wsl 模式需要提供 WslSpec")
         return run_wsl(wsl_spec, cfg)
+    if mode == "hpc-insitu":
+        if insitu_spec is None:
+            raise RuntimeError("hpc-insitu 模式需要提供 InsituSpec")
+        from flash.scenarios.insitu_runner import run_insitu  # 延迟导入
+        return run_insitu(insitu_spec, cfg)
     if hpc_spec is None:
-        raise RuntimeError("hpc 模式需要提供 HpcSpec")
+        raise RuntimeError(f"{mode} 模式需要提供 HpcSpec")
     return HpcRunner(hpc_spec).all(cfg)
+
+
+# ── 环境自检（--check-env，三端一致性核验）──────────────
+
+def _check_env() -> int:
+    """报告当前平台的执行能力矩阵（Windows / WSL / 超算 各跑一次留档）。"""
+    print("=" * 64)
+    print("flash-sim 运行环境自检 (--check-env)")
+    print("=" * 64)
+
+    native = detect_native_linux()
+    plat = "Linux/WSL-native" if native else "Windows"
+    print(f"[平台]       {plat}  (os.name={os.name}, sys.platform={sys.platform})")
+
+    venv_py = resolve_venv_python()
+    print(f"[venv]       {venv_py or '(未找到 — 先跑 start_flash.py)'}")
+
+    try:
+        fh = discover_flash_home()
+    except Exception as e:  # noqa: BLE001
+        fh = None
+        print(f"[FLASH 树]   发现异常: {e}")
+    print(f"[FLASH 树]   {fh or '(未发现 ~/*/FLASH/FLASH4.8)'}")
+    snb = None
+    if native:
+        snb_root = os.path.join(os.environ.get("HOME", ""), get_sim_user_dir(),
+                                "FLASH", "FLASHSNB", "FLASH4.8")
+        snb = snb_root if os.path.isdir(snb_root) else None
+    print(f"[SNB 树]     {snb or '(未发现 / 非 Linux 平台)'}")
+
+    rr = runs_root()
+    print(f"[runs_root]  {rr}  可写={os.access(rr.parent or rr, os.W_OK)}")
+
+    def _which(name: str) -> bool:
+        return shutil.which(name) is not None
+
+    slurm = _which("sbatch") and _which("sacct")
+    print(f"[slurm]      sbatch/sacct 可用={slurm}")
+
+    cred = Path.home() / ".physimx" / "flash" / "credentials.enc"
+    print(f"[凭据]       credentials.enc 存在={cred.is_file()}")
+
+    print("[模式可用性]")
+    print(f"  wsl         : {'✓' if (native or _which('wsl')) else '✗ (无 wsl 命令)'}")
+    print(f"  hpc-remote  : {'✓' if cred.is_file() else '✗ (缺凭据)'}"
+          f" — 本机驱动→SSH→超算")
+    print(f"  hpc-insitu  : {'✓' if slurm else '✗ (无 slurm)'}"
+          f" — 超算登录节点直接编排")
+
+    try:
+        import subprocess as _sp
+        head = _sp.run(["git", "rev-parse", "--short", "HEAD"], cwd=package_root(),
+                       capture_output=True, text=True, timeout=15)
+        print(f"[git HEAD]   {head.stdout.strip() or 'N/A'}（对照超算 bundle 同步）")
+    except Exception:  # noqa: BLE001
+        print("[git HEAD]   N/A")
+    print("=" * 64)
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    import argparse as _argparse
+
+    _ap = _argparse.ArgumentParser(description="flash-sim 统一场景运行器")
+    _ap.add_argument("--check-env", action="store_true",
+                     help="报告平台/venv/FLASH 树/slurm/凭据能力矩阵")
+    _args = _ap.parse_args()
+    if _args.check_env:
+        sys.exit(_check_env())
+    _ap.print_help()
