@@ -526,7 +526,10 @@ class ChCenterScenario(SimulationScenario):
     """
 
     def ensure_sim_input(self) -> None:
-        if self.sim_input_dir.exists():
+        # ★ 判定必须含 .cn4：只判目录存在会在「cn4 复制失败/部分生成」时误判就绪
+        #   （HPC 2026-10-23 实测：目录在但缺 .cn4 → dry-run 断言失败）。
+        d = self.sim_input_dir
+        if d.exists() and any(d.glob("*.cn4")):
             return
         from flash.scenarios.public.center_evolution.ch_center import gen_flash_inputs as _gen
         _gen.ensure_generated()

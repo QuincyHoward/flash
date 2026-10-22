@@ -30,7 +30,24 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-EOS_OP_DATA = SCRIPT_DIR.parents[2] / "input_gen" / "gen_eos_op" / "eos_op_data"
+
+
+def _find_eos_op_data() -> Path:
+    """向上搜索包内中央表库 flash/input_gen/gen_eos_op/eos_op_data。
+
+    ★ 不用 parents[N] 硬编码层数：场景目录深度会随目录重构变化，
+    写死 parents[2] 曾误指向 flash/scenarios/input_gen（多一层）
+    ⇒ cn4 静默缺失 ⇒ gencheck 报 eos_files missing。
+    """
+    for parent in SCRIPT_DIR.parents:
+        cand = parent / "input_gen" / "gen_eos_op" / "eos_op_data"
+        if cand.is_dir():
+            return cand
+    raise FileNotFoundError(
+        f"未找到中央表库 (input_gen/gen_eos_op/eos_op_data), 上溯起点: {SCRIPT_DIR}")
+
+
+EOS_OP_DATA = _find_eos_op_data()
 
 REQUIRED_TEXT = [
     "Config", "Grid_markRefineDerefine.F90", "Makefile",

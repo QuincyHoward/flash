@@ -234,7 +234,11 @@ class _AutoGenScenario(SimulationScenario):
 
     def ensure_sim_input(self) -> None:
         d = self.sim_input_dir
-        if (d / "Config").exists() and any(d.glob("*.par")):
+        # ★ 判定必须含 .cn4：只查 Config+par 会在「cn4 复制失败」时误判为就绪
+        #   （HPC 2026-10-23 实测：cn4 缺失但 par 在 → 直接 return →
+        #    dry-run 断言 "缺少 .cn4" 失败，且掩盖真正根因）。
+        if ((d / "Config").exists() and any(d.glob("*.par"))
+                and any(d.glob("*.cn4"))):
             return
         import importlib as _il
         gen = _il.import_module(self._gen_module_name())
