@@ -122,16 +122,12 @@ def reqs_for_download(profile: str = "full") -> list[str]:
         if n not in seen:
             seen.add(n)
             reqs.append(p)
-    # ★ glibc 锁定：把命中的 requirement 换成 pin 版本
-    pinned = []
-    for r in reqs:
-        n = wh.canonical_name(wh.requirement_name(r))
-        for pkg, ver in VERSION_PINS.items():
-            if n == wh.canonical_name(pkg):
-                r = f"{pkg}=={ver}"
-                break
-        pinned.append(r)
-    return pinned
+    # ★ glibc 锁定：pin 作为**附加约束**追加（pillow/ewah 等是 matplotlib/yt 的
+    #   传递依赖，不在直接依赖列表里，仅替换不生效——首版实测漏网）。
+    #   pip 对同名多约束取交集，`pillow==12.2.0` 会压制传递解析出的 12.3.0。
+    for pkg, ver in VERSION_PINS.items():
+        reqs.append(f"{pkg}=={ver}")
+    return reqs
 
 
 def main() -> int:
