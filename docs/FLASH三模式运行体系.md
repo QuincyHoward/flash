@@ -83,26 +83,51 @@ python -m flash.scenarios.runner --check-env
 | SNBOneCH_m `--mode hpc-insitu --tmax 1e-11` | build Job 4917098 + run Job 4917099 均 COMPLETED，RUN_EXIT=0（31.9s），就地收集 chk=2/plt跳过=2 → flash_sim_runs/SNBOneCH_m/run_000001 |
 | hpc-remote 回归（SNB `--mode hpc`） | 重构前后行为一致 |
 | bundle 增量同步 | 本地 HEAD == 超算 HEAD（fetch+ff-merge，git 1.8.3 兼容） |
-| ch_center `--mode hpc-insitu` | ⚠ 链接已打通（FLASH_NO_MODULE_PURGE + Intel MPI LIBRARY_PATH 注入后 flash4 产出），卡在 NC-E 站点问题，见 §8 |
+| ch_center `--mode hpc-insitu` | ✅ 已打通（2026-10-23 定位 `MPII_F_TRUE` 真因并修复，计算节点实跑产出 8 chk + 28 plt，见 §8） |
 
-## 8. 已知限制：QC 通用树在 NC-E 的 Intel MPI 运行期符号错误（待修）
+## 8. ✅ 已解决（2026-10-23）：QC 通用树的 `MPII_F_TRUE` 运行期符号错误
 
-ch_center in-situ 冒烟 6 轮迭代后：链接成功（`FLASH_NO_MODULE_PURGE=1` 禁 module
-purge/load + 注入 Intel MPI 2022.1 库路径后 flash4 正常产出），但运行期报
-`libmpifort.so.12: undefined symbol: MPII_F_TRUE`。
+> 2026-10-22 曾记为"已知限制（待修）"，2026-10-23 由探针实测**定位真因并修复**，
+> 计算节点实跑通过（推进 139 步、产出 8 chk + 28 plt）。原结论保留在 §8.1 供追溯。
 
-诊断结论（探针实测，脚本 _probe_link/_probe_impi/_probe_pair/_probe_mpihello）：
-- oneAPI MPI 自身自洽：mpiifort 编译的最小程序 `mpiexec -n 2` 登录节点直接跑通；
-- 但 `lib/libmpifort.so.12` 引用的 `MPII_F_TRUE` 在配套 `libmpi.so.12`（含
-  lib/release 子目录）的动态符号表中**不存在**——`/public1/soft/oneAPI/2022.1`
-  目录疑似 mpifort/libmpi 版本错配（Frankenstein 安装）；
-- 该问题与三模式架构无关，**hpc-remote 模式同样受影响**（同一 submit_flash.sh）。
+### 8.0 修复结论（探针实测，脚本 probe7–probe23）
 
-修复路径（择一，属树级一次性配置）：
-1. ★ 推荐：QC 通用树按 **mpich/3.2** 重新 setup+编译（Makefile.h 对齐 SNB 树方案
-   `MPI_PATH=/public1/soft/mpich/3.2` + mpif90 wrapper——SNB 树同方案已在 NC-E
-   验证编译/运行全通）；作业脚本恢复 module load mpich/3.2+hdf5。
-2. 或排查 oneAPI 2022.1 安装完整性（libmpifort 与 libmpi 版本配对）。
+`libmpifort.so.12: undefined symbol: MPII_F_TRUE` 的真因是**环境变量层面的
+同名 soname 覆盖**，不是 FLASH 树编译问题，也**不是** oneAPI 安装错配：
+
+| # | 真因 | 证据 | 修法 |
+|---|---|---|---|
+| ① | 注入的 oneAPI 库路径**写错**：`oneAPI/2022.1/lib`（不存在）真实在 `oneAPI/2022.1/mpi/latest/lib` | `ls` 实测；`nm -D mpi/latest/lib/release/libmpi.so.12 \| grep -c MPII_F_TRUE` = **1**（符号存在） | 不再注入 oneAPI MPI 路径 |
+| ② | 站点 `module load mpich/3.2-gcc9.3` 在**计算节点**解析到 mpich/3.2，其 `libmpifort.so.12` 需要 `GFORTRAN_9` 符号版本；注入 gcc 8.1.0 的 `libgfortran.so.5` 只到 GFORTRAN_5 ⇒ 混用即崩 | 计算节点报错 `version 'GFORTRAN_9' not found (required by mpich/3.2/lib/libmpifort.so.12)` | 改用 `gcc/9.3.0-new/lib64`（循环取 9.3.0-new → 9.1.0） |
+| ③ | oneAPI 与 mpich 提供**同名 soname**（`libmpi.so.12` / `libmpifort.so.12`），同时进 `LD_LIBRARY_PATH` 互相覆盖 | `ldd` 对比：注 oneAPI 时解析到 oneAPI，注 mpich 时解析到 mpich | 只保留 mpich 一套 |
+
+★ **登录节点与计算节点的 `module load mpich/3.2-gcc9.3` 解析结果不同**：
+登录节点 → Intel 2018 MPI（`/public1/soft/intel/2018/.../mpi/intel64/bin/mpirun`）；
+计算节点 → mpich/3.2（`/public1/soft/mpich/3.2/bin/mpirun`）。
+⇒ 任何环境结论**必须在计算节点验证**，登录节点通过不算数。
+
+**✅ 实测通过的最终环境块**（已固化进 `deploy/hpc_deploy/patch_job.py` 的 `ENV_BLOCK`）：
+
+```bash
+source /public1/soft/modules/module.sh 2>/dev/null || true
+module load hdf5/1.8.18 2>/dev/null || true
+module load mpich/3.2-gcc9.3 2>/dev/null || true
+for _d in /public1/soft/gcc/9.3.0-new/lib64 /public1/soft/gcc/9.1.0/lib64; do
+  if [ -d "$_d" ]; then export LD_LIBRARY_PATH="$_d:$LD_LIBRARY_PATH"; break; fi
+done
+```
+
+实测结果（作业 4917836，v5_192 分区，`mpirun -np 2`）：
+`MPIRUN_RC=0`、推进 **139 步**至 `t=1.0057e-11`、**8 个 chk + 28 个 plt**、
+`exiting: reached max SimTime` ⇒ 端到端全通。
+
+⇒ **原"修复路径 1（QC 树按 mpich 重新 setup+编译）"不需要做**：树本身无需重编，
+  只需正确的运行时环境。
+
+### 8.1 原结论（2026-10-22，保留供追溯，**已被 8.0 推翻**）
+
+> ~~`/public1/soft/oneAPI/2022.1` 目录疑似 mpifort/libmpi 版本错配（Frankenstein 安装）~~
+> —— 实为路径取错 + mpich 覆盖所致；oneAPI 的 `mpi/latest/lib` 自洽无缺。
 
 ch_center in-situ 六轮冒烟的其它修复成果全部保留：
 `read_text(newline=)` py3.10 兼容、`FLASH_NO_MODULE_PURGE` 开关、Intel MPI 库路径

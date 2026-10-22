@@ -14,7 +14,8 @@
      c. git clone flash_sim_all.bundle -> $HOME/PhySimX/PhySimX/simulation/flash/flash_sim
         （已存在则先比对 HEAD，同为 bundle HEAD 时跳过；否则报错由人工裁决）
      d. git remote set-url origin https://gitee.com/physimx/flash.git
-     e. mkdir -p dist offline_pkg test/reports（fresh-clone 生成目录补偿）
+     e. mkdir -p artifacts/dist artifacts/wheelhouse test/reports
+        （fresh-clone 生成目录补偿；★ 根 dist/ 已迁至 artifacts/）
 判据: 双端 SHA256 一致 + 远端 start_flash.py / deploy/_wh_common.py 存在。
 """
 import hashlib
@@ -167,18 +168,27 @@ def main() -> int:
                 w(f"[05] 增量同步完成: HEAD={head_after[:12]}")
         else:
             w(f"[05] git clone bundle -> {TARGET_DIR} ...")
+            # ★ git clone 要求目标目录**不存在或为空**；Step 00 清理后留下的是
+            #   空目录（OK），但若残留内容会报 "already exists and is not an
+            #   empty directory" ⇒ 明确区分两种失败并给出可执行提示。
             out, err, rc = s.run(
                 f"git clone {PKG_DIR_REMOTE}/flash_sim_all.bundle {TARGET_DIR} 2>&1 "
                 f"| tail -3", timeout=600)
             w(f"[05] clone rc={rc}: {(out or '').strip()[-300:]}")
             if rc != 0:
+                if "not an empty directory" in (out or "") + (err or ""):
+                    w("[FATAL] 目标目录非空 —— 先跑 Step 00 清理："
+                      "python deploy/hpc_deploy/remote_clean.py --yes")
                 return 1
 
         # ---- 3d/3e. remote 预留 + 生成目录补偿（同样规避 git -C） ----
         s.run(f"cd {TARGET_DIR} && git remote set-url origin {GITEE_URL} "
               f"&& git remote -v | head -2", timeout=120)
+        # ★ 根目录产物统一收进 artifacts/（2026-10-22 模块化改造）：
+        #   旧布局是 dist/ + offline_pkg/，新布局 artifacts/{dist,wheelhouse}。
         out, err, rc = s.run(
-            f"mkdir -p {TARGET_DIR}/dist {TARGET_DIR}/offline_pkg {TARGET_DIR}/test/reports "
+            f"mkdir -p {TARGET_DIR}/artifacts/dist {TARGET_DIR}/artifacts/wheelhouse "
+            f"{TARGET_DIR}/test/reports "
             f"&& cd {TARGET_DIR} && git rev-parse HEAD "
             f"&& test -f {TARGET_DIR}/start_flash.py && echo START_FLASH_OK "
             f"&& test -f {TARGET_DIR}/deploy/_wh_common.py && echo WH_COMMON_OK",

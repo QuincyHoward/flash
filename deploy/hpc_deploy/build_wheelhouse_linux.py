@@ -101,11 +101,21 @@ def wheel_entry_count(p: Path) -> int:
 
 
 def find_body_wheel() -> Path:
-    """dist/ 下最新的 flash_sim-*.whl（py3-none-any 跨平台）。"""
-    cands = sorted((REPO_ROOT / "dist").glob("flash_sim-*.whl"),
-                   key=lambda p: p.stat().st_mtime, reverse=True)
+    """最新的 flash_sim-*.whl（py3-none-any 跨平台）。
+
+    ★ 2026-10-22：根目录产物统一收进 artifacts/，dist/ 已迁至
+      artifacts/dist/（根 dist/ 仅为历史兼容）。两处都找，否则迁移后
+      本脚本直接 die（此前实测：artifacts/dist 有 wheel 但脚本报"没有"）。
+    """
+    cands: list[Path] = []
+    for d in (REPO_ROOT / "artifacts" / "dist", REPO_ROOT / "dist"):
+        if d.is_dir():
+            cands.extend(d.glob("flash_sim-*.whl"))
     if not cands:
-        die("dist/ 下没有 flash_sim-*.whl —— 先构建本体 wheel")
+        die("artifacts/dist/ 与 dist/ 下都没有 flash_sim-*.whl —— "
+            "先构建本体 wheel: python -m build --wheel --no-isolation "
+            "-o artifacts/dist")
+    cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     return cands[0]
 
 

@@ -99,6 +99,19 @@ def run(cmd: list, cwd=None, timeout=3600, check=True) -> subprocess.CompletedPr
 # Step 1: 构建 flash 本体 wheel
 # ---------------------------------------------------------------------------
 
+def _legacy_wheels(root: Path) -> list[Path]:
+    """历史本体 wheel 候选（★ artifacts/dist 优先，根 dist/ 兼容）。
+
+    2026-10-22 模块化改造：根目录产物统一收进 artifacts/，dist/ 已迁至
+    artifacts/dist/。但历史 wheel 可能残留在任一处 ⇒ 两处都找。
+    """
+    out: list[Path] = []
+    for d in (root / "artifacts" / "dist", root / "dist"):
+        if d.is_dir():
+            out.extend(d.glob("flash_sim-*.whl"))
+    return sorted(out, key=lambda p: p.stat().st_mtime)
+
+
 def build_project_wheel(root: Path, out_dir: Path, dry_run: bool,
                         allow_legacy_dist: bool = False) -> Path | None:
     """构建 flash_sim-*.whl。
@@ -147,7 +160,9 @@ def build_project_wheel(root: Path, out_dir: Path, dry_run: bool,
         #   09-10 事故：build 失败后此处静默 copy 了 9-08 的旧 wheel，
         #   该 wheel 少 2650 个文件（含 flash/_core/credentials/hpc_config.py），
         #   且体积 1.5MB vs 正常 4.8MB —— 不查体积根本发现不了。
-        legacy = sorted((root / "dist").glob("flash_sim-*.whl"))
+        #   ★ 2026-10-22：根 dist/ 已迁至 artifacts/dist（根目录保持简洁），
+        #     两处都要找，否则迁移后此退路静默失效。
+        legacy = _legacy_wheels(root)
         if legacy and allow_legacy_dist:
             log(f"[warn] 使用 dist/ 遗留 wheel: {legacy[-1].name}")
             log("       ⚠ 该wheel 可能是旧代码构建，务必确认与当前源码一致！")
