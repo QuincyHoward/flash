@@ -37,11 +37,25 @@ from flash.scenarios.simulator import FlashSimulatorEngine
 
 
 def _primary_scenario() -> str:
-    """优先私有场景 thin_layer_sandwich_si (本地), 发布环境降级为公开场景 ch_center。"""
+    """优先私有场景 thin_layer_sandwich_si (本地), 发布环境降级为公开场景 ch_center。
+
+    ★ 2026-10-22 修正 (HPC fresh-clone 实测): 私有场景虽随仓库分发, 但其
+      sim_input_si/ 里的 F90/cn4 因 FLASH License §3 被 .gitignore 排除 ——
+      fresh clone 上只剩 Config/Makefile/par, dry-run 必然缺 .F90。
+      ⇒ 只有 sim_input 实际完整 (含 .F90) 时才选私有场景; 否则回落 ch_center
+      (其 ensure_sim_input 生成器可完整生成, 实测超算 14 文件生成成功)。
+    """
+    from flash.scenarios.registry import get_scenario
+
     available = [s[0] for s in list_scenarios()]
+    for name in ("thin_layer_sandwich_si", "thin_layer_sandwich_al"):
+        if name in available:
+            sc = get_scenario(name)
+            if sc.sim_input_dir.exists() and any(sc.sim_input_dir.glob("*.F90")):
+                return name
     if "thin_layer_sandwich_si" in available:
-        return "thin_layer_sandwich_si"
-    print("ℹ 私有场景未注册 (发布环境), 使用公开场景 ch_center 验证引擎 dry-run")
+        print("ℹ 私有场景 sim_input 不完整 (fresh clone git 排除 F90/cn4), "
+              "使用公开场景 ch_center 验证引擎 dry-run")
     return "ch_center"
 
 
