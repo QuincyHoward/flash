@@ -42,6 +42,20 @@ import _wh_common as wh  # noqa: E402
 PLATFORMS = ["manylinux2014_x86_64", "manylinux_2_28_x86_64"]
 PY_VERSION = "3.10"
 PY_ABIS = ["cp310", "abi3"]
+
+# ★ glibc 上限锁定（2026-10-22 实测：NC-E = CentOS 7 / glibc 2.17 / pip 22.2.2，
+#   最高支持 manylinux_2_17）。以下包的最新版只发 >2_17 的 wheel，必须锁定到
+#   最后一个带 cp310+manylinux_2_17 的版本（均已核实满足 pyproject 约束）。
+#   若未来 pyproject 升级依赖，重造包时 glibc 审计（见下）会自动拦截新违约者。
+GLIBC_MAX_TAG = "manylinux_2_17_x86_64"
+ALLOWED_LOW_TAGS = {"any", "manylinux1_x86_64", "manylinux2010_x86_64",
+                    "manylinux2014_x86_64", "manylinux_2_17_x86_64", "linux_x86_64"}
+VERSION_PINS = {
+    "pandas": "2.3.2",           # 2.3.3 只发 2_24+
+    "h5py": "3.14.0",            # 3.15/3.16 只发 2_28
+    "pillow": "12.2.0",          # 12.3 只发 2_27+
+    "ewah-bool-utils": "1.2.2",  # 1.3.0 只发 2_24（yt 依赖，兼容 yt 4.3）
+}
 # ★ Linux/py3.10 平台条件依赖（_wh_common.PLATFORM_DIFF_NOTE 记录的全集）：
 #   jeepney/secretstorage = paramiko 的 Linux keyring 后端；
 #   其余 6 个 = py3.10 兼容垫片。★ pip download 交叉下载时环境标记
@@ -108,7 +122,16 @@ def reqs_for_download(profile: str = "full") -> list[str]:
         if n not in seen:
             seen.add(n)
             reqs.append(p)
-    return reqs
+    # ★ glibc 锁定：把命中的 requirement 换成 pin 版本
+    pinned = []
+    for r in reqs:
+        n = wh.canonical_name(wh.requirement_name(r))
+        for pkg, ver in VERSION_PINS.items():
+            if n == wh.canonical_name(pkg):
+                r = f"{pkg}=={ver}"
+                break
+        pinned.append(r)
+    return pinned
 
 
 def main() -> int:
@@ -175,6 +198,22 @@ def main() -> int:
                 ("win" in t or "macosx" in t or "cygwin" in t)]
     if bad_plat:
         die(f"混入非 Linux wheel（按平台标签分量）: {bad_plat[:5]}")
+    # ★ glibc 门槛审计：目标机 glibc=2.17，任何"全部标签均 > 2_17"的 wheel
+    #   远端 pip 必拒（No matching distribution found）。此处前置拦截并点名，
+    #   修法：在 VERSION_PINS 里锁定到带 ≤2_17 wheel 的版本。
+    offenders = []
+    for p in wheels:
+        stem = p.name[: -len(".whl")]
+        parts = stem.split("-")
+        if len(parts) < 5:
+            continue
+        tags = set(parts[-1].split("."))
+        if not (tags & ALLOWED_LOW_TAGS):
+            offenders.append(p.name)
+    if offenders:
+        die("以下 wheel 的 glibc 门槛 > 2.17（远端 CentOS 7 pip 必拒）:\n"
+            + "\n".join(f"    - {x}" for x in offenders[:10])
+            + "\n    ⇒ 在 VERSION_PINS 中锁定到带 manylinux_2_17 wheel 的版本")
     n_manylinux = sum(1 for p in wheels
                       if "manylinux" in p.name or "none-any" in p.name or "linux" in p.name)
     print(f"[03] 共 {len(wheels)} 个 wheel（manylinux/纯 py: {n_manylinux}）")
