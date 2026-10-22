@@ -65,6 +65,22 @@ def main() -> int:
 
     venv_dir = f"{TARGET_DIR}/{VENV_NAME}"
     clean_env_var = "FLASH_FORCE_CLEAN=1 " if args.clean else ""
+    venv_pip = f"{venv_dir}/bin/pip"
+    resume_target = ("flash_sim[full,dev] scipy paramiko" if args.profile == "full"
+                     else "flash_sim[full] scipy paramiko" if args.profile == "runtime"
+                     else "flash_sim scipy paramiko")
+    # ★ Lustre 断点续装：全量安装 96 包时并行盘会随机瞬时 ENOENT（dist-info
+    #   METADATA 读写竞态，2026-10-22 实测 sympy/fonttools 先后中招，单包安装
+    #   均正常）。pip 事务失败不删 venv，重复 install —— 已装的自动跳过，
+    #   每轮推进剩余部分，直至 rc=0。
+    resume_loop = (
+        f"for i in 1 2 3 4 5 6; do\n"
+        f"  {venv_pip} install --no-index --find-links {WHEELHOUSE_REMOTE} "
+        f"{resume_target} && break\n"
+        f"  echo \"[resume] 第 $i 轮续装失败，30s 后重试...\"\n"
+        f"  sleep 30\n"
+        f"done"
+    )
     inner = (
         f"cd {TARGET_DIR} && "
         f"module load python/3.10.8 && "
@@ -72,6 +88,10 @@ def main() -> int:
         f"{clean_env_var}"
         f"FLASH_VENV_DIR={venv_dir} "
         f"FLASH_PROFILE={args.profile} && "
+        f"python3 start_flash.py --offline --wheelhouse {WHEELHOUSE_REMOTE} "
+        f"--profile {args.profile}; "
+        f"rc1=$?; "
+        f"if [ $rc1 -ne 0 ]; then echo '[resume] start_flash 首轮失败，进入续装循环'; {resume_loop}; fi; "
         f"python3 start_flash.py --offline --wheelhouse {WHEELHOUSE_REMOTE} "
         f"--profile {args.profile}"
     )
@@ -91,18 +111,29 @@ def main() -> int:
     print(f"[06] 安装日志（并行盘）: {remote_log}")
 
     with RemoteSession("flash_ssh") as s:
-        # ---- 清理旧哨兵 + 上传脚本 + 启动 ----
+        # ---- 清理旧哨兵 + 上传脚本 + 启动（★ 启动 exec 加 3 次重试，
+        #      应对 paramiko exec_command 瞬时失败）----
         s.run(f"rm -f {remote_sentinel}", timeout=60)
         ok = s.upload(str(local_sh), remote_sh)
         if not ok:
             print("[FATAL] 上传安装脚本失败")
             return 1
-        out, err, rc = s.run(
-            f"chmod +x {remote_sh} && cd {PKG_DIR_REMOTE} && "
-            f"nohup bash {remote_sh} > {remote_log} 2>&1 & echo LAUNCHED",
-            timeout=60)
-        if "LAUNCHED" not in (out or ""):
-            print(f"[FATAL] 启动失败: {(out or '')} {(err or '')}")
+        launched = False
+        for attempt in range(1, 4):
+            try:
+                out, err, rc = s.run(
+                    f"chmod +x {remote_sh} && cd {PKG_DIR_REMOTE} && "
+                    f"nohup bash {remote_sh} > {remote_log} 2>&1 & echo LAUNCHED",
+                    timeout=60)
+                if "LAUNCHED" in (out or ""):
+                    launched = True
+                    break
+            except Exception as e:  # noqa: BLE001
+                print(f"  [launch] 第 {attempt} 次启动异常: {type(e).__name__}: {e}")
+            print(f"  [launch] 第 {attempt}/3 次启动未确认，20s 后重试...")
+            time.sleep(20)
+        if not launched:
+            print("[FATAL] 启动 3 次均失败")
             return 1
         print(f"[06] 已后台启动（bash -lc 登录 shell，module load python/3.10.8）")
         print(f"[06] 预计 5~25 分钟（WSL 预演实测 432s），每 {POLL_INTERVAL}s 轮询一次")
