@@ -138,17 +138,32 @@ def main() -> int:
                 # ---- 增量同步：从新 bundle fetch + fast-forward（git 1.8.3 兼容）----
                 w(f"[05] 远端 HEAD {head_remote[:12]} != bundle HEAD {head_expect[:12]}"
                   f" → 增量同步 (fetch bundle + ff-merge) ...")
-                out, err, rc = s.run(
-                    f"cd {TARGET_DIR} && git fetch {PKG_DIR_REMOTE}/flash_sim_all.bundle "
-                    f"'refs/heads/master:refs/heads/bundle-sync' 2>&1 | tail -2 && "
-                    f"git merge --ff-only bundle-sync 2>&1 | tail -2 && "
-                    f"git branch -d bundle-sync 2>/dev/null; git rev-parse HEAD",
-                    timeout=600)
-                w(f"[05] 增量同步 rc={rc}: {(out or '').strip()[-300:]}")
-                head_after = (out or "").strip().splitlines()[-1]
+                # ★ paramiko exec 瞬时失败重试（历史实测：失败≠未执行，故每次
+                #   重试前检查 HEAD 是否已到位，避免重复 fetch）
+                head_after = ""
+                for attempt in range(1, 4):
+                    try:
+                        out, err, rc = s.run(
+                            f"cd {TARGET_DIR} && git rev-parse HEAD; "
+                            f"git fetch {PKG_DIR_REMOTE}/flash_sim_all.bundle "
+                            f"'refs/heads/master:refs/heads/bundle-sync' 2>&1 | tail -2 && "
+                            f"git merge --ff-only bundle-sync 2>&1 | tail -2 && "
+                            f"git branch -d bundle-sync 2>/dev/null; git rev-parse HEAD",
+                            timeout=600)
+                    except Exception as e:  # noqa: BLE001
+                        out, err, rc = "", f"{type(e).__name__}: {e}", -1
+                    lines = (out or "").strip().splitlines()
+                    head_after = lines[-1].strip() if lines else ""
+                    if head_after == head_expect:
+                        break
+                    w(f"[05] 增量同步第 {attempt}/3 次: rc={rc}, "
+                      f"HEAD={head_after[:12] or '(空)'} — 30s 后重试")
+                    time.sleep(30)
                 if head_after != head_expect:
-                    w("[FATAL] 增量同步后 HEAD 不一致 —— 需人工裁决")
+                    w(f"[FATAL] 增量同步后 HEAD 不一致 ({head_after[:12]} != "
+                      f"{head_expect[:12]}) —— 需人工裁决")
                     return 1
+                w(f"[05] 增量同步完成: HEAD={head_after[:12]}")
         else:
             w(f"[05] git clone bundle -> {TARGET_DIR} ...")
             out, err, rc = s.run(
