@@ -47,12 +47,16 @@ def main() -> int:
     PKG_DIR.mkdir(parents=True, exist_ok=True)
 
     # ---- 1. 工作区状态 ----
-    status = git("status", "--porcelain")
-    if status.strip() and not args.allow_dirty:
+    status = git("status", "--porcelain").stdout
+    # ★ 只看**已跟踪文件**的变更（?? 未跟踪产物目录不进 bundle，不阻断）；
+    #   git add -A 禁用（E: 盘间歇不可见会静默提交删除，见工作记忆 §R）。
+    tracked_dirty = [ln for ln in status.splitlines()
+                     if ln.strip() and not ln.startswith("??")]
+    if tracked_dirty and not args.allow_dirty:
         print("[FATAL] 工作区有未提交变更（bundle 只包含已提交内容）：")
-        for line in status.strip().splitlines()[:20]:
+        for line in tracked_dirty[:20]:
             print(f"  {line}")
-        print("  ⇒ 请先单独提交这些变更（禁用 git add -A，见 E: 盘事故）"
+        print("  ⇒ 请先单独提交这些变更（逐条显式路径 git add）"
               "或用 --allow-dirty 跳过。")
         return 1
     head = git("rev-parse", "HEAD").stdout.strip()
