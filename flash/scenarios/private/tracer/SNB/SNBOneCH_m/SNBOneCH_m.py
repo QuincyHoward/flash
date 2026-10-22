@@ -606,7 +606,15 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     log("  [7/8] 复制 EOS/opacity 表...", "STEP")
 
     def _copy_cn4(filename: str, aliases) -> bool:
-        """按 注册表别名 → eos_op_data 递归 → 旧仓库兜底 的顺序复制 .cn4。"""
+        """按 已在 INPUT_DIR → 注册表别名 → eos_op_data 递归 → 旧仓库兜底 复制 .cn4。
+
+        ★ 首查 INPUT_DIR 已有副本 (2026-10-22): cn4 表因 License §3 不入 git，
+          hpc-insitu 模式靠 sync_snb_assets.py 预先同步到部署树 flash_input/
+          ——超算上注册表/数据目录均为空，若不首查已同步副本会误报缺失。
+        """
+        if (INPUT_DIR / filename).exists():
+            log(f"    {filename} ← flash_input 已有副本 (跳过复制)", "INFO")
+            return True
         from flash.input_gen.gen_eos_op import EOSOpacityGenerator
         dst = EOSOpacityGenerator().copy_eos_file(aliases[0], INPUT_DIR)
         if dst is not None and Path(dst).exists():
@@ -1544,7 +1552,20 @@ def run_hpc_insitu(tmax: Optional[str], nproc: int, skip_build: bool = False,
             "(Windows/WSL 请用 --mode hpc 或 --mode wsl)", "ERROR")
         return 1
 
-    snb_home = os.path.expanduser(_remote_snb_home())   # 登录节点 $HOME 展开
+    # SNB 树定位: in-situ 下无凭据 → SIM_USER_DIR 会回落 'hello'。
+    # 优先扫 $HOME/*/FLASH/FLASHSNB/FLASH4.8 (与 WSL find_snb_home 同判据)。
+    global SIM_USER_DIR
+    snb_home = ""
+    home = os.environ.get("HOME", "")
+    if home:
+        for _name in sorted(os.listdir(home)) if os.path.isdir(home) else []:
+            cand = os.path.join(home, _name, "FLASH", "FLASHSNB", "FLASH4.8")
+            if os.path.isfile(os.path.join(cand, "setup")):
+                snb_home = cand
+                SIM_USER_DIR = _name          # 后续 build 脚本 NORM=~/{SIM_USER_DIR} 同步
+                break
+    if not snb_home:
+        snb_home = os.path.expanduser(_remote_snb_home())
     setup_cmd = f"./setup -auto {SIM_NAME} {SETUP_FLAGS} -objdir={OBJDIR}"
     overrides = " ".join(SNB_OVERRIDE_FILES)
 
