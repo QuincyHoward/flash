@@ -165,8 +165,8 @@ def main() -> int:
     (TEST_DIR / "results").mkdir(exist_ok=True)
     (TEST_DIR / "results" / f"remote_clone_head_{ts}.txt").write_text(
         f"bundle_head={head_expect}\nsha256={local_sha}\ntarget={TARGET_DIR}\n", encoding="utf-8")
-    log_f.close()
     w(f"[05] 结论: PASS（总耗时 {time.time() - t_start:.0f}s）")
+    log_f.close()   # ★ 必须在最后一次 w() 之后关闭（上一版提前 close 触发 ValueError）
     return 0
 
 
