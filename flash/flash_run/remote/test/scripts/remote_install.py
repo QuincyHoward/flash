@@ -48,6 +48,9 @@ def main() -> int:
     ap.add_argument("--profile", default="full", choices=["full", "runtime", "lite"])
     ap.add_argument("--recover", action="store_true",
                     help="逐项恢复：保留现有 venv 续跑（start_flash 健康检查自愈）")
+    ap.add_argument("--clean", action="store_true",
+                    help="FLASH_FORCE_CLEAN=1 强制删 venv 重建（venv 半损坏时用，"
+                         "如 sympy dist-info OSError）")
     args = ap.parse_args()
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -61,10 +64,12 @@ def main() -> int:
     remote_sh = f"{PKG_DIR_REMOTE}/install_{ts}.sh"
 
     venv_dir = f"{TARGET_DIR}/{VENV_NAME}"
+    clean_env_var = "FLASH_FORCE_CLEAN=1 " if args.clean else ""
     inner = (
         f"cd {TARGET_DIR} && "
         f"module load python/3.10.8 && "
         f"export PYTHONUNBUFFERED=1 "
+        f"{clean_env_var}"
         f"FLASH_VENV_DIR={venv_dir} "
         f"FLASH_PROFILE={args.profile} && "
         f"python3 start_flash.py --offline --wheelhouse {WHEELHOUSE_REMOTE} "
