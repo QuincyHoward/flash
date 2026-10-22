@@ -545,3 +545,15 @@ test/_extract_chk_params.out
 # ================================================================
 /offline_pkg/
 /wheelhouse/
+
+# ================================================================
+# 模块化改造（2026-10-22）: 根目录统一产物区 artifacts/
+#   wheel/sdist/dist/wheelhouse/构建日志一律落 artifacts/，不污染根目录。
+#   与 pyproject.toml 的 sdist/wheel exclude **成对维护**（铁律见 pyproject 注释）。
+# ================================================================
+/artifacts/
+# 部署链历史产物目录（2026-10-22 起新产物已统一落根目录 artifacts/，
+#   此三处为迁移前残留，保留本地但不跟踪）
+/flash/flash_run/remote/test/logs/
+/flash/flash_run/remote/test/packages/
+/flash/flash_run/remote/test/results/

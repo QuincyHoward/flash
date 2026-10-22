@@ -71,7 +71,20 @@ packages = ["flash"]
 # (供 `python -m flash.mcp_server` 或 Agent 直连使用; 源码仓库场景仍以根目录文件为准)。
 # 注意: 与 exclude 成对维护 —— 新增 include 前须核对 wheel_leak_audit 护栏。
 force-include = {"mcp_server.py" = "flash/mcp_server.py"}
+# ★ 模块化改造（2026-10-22）: 根目录 deploy/（安装部署工具）、deps_lock/（依赖锁）、
+#   artifacts/（构建产物区）均不属于 pip 包本体 —— 与 .gitignore 成对维护。
 exclude = [
+    "/deploy/**",
+    "/deps_lock/**",
+    "/artifacts/**",
+    # ★ 模块化改造护栏补漏（2026-10-22 造包实测 333.7MB 越界，逐条精确排除，
+    #   已核对 git ls-files：以下规则均不触碰任何 git 已跟踪源码）
+    "flash/scenarios/private/tracer/VTi_oldstyle/hpc_inputs/**/*.cn4",
+    "flash/scenarios/private/tracer/VTi_oldstyle/hpc_inputs/**/*.txt",
+    "flash/scenarios/private/tracer/VTi_oldstyle/ref/**",
+    "flash/flash_run/remote/test/results/**",
+    "flash/flash_run/remote/test/packages/**",
+    "flash/scenarios/public/sandwich/**/sim_input*/**/*.cn4",
     # === FLASH 版权材料与引擎相关 (License §3) ===
     "flash/flash_src/**",
     "flash/**/ref_f90s/**",
@@ -256,6 +269,17 @@ include = [
     "pyproject.toml",
 ]
 exclude = [
+    # ★ 模块化改造（2026-10-22）: 与 wheel target 成对 —— 部署工具/依赖锁/产物区不入包
+    "/deploy/**",
+    "/deps_lock/**",
+    "/artifacts/**",
+    # ★ 护栏补漏（2026-10-22，与 wheel target 成对）
+    "flash/scenarios/private/tracer/VTi_oldstyle/hpc_inputs/**/*.cn4",
+    "flash/scenarios/private/tracer/VTi_oldstyle/hpc_inputs/**/*.txt",
+    "flash/scenarios/private/tracer/VTi_oldstyle/ref/**",
+    "flash/flash_run/remote/test/results/**",
+    "flash/flash_run/remote/test/packages/**",
+    "flash/scenarios/public/sandwich/**/sim_input*/**/*.cn4",
     # === FLASH CENTER compliance exclusions ===
     "flash/flash_src/**",
     "FLASH4.8/**",

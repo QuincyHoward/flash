@@ -16,8 +16,8 @@
 
 用法::
 
-    python scripts/08_offline_install/wheel_leak_audit.py            # 默认 wheelhouse
-    python scripts/08_offline_install/wheel_leak_audit.py <wheel>     # 指定 wheel
+    python deploy/wheel_leak_audit.py            # 默认 wheelhouse
+    python deploy/wheel_leak_audit.py <wheel>     # 指定 wheel
 
 退出码：0 = 通过（残余在容差内）；1 = 超容差；2 = 用法/环境错误。
 
@@ -36,7 +36,7 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent.parent
+ROOT = HERE.parent   # deploy/ 位于仓库根（原 scripts/08_offline_install 需 parent.parent）
 
 #: 默认 wheelhouse（造包脚本的默认输出位置）
 DEFAULT_DIRS = (

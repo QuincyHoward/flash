@@ -246,7 +246,7 @@ def find_project_root(start: Path | None = None) -> Path:
         if cur == cur.parent:
             break
         cur = cur.parent
-    # 兜底：scripts/08_offline_install/ → 上两级
+    # 兜底：deploy/ → 上两级
     return Path(__file__).resolve().parent.parent.parent
 
 
@@ -649,13 +649,13 @@ class WheelHouse:
                 f"平台不匹配：wheelhouse 造于 **{built_tag}**，本机是 **{cur_tag}**。"
                 f"wheel 带平台标签（win_amd64 / manylinux），跨平台无法安装。"
                 f"⇒ 请在 {cur_tag} 机器上重造："
-                f"python scripts/08_offline_install/build_wheelhouse.py")
+                f"python deploy/build_wheelhouse.py")
         if built_py != cur_py:
             problems.append(
                 f"Python 版本不匹配：wheelhouse 造于 **{built_py}**，本机是 **{cur_py}**。"
                 f"wheel 带 cp3XX ABI 标签，跨小版本无法安装。"
                 f"⇒ 请用 Python {built_py} 造包，或在 {cur_py} 机器上重造："
-                f"python scripts/08_offline_install/build_wheelhouse.py")
+                f"python deploy/build_wheelhouse.py")
 
         return problems, notes
 
@@ -671,8 +671,8 @@ def resolve_wheelhouse(explicit: str | None = None, start: Path | None = None) -
 
     常见位置（★ 顺序有意义：先"贴项目根"再"标准外置目录"）:
       1. <start>/wheelhouse              拷进项目根时的默认落点
-      2. <start>/offline_pkg/wheelhouse  build_wheelhouse.py 的默认输出目录
-         —— ★ 这两个必须都试：build 产出在 offline_pkg/ 下，而用户往往
+      2. <start>/artifacts/wheelhouse  build_wheelhouse.py 的默认输出目录
+         —— ★ 兼容历史 offline_pkg/wheelhouse 与旧拷贝布局，多候选都试
             直接跑 install_offline.py 而不传参数。
       3. ./wheelhouse  （相对当前工作目录）
     """
@@ -689,7 +689,8 @@ def resolve_wheelhouse(explicit: str | None = None, start: Path | None = None) -
     roots.append(find_project_root())
     for r in roots:
         cands.append(r / "wheelhouse")
-        cands.append(r / "offline_pkg" / "wheelhouse")
+        cands.append(r / "artifacts" / "wheelhouse")
+        cands.append(r / "offline_pkg" / "wheelhouse")  # 历史布局兼容
     cands.append(Path.cwd() / "wheelhouse")
 
     seen: set[str] = set()
@@ -772,7 +773,7 @@ def ensure_ascii_bat_ok(path: Path) -> tuple[bool, str]:
 
 
 if __name__ == "__main__":
-    # 自检入口：python scripts/08_offline_install/_wh_common.py
+    # 自检入口：python deploy/_wh_common.py
     root = find_project_root()
     log(f"项目根: {root}")
     for prof in PROFILES:

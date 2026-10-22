@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """build_wheelhouse_linux.py — Step 03: 在 Windows 联网机上交叉造 Linux wheelhouse。
 
-★ 背景：scripts/08_offline_install/build_wheelhouse.py 只支持"当前平台"造包
+★ 背景：deploy/build_wheelhouse.py 只支持"当前平台"造包
   （无 --platform 参数，MANIFEST 平台标记取当前解释器），传到 Linux 超算会被
   _wh_common.platform_check() 拦死。本脚本复用其公共层（_wh_common），
   用 pip download 的 --platform/--python-version/--abi 交叉下载 manylinux wheel。
@@ -30,13 +30,14 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TEST_DIR = HERE.parent
-REPO_ROOT = TEST_DIR.parents[3]
+ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
+TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
+REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 PKG_DIR = TEST_DIR / "packages"
 WH_DIR = PKG_DIR / "wheelhouse-linux"
 
-sys.path.insert(0, str(REPO_ROOT / "scripts" / "08_offline_install"))
+sys.path.insert(0, str(REPO_ROOT / "deploy"))
 import _wh_common as wh  # noqa: E402
 
 PLATFORMS = ["manylinux2014_x86_64", "manylinux_2_28_x86_64"]
@@ -257,7 +258,7 @@ def main() -> int:
     print(f"[03] step5 覆盖度: {len(present)}/{len(present) + len(missing)}")
     if missing:
         die(f"预检缺直接依赖: {missing}")
-    audit = REPO_ROOT / "scripts" / "08_offline_install" / "wheel_leak_audit.py"
+    audit = REPO_ROOT / "deploy" / "wheel_leak_audit.py"
     r = run([py, str(audit), str(WH_DIR)], timeout=900)
     print((r.stdout or "")[-1500:])
     if r.returncode != 0:

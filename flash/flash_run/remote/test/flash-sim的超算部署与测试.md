@@ -32,7 +32,7 @@ WSL 3.10.12 与超算 3.10.8 同为 3.10 系列，01b 离线预演与超算安�
 
 ## 2. 端到端流程（8 步，均可独立重跑）
 
-| 步 | 脚本 (`flash/flash_run/remote/test/scripts/`) | 作用 | 结果 |
+| 步 | 脚本（★2026-10-22 起收编至根目录 `deploy/hpc_deploy/`） | 作用 | 结果 |
 |---|---|---|---|
 | 01a | `local_env_windows.py` | Win 在线建环境+三套测试 | PASS（132/83/45） |
 | 01b | `local_env_wsl.py --offline` | WSL 离线预演（Linux 路径） | PASS（132/83/45，432s） |
@@ -43,7 +43,9 @@ WSL 3.10.12 与超算 3.10.8 同为 3.10 系列，01b 离线预演与超算安�
 | 06 | `remote_install.py` | 超算命名环境离线安装+三套测试 | **PASS（132/83/45，82s）** |
 | 07 | `run_snb_smoke.py` | SNBOneCH_m `--tmax 1e-11` 极短仿真 | **PASS（RUN_EXIT=0，29.6s 墙钟）** |
 
-编排入口: `python run_all.py [--from N | --only N | --skip a,b]`
+编排入口: `python deploy/hpc_deploy/run_all.py [--from N | --only N | --skip a,b]`
+> 本目录保留诊断脚本（diag_*/_probe_*/try_yt*）；部署链 01–07 已迁 `deploy/hpc_deploy/`，
+> 其日志/包/结果统一落根目录 `artifacts/`（logs/hpc_deploy/、packages/）。
 
 远端安装命令（等价手工操作）:
 ```bash

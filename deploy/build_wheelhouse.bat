@@ -28,7 +28,7 @@ echo [info] Using python:
 %PY% --version
 
 REM --- run builder ----------------------------------------------------
-%PY% scripts\08_offline_install\build_wheelhouse.py %*
+%PY% deploy\build_wheelhouse.py %*
 
 set "RC=%ERRORLEVEL%"
 
@@ -39,7 +39,7 @@ if "%RC%"=="0" (
     echo.
     echo   NEXT STEPS:
     echo     1. Copy the whole folder to USB:
-    echo         offline_pkg\wheelhouse
+    echo         artifacts\wheelhouse
     echo        ^(include MANIFEST.json - do not copy only .whl files^)
     echo     2. Copy project source too ^(optional but recommended^):
     echo        python scripts\04_backup\usb_backup.py E:\usb_src

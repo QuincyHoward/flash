@@ -60,7 +60,7 @@ import _wh_common as wh  # noqa: E402
 # 常量
 # ---------------------------------------------------------------------------
 
-DEFAULT_OUT = "offline_pkg"
+DEFAULT_OUT = "artifacts"   # 产物统一落 <项目根>/artifacts/wheelhouse
 WH_DIRNAME = "wheelhouse"
 
 #: Python 安装程序下载源（仅 --with-interpreter 时使用）

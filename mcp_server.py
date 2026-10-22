@@ -435,7 +435,7 @@ python start_flash.py --offline --no-tests              # 快速安装
 macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux)。
 两目录互不删除, Windows/WSL 可随意切换。包体差异主要来自 Python 版本
 (Win 3.13 vs Linux 3.10), 两台机器请用同一 Python 版本。
-离线自检另有 183 项: scripts/08_offline_install/test_offline_install.py。
+离线自检另有 183 项: deploy/test_offline_install.py。
 """,
     "common_pitfalls": """\
 # 常见坑与规避 (common_pitfalls)

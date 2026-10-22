@@ -26,8 +26,9 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TEST_DIR = HERE.parent
-REPO_ROOT = TEST_DIR.parents[3]
+ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
+TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
+REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 MANAGED_PY = Path(r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe")
 

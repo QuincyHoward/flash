@@ -135,7 +135,7 @@ ENV_KEY_MODULES = [
 #: ★ 离线**不用** `-e .`，改装预构建的 wheel（理由见文件头）。
 OFFLINE_DIST = "flash_sim"
 
-#: 离线预检档位（与 scripts/08_offline_install/_wh_common.py 的 PROFILES 对齐）
+#: 离线预检档位（与 deploy/_wh_common.py 的 PROFILES 对齐）
 OFFLINE_PROFILES = ("full", "runtime", "lite")
 
 #: pip 离线硬闸门：这两个参数让 pip **物理上**无法访问 PyPI
@@ -247,7 +247,7 @@ def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
                 log("")
                 log("  ★ 离线安装失败：wheelhouse 中缺少所需包。")
                 log(f"    wheelhouse: {WHEELHOUSE}")
-                log("    处理：在联网机重跑 scripts\\08_offline_install\\build_wheelhouse.py")
+                log("    处理：在联网机重跑 deploy\\build_wheelhouse.py")
                 log("          （确认 --profile 与本机一致），重新拷贝整个 wheelhouse 目录。")
                 raise SystemExit(f"[FATAL] 离线安装失败: {step}")
         if i < retries:
@@ -265,13 +265,13 @@ def time_sleep(sec: float) -> None:
 # 离线模式：wheelhouse 定位与覆盖度预检
 # ---------------------------------------------------------------------------
 def _load_wh_common():
-    """导入同目录的 scripts/08_offline_install/_wh_common.py。
+    """导入 deploy/ 下的 deploy/_wh_common.py。
 
     start_flash.py 会被 sdist 一起分发，而 scripts/ 不在 sdist 内（见
     pyproject [tool.hatch.build.targets.sdist].exclude 的 "/scripts/**"），
     故此处**必须优雅降级**：模块不存在时给出明确指引而非 ImportError 堆栈。
     """
-    p = os.path.join(PROJECT_DIR, "scripts", "08_offline_install")
+    p = os.path.join(PROJECT_DIR, "deploy")
     if p not in sys.path:
         sys.path.insert(0, p)
     try:
@@ -279,7 +279,7 @@ def _load_wh_common():
         return _wh_common
     except ImportError as e:
         raise SystemExit(
-            f"[FATAL] 离线模式需要 scripts/08_offline_install/_wh_common.py，"
+            f"[FATAL] 离线模式需要 deploy/_wh_common.py，"
             f"但导入失败: {e}\n"
             f"       请确认拷贝了完整的 scripts 目录，或改用在线模式"
             f"（去掉 --offline / FLASH_OFFLINE）。"
@@ -342,7 +342,7 @@ def setup_offline(wh_arg: str | None, profile: str) -> None:
         log("  ★ 包数不同不一定是 bug：差异主要来自 Python 版本（3.10 需要")
         log("    typing-extensions/tomli/exceptiongroup 等兼容垫片，pandas 也降级到 2.x）。")
         log("  ★ 修法：在**本机**（或同 Python 版本的机器）上重造 wheelhouse：")
-        log(f"        python scripts\\08_offline_install\\build_wheelhouse.py --profile {profile}")
+        log(f"        python deploy\\build_wheelhouse.py --profile {profile}")
         raise SystemExit("[FATAL] 中止安装（平台不匹配，未创建/改动 venv）。")
     log("[ok] 平台与Python 版本一致")
 
@@ -360,7 +360,7 @@ def setup_offline(wh_arg: str | None, profile: str) -> None:
         log("")
         log("  ★ 这些是 pyproject 声明的直接依赖，缺失说明 wheelhouse 造包时用的是")
         log("    其它档位或下载中断。请在联网机执行：")
-        log(f"        python scripts\\08_offline_install\\build_wheelhouse.py --profile {profile}")
+        log(f"        python deploy\\build_wheelhouse.py --profile {profile}")
         log("    然后重新拷贝整个 wheelhouse 目录。")
         raise SystemExit("[FATAL] 中止安装（预检未通过，未创建/改动 venv）。")
     log(f"[ok] 依赖覆盖度预检通过（档位 {profile}）")
@@ -875,7 +875,7 @@ def resolve_offline_mode(args: argparse.Namespace) -> bool:
     即使没显式传 --offline 也自动转离线（避免离线机上误走在线分支，
     白等 40 分钟超时）。可用 FLASH_FORCE_ONLINE=1 强制关掉自动探测。
 
-    ★ 探测信号只能是 MANIFEST.json **本身**，绝不能用「scripts/08_offline_install/
+    ★ 探测信号只能是 MANIFEST.json **本身**，绝不能用「deploy/
       目录存在」这类间接信号 —— 该目录随仓库分发，联网机上永远存在，
       拿它当判据会把**所有在线用户**误切成离线模式（09 开发时踩过，
       由 resolve_offline_mode 的独立单测抓出）。
@@ -925,11 +925,11 @@ def run_utility_commands(args: argparse.Namespace) -> int:
         argv = ["--profile", prof]
         if args.wheelhouse:
             argv += ["--out", args.wheelhouse]
-        rc = _run("scripts/08_offline_install/build_wheelhouse.py", argv)
+        rc = _run("deploy/build_wheelhouse.py", argv)
         if rc != 0:
             return rc
         log("")
-        log("[next] 下一步: 把整个 offline_pkg/wheelhouse/ 目录（含 MANIFEST.json）")
+        log("[next] 下一步: 把整个 artifacts/wheelhouse/ 目录（含 MANIFEST.json）")
         log("       与源码一起拷到 U 盘 —— 可用：")
         log("       python start_flash.py --export-usb <U盘目录>")
 
@@ -943,7 +943,7 @@ def run_utility_commands(args: argparse.Namespace) -> int:
         log("")
         log("[done] 导出完成。U 盘内容应为：")
         log("       flash/                (源码，git跟踪的约 17 MB)")
-        log("       offline_pkg/wheelhouse/ (含 MANIFEST.json)")
+        log("       artifacts/wheelhouse/ (含 MANIFEST.json)")
         log("       ★ 不要用 --mode full：flash/ 目录在磁盘上可达 71 GB")
     return rc
 
@@ -1292,7 +1292,7 @@ def main() -> int:
         lines.append(f"- 离线模式**不使用** `-e .`（可编辑安装）：它会往 .venv 写入指向"
                      f"源码树的绝对路径，U盘换机后即失效；且需要源码树含依赖声明。")
         lines.append(f"- 需要更新依赖时：在联网机重跑 "
-                     f"scripts\\08_offline_install\\build_wheelhouse.py，"
+                     f"deploy\\build_wheelhouse.py，"
                      f"重新拷贝整个 wheelhouse 目录（含 MANIFEST.json）。")
     lines.append("")
 

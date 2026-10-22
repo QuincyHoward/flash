@@ -568,6 +568,44 @@ def get_resource_config() -> FlashResourceConfig:
     return _config_instance
 
 
+# ── 装置默认值下沉（2026-10-22 模块化改造，需求 3）──────────────
+#
+# 场景脚本**不得**再硬编码装置参数（nprocs/account/venv 等）；
+# 场景只在此处读取默认值并按需以参数覆盖。键名用场景族前缀聚合。
+SCENE_DEVICE_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    # NC-E 超算（glibc2.17, SLURM）已知场景族基准:
+    "SNBOneCH":  {"nprocs": 131, "account": "flash_ssh", "device": "hpc",
+                  "insitu_venv": ".venv-hpc-nce",
+                  "note": "精确网格约束 iProcs*nxb 与 lrefine_max 无关；改核数前核对 SystemExit 闸门"},
+    "SNBVTi":    {"nprocs": 125, "account": "flash_ssh", "device": "hpc",
+                  "insitu_venv": ".venv-hpc-nce",
+                  "note": "iProcs*nxb=25000 → dx=0.02 µm（0.1 µm 层=5 整格），改核数即 SystemExit"},
+    "SNB":       {"account": "flash_ssh", "device": "hpc",
+                  "insitu_venv": ".venv-hpc-nce",
+                  "note": "SNB 家族兜底（必须在 FLASHSNB 树编译 + +ug 均匀网格）"},
+    "default":   {"account": "flash_ssh", "device": "hpc"},
+}
+
+
+def get_scene_device_default(scene_name: str, key: str,
+                             default: Any = None) -> Any:
+    """按场景名取装置默认值（最长前缀匹配，未命中回退 default 档）。
+
+    场景用法::
+
+        from flash.flash_run.env.resource_config import get_scene_device_default
+        NPROCS = get_scene_device_default("SNBOneCH_ml", "nprocs")   # → 131
+    """
+    name = (scene_name or "").strip()
+    best = ""
+    for prefix in SCENE_DEVICE_DEFAULTS:
+        if prefix != "default" and name.startswith(prefix) and len(prefix) > len(best):
+            best = prefix
+    if not best:
+        best = "default"
+    return SCENE_DEVICE_DEFAULTS[best].get(key, default)
+
+
 # ── CLI 入口 ──────────────────────────────────────
 
 def main():

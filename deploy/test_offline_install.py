@@ -15,7 +15,7 @@ MANIFEST 校验 / 覆盖度预检 / 开关判定）都必须用**已知答案**�
      （捕获手段: 6 用例开关矩阵）
 
 用法:
-    python scripts/08_offline_install/test_offline_install.py
+    python deploy/test_offline_install.py
     或纳入 pytest（test/ 或 scripts 下的test_*.py 会被收集）
 """
 
@@ -184,7 +184,7 @@ def test_switch_matrix() -> None:
             os.environ.pop(k, None)
         tmp = Path(tempfile.mkdtemp())
 
-        # 关键回归：仓库里存在 scripts/08_offline_install/（随仓库分发），
+        # 关键回归：仓库里存在 deploy/（随仓库分发），
         # 但 wheelhouse/MANIFEST.json 不存在 → **必须**判在线
         start_flash.PROJECT_DIR = tmp
         check("无 wheelhouse → 在线", start_flash.resolve_offline_mode(A) is False)
@@ -313,7 +313,7 @@ def test_no_root_pollution(root: Path) -> None:
     stray = [n for n in online_scripts if (root / n).exists()]
     check("离线脚本不在根目录", not stray, f"stray={stray}")
     for n in sorted(online_scripts):
-        check(f"{n} 在 scripts/08_offline_install/",
+        check(f"{n} 在 deploy/",
               (HERE / n).is_file())
 
 
@@ -371,17 +371,17 @@ def test_preflight_accepts_path_only() -> None:
 
 
 def test_autolocate_paths() -> None:
-    section("[10] ★ wheelhouse 自动定位（须含 offline_pkg/ 默认输出目录）")
+    section("[10] ★ wheelhouse 自动定位（须含 artifacts/ 默认输出目录）")
     root = wh.find_project_root()
     tmp = Path(tempfile.mkdtemp())
     try:
-        # 只放 offline_pkg/wheelhouse（build 的默认输出位置）
-        whd = tmp / "offline_pkg" / "wheelhouse"
+        # 只放 artifacts/wheelhouse（build 的默认输出位置）
+        whd = tmp / "artifacts" / "wheelhouse"
         whd.mkdir(parents=True)
         (whd / "dummy-1.0-py3-none-any.whl").write_bytes(b"PK\x03\x04fake")
         (whd / wh.MANIFEST_NAME).write_text("{}", encoding="utf-8")
         h = wh.resolve_wheelhouse(None, start=tmp)
-        check("能从 offline_pkg/wheelhouse 自动定位",
+        check("能从 artifacts/wheelhouse 自动定位",
               h.root == whd.resolve(), f"got={h.root}")
 
         # 贴项目根的 wheelhouse/ 应优先
@@ -390,7 +390,7 @@ def test_autolocate_paths() -> None:
         (whd2 / "dummy2-1.0-py3-none-any.whl").write_bytes(b"PK\x03\x04fake")
         (whd2 / wh.MANIFEST_NAME).write_text("{}", encoding="utf-8")
         h2 = wh.resolve_wheelhouse(None, start=tmp)
-        check("项目根 wheelhouse/ 优先于 offline_pkg/",
+        check("项目根 wheelhouse/ 优先于 artifacts/",
               h2.root == whd2.resolve(), f"got={h2.root}")
 
         # 无 MANIFEST 的目录不算数（防止误命中半拷贝的目录）
@@ -925,7 +925,7 @@ def test_venv_platform_isolation(root: Path) -> None:
                  "--no-tests", "--export-profile"):
         check(f"CLI 含 {flag}", f'"{flag}"' in src)
     check("--make-wheelhouse 转发到 build_wheelhouse.py",
-          "08_offline_install/build_wheelhouse.py" in src)
+          "deploy/build_wheelhouse.py" in src)
     check("--export-usb 转发到 usb_backup.py",
           "04_backup/usb_backup.py" in src)
     check("子命令只转发不复制逻辑（用 subprocess 调脚本）",

@@ -15,7 +15,7 @@
         （已存在则先比对 HEAD，同为 bundle HEAD 时跳过；否则报错由人工裁决）
      d. git remote set-url origin https://gitee.com/physimx/flash.git
      e. mkdir -p dist offline_pkg test/reports（fresh-clone 生成目录补偿）
-判据: 双端 SHA256 一致 + 远端 start_flash.py / scripts/08_offline_install/_wh_common.py 存在。
+判据: 双端 SHA256 一致 + 远端 start_flash.py / deploy/_wh_common.py 存在。
 """
 import hashlib
 import subprocess
@@ -26,8 +26,9 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TEST_DIR = HERE.parent
-REPO_ROOT = TEST_DIR.parents[3]
+ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
+TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
+REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 PKG_DIR = TEST_DIR / "packages"
 
@@ -180,7 +181,7 @@ def main() -> int:
             f"mkdir -p {TARGET_DIR}/dist {TARGET_DIR}/offline_pkg {TARGET_DIR}/test/reports "
             f"&& cd {TARGET_DIR} && git rev-parse HEAD "
             f"&& test -f {TARGET_DIR}/start_flash.py && echo START_FLASH_OK "
-            f"&& test -f {TARGET_DIR}/scripts/08_offline_install/_wh_common.py && echo WH_COMMON_OK",
+            f"&& test -f {TARGET_DIR}/deploy/_wh_common.py && echo WH_COMMON_OK",
             timeout=120)
         blob = (out or "")
         w(f"[05] 远端校验: {blob.strip()[-200:]}")

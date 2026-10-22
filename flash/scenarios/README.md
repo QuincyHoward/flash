@@ -4,6 +4,28 @@
 
 ---
 
+## 场景层约定（2026-10-22 模块化改造，需求 3）
+
+场景目录**只做物理场景搭建 + 参数覆盖**，运行细节一律归 `flash.flash_run`：
+
+| 允许（场景层） | 禁止（应下沉到 flash_run / deploy） |
+|----------------|-------------------------------------|
+| SCENE VARS（物理参数、材料、层厚、脉冲） | `sbatch` / `scancel` / `squeue` / `sacct` 原始命令 |
+| `RUN_MODE = "wsl" \| "hpc"` 模块常量（默认值） | `paramiko` / `SSHClient` 直连 |
+| `nprocs` / `account` / `tmax` 等**覆盖参数** | 装置绝对路径（`/publicfs01`、`AI/Aitemp`）、`.venv-hpc-nce` |
+| `work_base=` 等工作目录参数 | 装置默认值硬编码（应走 `get_scene_device_default()`） |
+
+- 运行一律经 `run_scenario(WslSpec(...), HpcSpec(...), cfg, run_mode=None)`
+  → `flash.flash_run.modes.runner`；
+- 老导入路径 `from flash.scenarios.runner import ...` 仍可用（兼容壳转发）；
+- **检查器**（新增文件会被拦截）：
+  ```bash
+  python -m flash.input_gen.gen_checker.check_scene_sources
+  ```
+  历史内联细节列于 `KNOWN_DEBT`（显式挂账、只降不升，新文件不得加回）。
+
+---
+
 **flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
 
 ## 仓库地址 (Repository)

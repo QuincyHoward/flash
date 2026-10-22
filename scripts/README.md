@@ -58,13 +58,6 @@ scripts/
 │
 ├── 07_private_keep/              # 私有保留 (不随发布包分发)
 │
-├── 08_offline_install/           # 离线安装（联网机制包→U盘→离线机）
-│   ├── _wh_common.py             #   公共工具: 依赖解析/文件名归一化/MANIFEST/预检
-│   ├── build_wheelhouse.py       #   联网机造 wheelhouse (full/runtime/lite 三档)
-│   ├── install_offline.py        #   离线机一键安装 + 三道校验
-│   ├── build_wheelhouse.bat      #   联网机启动器 (双击, ASCII/CRLF)
-│   ├── install_offline.bat       #   离线机启动器 (双击, ASCII/CRLF)
-│   └── README.md                 #   离线安装完整文档
 │
 └── git-hooks/                    # Git 钩子脚本 (自动触发, 勿移动)
     ├── pre-commit                #   提交前: Black 格式检查 + 导入检查
@@ -88,8 +81,8 @@ scripts/
 | Git | `03_git_publish/tag-release.sh` | 完整发布流程 | `bash scripts/03_git_publish/tag-release.sh v0.2.0` |
 | 备份 | `04_backup/usb_backup.py` | USB/本地备份 | `python scripts/04_backup/usb_backup.py --mode gitee E:\` |
 | 测试 | `05_test/run_global_tests.py` | 全局三套测试 | `python scripts/05_test/run_global_tests.py` |
-| 离线 | `08_offline_install/build_wheelhouse.py` | 联网机造离线包 | `python scripts/08_offline_install/build_wheelhouse.py` |
-| 离线 | `08_offline_install/install_offline.py` | 离线机一键安装 | `python scripts/08_offline_install/install_offline.py` |
+| 离线 | `deploy/build_wheelhouse.py`（**已提至根目录 deploy/**） | 联网机造离线包 | `python deploy/build_wheelhouse.py` |
+| 离线 | `deploy/install_offline.py` | 离线机一键安装 | `python deploy/install_offline.py` |
 | 管理 | `06_migration/manage.bat` | 凭据管理入口 | 双击 `manage.bat` |
 
 ---
@@ -283,3 +276,12 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 | 双重模式导入失败 | 运行 `python scripts/01_env_diagnose/test_dual_mode.py` 诊断 |
 | usb_backup 路径不存在 | 检查 U 盘盘符是否正确 |
 | output_processors 测试失败 | 数据文件会自动**保留**供调试；调试完成后运行 `python flash/output_processors/test/gen_test_data.py --cleanup` 清理，重跑测试自动重新生成 |
+
+---
+
+## ⚠ 2026-10-22 模块化改造：08_offline_install 已提至根目录 `deploy/`
+
+离线安装（造包/安装/护栏/自检）+ 超算离线部署链（`hpc_deploy/`，原
+`flash/flash_run/remote/test/scripts/`）统一收编到**根目录 `deploy/`**，
+与运行层 `flash/flash_run/`、场景层 `flash/scenarios/` 解耦；构建产物统一落
+根目录 `artifacts/`。详见 `deploy/README.md` 与 `DEPENDENCIES.md`。

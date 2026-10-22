@@ -32,7 +32,7 @@ if not defined PY (
     echo [FATAL] No Python interpreter found on this machine.
     echo.
     echo   If the USB package contains a Python installer
-    echo   ^(offline_pkg\wheelhouse\python-*-amd64.exe^), double-click it
+    echo   ^(artifacts\wheelhouse\python-*-amd64.exe^), double-click it
     echo   first and tick "Add Python to PATH". Then run this file again.
     echo.
     pause
@@ -42,7 +42,7 @@ if not defined PY (
 echo [info] Using: %PY%
 
 REM --- run installer --------------------------------------------------
-%PY% scripts\08_offline_install\install_offline.py %*
+%PY% deploy\install_offline.py %*
 
 set "RC=%ERRORLEVEL%"
 

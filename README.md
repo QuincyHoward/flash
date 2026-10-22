@@ -29,7 +29,7 @@ https://gitee.com/physimx/flash
 
 > 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 /
 > output_processors 45) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
-> 离线部署自检另计 **183 项** (`scripts/08_offline_install/test_offline_install.py`)。
+> 离线部署自检另计 **183 项** (`deploy/test_offline_install.py`)。
 
 ---
 
@@ -575,6 +575,35 @@ flash-setup
 
 ## 典型工作流
 
+### 0. 功能模块地图（2026-10-22 模块化改造）
+
+三个功能模块**独立分工、显式接口解耦**（便于维护与调用）：
+
+```
+deploy/          安装部署（根目录）：造包 / 离线安装 / 环境自检 / 超算部署链 / wheel 护栏
+flash/flash_run/ 运行层：三模式执行体 (modes/) + 超算技能 CLI (hpc.py) + 装置配置 (env/)
+flash/scenarios/ 场景层：只做场景搭建 + 参数覆盖（禁止内联 SSH/sbatch/装置路径）
+```
+
+常用入口：
+
+```bash
+# 安装（联网/离线同一入口；离线需 artifacts/wheelhouse 含 MANIFEST.json）
+python start_flash.py [--offline] [--wheelhouse D] [--profile full|runtime|lite]
+# 三平台依赖差异表（根目录唯一事实源 = deploy/env_spec.py）
+#   机器可读 lock: deps_lock/requirements-{win,wsl,hpc}.txt
+python deps_lock/generate_locks.py --check
+
+# 超算技能统一 CLI（本地/登录节点两侧可调）
+python -m flash.flash_run.hpc status | submit | cancel | wait | download | route-test | nodes
+
+# 场景源码"去运行化"检查（新内联运行细节会被拦截）
+python -m flash.input_gen.gen_checker.check_scene_sources
+
+# 构建产物统一落 artifacts/（dist、wheelhouse、logs），不污染根目录
+python deploy/wheel_leak_audit.py <wheel>   # 造包后必跑的护栏
+```
+
 ### 1. 完整仿真工作流
 
 ```
@@ -815,7 +844,7 @@ generation → FLASH compile & run → HDF5 output processing → adaptive visua
 > **Status**: the release package passes the global test suite
 > (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45)
 > and the FLASH license-compliance check. The offline-deployment self-check
-> adds **183 further checks** (`scripts/08_offline_install/test_offline_install.py`).
+> adds **183 further checks** (`deploy/test_offline_install.py`).
 > **Scope note**: this package does **not** redistribute any FLASH source,
 > binaries, distributed EOS/opacity tables or IONMIX/MultiEOS data (FLASH License §3).
 

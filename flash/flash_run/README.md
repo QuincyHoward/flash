@@ -4,9 +4,13 @@ FLASH 仿真运行管理模块
 
 管理 FLASH 仿真在不同计算环境中的运行，包括本地 WSL 和远程超算。
 
-模块结构:
-  - env/: 环境配置管理
-  - remote/: 远程超算部署与作业调度
+模块结构（2026-10-22 模块化改造）:
+  - modes/    : 三种运行模式的执行体（wsl / hpc-remote / hpc-insitu）——
+                ★ 自 flash/scenarios/runner.py 整体迁入，是运行逻辑的唯一归属；
+                scenarios/runner.py 仅保留兼容 re-export 壳。
+  - hpc.py    : 超算技能统一 CLI（本地驱动 / 超算登录节点两侧均可调用）
+  - env/      : 环境与资源配置（装置默认值已下沉 env/resource_config.py）
+  - remote/   : 远程超算部署与作业调度（paramiko 层）
 
 主要功能:
   1. 多环境管理 (本地 WSL / 超算 SSH)
@@ -49,7 +53,48 @@ job_id = deploy.submit_job("flash_2d.par", nprocs=32)
 print(f"Job submitted: {job_id}")
 
 
-# ── 模块文档 ──────────────────────────────────────
+---
+
+## 运行模式矩阵（2026-10-22）
+
+| 模式 | 规范名 | 含义 | 执行体 |
+|------|--------|------|--------|
+| `wsl` | `wsl` | 本机执行（Windows 驱动→WSL；WSL/Linux 内直跑 python 自动降级本地直跑） | `modes/runner.py: run_wsl` |
+| `hpc-remote` | `hpc-remote`（别名 `hpc`/`remote`/`slurm`/`supercomputer`） | 本机驱动 → SSH(RemoteSession) → 超算，上传→sbatch→监控→远程分析→下载，带 `hpc_task.json` 断点续跑 | `modes/runner.py: HpcRunner` |
+| `hpc-insitu` | `hpc-insitu`（别名 `insitu`） | 驱动脚本已在超算登录节点（`.venv-hpc-nce`）——就地 sbatch+sacct+收集，**绝不 SSH 自连** | `scenarios/insitu_runner.py: run_insitu`（待迁 modes/） |
+
+优先级：`--mode` 显式参数 > 环境变量 `FLASH_RUN_MODE` > 场景模块常量 `RUN_MODE`。
+
+## 超算技能统一 CLI（hpc.py）
+
+```bash
+python -m flash.flash_run.hpc status   [--job ID]           # squeue (+sacct)
+python -m flash.flash_run.hpc submit   --par x.par --nprocs 131 --account flash_ssh
+python -m flash.flash_run.hpc cancel   --job ID
+python -m flash.flash_run.hpc wait     --job ID [--timeout 3600]
+python -m flash.flash_run.hpc download --remote <dir> --local <dir> [--pattern "*.h5"]
+python -m flash.flash_run.hpc route-test                    # 9 路由择优
+python -m flash.flash_run.hpc nodes                        # sinfo 分区速览
+```
+
+约定：所有远端操作**串行**（超算 SSH 限并发）；提交前必查 `squeue`
+（父进程网络死亡 ≠ 远端作业结束）；凭据走 `flash._core.credentials`
+（`--credential`，默认 `flash_ssh`）。
+
+## 装置默认值下沉（env/resource_config.py）
+
+场景**不得**硬编码装置参数，统一从本模块读取（按场景名最长前缀匹配）：
+
+```python
+from flash.flash_run.env.resource_config import get_scene_device_default
+NPROCS = get_scene_device_default("SNBOneCH_ml", "nprocs")   # → 131
+ACCOUNT = get_scene_device_default("SNBVTi2um", "account")   # → flash_ssh
+```
+
+已知装置族：`SNBOneCH`(131 核) / `SNBVTi`(125 核, dx=0.02 µm 精确网格) /
+`SNB` 兜底；换装置只改本文件，不改场景源码。
+
+---
 
 ## env/ - 环境管理
 

@@ -21,8 +21,9 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TEST_DIR = HERE.parent
-REPO_ROOT = TEST_DIR.parents[3]
+ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
+TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
+REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 
 REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"

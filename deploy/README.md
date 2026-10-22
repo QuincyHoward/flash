@@ -372,23 +372,34 @@ venv 半残，必须从头再来"。
 
 ## 目录收纳
 
-本方案全部脚本收纳在 `scripts/08_offline_install/`，**根目录不新增文件**
-（符合项目"根目录保持纯净、仅放 `*.md` 与 `bat` 启动器"的约定）：
+本方案全部脚本收纳在根目录 **`deploy/`**（2026-10-22 模块化改造：安装部署属于
+仓库分发/离线安装事务，独立为根目录功能模块，与运行层 `flash/flash_run/`、
+场景层 `flash/scenarios/` 解耦）；构建产物（wheel/wheelhouse/日志）统一落
+**`artifacts/`**，根目录保持简洁：
 
 ```
-scripts/08_offline_install/
-├── _wh_common.py        公共工具：依赖解析 / 文件名归一化 / MANIFEST / 预检
-├── build_wheelhouse.py  联网机：造离线包
-├── install_offline.py   离线机：一键安装 + 校验
-├── build_wheelhouse.bat 联网机启动器
-├── install_offline.bat  离线机启动器
-└── README.md            本文档
+deploy/                        # 根目录一级：安装部署模块
+├── _wh_common.py              公共工具：依赖解析 / 文件名归一化 / MANIFEST / 预检
+├── env_spec.py                三平台依赖规格（机器可读唯一事实源 → DEPENDENCIES.md）
+├── build_wheelhouse.py        联网机：造离线包（默认输出 artifacts/wheelhouse）
+├── install_offline.py         离线机：一键安装 + 校验
+├── build_wheelhouse.bat       联网机启动器
+├── install_offline.bat        离线机启动器
+├── test_offline_install.py    回归自检（183 项断言，不需要网络）
+├── wheel_leak_audit.py        wheel 护栏（体积/条目/§3/git-ignored 四项闸门）
+├── hpc_deploy/                超算离线部署链 run_all.py 01–07（自 remote/test 收编）
+└── README.md                  本文档
+
+artifacts/                     # 根目录统一产物区（.gitignore + pyproject 成对排除）
+├── dist/                      wheel/sdist
+├── wheelhouse/                离线包（含 MANIFEST.json；历史 offline_pkg/ 布局仍兼容）
+└── logs/                      构建/安装/审计日志（含 hpc_deploy/ 子区）
 ```
 
-回归自检（64 项断言，不需要网络）：
+回归自检（183 项断言，不需要网络）：
 
 ```bash
-python scripts/08_offline_install/test_offline_install.py
+python deploy/test_offline_install.py
 ```
 
 ---

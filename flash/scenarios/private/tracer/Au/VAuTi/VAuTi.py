@@ -67,7 +67,7 @@ def _get_sim_user_dir() -> str:
 
 SIM_USER_DIR = _get_sim_user_dir()
 
-# 运行模式: "wsl" 本机 WSL 运行; "hpc" 超算(paramiko 分阶段驱动)
+# 运行模式: "wsl" 本机 WSL 运行; "hpc" 超算(经 flash_run HpcRunner 分阶段驱动)
 RUN_MODE = "wsl"
 
 # ── 可配置参数 ────────────────────────────────────────────
