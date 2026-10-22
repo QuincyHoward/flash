@@ -96,7 +96,41 @@ __all__ = [
     "SimulatorType",
 ]
 
-__version__ = "0.1.0"
+#: Package version.
+#: ★ Read from installed distribution metadata so it can never drift from
+#:   ``pyproject.toml`` (it was hard-coded at "0.1.0" while pyproject said
+#:   0.1.7 — a silent inconsistency that misleads `pip show` / bug reports).
+#:   Fall back to parsing the source-tree ``pyproject.toml`` when running
+#:   from a checkout that was never installed.
+def _resolve_version() -> str:
+    # ① 源码树里有 pyproject.toml ⇒ 以它为准
+    #    （editable 安装的 dist-info 仍写着**安装时**的版本，
+    #      改 pyproject 后不重装就会读到旧值 —— 实测 0.1.7 vs 0.1.11）
+    try:
+        import tomllib
+        from pathlib import Path
+
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        if pyproject.is_file():
+            with open(pyproject, "rb") as fh:
+                return str(tomllib.load(fh)["project"]["version"])
+    except Exception:  # noqa: BLE001 - 版本号解析失败不应阻断 import
+        pass
+    # ② 否则用已安装发行版的元数据（wheel 安装场景）
+    try:
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as _pkg_version
+
+        try:
+            return _pkg_version("flash-sim")
+        except PackageNotFoundError:
+            pass
+    except ImportError:  # pragma: no cover
+        pass
+    return "unknown"
+
+
+__version__ = _resolve_version()
 __standalone__ = _STANDALONE
 
 

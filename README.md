@@ -4,6 +4,8 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![FLASH: Separate License](https://img.shields.io/badge/FLASH-Separate_License-orange.svg)](https://flash.rochester.edu)
 [![PyPI: flash-sim](https://img.shields.io/badge/PyPI-flash--sim-blue.svg)](https://pypi.org/project/flash-sim/)
+[![Gitee](https://img.shields.io/badge/Gitee-physimx%2Fflash-C71D1D.svg)](https://gitee.com/physimx/flash)
+[![GitHub](https://img.shields.io/badge/GitHub-QuincyHoward%2Fflash-181717.svg)](https://github.com/QuincyHoward/flash)
 
 > **版本维护策略**: 本仓库以 Gitee 分支为开发主阵地 ,
 > PyPI 按阶段发布更新。文档中**不标注具体版本号** ,
@@ -14,18 +16,21 @@
 
 ## 仓库地址 (Repository)
 
-本项目托管于 Gitee (码云), 支持 HTTPS 克隆与在线浏览:
+本项目**双平台同步托管** —— Gitee (码云) 为开发主阵地, GitHub 为国际镜像:
 
 ```
-https://gitee.com/physimx/flash
+Gitee  : https://gitee.com/physimx/flash
+GitHub : https://github.com/QuincyHoward/flash
 ```
 
 | 操作 | 命令 |
 |------|------|
-| **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
-| **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
+| **HTTPS 克隆 (Gitee)** | `git clone https://gitee.com/physimx/flash.git` |
+| **HTTPS 克隆 (GitHub)** | `git clone https://github.com/QuincyHoward/flash.git` |
+| **在线浏览 (Gitee)** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
+| **在线浏览 (GitHub)** | https://github.com/QuincyHoward/flash (Code/Issues/Releases 页签) |
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
-| **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
+| **问题反馈** | 通过 Gitee 或 GitHub Issues 提交 (登录后新建 Issue) |
 
 > 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 /
 > output_processors 45) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
@@ -66,7 +71,7 @@ FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网
 ```
 `flash-sim`使用Agent生成、使用、维护，适用于这种流程辅助，在第一次全流程构造、或使用`output_processor`进行数据分析等专业决策时，请仔细核对。
 
-支持 **独立模式**（作为独立 Python 包使用）和 **PhySimX 插件模式**（作为 `physimx_sim` 的子模块）。
+可作为独立 Python 包使用，便于用户直接调用API。
 
 ---
 
@@ -850,13 +855,19 @@ generation → FLASH compile & run → HDF5 output processing → adaptive visua
 
 ## Repository
 
-Hosted on **Gitee (Chinese GitHub-equivalent platform)**:
+Mirrored on **Gitee** (primary development host) and **GitHub**:
 
 ```
-https://gitee.com/physimx/flash
+Gitee  : https://gitee.com/physimx/flash
+GitHub : https://github.com/QuincyHoward/flash
 ```
 
-Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
+Clone with HTTPS:
+
+```
+git clone https://gitee.com/physimx/flash.git
+git clone https://github.com/QuincyHoward/flash.git
+```
 
 ## Key Features
 
@@ -1058,8 +1069,9 @@ FLASH simulation engine.
 
 ## Contact
 
-- Repository: https://gitee.com/physimx/flash
-- Issues & feedback: via Gitee Issues
+- Repository (Gitee): https://gitee.com/physimx/flash
+- Repository (GitHub): https://github.com/QuincyHoward/flash
+- Issues & feedback: via Gitee Issues or GitHub Issues
 
 *English overview generated for search-engine discoverability. The authoritative
 documentation remains the Chinese README above.*

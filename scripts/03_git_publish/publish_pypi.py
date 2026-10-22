@@ -34,6 +34,17 @@ if str(_ROOT) not in sys.path:
 
 PYTHON = sys.executable
 
+#: 产物目录。★ 2026-10-22 模块化改造：根 dist/ 已迁至 artifacts/dist
+#:   （根目录保持简洁），此处两处都找，避免迁移后脚本静默找不到产物。
+DIST_DIRS = (_ROOT / "artifacts" / "dist", _ROOT / "dist")
+
+
+def _dist_dir() -> Path:
+    for d in DIST_DIRS:
+        if d.is_dir() and list(d.glob("flash_sim-*")):
+            return d
+    return DIST_DIRS[0]
+
 
 def run(cmd: list, **kw) -> int:
     print(f"\n  $ {' '.join(map(str, cmd))}")
@@ -42,12 +53,14 @@ def run(cmd: list, **kw) -> int:
 
 def build() -> bool:
     print("\n  ── 1/4 构建 sdist + wheel ──")
-    return run([PYTHON, "-m", "build"]) == 0
+    out = _dist_dir()
+    out.mkdir(parents=True, exist_ok=True)
+    return run([PYTHON, "-m", "build", "-o", str(out)]) == 0
 
 
 def audit() -> bool:
     print("\n  ── 2/4 产物审计 (twine check) ──")
-    ok = run([PYTHON, "-m", "twine", "check", "dist/*"]) == 0
+    ok = run([PYTHON, "-m", "twine", "check", str(_dist_dir() / "*")]) == 0
     if not ok:
         print("  ❌ twine check 失败, 中止发布。")
     return ok
@@ -65,10 +78,11 @@ def upload(index: str) -> bool:
     env = dict(os.environ)
     env["TWINE_USERNAME"] = cfg["username"]
     env["TWINE_PASSWORD"] = cfg["password"]
+    dist_glob = str(_dist_dir() / "*")
     if index == "testpypi":
-        cmd = [PYTHON, "-m", "twine", "upload", "--repository", "testpypi", "dist/*"]
+        cmd = [PYTHON, "-m", "twine", "upload", "--repository", "testpypi", dist_glob]
     else:
-        cmd = [PYTHON, "-m", "twine", "upload", "dist/*"]
+        cmd = [PYTHON, "-m", "twine", "upload", dist_glob]
     print(f"\n  ── 3/4 上传到 {index} ──")
     return run(cmd, env=env) == 0
 
@@ -115,8 +129,8 @@ def main() -> None:
     if args.build:
         if not build():
             sys.exit(1)
-    elif not list(Path("dist").glob("*.whl")):
-        print("  dist/ 为空, 自动构建...")
+    elif not list(_dist_dir().glob("*.whl")):
+        print(f"  {_dist_dir()} 为空, 自动构建...")
         if not build():
             sys.exit(1)
 

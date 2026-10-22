@@ -34,7 +34,7 @@ build_wheelhouse.py — 联网机侧：造离线安装包（wheelhouse）
 
 输出:
   <out>/wheelhouse/            ← 拷这个目录到 U 盘
-     flash_sim-0.1.7-py3-none-any.whl
+     flash_sim-<version>-py3-none-any.whl
      numpy-*.whl / scipy-*.whl / yt-*.whl / ...
      python-3.13.9-amd64.exe     （可选）
      MANIFEST.json
@@ -242,7 +242,7 @@ def build_pip_freeze_list(root: Path, wh_dir: Path, profile: str) -> list[str]:
     """返回传给 `pip download` 的 requirement 列表（**不含项目本体**）。
 
     ★★ 09-10 事故：本体**不能**进 `pip download` 的目标列表。本项目已发布在
-      PyPI（flash-sim 0.1.7），而 `--find-links` **不保证本地优先** ——
+      PyPI（flash-sim 已有公开版本），而 `--find-links` **不保证本地优先** ——
       pip 会以"bad hash. Re-downloading."为由下载公开旧包**覆盖**本地构建
       产物（实测 4.76MB/902 条目 → 1.53MB/224 条目，712 个文件消失）。
       ⇒ 正确做法：把 pyproject 的 base + extras **全部展开后逐项列出**，
@@ -297,7 +297,7 @@ def download_deps(out_dir: Path, pkgs: list[str], python_exe: str,
       此时不加 --no-index（还需从 PyPI 下载第三方包）。
 
     ★★ `--find-links` **不保证本地优先**（09-10 实测踩坑）：
-      flash-sim 0.1.7 已发布在 **PyPI**（1.53MB）。pip 解析
+      flash-sim 已有版本发布在 **PyPI**。pip 解析
       `flash_sim[full,dev]` 时会认为 PyPI 上那个同样满足要求，于是
       **下载并覆盖掉我们刚构建的 wheel** —— 日志仍打印"[ok] 4.8 MB"
       （那是覆盖前的体积），而目录里已是 1.53MB 的公开旧包。
@@ -356,7 +356,7 @@ def _ensure_local_wheel_intact(local_wheel: Path | None) -> None:
             f"{wh.human_size(local_wheel.stat().st_size)}\n"
             "    原因：`pip download flash_sim[full,dev]` 只用 --find-links 提供\n"
             "    本地包，但该选项**不保证本地优先**；本项目已发布在 PyPI\n"
-            "    （flash-sim 0.1.7），pip 会下载公开旧包覆盖本地构建结果。\n"
+            "    （flash-sim 的已发布版本），pip 会下载公开旧包覆盖本地构建结果。\n"
             "    ⇒ 离线机将会装上**过期公开代码**。\n"
             "    对策：① 临时提升 pyproject 版本号（如 0.1.8）使 PyPI 版本\n"
             "         不再满足要求；或② 造包后手动把本地 wheel 拷回覆盖。")
