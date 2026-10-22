@@ -519,7 +519,10 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
         str(INPUT_DIR / "Config"), simulation_path=sim_path, species_defs=species_defs,
     )
     # 追加 SNB 诊断 VARIABLE 段 (ConfigGenerator 不含 SNB 变量)
-    txt = cfg_path.read_text(encoding="utf-8", newline="\n")
+    # ★ 3.10 兼容: Path.read_text(newline=) 是 3.13 才有的参数 (超算 py3.10.8
+    #   会 TypeError)；open(newline="") 读原文不翻译行尾，语义等价
+    with open(cfg_path, "r", encoding="utf-8", newline="") as _f:
+        txt = _f.read()
     cfg_path.write_text(txt.rstrip("\n") + "\n" + SNB_CONFIG_VARIABLES,
                         encoding="utf-8", newline="\n")
     result["config"] = str(cfg_path)
