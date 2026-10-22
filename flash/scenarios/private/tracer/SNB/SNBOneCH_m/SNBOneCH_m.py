@@ -1210,6 +1210,44 @@ def _hpc_wait_job(remote: "_HpcRemote", job_id: str, marker: str,
     return False
 
 
+def _pack_unit_pkg(dest: Path) -> Tuple[List[str], List[str]]:
+    """打包单元文件 (本场景 py 生成的 FLASHSNB 输入 + par + 表) → dest.tar.gz。
+
+    ★ 材料表【动态发现】(2026-09-13): glob INPUT_DIR/*.cn4, 派生场景复用驱动
+      时不因硬编码清单缺 V/Ti 表而中止; 回退: glob 为空时退回历史清单。
+    ★ SNB 覆盖 F90 不入库 (License §3) → 本地缺失项记入 missing_ovr,
+      由远端 build 脚本从参考单元 SNB_1D_laser 兜底复制 (不中止)。
+    Returns: (present, missing_ovr)
+    """
+    import tarfile
+    _cn4_glob = sorted(p.name for p in INPUT_DIR.glob("*.cn4"))
+    if not _cn4_glob:
+        _cn4_glob = ["He-BADGER-TOPS-Final.cn4", "CH-QC-1-001.cn4",
+                     "CH-BADGER-TOPS-Final.cn4"]
+    unit_files = (["Config", "Makefile", "Simulation_data.F90",
+                   "Simulation_init.F90", "Simulation_initBlock.F90",
+                   PAR_FILENAME]
+                  + _cn4_glob
+                  + list(SNB_OVERRIDE_FILES))
+    present, missing_ovr = [], []
+    for f in unit_files:
+        if (INPUT_DIR / f).exists():
+            present.append(f)
+        elif f in SNB_OVERRIDE_FILES:
+            missing_ovr.append(f)
+        else:
+            log(f"单元必需文件缺失: {f}", "ERROR")
+            raise FileNotFoundError(f"单元必需文件缺失: {f}")
+    with tarfile.open(dest, "w:gz") as tf:
+        for f in present:
+            tf.add(INPUT_DIR / f, arcname=f)
+    if missing_ovr:
+        log(f"{len(missing_ovr)} 个 SNB 覆盖 F90 本地不存在, 将由远端"
+            f"参考单元 SNB_1D_laser 兜底复制: {', '.join(missing_ovr[:3])}"
+            + (" ..." if len(missing_ovr) > 3 else ""), "WARN")
+    return present, missing_ovr
+
+
 def run_hpc(account: str, tmax: Optional[str], nproc: int,
             skip_build: bool = False, partition: str = "",
             skip_run: bool = False, poll_timeout: int = 7200,
@@ -1256,45 +1294,13 @@ def run_hpc(account: str, tmax: Optional[str], nproc: int,
         nodes = max(1, -(-nproc // cores_per_node))   # ceil
         log(f"每节点核数: {cores_per_node} → {nproc} 任务需 -N {nodes}", "OK")
 
-        # 1) 打包 + 上传单元文件 (本场景 py 生成的 FLASHSNB 输入 + par + 表)
+        # 1) 打包 + 上传单元文件 (★ 打包逻辑抽为共用 _pack_unit_pkg, 供 insitu 复用)
         pkg = INPUT_DIR / f"_snbonech_m_unit_{tag}.tar.gz"
-        import tarfile
-        # ★★★ (2026-09-13) 材料表改为【动态发现】, 不再硬编码场景特定文件名。
-        #   起因: SNBVTi 派生场景复用本 HPC 驱动时, 硬编码的
-        #   ("He-...", "CH-QC-...", "CH-BADGER-...") 清单不含 V/Ti 表 ⇒
-        #   "单元必需文件缺失: CH-BADGER-TOPS-Final.cn4" 直接中止。
-        #   现改为 glob INPUT_DIR/*.cn4 (即"本场景实际生成的表"), 这样任何
-        #   按同一约定生成 flash_input/ 的派生场景都能直接复用本驱动。
-        #   回退: glob 为空时退回历史清单, 保持旧场景行为不变。
-        _cn4_glob = sorted(p.name for p in INPUT_DIR.glob("*.cn4"))
-        if not _cn4_glob:
-            _cn4_glob = ["He-BADGER-TOPS-Final.cn4", "CH-QC-1-001.cn4",
-                         "CH-BADGER-TOPS-Final.cn4"]
-        unit_files = (["Config", "Makefile", "Simulation_data.F90",
-                       "Simulation_init.F90", "Simulation_initBlock.F90",
-                       PAR_FILENAME]
-                      + _cn4_glob
-                      + list(SNB_OVERRIDE_FILES))
-        # ★ SNB 覆盖 F90 不入库 (License §3) → 本地通常不存在。
-        #   它们由远端 build 脚本从参考单元 SNB_1D_laser 兜底复制
-        #   (见 build_sh 的 `for f in {overrides}` 分支)。故本地打包时
-        #   跳过缺失项, 不因它们中止。
-        present, missing_ovr = [], []
-        for f in unit_files:
-            if (INPUT_DIR / f).exists():
-                present.append(f)
-            elif f in SNB_OVERRIDE_FILES:
-                missing_ovr.append(f)
-            else:
-                log(f"单元必需文件缺失: {f}", "ERROR")
-                return 1
-        with tarfile.open(pkg, "w:gz") as tf:
-            for f in present:
-                tf.add(INPUT_DIR / f, arcname=f)
-        if missing_ovr:
-            log(f"{len(missing_ovr)} 个 SNB 覆盖 F90 本地不存在, 将由远端"
-                f"参考单元 SNB_1D_laser 兜底复制: {', '.join(missing_ovr[:3])}"
-                + (" ..." if len(missing_ovr) > 3 else ""), "WARN")
+        try:
+            present, missing_ovr = _pack_unit_pkg(pkg)
+        except FileNotFoundError as e:
+            log(str(e), "ERROR")
+            return 1
         # ★ 目标绝对路径: deploy_dir 已由 resolve_deploy_dir 保证为绝对路径
         #   (paramiko SFTP 不展开 ~, 用相对/波浪线路径会落进字面 "~" 目录)。
         #   tar 包内文件为裸名, 解压前先 cd (见 build_sh), 故此处无需 --strip。
@@ -1509,6 +1515,179 @@ echo RUN_DONE
             timeout=30)
         log(f"收集完成 → {out_dir.name}/ (远端输出已清理)", "OK")
         return 0
+
+
+def run_hpc_insitu(tmax: Optional[str], nproc: int, skip_build: bool = False,
+                   partition: str = "", skip_run: bool = False,
+                   poll_timeout: int = 7200, with_plt: bool = False) -> int:
+    """hpc-insitu（模式⑤）：场景驱动已在超算登录节点（.venv-hpc-nce）。
+
+    与 run_hpc（hpc-remote）的差别:
+      * LocalExecutor 纯 subprocess 直连 slurm —— **绝不 SSH 自连**；
+      * 无需单元包 SFTP 上传（打包直接落 runs 目录，build 作业在 runs 目录解压）；
+      * 产物外置 runs_root()/SNBOneCH_m/run_NNNNNN/（flash_sim 包目录保持 git 干净）；
+      * 就地收集 = 同文件系统移动（fetch_policy chk-only 策略不变）。
+    作业链仍为 build → run 双作业 + par 硬闸门（与 hpc-remote 同一铁律）。
+    """
+    from flash.flash_run.remote.slurm_control import (
+        LocalExecutor, SlurmJobSpec, cores_per_node, detect_partition,
+        run_job_chain, sbatch_available)
+    from flash.scenarios.insitu_runner import collect_local
+    from flash.scenarios.runner import allocate_run_id, run_id_name, runs_root
+
+    exe = LocalExecutor()
+    if not sbatch_available(exe):
+        log("当前环境无 sbatch/sacct —— hpc-insitu 只能在超算上运行 "
+            "(Windows/WSL 请用 --mode hpc 或 --mode wsl)", "ERROR")
+        return 1
+
+    snb_home = os.path.expanduser(_remote_snb_home())   # 登录节点 $HOME 展开
+    setup_cmd = f"./setup -auto {SIM_NAME} {SETUP_FLAGS} -objdir={OBJDIR}"
+    overrides = " ".join(SNB_OVERRIDE_FILES)
+
+    print("=" * 64)
+    print(" SNBOneCH_m HPC-INSITU (登录节点编排, 无 SSH 自连)")
+    print(f" FLASHSNB: {snb_home}")
+    print("=" * 64)
+    if not os.path.isfile(f"{snb_home}/setup"):
+        log(f"FLASHSNB 树不存在: {snb_home}", "ERROR")
+        return 1
+
+    # runs 目录（输出外置, 包目录 git 干净）
+    runs_dir = runs_root() / "SNBOneCH_m"
+    run_id = allocate_run_id(runs_dir)
+    run_dir = runs_dir / run_id_name(run_id)
+    out_dir = run_dir / "output"
+    logs_dir = run_dir / "logs"
+    for d in (out_dir, logs_dir):
+        d.mkdir(parents=True, exist_ok=True)
+    log(f"runs 目录: {run_dir} (run_id={run_id:06d}, 输出外置契约)", "OK")
+
+    partition = partition or detect_partition(exe, HPC_PARTITION, "insitu")
+    cpn = cores_per_node(exe, partition)
+    nodes = max(1, -(-nproc // cpn))
+    log(f"SLURM 分区: {partition} | 每节点 {cpn} 核 → {nproc} 任务需 -N {nodes}", "OK")
+    env_block = _hpc_env_block(snb_home, "flash_ssh")
+
+    # 1) 单元包 → runs 目录（无 SFTP）
+    try:
+        present, missing_ovr = _pack_unit_pkg(run_dir / "unit.tar.gz")
+    except FileNotFoundError as e:
+        log(str(e), "ERROR")
+        return 1
+    log(f"单元包就绪 ({len(present)} 文件"
+        + (f" + {len(missing_ovr)} 远端兜底" if missing_ovr else "") + ")", "OK")
+
+    # 2) build 作业体（与 run_hpc build.sh 同一逻辑, workdir=run_dir）
+    build_body = f"""set -e
+cd {run_dir} && tar xzf unit.tar.gz
+UNIT={snb_home}/source/Simulation/SimulationMain/{SIM_NAME}
+REF={snb_home}/source/Simulation/SimulationMain/SNB_1D_laser
+mkdir -p "$UNIT"
+cp -f Config Makefile Simulation_data.F90 Simulation_init.F90 \\
+      Simulation_initBlock.F90 *.cn4 "$UNIT"/
+for f in {overrides}; do
+  if [ -f "$f" ]; then cp -f "$f" "$UNIT/$f" || exit 9;
+  else cp -f "$REF/$f" "$UNIT/$f" || exit 9; fi
+done
+echo UNIT_DEPLOYED $(ls "$UNIT" | wc -l)
+NORM=~/{SIM_USER_DIR}/FLASH/FLASH4.8
+if [ -f "$NORM/Makefile.h" ] && [ ! -f {snb_home}/Makefile.h.hpc_bak ]; then
+  cp {snb_home}/Makefile.h {snb_home}/Makefile.h.hpc_bak
+  cp "$NORM/Makefile.h" {snb_home}/Makefile.h
+  echo MAKEFILE_H_FROM_NORMAL
+fi
+cd {snb_home} && rm -rf {OBJDIR}
+{setup_cmd} > setup.log 2>&1 || {{ tail -20 setup.log; echo SETUP_FAIL; exit 2; }}
+ls -d {OBJDIR} && echo SETUP_OK
+cd {OBJDIR}
+make hy_slopeLimiters.o Conductivity_interface.o Conductivity_fullState.o 2>&1 | tail -2
+if make -j8 > make.log 2>&1; then echo MAKE_OK; else echo MAKE_FAIL; tail -25 make.log; exit 3; fi
+ls -la flash4 && echo BUILD_OK
+"""
+
+    # 3) run 作业体（与 run_hpc run.sh 同一逻辑）
+    run_body = f"""set -e
+cd {snb_home}/{OBJDIR}
+rm -f {BASENM}* wsl_run_snbonech_m.log
+cp -f {run_dir}/{PAR_FILENAME} flash.par
+sed -i "s/^iProcs.*/iProcs = {nproc}/" flash.par
+if [ -n "{tmax or ''}" ]; then
+  sed -i 's/^tmax.*/tmax           = {tmax}/' flash.par
+fi
+date +%s.%N > _t_start
+if mpiexec -n {nproc} ./flash4 > wsl_run_snbonech_m.log 2>&1; then
+  echo RUN_EXIT=0 >> wsl_run_snbonech_m.log
+else
+  echo RUN_EXIT_NZ >> wsl_run_snbonech_m.log
+fi
+date +%s.%N > _t_end
+W=$(echo "$(cat _t_end) - $(cat _t_start)" | bc -l)
+echo "WALL_SECONDS=$W" >> wsl_run_snbonech_m.log
+tail -4 wsl_run_snbonech_m.log
+echo RUN_DONE
+"""
+
+    def _skip_build_if(exe_) -> bool:
+        """复刻 --skip-build: flash4 存在时跳过构建, 但必须补解压单元包
+        (2026-09-12 事故: skip 绕过 tar → 旧 par 静默生效)。"""
+        out, _, _ = exe_.run(
+            f"ls {snb_home}/{OBJDIR}/flash4 2>/dev/null || echo NO_FLASH4",
+            timeout=30)
+        if "NO_FLASH4" in out:
+            log("flash4 不存在, 不能跳过构建", "WARN")
+            return False
+        out, _, _ = exe_.run(
+            f"cd {run_dir} && tar xzf unit.tar.gz && "
+            f"grep -cE '^gr_hypreUseFloor' {PAR_FILENAME} && echo UNPACK_OK",
+            timeout=120)
+        if "UNPACK_OK" not in out:
+            log(f"skip-build 单元包解压失败: {out[-200:]}", "ERROR")
+            return False
+        log("跳过构建 (复用 flash4); 单元包已解压更新", "OK")
+        return True
+
+    def _par_gate(exe_) -> bool:
+        """运行前硬闸门: run_dir 的 par 必须含 gr_hypreUseFloor=.false.
+        (否则坏 par 烧掉 131 核 × 数小时)。"""
+        chk, _, _ = exe_.run(
+            f"grep -E '^gr_hypreUseFloor[[:space:]]*=' {run_dir}/{PAR_FILENAME} "
+            f"2>/dev/null || echo MISSING", timeout=30)
+        if "MISSING" in chk or ".false." not in chk:
+            log(f"运行前闸门失败: par 缺 gr_hypreUseFloor=.false. "
+                f"(got: {chk.strip()[:80]})", "ERROR")
+            return False
+        log(f"运行前闸门通过: {chk.strip()[:60]}", "OK")
+        return True
+
+    jobs = [
+        SlurmJobSpec(name="build", script=build_body, partition=partition,
+                     nodes=1, ntasks=8, env_block=env_block, marker="BUILD_OK",
+                     timeout=3600),
+        SlurmJobSpec(name="run", script=run_body, partition=partition,
+                     nodes=nodes, ntasks=nproc, env_block=env_block,
+                     marker="RUN_DONE", timeout=poll_timeout),
+    ]
+    ok = run_job_chain(exe, jobs, str(run_dir),
+                       gates={"run": _par_gate},
+                       skip_first_if=_skip_build_if if skip_build else None)
+    if not ok:
+        return 1
+    if skip_run:
+        log("--skip-run (build-only): 构建完成, 跳过运行", "OK")
+        return 0
+
+    # 4) 墙钟 + 就地收集 (chk-only 策略不变; 收集=同文件系统移动)
+    out, _, _ = exe.run(
+        f"tail -3 {snb_home}/{OBJDIR}/wsl_run_snbonech_m.log 2>/dev/null",
+        timeout=30)
+    log(f"运行日志尾部:\n{(out or '').strip()[:400]}", "OK")
+    collect_local(f"{snb_home}/{OBJDIR}", out_dir, BASENM, with_plt=with_plt,
+                  move=True, log_names=("wsl_run_snbonech_m.log",))
+    exe.run(f"rm -f {snb_home}/{OBJDIR}/_t_start {snb_home}/{OBJDIR}/_t_end "
+            f"2>/dev/null", timeout=30)
+    log(f"insitu 完成 → {out_dir} (包目录 git 干净)", "OK")
+    return 0
 
 
 # ── 核数探测 (--probe-cores, wsl/hpc 双路径) ───────────────
@@ -1878,8 +2057,12 @@ def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(
         description="SNBOneCH_m: OneCH_ml 几何/材料 + SNB 模型 (FLASHSNB; wsl/hpc 一行切换)")
-    ap.add_argument("--mode", default=None, choices=["wsl", "hpc"],
-                    help="运行模式: hpc=超算 (默认), wsl=本地 WSL (需 --nproc 按本机核数); "
+    ap.add_argument("--mode", default=None,
+                    choices=["wsl", "hpc", "hpc-insitu"],
+                    help="运行模式: hpc=本机驱动→SSH→超算 (默认, 即 hpc-remote); "
+                         "hpc-insitu=脚本已在超算上, 登录节点直接 sbatch 编排 "
+                         "(无 SSH 自连, 需 .venv-hpc-nce); "
+                         "wsl=本地 WSL (需 --nproc 按本机核数); "
                          "可用 FLASH_RUN_MODE 环境变量覆盖")
     ap.add_argument("--account", default="flash_ssh",
                     choices=["flash_ssh", "flash_ssh_2"],
@@ -1966,7 +2149,12 @@ def main() -> int:
     else:
         print(f"  网格: AMR 历史基线 nblockx={cfg['nblockx']}, lrefine_max={cfg['lrefine_max']}"
               f", objdir={OBJDIR}")
-    print(f"  模式: {mode}" + (f" / 账号 {args.account}" if mode == "hpc" else ""))
+    if mode in ("hpc", "hpc-insitu"):
+        log(f"模式: {mode} — 超算执行" +
+            (" (登录节点 in-situ 编排)" if mode == "hpc-insitu"
+             else f" / 账号 {args.account} (SSH 驱动)"), "OK")
+    else:
+        print(f"  模式: {mode}")
     print(f"  tmax={cfg['tmax']:.3e} s, nproc={nproc}")
     print("=" * 65)
 
@@ -2011,7 +2199,7 @@ def main() -> int:
         cores = [int(c) for c in re.split(r"[,\s]+", args.probe_cores.strip()) if c]
         probe_tmax = args.probe_tmax or "2.0e-10"
         log(f"核数探测模式: cores={cores}, probe_tmax={probe_tmax}", "STEP")
-        if mode == "hpc":
+        if mode in ("hpc", "hpc-insitu"):
             with _HpcRemote(args.account) as remote:
                 out, _, _ = remote.run(
                     f"ls {_remote_snb_home()}/{OBJDIR}/flash4 2>/dev/null "
@@ -2056,6 +2244,13 @@ def main() -> int:
                        skip_build=args.skip_build or args.skip_make,
                        partition=args.partition,
                        poll_timeout=args.poll_timeout)
+
+    if mode == "hpc-insitu":
+        return run_hpc_insitu(tmax=str(args.tmax) if args.tmax else None,
+                              nproc=nproc,
+                              skip_build=args.skip_build or args.skip_make,
+                              partition=args.partition,
+                              poll_timeout=args.poll_timeout)
 
     snb_home = find_snb_home(args.distro)
     if not snb_home:
