@@ -32,8 +32,8 @@ GitHub : https://github.com/QuincyHoward/flash
 | **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
 | **问题反馈** | 通过 Gitee 或 GitHub Issues 提交 (登录后新建 Issue) |
 
-> 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 /
-> output_processors 45) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+> 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45) 。
+> 版权合规检查详见 [许可](#许可) 与 [NOTICE](NOTICE)。
 > 离线部署自检另计 **183 项** (`deploy/test_offline_install.py`)。
 
 ---
