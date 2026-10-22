@@ -22,6 +22,7 @@
   python git_push.py -n           # dry-run (只展示不执行)
   python git_push.py --allow-deletes  # 允许提交删除 (默认拦截, 见下)
   python git_push.py --status     # 查看 git 状态 (不推送)
+  python git_push.py --tags 0.1.11  # 推送标签 (发版用; 凭据同走 helper)
   python git_push.py --setup      # 进入凭据设置界面 (唯一需要交互的选项)
 
 钩子机制 (通过 git 命令自动触发):
@@ -469,6 +470,8 @@ def main():
     parser.add_argument("--setup", action="store_true", help="进入凭据设置界面 (有交互)")
     parser.add_argument("--status", action="store_true", help="查看当前 git 状态 (不推送)")
     parser.add_argument("-r", "--root", default=None, help="项目根目录 (含 .git)")
+    parser.add_argument("--tags", default=None, metavar="TAG",
+                        help="推送指定标签 (如 0.1.11); 与分支推送同走 credential helper")
     args = parser.parse_args()
 
     root: Path | None = Path(args.root).resolve() if args.root else None
@@ -488,6 +491,39 @@ def main():
         project_root=root,
         allow_deletes=args.allow_deletes,
     )
+
+    # ── 标签推送（发版用）────────────────────────────────────
+    # ★ 与分支推送**同一条认证路径**（credential helper 管道），
+    #   绝不用 `git push https://user:token@...` —— 那会把 token 放进 argv，
+    #   在 ps 输出里可见。
+    if args.tags:
+        push_tags(root, args.tags, dry_run=args.dry_run)
+
+
+def push_tags(project_root: Path | None, tag: str, dry_run: bool = False) -> None:
+    """把指定标签推送到 Gitee（凭据经 credential helper 管道，不进 argv）。"""
+    if project_root is None:
+        project_root = find_git_root(Path(__file__).resolve().parent)
+    r = run_git(["tag", "-l", tag], cwd=project_root)
+    if not r.stdout.strip():
+        fail(f"本地不存在标签 {tag} —— 先 git tag -a {tag} -m '...'")
+        sys.exit(2)
+    if dry_run:
+        warn(f"[DRY-RUN] 将执行: git push origin {tag}")
+        return
+    prefix = auth_prefix()
+    if not prefix:
+        warn("未找到 credential helper（_git_auth.HELPER_NAME）")
+    push_args = prefix + ["push", "origin", tag]
+    info(f"执行: git push origin {tag}   (凭据经 credential helper 管道传递)")
+    res = run_git(push_args, cwd=project_root, check=False)
+    if res.returncode == 0:
+        ok(f"标签推送成功! ({tag})")
+    else:
+        fail(f"标签推送失败! ({tag})")
+        stderr = (res.stderr or "").strip()
+        eprint(f"  {stderr}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
