@@ -136,6 +136,14 @@ pip download --only-binary=:all: \
     配套：`ensure_sim_input` 判定一律要求 `*.cn4` 存在（原来只查 Config+par / 目录存在
     ⇒ cn4 缺失仍误判就绪）；`_primary_scenario` 同时要求 `*.F90` 与 `*.cn4`
     （否则会选中「有 F90 缺 cn4」的场景，失败信息掩盖真正根因）。
+14. **★ public 测试并发/轮询/锁四缺陷（2026-10-23 连续两轮实测）**：
+    | 缺陷 | 症状 | 修法 |
+    |---|---|---|
+    | `sacct` State **带前导空格**（`" COMPLETED"`） | `case "COMPLETED"` 永不匹配 ⇒ 作业早已完成却**无限轮询**（卡死 30+ min） | `awk 'NF{print $1; exit}'` + `tr -d ' \r'`；并加 120 次轮询上限 |
+    | 锁用 pid 文件 + `$(cat "$LOCK")` | **命令替换 fork 子 shell**，子 shell 继承脚本剩余内容 ⇒ 幽灵进程 +「脚本被重复执行」假象；且锁名带时间戳 ⇒ 跨轮次不互斥 | 改 **mkdir 原子锁**（锁目录固定不含时间戳）+ `read` 读 pid；被挡实例 `exit 75` |
+    | 启动重试用 `> remote_log` | **截断**日志 ⇒ 真实例输出被抹掉，只剩 `[LOCK]` 一行 | 改 `>>` 追加；并新增「锁被占用 ⇒ 判定已启动」分支 |
+    | `exec > >(tee -a ...)` 进程替换 | 再 fork 一个幽灵进程 | 改 `exec >> file 2>&1`（无 fork 副作用） |
+    | 本地轮询把「哨兵存在」当完成 | 被锁实例的 `exit 0` 也算完成 ⇒ **回收到空报告**、误判 FAIL | 只认 `rc=0`；非 0 立即判失败 |
 
 ## 5. 超算最终验证结果（INSTALL_TEST_REPORT.txt，已回收至 results/）
 

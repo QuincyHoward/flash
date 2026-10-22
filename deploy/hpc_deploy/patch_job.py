@@ -168,8 +168,24 @@ BODY_RULES: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
-def patch_body(text: str, run_dir: Path, out_dir: Path) -> str:
-    """改写正文：运行目录/输出目录 → 并行盘；删 module purge。"""
+def patch_body(text: str, run_dir: Path, out_dir: Path,
+               input_dir: Path | None = None) -> str:
+    """改写正文：运行目录/输出目录 → 并行盘；删 module purge。
+
+    ``input_dir`` 给定时，额外做两件事：
+    ① **输入目录锚定** —— 三个场景取输入目录的写法完全不同：
+       ch_center  ``SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$PWD}"``（可用）
+       grad_dens  ``SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"``
+       thin_layer ``D=$(dirname "$0")``
+       ★ `dirname "$0"` 在 sbatch 下指向 **/var/spool/slurm/d/jobXXXX**
+         ⇒ 作业里 `cp "$SCRIPT_DIR"/*.par` 必然失败（实测 grad_dens 报
+         `cp: cannot stat '/var/spool/slurm/d/job4918047/*.par'`）。
+       ⇒ 统一改写为固定的输入目录（并行盘）。
+    ② **MPI 环境归一** —— thin_layer 原本 `module load mpi/hpcx/2.17.1`
+       （Intel HPC-X），用它编译 FLASH 会报 Fortran 语法错
+       （`error #6404: This name does not have a type`）⇒ 统一改用
+       站点已验证的 `mpich/3.2-gcc9.3`。
+    """
     # ① module purge —— 铁律：会清掉 hdf5 / oneAPI 路径
     text = re.sub(r'(?m)^[ \t]*module[ \t]+purge\b.*$', '# [patched] module purge removed', text)
     # ② 运行目录 / 输出目录
@@ -181,6 +197,23 @@ def patch_body(text: str, run_dir: Path, out_dir: Path) -> str:
                   lambda m: f'{m.group(1)}{m.group(2)}R="{run_dir}"', text)
     text = re.sub(r'(?m)^(\s*OUTPUT_DIR=).+$',
                   lambda m: f'{m.group(1)}"{out_dir}"', text)
+    # ③ MPI 环境归一：Intel HPC-X → 站点 mpich（编译 Fortran 才不报语法错）
+    text = re.sub(r'(?m)^([ \t]*module[ \t]+load[ \t]+)mpi/hpcx/[\w.\-]+',
+                  r'\1mpich/3.2-gcc9.3', text)
+    text = re.sub(r'(?m)(^|;)([ \t]*)module[ \t]+load[ \t]+mpi/hpcx/[\w.\-]+',
+                  lambda m: f'{m.group(1)}{m.group(2)}module load mpich/3.2-gcc9.3', text)
+    # ④ 输入目录锚定
+    if input_dir is not None:
+        ind = str(input_dir)
+        # SCRIPT_DIR=...  →  SCRIPT_DIR="<ind>"
+        text = re.sub(r'(?m)^(\s*SCRIPT_DIR=).+$',
+                      lambda m: f'{m.group(1)}"{ind}"', text)
+        # D=$(dirname "$0")  →  D="<ind>"
+        text = re.sub(r'(?m)^(\s*D=)\$\(dirname\s+"\$0"\)\s*$',
+                      lambda m: f'{m.group(1)}"{ind}"', text)
+        # 行内形式（thin_layer: F=...;D=$(dirname "$0");R=...）
+        text = re.sub(r'(?m)(^|;)([ \t]*)D=\$\(dirname\s+"\$0"\)',
+                      lambda m: f'{m.group(1)}{m.group(2)}D="{ind}"', text)
     return text
 
 
@@ -200,6 +233,9 @@ def main() -> int:
     ap.add_argument("--tag", required=True, help="场景标签（用于输出文件名）")
     ap.add_argument("--partition", default="v5_192")
     ap.add_argument("--time", dest="time_limit", default="01:00:00")
+    ap.add_argument("--input-dir", dest="input_dir", default="",
+                    help="输入目录（并行盘绝对路径）：把 `dirname \"$0\"` / "
+                         "SCRIPT_DIR 锚定到它（sbatch 下 $0 指向 /var/spool/slurm）")
     args = ap.parse_args()
 
     src = Path(args.src)
@@ -207,6 +243,7 @@ def main() -> int:
     work = Path(args.work)
     run_dir = work / "out" / f"{args.tag}_run"
     out_dir = work / "out" / f"{args.tag}_outputs"
+    input_dir = Path(args.input_dir) if args.input_dir else None
 
     text = src.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
@@ -222,7 +259,8 @@ def main() -> int:
     body_lines = [l for l in body_lines if not l.startswith("#!")]
 
     new_sbatch = patch_sbatch(sbatch_lines, work, args.tag, args.partition, args.time_limit)
-    new_body = patch_body("\n".join(body_lines), run_dir, out_dir).splitlines()
+    new_body = patch_body("\n".join(body_lines), run_dir, out_dir,
+                           input_dir=input_dir).splitlines()
     # 正文里若残留 module purge（多行写法），再兜一次
     new_body = [l for l in new_body if not re.match(r'^\s*module\s+purge\b', l)]
 
@@ -233,6 +271,8 @@ def main() -> int:
     print(f"[patch_job] {src} -> {dst}")
     print(f"[patch_job] 运行目录 -> {run_dir}")
     print(f"[patch_job] 输出目录 -> {out_dir}")
+    if input_dir:
+        print(f"[patch_job] 输入目录 -> {input_dir}")
     for l in new_sbatch:
         print(f"  {l}")
     return 0

@@ -123,6 +123,15 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
     a(f'VPY="{TARGET_DIR}/{VENV_NAME}/bin/python"')
     a(f'WORK="{WORK_DIR}"')
     a('REPORT="$WORK/PUBLIC_TEST_REPORT.txt"')
+    # ★★ 必须让 `import flash` 命中**源码树**，而不是 venv site-packages 里的 wheel。
+    #   原因：远端 venv 里装的是**发布 wheel**，而 wheel 的 exclude 规则
+    #   （pyproject.toml）排除了 flash/scenarios/public/** 下的部分内容
+    #   （如 flash_input/ 生成物）⇒ site-packages 里的 flash.scenarios.public
+    #   **不完整**（实测：缺 sandwich 子包 → `import flash.scenarios.public` 报
+    #   ModuleNotFoundError）。而以文件路径运行 gen_flash_inputs.py 时
+    #   sys.path[0] = 脚本所在目录，不是仓库根 ⇒ 必然命中残缺的 site-packages。
+    #   ⇒ 显式 PYTHONPATH=$TARGET 置于最前。
+    a(f'export PYTHONPATH="{TARGET_DIR}${{PYTHONPATH:+:$PYTHONPATH}}"')
     a('mkdir -p "$WORK/logs" "$WORK/out" "$WORK/inputs"')
     a('rm -f "$REPORT"')
     # ★ 用 `exec >> file 2>&1` 而不是 `exec > >(tee -a file) 2>&1`：
@@ -244,7 +253,7 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
         a(f'mkdir -p "$WORK/out"')
         a(f'$VPY "$TARGET/deploy/hpc_deploy/patch_job.py" \\')
         a(f'    --in "$DST/submit_flash.sh" --out "$JOB" \\')
-        a(f'    --work "$WORK" --tag "{s}" \\')
+        a(f'    --work "$WORK" --tag "{s}" --input-dir "$DST" \\')
         a(f'    --partition v5_192 --time 01:00:00')
         a(f'rc=$?; if [ "$rc" -ne 0 ]; then')
         a(f'  echo "B_PATCH {s} FAIL"; B_RC=1; continue; fi')
@@ -286,7 +295,11 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
         #   ★ FLASH 的 checkpoint 文件名形如 ``lasslab_hdf5_chk_0007``（**无 .h5 后缀**），
         #     只找 "*.h5" 会永远得到 0 → 误判 FAIL（实测 chk=8 plt=28）。
         #   ⇒ 同时匹配 *_hdf5_chk_* / *_hdf5_plt_* / *.h5 三类。
-        a(f'N=$(find "$OUT" "$DST" -maxdepth 2 '
+        #   ★★ maxdepth 必须 ≥3：ch_center 把产物 mv 到
+        #     "$WORK/out/<tag>_outputs/"（**第 3 层**）——maxdepth=2 时
+        #     find 只见到那一层目录、见不到里面的文件 ⇒ 明明跑成功却 n_files=0
+        #     （实测 ch_center 产出 38 个文件却判 FAIL）。
+        a(f'N=$(find "$OUT" "$DST" -maxdepth 4 '
           f'\\( -name "*_hdf5_chk_*" -o -name "*_hdf5_plt_*" -o -name "*.h5" \\) '
           f'2>/dev/null | wc -l)')
         a(f'echo "B_CHK {s} n_files=$N"')
