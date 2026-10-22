@@ -93,10 +93,19 @@ SCENES = {
 }
 
 
-def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -> str:
+def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "",
+                        run_id: str = "") -> str:
     """生成远端 bash 脚本（LF 行尾）。
 
     ``lock_file`` 非空时启用 **原子目录锁防重入**（★ 启动重试会真的多起实例）。
+
+    ★ `run_id`（时间戳）用于**每轮独立的日志与报告路径**。
+      历史教训（2026-10-22 实测）：日志与报告都用固定路径
+      （$WORK/logs/public_test.log、$WORK/PUBLIC_TEST_REPORT.txt），
+      而远端可能残留**上一轮的僵尸实例**（实测 19:04/19:25 四个实例并存），
+      它们 `exec >>` 追加写同一个日志 ⇒ 多轮流次内容混写、
+      报告被后一轮覆盖 ⇒ 本地读到的 B_RC 属于**另一轮**。
+      ⇒ 日志/报告一律带 run_id，天然隔离。
     """
     lines: list[str] = []
     a = lines.append
@@ -122,7 +131,7 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
     a(f'TARGET="{TARGET_DIR}"')
     a(f'VPY="{TARGET_DIR}/{VENV_NAME}/bin/python"')
     a(f'WORK="{WORK_DIR}"')
-    a('REPORT="$WORK/PUBLIC_TEST_REPORT.txt"')
+    a(f'REPORT="$WORK/PUBLIC_TEST_REPORT_{run_id}.txt"')
     # ★★ 必须让 `import flash` 命中**源码树**，而不是 venv site-packages 里的 wheel。
     #   原因：远端 venv 里装的是**发布 wheel**，而 wheel 的 exclude 规则
     #   （pyproject.toml）排除了 flash/scenarios/public/** 下的部分内容
@@ -137,7 +146,7 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "") -
     # ★ 用 `exec >> file 2>&1` 而不是 `exec > >(tee -a file) 2>&1`：
     #   进程替换会 fork 一个子 shell（实测多出幽灵进程 4774，且与锁逻辑
     #   交互出「脚本被重复执行」的假象）。追加重定向无此副作用。
-    a('exec >> "$WORK/logs/public_test.log" 2>&1')
+    a('exec >> "$WORK/logs/public_test_' + run_id + '.log" 2>&1')
     a('echo "=== public test start $(date) ==="')
     a("")
     a("# ── 环境自检 ─────────────────────────────────────────")
@@ -333,7 +342,11 @@ def main() -> int:
     ap.add_argument("--phase-a", action="store_true", help="只跑阶段 A（不提交作业）")
     ap.add_argument("--timeout", type=int, default=MAX_POLLS * POLL_INTERVAL,
                     help="总超时秒数")
+    ap.add_argument("--kill-stale", dest="kill_stale", action="store_true",
+                    help="启动前强杀远端存活的历史 public test 实例"
+                         "（默认中止并列出）")
     args = ap.parse_args()
+    args_kill_stale = args.kill_stale
 
     scenes = [s.strip() for s in args.scenes.split(",") if s.strip()]
     bad = [s for s in scenes if s not in SCENES]
@@ -353,9 +366,9 @@ def main() -> int:
     # ★ 锁路径**固定**（不含时间戳）⇒ 跨轮次也互斥：
     #   上一轮实例还在跑时，本轮会被挡住，而不是各跑各的。
     remote_lock = f"{PKG_DIR_REMOTE}/public_test.lock.d"
-    remote_report = f"{WORK_DIR}/PUBLIC_TEST_REPORT.txt"
+    remote_report = f"{WORK_DIR}/PUBLIC_TEST_REPORT_{ts}.txt"
 
-    local_sh.write_text(build_remote_script(scenes, phase_b, remote_lock),
+    local_sh.write_text(build_remote_script(scenes, phase_b, remote_lock, run_id=ts),
                         encoding="utf-8", newline="\n")
 
     sys.path.insert(0, str(REPO_ROOT))
@@ -367,6 +380,39 @@ def main() -> int:
     print(f"[08] 本地日志: {log_path}")
 
     with RemoteSession("flash_ssh") as s:
+        # ---- 僵尸实例守卫 ----
+        # ★ 实测教训：远端可能残留**上一轮**的 public_test 脚本进程
+        #   （19:04/19:25 四个实例并存），它们会：
+        #     ① 继续往固定日志追加写 ⇒ 多轮内容混写；
+        #     ② 继续轮询/提交 sbatch ⇒ 作业重复、报告被覆盖。
+        #   ⇒ 启动前先枚举同名前缀的存活实例：
+        #     有 → 默认**中止**（--kill-stale 才强杀）。
+        #   注意：不能用 `pkill -f public_test_` —— 该模式会匹配到
+        #   **执行 pkill 的那条 shell 命令自身** ⇒ SSH 自杀（实测 rc=-1）。
+        #   ⇒ 改为 `ps -eo pid,args` 过滤 + 排除当前 shell 的 pid。
+        out, _, _ = s.run(
+            "ps -eo pid,args --no-headers | grep -F 'public_test_2' "
+            "| grep -v ' grep ' | grep -v 'ps -eo' || true", timeout=60)
+        stale = []
+        for line in (out or "").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            pid_s, _, args = line.partition(" ")
+            if args.strip().endswith(".sh") and "/public_test_" in args:
+                stale.append((pid_s.strip(), args.strip()))
+        if stale:
+            print(f"[FATAL] 远端存在 {len(stale)} 个存活的历史 public test 实例：")
+            for pid_s, args in stale:
+                print(f"    pid={pid_s}  {args[:150]}")
+            if not args_kill_stale:
+                print("[FATAL] 请先清理这些实例再重跑（加 --kill-stale 可由本脚本强杀）")
+                return 2
+            for pid_s, _ in stale:
+                s.run(f"kill -9 {pid_s} 2>/dev/null; true", timeout=30)
+            print(f"[08] 已强杀 {len(stale)} 个历史实例")
+            time.sleep(2)
+
         # ---- 防重入：★ 启动重试会**真的启动一份新脚本**（exec 回显丢失≠未执行），
         #      多次重试 ⇒ 多个实例并发 ⇒ 每个都提交一次 sbatch ⇒ 作业重复、
         #      队列被占、结果互相覆盖（实测 ch_center 被提交 3 次：
