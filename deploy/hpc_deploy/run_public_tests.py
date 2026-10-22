@@ -304,13 +304,16 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "",
         #   ★ FLASH 的 checkpoint 文件名形如 ``lasslab_hdf5_chk_0007``（**无 .h5 后缀**），
         #     只找 "*.h5" 会永远得到 0 → 误判 FAIL（实测 chk=8 plt=28）。
         #   ⇒ 同时匹配 *_hdf5_chk_* / *_hdf5_plt_* / *.h5 三类。
-        #   ★★ maxdepth 必须 ≥3：ch_center 把产物 mv 到
-        #     "$WORK/out/<tag>_outputs/"（**第 3 层**）——maxdepth=2 时
-        #     find 只见到那一层目录、见不到里面的文件 ⇒ 明明跑成功却 n_files=0
-        #     （实测 ch_center 产出 38 个文件却判 FAIL）。
-        a(f'N=$(find "$OUT" "$DST" -maxdepth 4 '
-          f'\\( -name "*_hdf5_chk_*" -o -name "*_hdf5_plt_*" -o -name "*.h5" \\) '
-          f'2>/dev/null | wc -l)')
+        #   ★★ 统计必须覆盖**三个**位置，且不能只靠一个变量：
+        #     ① $WORK/out/<tag>_run     —— 作业工作目录（ch_center 不留产物）
+        #     ② $WORK/out/<tag>_outputs —— 场景脚本把产物 **mv** 到这里
+        #        （ch_center 的 38 个文件全在这里）
+        #     ③ $DST                    —— 有些场景直接把产物写在输入目录
+        #     ★ 之前只写 `find "$OUT" "$DST"`，而 $OUT 只等于 _run ⇒
+        #       ch_center 明明产出 38 个文件却 n_files=0（误判 FAIL）。
+        a(f'N=$(find "$WORK/out/{s}_run" "$WORK/out/{s}_outputs" "$DST" -maxdepth 4 '
+          f'\\( -name "*_hdf5_chk_*" -o -name "*_hdf5_plt_*" -o -name "*_forced_hdf5_*" '
+          f'-o -name "*.h5" \\) 2>/dev/null | wc -l)')
         a(f'echo "B_CHK {s} n_files=$N"')
         a(f'echo "--- {s} 作业输出尾部 ---"')
         a(f'tail -30 "{WORK_DIR}/out/{s}_"*.out 2>/dev/null | tail -30')
