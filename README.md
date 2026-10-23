@@ -23,6 +23,11 @@ Gitee  : https://gitee.com/physimx/flash
 GitHub : https://github.com/QuincyHoward/flash
 ```
 
+```
+PyPI 版本可能滞后
+pip install flash-sim
+```
+
 | 操作 | 命令 |
 |------|------|
 | **HTTPS 克隆 (Gitee)** | `git clone https://gitee.com/physimx/flash.git` |

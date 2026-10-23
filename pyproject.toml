@@ -13,6 +13,7 @@ requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
     {name = "PhySimX Contributors"},
+    {name = "Quincy Howard", email = "quincy.hd@foxmail.com" },
 ]
 keywords = ["flash", "plasma", "simulation", "high-energy-density", "physics"]
 classifiers = [
