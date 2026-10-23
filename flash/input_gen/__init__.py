@@ -41,6 +41,7 @@ def create_input_files(
     setup_cmd: Optional[str] = None,
     sim_user_dir: Optional[str] = None,
     platform: str = "local",
+    flash_home: Optional[str] = None,
 ) -> Dict[str, str]:
     """一键生成所有 FLASH 输入文件。
 
@@ -67,6 +68,13 @@ def create_input_files(
                   "local/wsl_ubuntu22" — 指定本地环境
                   "hpc"                — 超算, 取第一个 hpc 环境 (如 scfa2696)
                   "hpc/scfa2696"       — 指定超算账号环境
+        flash_home: FLASH 引擎树路径 (如 ``~/QC/FLASH/FLASH4.8``), 写入
+                  生成的 run_flash.sh / run_flash.bat / submit_flash.sh。
+                  ★ **必须显式传入**, 否则回落到生成器默认 ``$HOME/FLASH/FLASH4.8``
+                  (不含用户名), 而实际安装位置通常带用户名 (如 ``~/QC/FLASH/FLASH4.8``)
+                  ⇒ 脚本 [1/5] 环境检查直接 `exit 1`, 但调用方只看
+                  管道返回码 (tail 的 0) ⇒ 报"仿真完成"实则零输出。
+                  本地场景建议传 ``runner.discover_flash_home()`` 的探测结果。
 
     Returns:
         {文件类型: 文件路径} 字典
@@ -160,6 +168,10 @@ def create_input_files(
         }
         if setup_cmd is not None:
             script_config["setup_cmd"] = setup_cmd
+        # ★ FLASH_HOME 必须由调用方显式给出 (带用户名的实际安装路径)。
+        #   缺省会回落到生成器默认 "$HOME/FLASH/FLASH4.8", 与实际安装位置不符。
+        if flash_home is not None:
+            script_config["flash_home"] = flash_home
 
         script_gen = ShellScriptGenerator(config=script_config)
         script_gen.save(str(out / "run_flash.bat"), "windows", par_file=par_filename)
