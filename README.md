@@ -111,6 +111,11 @@ output = engine.run()  # 自动编译→运行→插值→输出
 
 详见 [`scenarios/README.md`](scenarios/README.md)。
 
+**参考场景文档**:
+
+- [`center_evolution/ch_center/`](flash/scenarios/public/center_evolution/ch_center/) — CH 靶中心演化：物理设置、五种执行模式使用指南与参数切换、输入重建（[README](flash/scenarios/public/center_evolution/ch_center/README.md)）
+- [`center_evolution/ch_center/modes_test/`](flash/scenarios/public/center_evolution/ch_center/modes_test/) — 多执行模式测试框架：五路径（win-wsl / wsl-wsl / win-hpc / wsl-hpc / hpc-insitu）同算例 dens/nele 对比（[README](flash/scenarios/public/center_evolution/ch_center/modes_test/README.md)）
+
 ### 仿真输入生成 (`input_gen/`)
 
 | 模块 | 功能 |
@@ -130,8 +135,13 @@ output = engine.run()  # 自动编译→运行→插值→输出
 
 | 模块 | 功能 |
 |------|------|
-| `env/` | 多环境管理（本地 WSL / SSH 超算），维度感知资源配置 |
-| `remote/` | 远程部署、SSH 多路由自动选择、SBATCH 作业提交/监控/结果下载 |
+| `execution.py` | **唯一执行契约**：四种执行目标（local / wsl / hpc-remote / hpc-insitu）平台自适应判定 + 场景策略校验 |
+| `env/` | 多环境管理（本地 WSL / SSH 超算），维度感知资源配置，venv 路径单一事实源 |
+| `modes/` | 运行模式执行体（`run_wsl` / `HpcRunner` / `run_insitu`），自 `scenarios/runner.py` 迁入的唯一归属 |
+| `remote/` | 远程部署：唯一 SSH（`RemoteSession`）、统一命令面（executors）、SLURM 下沉（slurm_control）、chk-only 回传策略（fetch_policy） |
+| `hpc.py` | 超算技能统一 CLI（本地驱动 / 登录节点两侧可调） |
+
+> 模块总览、目标判定表、用户名规范与工程铁律见 [`flash/flash_run/README.md`](flash/flash_run/README.md)（2026-10-24 合并重写，唯一入口文档）。
 
 ### 输出处理 (`output_processors/`)
 
@@ -1107,6 +1117,20 @@ Virtual-environment lookup lives in **one** place
 (`flash/flash_run/env/venv_paths.py`, stdlib-only): `FLASH_VENV_DIR` >
 `<repo>/.venv-<platform>` > legacy `.venv`; on the HPC side it is
 `<TARGET>/.venv-hpc-nce`. It never falls back to `sys.executable`.
+
+**Documentation entry points (2026-10-24)**:
+
+- [`flash/flash_run/README.md`](flash/flash_run/README.md) — unified
+  run-management doc (merged from README + PROCESS): module map,
+  execution-target decision table, username rules (never hardcode —
+  `FLASH_SIM_USER_DIR` > credential store > default `hello`), and the
+  engineering rules learned from real failures;
+- [`flash/scenarios/public/center_evolution/ch_center/README.md`](flash/scenarios/public/center_evolution/ch_center/README.md) — reference
+  scenario: physics setup, five execution modes with parameter switching,
+  input regeneration;
+- [`flash/scenarios/public/center_evolution/ch_center/modes_test/`](flash/scenarios/public/center_evolution/ch_center/modes_test/) — same-case
+  cross-mode comparison harness (`win-wsl` / `wsl-wsl` / `win-hpc` /
+  `wsl-hpc` / `hpc-insitu`) with dens/nele evolution analysis.
 
 Generate scenario input files explicitly (optional; normally auto-generated):
 

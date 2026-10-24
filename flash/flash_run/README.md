@@ -1,251 +1,243 @@
-"""
-FLASH 仿真运行管理模块
-═══════════════════════════════════════════════════════════
+# flash_run — FLASH 仿真运行管理模块
 
-管理 FLASH 仿真在不同计算环境中的运行，包括本地 WSL 和远程超算。
+> **本文件是 `flash/flash_run/` 的唯一入口文档**（2026-10-24 合并重写：
+> 原 `README.md` + `PROCESS.md` 合一，旧文内 `physimx_sim.*` 路径、
+> 已迁移实现、硬编码用户名一并更正）。子包级 API 见
+> [`env/README.md`](env/README.md) 与 [`remote/README.md`](remote/README.md)，
+> 超算终端常用命令见 [`remote/超算终端常用指令.md`](remote/超算终端常用指令.md)。
 
-模块结构（2026-10-22 模块化改造）:
-  - modes/    : 三种运行模式的执行体（wsl / hpc-remote / hpc-insitu）——
-                ★ 自 flash/scenarios/runner.py 整体迁入，是运行逻辑的唯一归属；
-                scenarios/runner.py 仅保留兼容 re-export 壳。
-  - hpc.py    : 超算技能统一 CLI（本地驱动 / 超算登录节点两侧均可调用）
-  - env/      : 环境与资源配置（装置默认值已下沉 env/resource_config.py）
-  - remote/   : 远程超算部署与作业调度（paramiko 层）
-
-主要功能:
-  1. 多环境管理 (本地 WSL / 超算 SSH)
-  2. 维度感知的资源配置 (CPU/内存/并行数)
-  3. SSH 多路由自动选择最佳线路
-  4. 远程部署、作业提交、结果下载
-"""
-
-# ── 快速开始 ──────────────────────────────────────
-
-## 1. 列出所有可用环境
-
-from flash.flash_run import FlashEnvManager
-
-mgr = FlashEnvManager()
-mgr.list_environments()
-
-## 2. 切换环境
-
-mgr.set_active("supercomputer_nc_e")
-
-## 3. 生成运行命令
-
-env = mgr.get_active()
-cmd = env.build_run_command(par_file="flash.par", nproc=4)
-print(cmd)
-
-## 4. 测试 SSH 路由延迟
-
-from flash.flash_run.remote.route_tester import main
-main()  # 命令行入口
-
-## 5. 提交超算作业
-
-from flash.flash_run.remote.remote_deploy import FlashRemoteDeploy
-
-deploy = FlashRemoteDeploy(credential_name="flash_ssh")
-deploy.connect()
-job_id = deploy.submit_job("flash_2d.par", nprocs=32)
-print(f"Job submitted: {job_id}")
-
+管理 FLASH 仿真在**四种执行目标**上的运行：本机（local）、本机 WSL（wsl）、
+超算远程（hpc-remote）、超算就地（hpc-insitu）。场景层只声明物理与策略，
+"在哪跑、怎么跑"由本模块统一裁决。
 
 ---
 
-## 运行模式矩阵（2026-10-22）
+## 1. 分层铁律（机器可校验）
 
-| 模式 | 规范名 | 含义 | 执行体 |
-|------|--------|------|--------|
-| `wsl` | `wsl` | 本机执行（Windows 驱动→WSL；WSL/Linux 内直跑 python 自动降级本地直跑） | `modes/runner.py: run_wsl` |
-| `hpc-remote` | `hpc-remote`（别名 `hpc`/`remote`/`slurm`/`supercomputer`） | 本机驱动 → SSH(RemoteSession) → 超算，上传→sbatch→监控→远程分析→下载，带 `hpc_task.json` 断点续跑 | `modes/runner.py: HpcRunner` |
-| `hpc-insitu` | `hpc-insitu`（别名 `insitu`） | 驱动脚本已在超算登录节点（`.venv-hpc-nce`）——就地 sbatch+sacct+收集，**绝不 SSH 自连** | `scenarios/insitu_runner.py: run_insitu`（待迁 modes/） |
+```
+scenarios/  →  flash_run/  →  flash/_core/        （禁止反向依赖）
+```
 
-优先级：`--mode` 显式参数 > 环境变量 `FLASH_RUN_MODE` > 场景模块常量 `RUN_MODE`。
+- 场景**不得**内联 SSH/SLURM/wsl 启动逻辑；一切经 `execution.py` 契约下发；
+- `flash_run` 不 import `scenarios`（`R-LAYER-*` 护栏，基线只降不升，
+  见根 README「分层护栏」）。
 
-## 超算技能统一 CLI（hpc.py）
+## 2. 模块地图
+
+| 子模块 | 职责 | 关键 API |
+|---|---|---|
+| `execution.py` | **唯一执行契约**：目标解析 + 策略校验 + 转调执行体 | `resolve_target()` / `run_scene()` / `SceneSpec` / `ExecutionPolicy` / `EXEC_TARGETS` |
+| `modes/runner.py` | wsl/hpc-remote 执行体（自 `scenarios/runner.py` 迁入，唯一归属） | `run_wsl()` / `WslSpec` / `allocate_run_id()` / `resolve_venv_python()` / `discover_flash_home()` |
+| `modes/hpc_insitu.py` | hpc-insitu 执行体（就地 sbatch，**绝不 SSH 自连**） | `run_insitu()` |
+| `remote/session.py` | **全仓唯一 SSH**（动态路由 + paramiko/CLI 双后端） | `RemoteSession`（run/upload/download/exists/listdir/mkdir_p） |
+| `remote/executors.py` | 统一命令面（本地/WSL/SSH 同构） | `LocalExecutor` / `WslExecutor` / `SSHExecutor` |
+| `remote/slurm_control.py` | SLURM 操作唯一下沉点（场景层禁内联 squeue） | `submit()` / `job_state()` / `wait_for_job()` / `latest_job_by_name()` / `sbatch_available()` |
+| `remote/fetch_policy.py` | 产物回传选择**唯一入口**（chk-only 默认） | `select_fetch_files()` / `classify_names()` |
+| `remote/artifacts.py` | `fetch_policy` 的唯一执行点 | `fetch_artifacts()` |
+| `remote/route_tester.py` | SSH 多路由延迟实测择优 | `RouteTester` / `test_and_select_best_route()` |
+| `remote/remote_deploy.py` | 遗留高层部署器（兼容壳，新代码用 `RemoteSession`） | `FlashRemoteDeploy` |
+| `env/env_manager.py` | 环境配置管理（单例） | `FlashEnvManager` / `FlashEnvironment` / `get_env_manager()` |
+| `env/resource_config.py` | 维度感知资源配置 + 装置默认值 | `get_resource_config()` / `get_scene_device_default()` |
+| `env/venv_paths.py` | venv 路径**单一事实源**（纯 stdlib） | `repo_root()` / `venv_dir()` / `venv_python()` / `require_venv_python()` |
+| `hpc.py` | 超算技能统一 CLI（本地驱动/登录节点两侧可调） | `python -m flash.flash_run.hpc …` |
+
+## 3. 四种执行目标与平台自适应
+
+`EXEC_TARGETS = ("local", "wsl", "hpc-remote", "hpc-insitu")`，别名归一：
+`hpc`/`remote`/`ssh`/`slurm`/`supercomputer` → `hpc-remote`；`insitu` → `hpc-insitu`。
+
+| 目标 | 含义 | 典型驱动进程所在 |
+|---|---|---|
+| `local` | Linux 宿主（含 WSL 内）直接 `bash run_flash.sh` | WSL / Linux |
+| `wsl` | Windows 经 `wsl.exe` 中转执行（WSL 内运行时自动等价 local） | Windows |
+| `hpc-remote` | 本机 → SSH(RemoteSession) → 超算：上传→sbatch→sacct 轮询→远程分析→回传 | Windows / WSL |
+| `hpc-insitu` | 驱动脚本**已在超算登录节点**：就地 sbatch+收集，禁 SSH 自连 | 超算登录节点 |
+
+`auto`（默认）判定顺序——唯一实现 `execution.resolve_target()`：
+
+1. `--mode` 显式参数 → 2. 环境变量 `FLASH_RUN_MODE` → 3. 场景 `policy.preferred`
+→ 4. 本机 slurm 健康（sbatch+sacct+sinfo 且控制器可达）→ `hpc-insitu`
+→ 5. 非 Windows → `local` → 6. Windows 有 WSL → `wsl` → 7. 报错（绝不静默降级）。
+
+场景可用 `ExecutionPolicy` 硬性约束：`allowed`（如 SNB 族仅允许两个 hpc 目标）、
+`nproc`（`exact`/`at_most`，执行层强制）、`forbid_reason`。策略校验失败即
+`ok=False`，**绝不吞错返回假成功**。
+
+## 4. 用户名与路径规范（文档与脚本同律）
+
+**禁止在代码/文档/脚本里硬编码用户名。** 统一经 `get_sim_user_dir()`
+（`modes/runner.py`）解析，优先级：
+
+```
+环境变量 FLASH_SIM_USER_DIR  >  凭据用户名（~/.physimx）  >  默认 "hello"
+```
+
+- 本机当前凭据用户名为 `QC`，但**默认值恒为 `hello`**——干净克隆/离线机无凭据
+  时必须有确定行为；
+- 文档与示例一律写 `$HOME/<user>/FLASH/FLASH4.8` 或 `~/<user>/...`，
+  用 `<user>` 占位；FLASH 安装根另可经 `discover_flash_home()` 自动发现
+  （扫描 `$HOME`，判据 = 同时存在 `setup` 与 `source/Simulation/SimulationMain`）；
+- 超算账号同样不落文档：由 `~/.physimx/flash/hpc_accounts.json` 与凭据名
+  （默认 `flash_ssh`）决定，路由表常量名（`ROUTES_*`）除外。
+
+## 5. 快速开始
+
+### 5.1 场景统一入口（推荐）
 
 ```bash
-python -m flash.flash_run.hpc status   [--job ID]           # squeue (+sacct)
-python -m flash.flash_run.hpc submit   --par x.par --nprocs 131 --account flash_ssh
-python -m flash.flash_run.hpc cancel   --job ID
-python -m flash.flash_run.hpc wait     --job ID [--timeout 3600]
-python -m flash.flash_run.hpc download --remote <dir> --local <dir> [--pattern "*.h5"]
-python -m flash.flash_run.hpc route-test                    # 9 路由择优
-python -m flash.flash_run.hpc nodes                        # sinfo 分区速览
+# 平台自适应（推荐）：--mode 缺省 auto
+python -m flash.scenarios.cli list
+python -m flash.scenarios.cli run ch_center                 # auto
+python -m flash.scenarios.cli run ch_center --mode wsl --tmax 2e-10
+python -m flash.scenarios.cli explain ch_center             # 只打印目标判定轨迹
 ```
 
-约定：所有远端操作**串行**（超算 SSH 限并发）；提交前必查 `squeue`
-（父进程网络死亡 ≠ 远端作业结束）；凭据走 `flash._core.credentials`
-（`--credential`，默认 `flash_ssh`）。
+### 5.2 超算技能 CLI
 
-## 装置默认值下沉（env/resource_config.py）
+```bash
+python -m flash.flash_run.hpc status    [--job ID]      # squeue (+sacct)
+python -m flash.flash_run.hpc submit    --par x.par --nprocs 131 --account flash_ssh
+python -m flash.flash_run.hpc cancel    --job ID
+python -m flash.flash_run.hpc wait      --job ID [--timeout 3600]
+python -m flash.flash_run.hpc download  --remote <dir> --local <dir> [--pattern "*.h5"]
+python -m flash.flash_run.hpc route-test                 # 多路由实测择优
+python -m flash.flash_run.hpc nodes                      # sinfo 分区速览
+```
 
-场景**不得**硬编码装置参数，统一从本模块读取（按场景名最长前缀匹配）：
+约定：远端操作**串行**（超算 SSH 限并发，并行提交会全部卡在路由选择）；
+提交前必查 `squeue`（父进程网络死亡 ≠ 远端作业结束）。
+
+### 5.3 Python API
 
 ```python
-from flash.flash_run.env.resource_config import get_scene_device_default
-NPROCS = get_scene_device_default("SNBOneCH_ml", "nprocs")   # → 131
-ACCOUNT = get_scene_device_default("SNBVTi2um", "account")   # → flash_ssh
+from flash.flash_run.execution import ExecOptions, run_scene, SceneSpec
+
+scene = SceneSpec(name="my_scene", objdir="<user>/LaserSlab_ChCenter",
+                  basenm="lasslab_", policy=DEFAULT_POLICY)
+result = run_scene(scene, ExecOptions(mode="auto", tmax=1.188e-9))
+print(result.ok, result.target, result.run_dir)
 ```
 
-已知装置族：`SNBOneCH`(131 核) / `SNBVTi`(125 核, dx=0.02 µm 精确网格) /
-`SNB` 兜底；换装置只改本文件，不改场景源码。
+```python
+# 环境与资源配置（场景不得硬编码装置参数）
+from flash.flash_run.env.resource_config import get_scene_device_default
+NPROCS  = get_scene_device_default("SNBOneCH_ml", "nprocs")   # → 131
+ACCOUNT = get_scene_device_default("SNBVTi2um", "account")    # → flash_ssh
+```
 
----
+## 6. 标准运行流程（hpc-remote 全链路）
 
-## env/ - 环境管理
+```
+① 连接与路由实测（RemoteSession 动态择优，paramiko/CLI 双后端）
+② 上传 flash_input/（SFTP；remote_dir 必须是绝对路径，见 §8.3）
+③ sed 归一行尾 →（按策略可选）禁 module purge → 注入 Intel MPI 库路径
+④ sbatch submit_flash.sh（超时 ≥180s：module load 本身 40~60s；
+   超时后回查队列，提交类操作超时 ≠ 未提交）
+⑤ sacct 轮询（15s 间隔，max 1h；FAILED/CANCELLED/TIMEOUT/NODE_FAIL 即终止）
+⑥ 远端分析（hpc_analyze_*.py；python 三级回退：FLASH_HPC_PYTHON →
+   repo/.venv-hpc-nce → module python → 系统 python3）
+⑦ 回传：chk-only（fetch_policy，plt 默认不回传；批量对比用
+   FLASH_FETCH_LIMIT=0 + FLASH_LS_LIMIT 放大远端 ls 上限）
+⑧ 本地 output_processors 分析出图
+```
 
-### FlashEnvironment
-单个 FLASH 运行环境配置。
+断点续跑：`hpc_task.json` 记录 job_id/remote_dir/output，网络中断后可按
+凭据 + job_id 恢复，不重复提交。
 
-属性:
-  - name: 环境名称
-  - env_type: "local_wsl" | "ssh_slurm"
-  - flash_home: FLASH 安装路径
-  - default_nproc: 默认进程数
-  - bundle_input_files: 是否打包输入文件
+## 7. 子模块要点
 
-方法:
-  - build_run_command(): 生成运行命令
-  - build_sbatch_script(): 生成 SBATCH 脚本
-  - get_effective_nproc(): 计算有效进程数
-  - get_mem_per_job_gb(): 计算每作业内存
+### env/ — 环境与资源配置
+- `FlashEnvManager`（单例）：多环境（local_wsl / 各超算）注册、切换、
+  从凭据自动创建；`FlashEnvironment.build_run_command()` 生成运行命令；
+- `FlashResourceConfig`：1D/2D/3D × 本地/超算 的 CPU 占比与并行数；
+- 装置默认值（nprocs/account/分区）下沉 `resource_config.py`，按场景名
+  最长前缀匹配——换装置只改该文件，不改场景源码；
+- `venv_paths.py`：`repo_root()` 向上探测 pyproject+start_flash；
+  `venv_dir(root, kind)`，**绝不回落 `sys.executable`**。
 
-### FlashEnvManager
-环境管理器 (单例)。
+### remote/ — 远程层
+- `RemoteSession`：唯一 SSH 入口；`run/upload/download/exists/listdir/mkdir_p`；
+  路由每次连接实测择优并缓存；paramiko（Windows 默认）/CLI 双后端
+  （`FLASH_SSH_BACKEND` 可强制）；
+- `executors.py`：`LocalExecutor`/`WslExecutor`/`SSHExecutor` 统一
+  `run/listdir/copy_from/put/exists` 命令面（artifacts/insitu 复用）；
+- `slurm_control.py`：sbatch/sacct/squeue 唯一封装；
+- `fetch_policy.py`：回传选择唯一入口——`basenm` 前缀归属 + chk/plt/fixed
+  三分类，`frames` 等间隔抽帧（首尾必取）；
+- `remote_deploy.py`（`FlashRemoteDeploy`）：遗留兼容壳，保留 8 个方法供
+  旧工具脚本；新代码用 `RemoteSession` + `execution.run_scene`。
 
-方法:
-  - list_environments(): 列出所有环境
-  - get_active(): 获取当前活跃环境
-  - set_active(name): 切换活跃环境
-  - add(env): 添加环境
-  - remove(name): 删除环境
-  - auto_create_from_credentials(): 从凭据自动创建环境
+## 8. 工程铁律（全部来自实战事故，违反即静默失败）
 
-### FlashResourceConfig
-维度感知的资源配置管理器。
+### 8.1 wsl.exe 命令串拆分（假成功级）
+本机 `wsl bash -c "..."` 会把命令串在**顶层 `;`/`&&`/`||`** 处拆成多次独立
+执行（`false; echo $?`→0；`X=5; echo $X`→空；`A && B || C` 的 B/C 恒执行）
+⇒ 复合命令、env 前缀、行内哨兵**全不可信**。规则：逻辑收进**脚本文件**
+（`flash_input/run_flash_wsl.sh`，**必须 LF 行尾**——Windows `write_text`
+的 CRLF 会让 bash 解析崩），wsl 侧只发**单条简单命令**；退出码以脚本内哨兵
+`FLASH_EXIT_CODE=` 为准。
 
-配置维度:
-  - 1D: 本地 80% CPU/3并行, 超算 95% CPU/4并行
-  - 2D: 本地 80% CPU/2并行, 超算 95% CPU/3并行
-  - 3D: 本地 80% CPU/1并行, 超算 95% CPU/2并行
+### 8.2 WSL 运行目录必须落原生 ext4
+FLASH 的 HDF5 MPI-IO 写 `/mnt/e`（drvfs）间歇
+`ADIOI_GEN_READCONTIG: No data available` → SIGABRT 134（短跑偶然通过、
+全长跑必崩）。`FLASH_RUN_WORKDIR` 用 `/root/...` 类原生路径，产物再普通
+cp 回 `/mnt/e`（非 MPI-IO，安全）。
 
-方法:
-  - get_local_config(dimension): 获取本地配置
-  - set_local_config(dimension, ...): 修改本地配置
-  - get_hpc_config(dimension): 获取超算配置
-  - set_hpc_config(dimension, ...): 修改超算配置
-  - get_effective_nproc(...): 计算有效进程数
+### 8.3 paramiko SFTP 两坑
+`~` **不展开**（文件落进主目录下字面 `~` 垃圾目录）；**尾斜杠**使
+`sftp.put` 报 `OSError: Failure`。⇒ `remote_dir` 先 `printf '%s' "$HOME"`
+解析成绝对路径；`_paramiko_put` 已做路径归一（`~` 经同一连接 exec 展开、
+目录意图补 basename）。
 
+### 8.4 超算运行已预置二进制走 module 路径
+计算节点 ambient 环境**没有** `libhdf5.so.10`——submit 脚本的
+`module purge + load mpich/3.2-gcc9.3 + hdf5/1.8.18` 必须生效（mpich 的
+soname 无 `.12` 后缀，不冲突二进制链接的 Intel `libmpi.so.12`）。
+`FLASH_NO_MODULE_PURGE=1` 只适用于 objdir **需重新编译**的场景
+（保 oneAPI 链接栈）。Intel MPI：`libmpifort.so.12` 在
+`mpi/latest/lib/`，`MPII_F_TRUE` 靠 `mpi/latest/lib/release/libmpi.so.12`
+提供——注入路径少写一层即 `undefined symbol` → SIGSEGV。
 
-## remote/ - 远程部署
+### 8.5 提交超时 ≠ 未提交
+`sbatch` 前的 `module load` 要 40~60s；超时后必须回查队列
+（`slurm_control.latest_job_by_name`）再判定，否则会把已提交当失败而重复提交。
 
-### RouteTester
-SSH 多路由延迟测试器。
+### 8.6 chk-only 回传与产物完整性
+plt 默认不回传（`fetch_policy`）；批量矩阵对比需 `FLASH_FETCH_LIMIT=0`。
+成功判据必须是「rc==0 **且** 末帧时间 ≥ 98% tmax」——崩溃后的部分产物
+（如 57/342 chk）曾被打包成"成功"。
 
-功能:
-  - TCP 连接延迟测试 (核心指标)
-  - ICMP ping 延迟测试 (参考)
-  - 自动选择最佳路由
-  - 缓存最佳路由结果
+### 8.7 insitu 收集三坑
+`select_fetch_files(basenm="")` 的 prefix 过滤只放行 `wsl_run_`，会把全部
+chk 滤掉——basenm 必须从 .par 解析（如 `lasslab_`）；
+`ls outputfiles_* | head -1` 取**最旧**目录（flash_input 多轮复用）⇒
+`sort | tail -1`；分析脚本不在 flash_input/（insitu 无上传步）⇒ 先拷入再跑。
 
-预定义路由:
-  - ROUTES_SCFA2696: <超算账号>@NC-E 的 9 条路由
-  - ROUTES_SCH0348: <超算账号>@BSCC-T6 的 9 条路由
+## 9. 配置存储与依赖
 
-方法:
-  - test_route(route): 测试单条路由
-  - test_all_routes(routes): 测试所有路由
-  - routes_for_account(...): 获取账号对应路由
-  - account_label(...): 获取账号标签
+| 内容 | 位置 |
+|---|---|
+| 环境配置 | `~/.physimx/flash_envs/environments.json` |
+| 资源配置 | `~/.physimx/flash_resource/resource_config.json` |
+| 路由缓存 | `~/.physimx/route_cache/best_routes.json` |
+| 超算账户 | `~/.physimx/flash/hpc_accounts.json` + `credentials.enc`（Agent 只读） |
 
-### FlashRemoteDeploy
-超算远程部署管理器。
+依赖：`paramiko`（SSH/SFTP，惰性导入——`import flash.flash_run` 不拉起）、
+`flash._core.credentials`（密码管理）、`h5py`/`numpy`/`matplotlib`（分析与绘图，
+按需）。
 
-功能:
-  - 多超算账户支持
-  - 自动路由选择
-  - FLASH 远程安装 (占位符)
-  - SBATCH 作业提交/监控/取消
-  - 文件上传/下载
-  - 结果下载与分析
+## 10. 命令行速查
 
-方法:
-  - connect(): 建立 SSH 连接
-  - disconnect(): 断开连接
-  - execute(cmd): 执行远程命令
-  - upload(local, remote): 上传文件
-  - download(remote, local): 下载文件
-  - submit_job(...): 提交作业
-  - check_job(job_id): 检查作业状态
-  - cancel_job(job_id): 取消作业
-  - wait_for_job(job_id): 等待作业完成
-  - download_results(...): 下载结果文件
+```bash
+python -m flash.flash_run.hpc route-test                 # 路由实测择优
+python -m flash.flash_run.remote.route_tester            # 同上（模块直跑）
+python -m flash.flash_run.env.resource_config            # 查看资源配置
+python -m flash.scenarios.cli list                       # 场景清单（统一入口）
+```
 
+## 11. 已知边界（挂账）
 
-# ── 配置存储位置 ─────────────────────────────────
-
-环境配置: ~/.physimx/flash_envs/environments.json
-资源配置: ~/.physimx/flash_resource/resource_config.json
-路由缓存: ~/.physimx/route_cache/best_routes.json
-
-
-# ── 依赖 ─────────────────────────────────────────
-
-  - paramiko: SSH/SFTP 客户端
-  - flash._core.credentials: 密码管理
-  - physimx_sim.flash.input_gen: 输入文件生成 (可选)
-
-
-# ── 命令行用法 ─────────────────────────────────
-
-## 测试 SSH 路由
-python -m physimx_sim.flash.flash_run.remote.route_tester
-
-## 查看资源配置
-python -m physimx_sim.flash.flash_run.env.resource_config
-
-
-# ── 示例工作流 ─────────────────────────────────
-
-## 本地 WSL 运行
-from flash.flash_run import FlashEnvManager
-from flash.flash_run.env.env_manager import get_env_manager   # ★ 不经 __init__ 导出
-
-mgr = get_env_manager()
-mgr.set_active("local_wsl")
-
-env = mgr.get_active()
-cmd = env.build_run_command(par_file="laser_slab_1d.par", nproc=4)
-
-# 执行命令 (通过 subprocess 或 WSL)
-import subprocess
-subprocess.run(cmd, shell=True)
-
-## 超算提交作业
-from flash.flash_run.remote.remote_deploy import FlashRemoteDeploy
-
-deploy = FlashRemoteDeploy(credential_name="flash_ssh")
-with deploy:
-    job_id = deploy.submit_job(
-        par_file="laser_slab_2d.par",
-        nprocs=90,
-        wall_time="02:00:00",
-        job_name="LaserSlab2D",
-    )
-    print(f"Job ID: {job_id}")
-
-    # 等待作业完成
-    final_state = deploy.wait_for_job(job_id, timeout=3600)
-    print(f"Final state: {final_state}")
-
-    # 下载结果
-    if final_state == "COMPLETED":
-        deploy.download_results(
-            remote_output_dir="~/hello/FLASH/FLASH4.8/object",
-            local_output_dir="./outputs",
-            pattern="*.h5",
-        )
+- 声明式 `build_inputs` 路径暂只接 `local`/`wsl`；hpc-* 请提供
+  `SceneSpec.runner`（存量脚本适配），B7 收编中；
+- `is_hpc_login_node()` 与 `probe_insitu` 仍是两份实现，待合一；
+- `remote_deploy.FlashRemoteDeploy` 为兼容壳，不推荐新代码使用。

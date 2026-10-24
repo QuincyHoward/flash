@@ -1,5 +1,7 @@
 # FLASH 远程超算部署模块
 
+> 子包级 API 文档；模块总览、执行目标判定与工程铁律见上层 [`../README.md`](../README.md)。
+
 通过 SSH 在远程超算上部署、运行、管理 FLASH 仿真。
 
 ## 功能
@@ -140,7 +142,7 @@ with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
     # 下载结果
     if final_state == "COMPLETED":
         downloaded = deploy.download_results(
-            remote_output_dir="~/hello/FLASH/FLASH4.8/object",
+            remote_output_dir="$HOME/<user>/FLASH/FLASH4.8/object",
             local_output_dir="./outputs",
             pattern="*.h5",
         )
@@ -157,7 +159,7 @@ deploy.connect()
 
 # 执行远程命令
 stdout, stderr, exit_code = deploy.execute(
-    command="ls -la ~/hello/FLASH/FLASH4.8/object/",
+    command="ls -la $HOME/<user>/FLASH/FLASH4.8/object/",
     work_dir=None,
     timeout=60,
 )
@@ -166,12 +168,12 @@ print(stdout)
 # 上传文件
 deploy.upload(
     local_path="./flash_2d.par",
-    remote_path="~/hello/FLASH/FLASH4.8/object/flash_2d.par",
+    remote_path="$HOME/<user>/FLASH/FLASH4.8/object/flash_2d.par",
 )
 
 # 下载文件
 deploy.download(
-    remote_path="~/hello/FLASH/FLASH4.8/object/flash.log",
+    remote_path="$HOME/<user>/FLASH/FLASH4.8/object/flash.log",
     local_path="./outputs/flash.log",
 )
 
@@ -203,7 +205,7 @@ for account, result in results.items():
 ### 测试所有 SSH 路由
 
 ```bash
-python -m physimx_sim.flash.flash_run.remote.route_tester
+python -m flash.flash_run.remote.route_tester
 ```
 
 输出示例:
@@ -222,7 +224,7 @@ SSH 路由延迟测试报告 (TCP 连接延迟)
 ### 指定账号测试
 
 ```bash
-python -m physimx_sim.flash.flash_run.remote.route_tester <超算账号>
+python -m flash.flash_run.remote.route_tester <超算账号>
 ```
 
 ## 配置存储
@@ -270,11 +272,11 @@ module load hdf5/1.8.18
 module load mpich/3.2-gcc9.3
 
 # 设置环境变量
-export HYPRE_HOME=~/hello/FLASH/local/hypre
+export HYPRE_HOME=$HOME/<user>/FLASH/local/hypre
 export LD_LIBRARY_PATH=$HYPRE_HOME/lib:$LD_LIBRARY_PATH
 
 # 运行 FLASH
-cd ~/hello/FLASH/FLASH4.8/object
+cd $HOME/<user>/FLASH/FLASH4.8/object
 mpirun -np 90 ./flash4 -par_file laser_slab_2d.par
 ```
 
@@ -346,7 +348,7 @@ FLASH `chk` 文件的完整性**只认 md5**。
 
 - `paramiko`: SSH/SFTP 客户端
 - `flash._core.credentials`: 密码管理
-- `physimx_sim.flash.input_gen`: 输入文件生成 (可选)
+- `flash.input_gen`: 输入文件生成 (可选)
 
 ## 调试
 

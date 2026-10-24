@@ -1,5 +1,7 @@
 # FLASH 环境配置管理
 
+> 子包级 API 文档；模块总览、执行目标判定与工程铁律见上层 [`../README.md`](../README.md)。
+
 管理 FLASH 仿真在不同计算环境中的配置。
 
 ## 功能
@@ -181,8 +183,8 @@ print(f"自动创建了 {len(created)} 个环境: {created}")
       "name": "local_wsl",
       "env_type": "local_wsl",
       "description": "本地 WSL Ubuntu (FLASH 4.8)",
-      "user_name": "hello",
-      "flash_home": "~/hello/FLASH/FLASH4.8",
+      "user_name": "hello",   # 默认值；实际由 get_sim_user_dir() 解析（当前机凭据为 QC）
+      "flash_home": "$HOME/<user>/FLASH/FLASH4.8",
       "mpi_path": "/usr/local/mpich",
       ...
     },
@@ -221,19 +223,19 @@ print(f"自动创建了 {len(created)} 个环境: {created}")
 
 ```bash
 # 查看所有配置
-python -m physimx_sim.flash.flash_run.env.resource_config
+python -m flash.flash_run.env.resource_config
 
 # 查看本地 1D 配置
-python -m physimx_sim.flash.flash_run.env.resource_config local 1
+python -m flash.flash_run.env.resource_config local 1
 
 # 修改本地 1D 配置 (CPU 90%, 2 并行)
-python -m physimx_sim.flash.flash_run.env.resource_config local 1 90 2
+python -m flash.flash_run.env.resource_config local 1 90 2
 
 # 查看超算 2D 配置
-python -m physimx_sim.flash.flash_run.env.resource_config hpc 2
+python -m flash.flash_run.env.resource_config hpc 2
 
 # 重置为默认配置
-python -m physimx_sim.flash.flash_run.env.resource_config reset
+python -m flash.flash_run.env.resource_config reset
 ```
 
 ## 预定义环境
@@ -241,7 +243,7 @@ python -m physimx_sim.flash.flash_run.env.resource_config reset
 安装后自动创建 3 个默认环境:
 
 1. **local_wsl**: 本地 WSL Ubuntu
-   - flash_home: `~/hello/FLASH/FLASH4.8`
+   - flash_home: `$HOME/<user>/FLASH/FLASH4.8`
    - 默认 4 进程
 
 2. **supercomputer_nc_e**: ParaCloud NC-E (中卫)

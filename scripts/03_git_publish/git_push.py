@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-一键推送脚本 (One-click Git push to Gitee)
-==========================================
+一键推送脚本 (One-click Git push to Gitee + HPC deploy repo)
+==============================================================
 
 定位: flash/scripts/03_git_publish/git_push.py
-双击 git_push.bat 即可运行: 自动读取加密凭据 → 自动提交 → 推送到 Gitee。
+双击 git_push.bat 即可运行: 自动读取加密凭据 → 自动提交 → 推送到 Gitee
+→ 同步到超算部署仓库（NC-E `~/PhySimX/PhySimX/simulation/flash/flash_sim`）。
 
 设计约束 (强制):
   * 任何密码 / 账户 / token 都 **绝不硬编码** 到本文件。
@@ -15,14 +16,27 @@
     任何环境都不会弹出凭据输入框。
 
 使用示例:
-  python git_push.py              # 双击/默认: 自动提交 + 推送到当前分支
+  python git_push.py              # 双击/默认: 自动提交 + 推 Gitee + 同步超算
   python git_push.py -m "msg"     # 自定义提交信息
   python git_push.py -b main      # 推送到指定分支
   python git_push.py -f           # 强制推送
   python git_push.py -n           # dry-run (只展示不执行)
   python git_push.py --allow-deletes  # 允许提交删除 (默认拦截, 见下)
+  python git_push.py --no-hpc     # 只推 Gitee，跳过超算同步（默认含超算）
   python git_push.py --status     # 查看 git 状态 (不推送)
   python git_push.py --tags 0.1.11  # 推送标签 (发版用; 凭据同走 helper)
+
+超算同步策略 (2026-10-24):
+  * 默认**随 Gitee 推送一并同步**到超算部署仓库；超算侧任何失败
+    （SSH 不可达 / 上传失败 / 分叉 / ff-only 冲突）**仅 WARN 提示，
+    不改变退出码、不阻断主流程**——超算是便利副本，Gitee 才是事实源。
+  * 机制与部署链同源（deploy/hpc_deploy/sync_incremental.py）：
+    本地 `git bundle create`（增量 `<tip>..<branch>`）→ SFTP 上传 →
+    远端 `git fetch <bundle> refs/heads/<branch>:refs/heads/_push_tmp`
+    + `git merge --ff-only _push_tmp` + 删临时分支。
+    不依赖超算访问外网（其 git 1.8.3 + https 直连 Gitee 不可靠）。
+  * 远端仓库路径可用环境变量 FLASH_HPC_PKG_ROOT 覆盖（默认
+    `$HOME/PhySimX/PhySimX/simulation/flash/flash_sim`，$HOME 运行时探测）。
   python git_push.py --setup      # 进入凭据设置界面 (唯一需要交互的选项)
 
 钩子机制 (通过 git 命令自动触发):
@@ -38,6 +52,8 @@
 """
 
 import argparse
+import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -296,7 +312,8 @@ def input_with_timeout(prompt: str, timeout: float = 5.0) -> str | None:
 # ============================================================================
 
 def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
-                  project_root: Path | None = None, allow_deletes: bool = False):
+                  project_root: Path | None = None, allow_deletes: bool = False,
+                  push_hpc: bool = True):
     if project_root is None:
         project_root = find_git_root(Path(__file__).resolve().parent)
 
@@ -378,48 +395,240 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
 
     # ── 4. 推送 ──
     ahead = count_ahead(project_root, branch)
+    gitee_pushed = False
     if ahead == 0 and not has_changes(project_root) and not force:
         info(f"分支 '{branch}' 已与远程同步, 无需推送")
-        eprint()
-        ok("完成!")
-        return
-
-    # ★ 认证：用同目录的 credential helper。
-    #   凭据由 helper 从加密库读取、经**管道**交给 git ——
-    #   既不写入 .git/config，也不出现在命令行参数里（`ps` 看不到）。
-    #   （对比：把认证 URL 当 push 参数虽然不落盘，但 token 会进 argv。）
-    prefix = auth_prefix()
-    if not prefix:
-        warn("未找到 credential helper（_git_auth.HELPER_NAME），回退到认证 URL 方式")
-        warn("  回退方式会把 token 放进命令行参数，建议尽快修复 helper 缺失问题。")
-
-    push_target = "origin" if prefix else (auth_url if auth_url != repo_url else "origin")
-    push_args = prefix + ["push", push_target, branch]
-    if force:
-        push_args.append("--force")
-        warn("强制推送模式!")
-
-    if dry_run:
-        warn(f"[DRY-RUN] 将执行: git -c credential.helper=<helper> push {push_target} {branch}"
-             + (" --force" if force else ""))
     else:
-        info(f"执行: git push {push_target} {branch}"
-             + (" --force" if force else "") + "   (凭据经 credential helper 管道传递)")
-        r = run_git(push_args, cwd=project_root, check=False)
-        if r.returncode == 0:
-            ok(f"推送成功! ({branch})")
+        # ★ 认证：用同目录的 credential helper。
+        #   凭据由 helper 从加密库读取、经**管道**交给 git ——
+        #   既不写入 .git/config，也不出现在命令行参数里（`ps` 看不到）。
+        #   （对比：把认证 URL 当 push 参数虽然不落盘，但 token 会进 argv。）
+        prefix = auth_prefix()
+        if not prefix:
+            warn("未找到 credential helper（_git_auth.HELPER_NAME），回退到认证 URL 方式")
+            warn("  回退方式会把 token 放进命令行参数，建议尽快修复 helper 缺失问题。")
+
+        push_target = "origin" if prefix else (auth_url if auth_url != repo_url else "origin")
+        push_args = prefix + ["push", push_target, branch]
+        if force:
+            push_args.append("--force")
+            warn("强制推送模式!")
+
+        if dry_run:
+            warn(f"[DRY-RUN] 将执行: git -c credential.helper=<helper> push {push_target} {branch}"
+                 + (" --force" if force else ""))
         else:
-            fail("推送失败!")
-            stderr = (r.stderr or "").strip()
-            eprint(f"  {stderr}")
-            if "403" in stderr or "authentication" in stderr.lower():
-                warn("Token 可能无效, 请运行: python git_push.py --setup")
-            elif "no upstream" in stderr.lower():
-                warn(f"分支未设置上游, 尝试: git push --set-upstream origin {branch}")
-            sys.exit(1)
+            info(f"执行: git push {push_target} {branch}"
+                 + (" --force" if force else "") + "   (凭据经 credential helper 管道传递)")
+            r = run_git(push_args, cwd=project_root, check=False)
+            if r.returncode == 0:
+                ok(f"推送成功! ({branch})")
+                gitee_pushed = True
+            else:
+                fail("推送失败!")
+                stderr = (r.stderr or "").strip()
+                eprint(f"  {stderr}")
+                if "403" in stderr or "authentication" in stderr.lower():
+                    warn("Token 可能无效, 请运行: python git_push.py --setup")
+                elif "no upstream" in stderr.lower():
+                    warn(f"分支未设置上游, 尝试: git push --set-upstream origin {branch}")
+                sys.exit(1)
+
+    # ── 5. 超算部署仓库同步（默认；失败仅 WARN，不阻断）──
+    if push_hpc:
+        if dry_run:
+            warn(f"[DRY-RUN] 将同步超算部署仓库: bundle({branch}) → fetch + ff-only merge")
+        else:
+            push_to_hpc(branch=branch, dry_run=False,
+                        project_root=project_root)
 
     eprint()
     ok("全部完成!")
+
+
+def push_to_hpc(branch=None, dry_run=False, tag=None,
+                project_root: Path | None = None) -> bool:
+    """同步到超算部署仓库（bundle + fetch + ff-only；git 1.8.3 兼容）。
+
+    与部署链同源（deploy/hpc_deploy/sync_incremental.py 的轻量内联版）：
+    本地 `git bundle create`（增量 `<tip>..<branch>`，可选附 tag）→ SFTP
+    上传（.part + 改名 + 双端 SHA256 校验）→ 远端
+    `git fetch <bundle> refs/heads/<branch>:refs/heads/_push_tmp` +
+    `git merge --ff-only _push_tmp` + 删临时分支。
+    不依赖超算访问外网（git 1.8.3 + https 直连 Gitee 不可靠）。
+
+    ★ 本函数**绝不 sys.exit**：超算是便利副本，Gitee 才是事实源——
+      任何失败（SSH 不可达 / 上传失败 / 分叉 / 工作区脏 / ff-only 冲突）
+      只 WARN 提示并返回 False，调用方不因此改变退出码。
+
+    Returns:
+        True = 成功或本就最新；False = 失败（已 WARN）。
+    """
+    if project_root is None:
+        project_root = find_git_root(Path(__file__).resolve().parent)
+    if branch is None:
+        r = run_git(["rev-parse", "--abbrev-ref", "HEAD"],
+                    cwd=project_root, check=False)
+        branch = (r.stdout or "").strip() or "master"
+
+    eprint()
+    info(f"超算部署仓库同步（bundle 机制，失败仅提示）: {branch}"
+         + (f" + tag {tag}" if tag else ""))
+
+    try:
+        from flash.flash_run.remote.session import RemoteSession
+    except Exception as exc:  # noqa: BLE001
+        warn(f"跳过超算同步: 无法导入 RemoteSession ({type(exc).__name__}: {exc})")
+        warn("  （paramiko 缺失? 安装: pip install paramiko）")
+        return False
+
+    import hashlib
+    import tempfile
+
+    tmpdir = Path(tempfile.mkdtemp(prefix="flash_hpc_push_"))
+    bundle = tmpdir / "flash_sim_push.bundle"
+    remote_bundle = ""
+    try:
+        with RemoteSession(credential_name=None, verbose=False) as s:
+            try:
+                home = (s.run("printf '%s' \"$HOME\"", timeout=20)[0] or "").strip()
+                pkg = os.environ.get("FLASH_HPC_PKG_ROOT", "").strip()
+                if not pkg:
+                    if not home.startswith("/"):
+                        warn("跳过超算同步: 无法解析远端 $HOME")
+                        return False
+                    pkg = f"{home}/PhySimX/PhySimX/simulation/flash/flash_sim"
+
+                # 远端当前分支（git 1.8.3 无 `git branch --show-current`；
+                # 禁 `git -C`，用 cd；任一失败都只 WARN）
+                out, _, _ = s.run(
+                    f"cd {pkg} 2>/dev/null && git rev-parse --abbrev-ref HEAD "
+                    f"2>/dev/null || echo NO_REPO", timeout=60)
+                hpc_branch = (out or "").strip()
+                if hpc_branch in ("", "NO_REPO"):
+                    warn(f"跳过超算同步: 远端仓库不可用或非 git 仓库 ({pkg})")
+                    return False
+                if hpc_branch != branch:
+                    warn(f"跳过超算同步: 远端当前分支为 {hpc_branch}，与本地 "
+                         f"{branch} 不同（避免误合并不相关历史，需人工处理）")
+                    return False
+
+                out, _, _ = s.run(
+                    f"cd {pkg} && git rev-parse --verify {branch} 2>/dev/null "
+                    f"|| echo NO_BRANCH", timeout=60)
+                tip = (out or "").strip()
+                have_tip = tip not in ("", "NO_BRANCH") and len(tip) >= 7
+
+                # 分叉检测（远端 tip 必须是本地祖先，否则 ff-only 必败）
+                n_new = 0
+                if have_tip:
+                    r = run_git(["merge-base", "--is-ancestor", tip, branch],
+                                cwd=project_root, check=False)
+                    if r.returncode != 0:
+                        warn(f"超算 {branch} 与本地已分叉（远端 tip {tip[:12]} "
+                             "不是本地祖先）——需人工处理，已跳过超算同步")
+                        return False
+                    r = run_git(["rev-list", "--count", f"{tip}..{branch}"],
+                                cwd=project_root, check=False)
+                    n_new = int(r.stdout.strip()) if (
+                        r.returncode == 0 and r.stdout.strip()) else 0
+
+                # tag 有效性（本地不存在则只同步分支）
+                tag_ok = False
+                if tag:
+                    r = run_git(["rev-parse", "--verify", f"refs/tags/{tag}"],
+                                cwd=project_root, check=False)
+                    tag_ok = r.returncode == 0
+                    if not tag_ok:
+                        warn(f"本地无标签 {tag}，仅同步分支")
+
+                if n_new == 0 and not tag_ok:
+                    ok(f"超算仓库已是最新 ({branch} @ {tip[:12]})")
+                    return True
+
+                # 本地 bundle：增量 range（+可选 tag ref）
+                rev_args: list[str] = []
+                if n_new > 0:
+                    rev_args.append(f"{tip}..{branch}" if have_tip else branch)
+                if tag_ok:
+                    rev_args.append(f"refs/tags/{tag}")
+                r = run_git(["bundle", "create", str(bundle)] + rev_args,
+                            cwd=project_root, check=False)
+                if r.returncode != 0 or not bundle.is_file():
+                    warn("跳过超算同步: bundle 创建失败: "
+                         + ((r.stderr or "").strip()[:200] or "(no stderr)"))
+                    return False
+                size_mb = bundle.stat().st_size / 1e6
+                info(f"bundle {size_mb:.1f} MB（新增 {n_new} commit"
+                     + (f" + tag {tag}" if tag_ok else "") + "）")
+
+                # 上传（.part + 改名 + 双端 SHA256 校验）
+                remote_bundle = f"{pkg}/flash_sim_push.bundle"
+                if not s.upload(str(bundle), remote_bundle + ".part"):
+                    warn("跳过超算同步: bundle 上传失败")
+                    return False
+                s.run(f"mv -f {remote_bundle}.part {remote_bundle}", timeout=120)
+                local_sha = hashlib.sha256(bundle.read_bytes()).hexdigest()
+                out, _, _ = s.run(f"sha256sum {remote_bundle} 2>/dev/null || echo ABSENT",
+                                  timeout=300)
+                remote_sha = (out or "").strip().split(" ", 1)[0] if out else ""
+                if remote_sha != local_sha:
+                    warn("跳过超算同步: 双端 bundle SHA256 不一致")
+                    return False
+
+                # 远端 fetch + ff-only merge（禁 git -C；显式 refspec；
+                # 不管道，保证 && 链上的 rc 是真实退出码）
+                fetch_refs: list[str] = []
+                if n_new > 0:
+                    fetch_refs.append(f"refs/heads/{branch}:refs/heads/_push_tmp")
+                if tag_ok:
+                    fetch_refs.append(f"refs/tags/{tag}:refs/tags/{tag}")
+                steps = [f"git fetch {remote_bundle} '{fr}' 2>&1"
+                         for fr in fetch_refs]
+                if n_new > 0:
+                    steps.append("git merge --ff-only _push_tmp 2>&1")
+                steps.append("git rev-parse HEAD")
+                out, err, rc = s.run(
+                    f"cd {pkg} && " + " && ".join(steps), timeout=600)
+                if n_new > 0:
+                    s.run(f"cd {pkg} && git branch -D _push_tmp 2>/dev/null",
+                          timeout=60)
+
+                head_after = ""
+                for ln in reversed((out or "").strip().splitlines()):
+                    ln = ln.strip()
+                    if len(ln) >= 7 and all(c in "0123456789abcdef" for c in ln):
+                        head_after = ln
+                        break
+                local_head = run_git(["rev-parse", branch],
+                                     cwd=project_root).stdout.strip()
+                if rc == 0 and head_after == local_head:
+                    ok(f"超算同步完成: {branch} → {head_after[:12]}"
+                       + (f"（tag {tag}）" if tag_ok else ""))
+                    return True
+                warn(f"超算同步未确认 (rc={rc}, HEAD={head_after[:12] or '(空)'})")
+                for ln in (out or "").strip().splitlines()[-4:]:
+                    eprint(f"        {ln}")
+                if "local changes" in (out or "") or "would be overwritten" in (out or ""):
+                    warn("  远端工作区有未提交修改（如在超算侧手工放过文件）——"
+                         "清理/提交后重试即可，不影响本次 Gitee 推送结果。")
+                else:
+                    warn("  不影响本次推送结果（Gitee 已是事实源）；可稍后手动执行：")
+                    warn("    python deploy/hpc_deploy/sync_incremental.py")
+                return False
+            finally:
+                if remote_bundle:
+                    try:
+                        s.run(f"rm -f {remote_bundle} {remote_bundle}.part",
+                              timeout=60)
+                    except Exception:  # noqa: BLE001
+                        pass
+    except Exception as exc:  # noqa: BLE001
+        warn(f"超算同步异常（已忽略，不影响推送结果）: "
+             f"{type(exc).__name__}: {exc}")
+        return False
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def show_status(project_root: Path | None = None):
@@ -457,7 +666,7 @@ def show_status(project_root: Path | None = None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="一键推送脚本 — 双击即可自动提交 + 推送到 Gitee (凭据从加密存储读取)",
+        description="一键推送脚本 — 自动提交 + 推 Gitee + 同步超算部署仓库 (凭据从加密存储读取; 超算失败仅提示)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__.split("使用示例:")[1] if "使用示例:" in __doc__ else "",
     )
@@ -467,6 +676,8 @@ def main():
     parser.add_argument("-n", "--dry-run", action="store_true", help="试运行 (只展示不执行)")
     parser.add_argument("--allow-deletes", action="store_true",
                         help="允许提交文件删除 (默认拦截: 防本机文件系统异常导致误删)")
+    parser.add_argument("--no-hpc", action="store_true",
+                        help="跳过超算部署仓库同步（默认: Gitee 推送后一并同步，失败仅提示）")
     parser.add_argument("--setup", action="store_true", help="进入凭据设置界面 (有交互)")
     parser.add_argument("--status", action="store_true", help="查看当前 git 状态 (不推送)")
     parser.add_argument("-r", "--root", default=None, help="项目根目录 (含 .git)")
@@ -490,6 +701,7 @@ def main():
         dry_run=args.dry_run,
         project_root=root,
         allow_deletes=args.allow_deletes,
+        push_hpc=not args.no_hpc,
     )
 
     # ── 标签推送（发版用）────────────────────────────────────
@@ -498,6 +710,11 @@ def main():
     #   在 ps 输出里可见。
     if args.tags:
         push_tags(root, args.tags, dry_run=args.dry_run)
+        # 标签随后同步到超算（分支增量 bundle 已同步过，这里只带 tag ref；
+        # 失败仅 WARN，不影响上面的 Gitee 标签推送结果）
+        if not args.no_hpc and not args.dry_run:
+            push_to_hpc(branch=args.branch, dry_run=False, tag=args.tags,
+                        project_root=root)
 
 
 def push_tags(project_root: Path | None, tag: str, dry_run: bool = False) -> None:

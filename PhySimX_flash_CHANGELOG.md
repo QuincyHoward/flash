@@ -154,6 +154,49 @@
 
 ---
 
+## [Unreleased] — 2026-10-24 第三批：ch_center 五模式测试 + 文档统一
+
+### 新增
+
+- **`scenarios/public/center_evolution/ch_center/modes_test/`**：同一算例在五种
+  执行路径下的测试与对比框架。`run_mode_test.py`（mode-key 驱动 + `fetch-insitu`
+  回传 + Windows→WSL 自动转投）、`analyze_modes.py`（跨模式 dens/nele 时序对比）、
+  `plot_style.py`（全英文 / Times New Roman / ≥18pt）、`README.md`（用法 + 12 条
+  维护坑）。首轮五模式全绿（tmax=1.188 ns）：**win-wsl 与 wsl-wsl 逐位一致**；
+  三个超算路径彼此一致、与 WSL 参考最大偏差 5.4e-3（编译器浮点差，集中在激波段）。
+- `ch_center/README.md`：场景物理简介、五模式使用指南与参数切换、输入重建约定。
+- `flash/flash_run/README.md` **合并重写**（吸收 PROCESS.md 并删除）：模块地图、
+  四目标判定表、用户名规范、运行流程、工程铁律；`env/`、`remote/` 子包 README
+  校正旧 `physimx_sim.*` 路径与硬编码用户名。
+
+### 修复（均为实跑复现的静默失败/崩溃）
+
+- **wsl.exe 命令串拆分**：本机 `wsl bash -c` 在顶层 `;`/`&&`/`||` 拆成多次独立
+  执行 ⇒ `FLASH_EXIT_CODE=$?` 哨兵恒 0，FLASH exit 134 崩溃被报成"成功"。
+  改包装脚本 `run_flash_wsl.sh`（LF 行尾）+ 单条简单命令；`modes/runner.py` 同修。
+- **WSL 运行目录落 /mnt/e 间歇 SIGABRT 134**（HDF5 MPI-IO 写 drvfs
+  `No data available`）：驱动改将 `FLASH_RUN_WORKDIR` 固定到 WSL 原生 ext4。
+- **paramiko SFTP 上传 0/18**：`~` 不展开（落进字面 `~` 垃圾目录）+ 尾斜杠致
+  `sftp.put` `OSError: Failure` ⇒ `remote_dir` 先 `printf $HOME` 转绝对路径，
+  `_paramiko_put` 增加路径归一（同连接 exec 展开 `~`、目录意图补 basename）。
+- **Intel MPI 注入路径笔误**：`mpi/latest/release`（不存在）⇒ 计算节点加载其它
+  libmpi 副本，`MPII_F_TRUE` 未定义 SIGSEGV(174)；诊断确认真正死因是
+  `libhdf5.so.10` 只有 hdf5 模块提供 ⇒ ch_center 预置二进制改走 module 路径，
+  不设 `FLASH_NO_MODULE_PURGE`。
+- **insitu 收集三坑**：`select_fetch_files(basenm="")` 滤掉全部 chk（改从 .par
+  解析 basenm）；`ls outputfiles_* | head -1` 取最旧目录（改 `sort | tail -1`）；
+  分析脚本未拷入 flash_input。成功判据补认 `FLASH_COLLECT_DIR` 产物。
+- 驱动产物完整性判据：末 chk 时间 ≥ 98% tmax，防"崩溃后部分产物报成功"。
+
+### 变更
+
+- `scripts/03_git_publish/git_push.py`：默认推送目标增加超算部署仓库
+  （`~/PhySimX/PhySimX/simulation/flash/flash_sim`，NC-E）；超算失败仅 WARN，
+  不阻断 Gitee 主流程。
+- `catalog.py`：向场景 `main()` 传 `mode`/`tmax`（按签名自适应，老脚本零改动）。
+
+---
+
 ## [0.1.11] - 2026-10-22
 
 ### 新增
