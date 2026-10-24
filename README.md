@@ -426,24 +426,21 @@ python start_flash.py --no-tests# 只装环境
 `flash/scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
 
 ```bash
-# ★ 推荐：显式指定模式（auto = 平台自适应，按 README §典型工作流 0 判定表选择）
-# Windows — 内部经 wsl bash -c 转发
-.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py --mode auto
+# ★ 推荐入口（2026-10-24）：统一 CLI，--mode 默认 auto（平台自适应）
+python -m flash.scenarios.cli run ch_center            # auto：Win→wsl / Linux→local / 登录节点→hpc-insitu
+python -m flash.scenarios.cli run ch_center --mode hpc-insitu   # 已登录超算：就地 sbatch 编排
+python -m flash.scenarios.cli run ch_center --mode hpc-remote   # 本机驱动：上传 → sbatch → 回收
+python -m flash.scenarios.cli explain ch_center        # 只打印判定轨迹，不执行
+python -m flash.scenarios.cli list                     # 列出可执行场景与允许模式
 
-# Linux / WSL — 直接跑
-.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py --mode auto
-
-# 超算远端（需 SSH 凭据 flash_ssh）：本机驱动 → 上传 → sbatch → 回收
-... laserslab1d_local_custom.py --mode hpc-remote
-# 已在超算登录节点：就地 sbatch 编排，不自连 SSH
-... laserslab1d_local_custom.py --mode hpc-insitu
-
-# 环境变量等价覆盖（无需改文件）
-set FLASH_RUN_MODE=hpc-remote      # Windows CMD
-export FLASH_RUN_MODE=hpc-remote   # bash
+# 直跑场景脚本（等价，保留兼容；★ 该脚本**没有** argparse，
+#   模式只能由环境变量指定，传 --mode 会被忽略）
+set FLASH_RUN_MODE=hpc-insitu       # Windows CMD
+export FLASH_RUN_MODE=hpc-insitu    # bash
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
 ```
 
-- 运行模式：**`--mode auto`（默认，平台自适应）** / `local` / `wsl` / `hpc-remote` / `hpc-insitu`；
+- 运行模式：**`auto`（默认，平台自适应）** / `local` / `wsl` / `hpc-remote` / `hpc-insitu`；
   优先级 `--mode` > `FLASH_RUN_MODE` > 场景默认。判定依据会打印在日志首行，
   **不做静默兜底**（例：SNB 族只允许超算，若在 Windows 上跑 auto 会明确报错并给出修复建议）。
 - **跨平台（09-10 实测）**：Windows 上以 `.venv-win\Scripts\python.exe` 调用，内部经
@@ -637,6 +634,9 @@ flash/input_gen/ 输入生成层：无运行细节
 ```bash
 # 安装（联网/离线同一入口；离线需 artifacts/wheelhouse 含 MANIFEST.json）
 python start_flash.py [--offline] [--wheelhouse D] [--profile full|runtime|lite]
+# 部署目标统一入口（2026-10-24）：本机安装与超算部署链不再需要记两套命令
+python start_flash.py --target auto|win|wsl|hpc
+python start_flash.py --target hpc -- --only 05b        # `--` 之后透传给 hpc_deploy/run_all.py
 # 三平台依赖差异表（根目录唯一事实源 = deploy/env_spec.py）
 #   机器可读 lock: deps_lock/requirements-{win,wsl,hpc}.txt
 python deps_lock/generate_locks.py --check
@@ -644,11 +644,14 @@ python deps_lock/generate_locks.py --check
 # 运行环境自检（可作门禁：存在待修项时 --strict 返回非零）
 python -m flash.flash_run.modes.runner --check-env [--strict]
 
+# 场景统一入口（唯一实现；--mode 默认 auto，平台自适应）
+python -m flash.scenarios.cli list | explain <scene> | run <scene> [--mode ...]
+
 # 超算技能统一 CLI（本地/登录节点两侧可调）
 python -m flash.flash_run.hpc status | submit | cancel | wait | download | route-test | nodes
 
-# 场景源码"去运行化"检查（新内联运行细节会被拦截）
-python -m flash.input_gen.gen_checker.check_scene_sources
+# 分层护栏（8 条规则；基线由 --freeze 生成，只降不升）
+python -m flash.input_gen.gen_checker.check_scene_sources [--report-only|--rules-only|--freeze]
 
 # 构建产物统一落 artifacts/（dist、wheelhouse、logs），不污染根目录
 python deploy/wheel_leak_audit.py <wheel>   # 造包后必跑的护栏
@@ -1006,6 +1009,14 @@ python start_flash.py                                 # install + test + report
 python start_flash.py --no-tests                      # install only
 ```
 
+**Deployment target (2026-10-24)** — one entry point for both local install and the
+HPC chain, so you no longer have to remember two separate command sets:
+
+```bash
+python start_flash.py --target auto|win|wsl|hpc
+python start_flash.py --target hpc -- --only 05b   # everything after `--` goes to hpc_deploy/run_all.py
+```
+
 Four gates run **before** anything is created or modified — any failure aborts
 without leaving a half-built venv:
 
@@ -1060,9 +1071,17 @@ python start_flash.py --no-tests   # install the environment only
 Run the built-in 1D LaserSlab scenario with platform auto-detection:
 
 ```bash
-# --mode auto (default) picks the target by the decision table below
-.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py --mode auto
-.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py --mode auto
+# Recommended (2026-10-24): the unified CLI, --mode defaults to auto
+python -m flash.scenarios.cli run ch_center                # auto: Win→wsl, Linux→local, login node→hpc-insitu
+python -m flash.scenarios.cli run ch_center --mode hpc-insitu
+python -m flash.scenarios.cli explain ch_center            # print the decision trace only
+python -m flash.scenarios.cli list
+
+# Running the scene script directly still works, but it has **no argparse** —
+# the mode can only be set via the environment variable (a `--mode` flag is ignored):
+export FLASH_RUN_MODE=hpc-insitu      # bash
+set FLASH_RUN_MODE=hpc-insitu         # Windows CMD
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
 ```
 
 **Execution targets** (`EXEC_TARGETS`, 2026-10-24): `local` | `wsl` | `hpc-remote` | `hpc-insitu`

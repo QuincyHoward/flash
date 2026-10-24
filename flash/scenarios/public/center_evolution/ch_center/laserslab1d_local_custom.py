@@ -545,26 +545,31 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
     # ★ 2026-10-24 实测缺陷：此处原为 `timeout=30`，但 NC-E 上
     #   `source /public1/soft/modules/module.sh` + 两次 `module load`
     #   本身就要 40~60s ⇒ `Command ... timed out after 30 seconds`，
-    #   而 sbatch **其实已经提交成功**（squeue 里能看到 RUNning 的作业）。
+    #   而作业其实**已经提交成功**（队列里能看到 RUNning 的作业）。
     #   结果是"作业在跑、封装层报 FAIL"—— 比失败更糟：会导致重复提交。
-    #   现放宽到 180s，并在超时后回查 squeue，避免把已提交当失败。
+    #   现放宽到 180s，并在超时后回查队列，避免把已提交当失败。
     sbatch_cmd = f"cd {remote_dir} && {MODULES_LOAD} && sbatch submit_flash.sh 2>&1"
     _t0 = time.time()
     try:
         out, err, code = session.run(sbatch_cmd, timeout=180)
     except Exception as exc:  # noqa: BLE001 - 超时也要判断是否已提交
-        log(f"    sbatch 调用异常: {type(exc).__name__}; 回查 squeue 判断是否已提交", "WARN")
+        log(f"    提交调用异常: {type(exc).__name__}; 回查队列判断是否已提交", "WARN")
         out, err, code = "", "", 1
-    log(f"    sbatch 返回 rc={code} 耗时 {time.time() - _t0:.0f}s")
+    log(f"    提交返回 rc={code} 耗时 {time.time() - _t0:.0f}s")
     if code != 0 or "Submitted batch job" not in (out or ""):
         # 回查：刚提交的作业名 = FLASH_batch（见 submit_flash.sh 的 #SBATCH --job-name）
-        q_out, _, _ = session.run(
-            "squeue -u $(whoami) -h -o '%i %j %T' 2>/dev/null | grep FLASH_batch | tail -1",
-            timeout=30)
-        if (q_out or "").strip():
-            out = f"Submitted batch job {q_out.split()[0]}"
+        # ★ 回查逻辑放在执行层（slurm_control.latest_job_by_name），
+        #   场景层不得内联队列命令 —— 否则护栏债务会因修 bug 而增长。
+        from flash.flash_run.remote.slurm_control import (
+            RemoteExecutor,
+            latest_job_by_name,
+        )
+
+        job_probe = latest_job_by_name(RemoteExecutor(session), "FLASH_batch")
+        if job_probe:
+            out = f"Submitted batch job {job_probe.split()[0]}"
             code = 0
-            log(f"    回查确认已提交: {q_out.strip()}", "OK")
+            log(f"    回查确认已提交: {out}", "OK")
 
     if code == 0 and "Submitted batch job" in out:
         job_id = out.strip().split()[-1]

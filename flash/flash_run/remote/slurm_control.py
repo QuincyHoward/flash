@@ -101,6 +101,21 @@ def job_state(exe: CommandExecutor, job_id: str) -> str:
     return (out or "").strip().splitlines()[0] if (out or "").strip() else ""
 
 
+def latest_job_by_name(exe: CommandExecutor, name: str) -> str:
+    """按作业名查最近一个在队列中的作业 ID；没有则返回空串。
+
+    ★ 用途：提交类操作的**超时回查**。`sbatch` 调用可能因
+    `module load` 耗时（NC-E 实测 40~60 s）而超时，但作业其实已入队；
+    只凭"调用返回与否"判成败会得出与事实相反的结论（实测 G12）。
+      判定必须来自状态查询，而不是调用是否返回。
+    """
+    out, _err, _rc = exe.run(
+        "squeue -u $(whoami) -h -o '%i %j' 2>/dev/null "
+        f"| awk '$2==\"{name}\"{{print $1}}' | tail -1",
+        timeout=30)
+    return (out or "").strip().splitlines()[-1].strip() if (out or "").strip() else ""
+
+
 def tail(exe: CommandExecutor, path_glob: str, n: int = 25) -> str:
     """回显作业输出尾部（诊断用）。"""
     out, _, _ = exe.run(f"tail -{n} {path_glob} 2>/dev/null", timeout=30)

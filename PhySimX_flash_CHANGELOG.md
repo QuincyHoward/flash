@@ -77,6 +77,83 @@
 
 ---
 
+## [Unreleased] — 2026-10-24 第二批：执行层解耦 B0–B4
+
+### 新增
+
+- **`flash/flash_run/execution.py`**：场景层与执行层之间的**唯一契约**。
+  `EXEC_TARGETS = local | wsl | hpc-remote | hpc-insitu`、`resolve_target()`
+  判定表（逐条判据轨迹打印）、`SceneSpec` / `ExecutionPolicy` / `NprocRule` /
+  `ExecOptions` / `RunResult`、`run_scene()`（失败一律 `ok=False`，绝不吞错）。
+- **`flash/scenarios/cli.py`**：`python -m flash.scenarios.cli list|explain|run <scene>`，
+  `--mode` 默认 `auto`；`explain` 只打印判定轨迹不执行。
+- **`flash/scenarios/catalog.py`**：可执行场景目录（与引擎用的 `registry.py` 分开，
+  避免"新增一个能跑的算例"必须改引擎注册表）。
+- **`flash/flash_run/remote/session.py`**：**全仓唯一 SSH 实现**（原 597 行住在
+  `scenarios/flash_demo/demo_hpc/remote_ssh_helper.py`，属层次倒置）；新增
+  `probe()/listdir()/exists()/mkdir_p()/put_dir()/get_many()`。
+- **`flash/flash_run/remote/executors.py`**：`LocalExecutor` / `WslExecutor` /
+  `SSHExecutor` 统一命令面。`WslExecutor` 用 **rc 哨兵**取退出码（`wsl.exe` 会吞码），
+  `listdir` 不用 shell glob（Windows 侧会把 `*` 吃掉且无报错）。
+- **`flash/flash_run/remote/artifacts.py`**：`fetch_artifacts()` —— 让
+  `fetch_policy`（"该拿哪些文件"的唯一策略源）终于有了**唯一执行点**，
+  四个 target 共用（本地 copy / wsl cp / sftp）。
+- **`flash/flash_run/modes/hpc_insitu.py`**：hpc-insitu 编排从场景层迁入执行层，
+  消除 `modes → scenarios → modes` 循环（旧路径保留转发壳）。
+- **`deploy/targets.py`**：部署目标解析，复用执行侧判定（按路径加载
+  `execution.py`，纯 stdlib，安装前即可用）。
+- `start_flash.py --target auto|win|wsl|hpc`：**统一部署入口**，
+  `--target hpc` 委托 `deploy/hpc_deploy/run_all.py`，`--` 之后透传参数。
+- **分层护栏升级**：`check_scene_sources` 由单 token 扫描升级为规则引擎
+  （`R-SCENE-02..07` + `R-LAYER-01/02a`），基线 `baseline_guards.txt` 由
+  `--freeze` **自动生成**（98 条 `规则×文件`），只降不升。
+
+### 变更
+
+- **`flash/__init__.py` 与 `flash_run/__init__.py` 改 PEP 562 惰性导出**：
+  此前 `from flash.flash_run.execution import SceneSpec`（只要一个 dataclass）
+  会强制拉起 paramiko + cryptography。实测本地与超算均 `paramiko not in sys.modules`，
+  而 `from flash.flash_run import FlashRemoteDeploy` 仍照常可用。
+- **`modes/runner.Remote` 降级为 `RemoteSession` 适配器**（保留 8 个方法）：
+  5 个工具脚本从 `flash.scenarios.runner` 导入它且不在 CI 内，删类会静默失联。
+- **6 个部署脚本改 `from flash.flash_run.remote.session import RemoteSession`** ⇒
+  `R-LAYER-01`（deploy 依赖场景层）**归零**；旧 `remote_ssh_helper` 保留为 re-export 壳。
+- **`scenarios/__init__.py` 改惰性 `warm_registry()`**：原先 import 即全量导入
+  public/flash_demo/private；`registry.get_scenario()` 首次调用自动预热，语义不变。
+- **`run_all.pick_py()` 改走 `venv_paths` 并认 `FLASH_VENV_DIR`**，删除写死
+  `C:\Users\Administrator\...python.exe` 的 `MANAGED_PY`。
+- `RUN_MODES` 旧三元组**保持不动**（`test_scenarios_modes.py:39` 断言零改动），
+  `EXEC_TARGETS` 为新增 canonical。
+
+### 修复
+
+- `Path.is_file()` 对 Windows 上的 `.venv-linux/bin/python` 符号链接抛
+  `OSError: [WinError 1920]`（不是返回 False）⇒ 解释器探测整体崩溃。
+  已在 `venv_paths._is_file` 与 `run_all.pick_py` 加安全包装。
+- **`sbatch` 提交假失败**：`run_flash_on_hpc` 的超时 30 s 短于 NC-E
+  `module load` 的 40~60 s ⇒ 作业**已提交并在跑**、封装层却报 `TimeoutExpired`。
+  改为 180 s，且失败时回查 `squeue`（按 job-name）确认是否已提交。
+- `flash.__version__` 在 Python 3.10（HPC venv）读不到 `tomllib` ⇒ 静默落到
+  dist-info，源码树 0.1.11 却报 0.1.7。补最小 `[project].version` 解析。
+- `main_hpc_insitu` 成功判据 `or (run_dir/"output").is_dir()` 恒真（目录前文已建）
+  ⇒ 分析失败也报成功。改为要求确有 chk/plt 落地。
+
+### 超算实测（NC-E scfa2696，2026-10-24）
+
+- 增量同步 42.2 MB，双端 SHA256 一致；三套全局测试 **221 + 86 + 45 全绿**。
+- `ch_center`（laserslab1d）**hpc-insitu 真跑**：JOBID 4921460，6795 步到
+  `t=1.188162e-09 s`，`exit code 0`，341 chk + 1361 plt；分析出 3 张 PNG 并回收本地。
+
+### 文档
+
+- `docs/功能模块解耦与流程梳理计划.md`：批次状态更新 + §8 超算实测记录 +
+  G11–G14 四个新暴露缺陷。
+- README：场景执行改用统一 CLI（并纠正"脚本支持 `--mode`"的错误说法 ——
+  `ch_center` 无 argparse，模式只能由 `FLASH_RUN_MODE` 指定）；补 `--target`、
+  `flash.scenarios.cli`、护栏 `--freeze`。
+
+---
+
 ## [0.1.11] - 2026-10-22
 
 ### 新增
