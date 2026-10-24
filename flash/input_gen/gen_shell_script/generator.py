@@ -604,6 +604,12 @@ ed_maxPulseSections=300 \
             'echo ""',
             'echo "[6/6] Collecting output files..."',
             'mkdir -p "$COLLECT_DIR"',
+            # ★★ 2026-10-24：收集前**清空**目标目录里的旧产物。
+            #   否则本轮短跑（tmax=1e-13 s，只产出 3 个 chk）会与上一轮
+            #   长跑残留的 342 个 chk 混在一起 —— 下游分析拿到的是
+            #   "历史数据 + 3 帧新数据"的混合体，且不报任何错（静默污染）。
+            #   只删 *.h5 / *chk* / *plt*（本脚本产物），不动其它文件。
+            'rm -f "$COLLECT_DIR"/*.h5 "$COLLECT_DIR"/*chk* "$COLLECT_DIR"/*plt* 2>/dev/null || true',
             'cp *.h5 "$COLLECT_DIR/" 2>/dev/null || true',
             'cp *chk* "$COLLECT_DIR/" 2>/dev/null || true',
             'cp *plt* "$COLLECT_DIR/" 2>/dev/null || true',
@@ -614,7 +620,10 @@ ed_maxPulseSections=300 \
             'echo "=== Summary ==="',
             'echo "  Input files:  $SCRIPT_DIR"',
             'echo "  Output files: $COLLECT_DIR/"',
-            'nfiles=$(ls "$COLLECT_DIR/"*.h5 2>/dev/null | wc -l)',
+            # ★ 计数必须含 chk：FLASH 的 chk 文件名形如
+            #   `lasslab_hdf5_chk_0002`（**无 .h5 后缀**），只数 *.h5 会
+            #   恒报 0 —— 与"FLASH 没产出任何文件"看起来一样（误导）。
+            'nfiles=$(ls "$COLLECT_DIR"/*.h5 "$COLLECT_DIR"/*chk* 2>/dev/null | grep -v "No such" | wc -l)',
             'echo "  HDF5 files:   $nfiles"',
             'echo "  FLASH exit:   $FLASH_EXIT"',
             'echo "=== Done ==="',

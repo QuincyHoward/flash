@@ -69,7 +69,9 @@ https://gitee.com/physimx/flash
 
 | 场景 | 位置 | 运行方式 | 物理内容 |
 |------|------|---------|---------|
-| `ch_center` | `center_evolution/ch_center/` | 注册表 + 引擎 / `python -m` 直跑 | CH 泡沫靶 + 两侧 He，双束 351nm 激光相向，中心等离子体状态时域演化 |
+| **`ch_center`** | `public/center_evolution/ch_center/` | **统一 CLI（缺省 auto）/ `python -m` 直跑** | CH 泡沫靶 + 两侧 He，双束 351nm 激光相向，中心等离子体状态时域演化 |
+| **`grad_dens_sandwich`** | `public/sandwich/grad_dens_sandwich/` | **统一 CLI（缺省 auto）** | HE-CH-Si-CH-HE 渐变密度 CH，超高斯脉冲 (order=4, 1ns FWHM, 5e14 W/cm²) |
+| **`thin_layer_sandwich_si`** | `public/sandwich/thin_layer_sandwich/` | **统一 CLI（缺省 auto）** | Si/CH/He 三层靶 (新 EOS 表) 激光烧蚀 |
 | `laserslab1d_local_demo` | `flash_demo/demo_local/` | `python -m` 直跑 | FLASH 1D LaserSlab 本机 (WSL) 演示 |
 | `laserslab1d_hpc_demo` | `flash_demo/demo_hpc/` | `python -m` 直跑 | FLASH 1D LaserSlab 超算 (SLURM) 演示 |
 | `hello_flash` | `flash_demo/hello_flash/` | `python -m` 直跑 | FLASH 安装/部署冒烟测试 + 密度图 |
@@ -216,7 +218,41 @@ for name, desc in list_scenarios():
     print(f"  {name:30s} → {desc}")
 ```
 
-### 3. 运行注册场景 (ch_center)
+### 3. 运行公开场景（统一 CLI，缺省 `--mode auto`）
+
+三个公开场景都走同一个入口，**缺省模式 = auto（平台自适应）**：
+Windows + WSL → `wsl`；WSL/Linux 宿主 → `local`；超算登录节点 → 明确报错
+（引擎型场景只承接本机执行，见 `catalog.py` 的 `PUBLIC_SCENE_POLICY`）。
+
+```bash
+# 列出可执行场景与允许模式
+python -m flash.scenarios.cli list
+
+# 只打印目标判定轨迹（不执行任何东西）
+python -m flash.scenarios.cli explain ch_center
+
+# 运行（模式缺省 auto）
+python -m flash.scenarios.cli run ch_center
+python -m flash.scenarios.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.cli run thin_layer_sandwich_si --mode local
+```
+
+**极短验证**（一键跑三个公开场景，只确认链路通畅、**不产生物理结果**）：
+
+```bash
+python flash/scenarios/public/short_validation.py            # tmax=1e-13 s
+python flash/scenarios/public/short_validation.py --tmax 1e-11
+```
+
+三个场景的实测耗时（Windows→WSL，tmax=1e-13 s）：
+`ch_center` ≈ 21 s / `grad_dens_sandwich` ≈ 5 s / `thin_layer_sandwich_si` ≈ 3 s。
+
+> ★ **极短验证的三条铁律**（`flash/scenarios/public/time_control.py` 统一实现）：
+> ① `dtmax ≤ tmax × 1.05`（否则 FLASH 浪费步长跨越 tmax）；
+> ② `dtinit ≤ tmax × 0.1`（否则第一步就结束 = 白跑）；
+> ③ 输出时间网格步长随 tmax 收缩（否则 `t_grid` 只剩 1 点 ⇒ 插值除零）。
+
+### 4. 运行注册场景 (引擎 API)
 
 ```python
 scenario = get_scenario("ch_center")
@@ -231,7 +267,7 @@ print(f"✅ result.h5: {output.result_h5_path}")
 print(f"   运行目录:   {output.run_dir}")
 ```
 
-### 4. 覆盖默认参数
+### 5. 覆盖默认参数
 
 ```python
 output = engine.run(
@@ -245,7 +281,7 @@ output = engine.run(
 
 > ⚠️ **重要规则**: 未在 `params_overrides` 中指定的参数**保持默认值**，不得私自修改。
 
-### 5. 直跑场景模块 (flash_demo / private tracer 系列)
+### 6. 直跑场景模块 (flash_demo / private tracer 系列)
 
 demo 与 tracer 系列场景为自包含模块，直接以 `python -m` 运行：
 

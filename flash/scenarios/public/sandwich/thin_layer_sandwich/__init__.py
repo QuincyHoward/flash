@@ -43,6 +43,7 @@ from interpolator import (
 )
 
 from flash.scenarios.base import SimulationScenario
+from flash.scenarios.public.time_control import fit_time_controls
 from flash.scenarios.registry import register
 
 # ── 新子包导入 ──────────────────────────────────────────
@@ -78,7 +79,10 @@ def _make_build_par(def_mod):
             _overrides[pname] = getattr(def_mod, attr)
 
     def _build_par_clojure(params):
-        tmax_val = max(params.get("laser_times", [0])) + 0.1e-9
+        # ★ 2026-10-24：tmax 覆盖必须**优先**于"激光末时刻 + 0.1ns"的推导。
+        #   旧写法恒用推导值 ⇒ params["tmax"] 被静默忽略（极短验证 1e-13 s
+        #   实际仍跑 1.2 ns，与 grad_dens 行为不一致）。
+        tmax_val = params.get("tmax", max(params.get("laser_times", [0])) + 0.1e-9)
         pulse = list(zip(params.get("laser_times", []), params.get("laser_powers", [])))
         beams = [
             BeamConfig(1, lens_x=-0.1, target_x=0,
@@ -109,6 +113,16 @@ def _make_build_par(def_mod):
                 f"  如需恢复室温，请在 params_overrides 中显式传入 sim_teleCham=290.11375 等参数。"
             )
 
+        # ── 时间控制：dtmax/dtinit 必须随 tmax 收缩（极短验证必需）──
+        #   tmax=1e-13 s 时若仍用 dtmax=1e-9，FLASH 会浪费步长跨越 tmax；
+        #   dtinit 若 ≥ tmax 则第一步就结束（"白跑"）。
+        _dtinit, _dtmin, _dtmax = fit_time_controls(
+            tmax=tmax_val,
+            dtinit=params.get("dtinit", def_mod.DEFAULT_DTINIT),
+            dtmin=params.get("dtmin", def_mod.DEFAULT_DTMIN),
+            dtmax=params.get("dtmax", def_mod.DEFAULT_DTMAX),
+        )
+
         return _build_par(
             sim_name=def_mod.SIM_NAME,
             xmin_cm=params.get("xmin_cm", def_mod.XMIN_CM),
@@ -123,9 +137,9 @@ def _make_build_par(def_mod):
             sim_rhoTarg=params.get("sim_rhoTarg", def_mod.DEFAULT_RHO_TARG),
             sim_rhoCham=params.get("sim_rhoCham", def_mod.DEFAULT_RHO_CHAM),
             tmax=tmax_val,
-            dtinit=params.get("dtinit", def_mod.DEFAULT_DTINIT),
-            dtmin=params.get("dtmin", def_mod.DEFAULT_DTMIN),
-            dtmax=params.get("dtmax", tmax_val * 1.05),
+            dtinit=_dtinit,
+            dtmin=_dtmin,
+            dtmax=_dtmax,
             plot_interval_step=params.get("plot_interval_step",
                                           def_mod.DEFAULT_PLOT_INTERVAL_STEP),
             laser_pulse=pulse,
@@ -142,12 +156,18 @@ def _make_build_grid(def_mod):
         from interpolator import build_variable_grid as bvg
         t_max = min(
             params.get("output_t_max", def_mod.OUTPUT_T_MAX),
-            max(params.get("laser_times", [0])) + 0.1e-9,
+            # ★ 与 par 的 tmax 同源（否则 tmax 覆盖只改 par、不改输出网格）
+            params.get("tmax", max(params.get("laser_times", [0])) + 0.1e-9),
         )
+        # ★ 输出时间步长随 tmax 收缩：极短验证 (1e-13 s) 下 10 ps 步长
+        #   会让 t_grid 只剩 1 点 ⇒ 插值分母为 0。
+        t_step = params.get("output_t_step", def_mod.OUTPUT_T_STEP)
+        if t_max > 0:
+            t_step = min(t_step, t_max / 20.0)
         return bvg(
             t_min=params.get("output_t_min", def_mod.OUTPUT_T_MIN),
             t_max=t_max,
-            t_step=params.get("output_t_step", def_mod.OUTPUT_T_STEP),
+            t_step=t_step,
         )
     return _grid_fn
 
@@ -202,6 +222,7 @@ scenario_si = _make_auto_gen_cls('si')(
     name="thin_layer_sandwich_si",
     description="Si/CH/He 三层靶 5e14 W/cm² 激光烧蚀 (新 EOS 表)",
     run_dir_name="runs_thin_layer_sandwich_si",
+    basenm="lasslab_",
     scenario_dir=_HERE,
     sim_input_dir=_HERE / "sim_input_si",
     sim_name=_DSI.SIM_NAME,

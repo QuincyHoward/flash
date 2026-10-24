@@ -116,6 +116,16 @@ output = engine.run()  # 自动编译→运行→插值→输出
 - [`center_evolution/ch_center/`](flash/scenarios/public/center_evolution/ch_center/) — CH 靶中心演化：物理设置、五种执行模式使用指南与参数切换、输入重建（[README](flash/scenarios/public/center_evolution/ch_center/README.md)）
 - [`center_evolution/ch_center/modes_test/`](flash/scenarios/public/center_evolution/ch_center/modes_test/) — 多执行模式测试框架：五路径（win-wsl / wsl-wsl / win-hpc / wsl-hpc / hpc-insitu）同算例 dens/nele 对比（[README](flash/scenarios/public/center_evolution/ch_center/modes_test/README.md)）
 
+**公开场景统一入口**（三个场景，缺省 `--mode auto` 平台自适应）：
+
+```bash
+python -m flash.scenarios.cli list                          # 列出场景与允许模式
+python -m flash.scenarios.cli run ch_center                # 缺省 auto
+python -m flash.scenarios.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.cli run thin_layer_sandwich_si
+python flash/scenarios/public/short_validation.py          # 三场景一键极短验证 (tmax=1e-13 s)
+```
+
 ### 仿真输入生成 (`input_gen/`)
 
 | 模块 | 功能 |

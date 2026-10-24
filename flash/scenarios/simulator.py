@@ -30,6 +30,18 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from flash.scenarios.base import SimulationScenario
 from flash._core.credentials import get_user_name
+from flash.flash_run.execution import (
+    DEFAULT_POLICY,
+    ExecutionPolicy,
+    ExecutionTargetError,
+    mode_is_remote,
+    resolve_target,
+)
+
+#: 引擎默认执行策略：四目标（local/wsl/hpc-remote/hpc-insitu）全允许。
+#: 公开示例场景均既能在本机跑也能提交超算，因此不收紧 allowed；
+#: 具体场景（如 SNB 禁本地）的策略在各自入口（catalog/cli/场景脚本）生效。
+ENGINE_POLICY: ExecutionPolicy = DEFAULT_POLICY
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -48,6 +60,13 @@ def _flash_home_candidates() -> list:
     return [f"~/{user}/FLASH/FLASH4.8"]
 
 
+def _probe_sh(cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
+    """探测用 shell（平台自适应）：Windows→wsl，其余→本机 bash -lc。"""
+    argv = (["wsl", "bash", "-lc", cmd] if os.name == "nt"
+            else ["bash", "-lc", cmd])
+    return subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+
+
 def _detect_flash_home() -> str:
     """检测 FLASH 安装路径 (唯一位置 ~/{user_name}/FLASH/FLASH4.8)。
 
@@ -55,14 +74,9 @@ def _detect_flash_home() -> str:
         检测到: 实际路径 (如 "~/<用户名>/FLASH/FLASH4.8")；
         未检测到: "~/FLASH/FLASH4.8" (回退默认值)。
     """
-    import subprocess
-
     for cand in _flash_home_candidates():
         try:
-            r = subprocess.run(
-                ["wsl", "bash", "-lc", f"test -f {cand}/setup && echo OK || echo NO"],
-                capture_output=True, text=True, timeout=30,
-            )
+            r = _probe_sh(f"test -f {cand}/setup && echo OK || echo NO")
             if "OK" in r.stdout:
                 return cand
         except Exception:
@@ -72,15 +86,10 @@ def _detect_flash_home() -> str:
 
 
 def _flash_detected() -> bool:
-    """判断 WSL 中是否真实检测到 FLASH 安装 (区分检测成功 vs 回退默认值)."""
-    import subprocess
-
+    """判断本机是否真实检测到 FLASH 安装 (区分检测成功 vs 回退默认值)."""
     for cand in _flash_home_candidates():
         try:
-            r = subprocess.run(
-                ["wsl", "bash", "-lc", f"test -f {cand}/setup && echo OK || echo NO"],
-                capture_output=True, text=True, timeout=30,
-            )
+            r = _probe_sh(f"test -f {cand}/setup && echo OK || echo NO")
             if "OK" in r.stdout:
                 return True
         except Exception:
@@ -100,8 +109,21 @@ def _win_to_wsl(win_path: str) -> str:
 
 
 def _wsl_sh(cmd: str, timeout: int = 600) -> subprocess.CompletedProcess:
+    """执行一条 shell 命令（**平台自适应**，2026-10-24 auto 模式配套）。
+
+    Windows：经 `wsl bash -c` 在 WSL 内执行（原有行为，一字不改）；
+    Linux/macOS：直接 `bash -c` 本机执行 —— 使 `auto` 判定的 `local`
+    目标不需要用户额外传参（旧实现在 Linux 上必然失败：
+    `wsl` 命令不存在，且失败会被当成"FLASH 没安装"回退 dry-run 造假）。
+
+    ★ 只发**单条简单命令**：本机 wsl.exe 会把 `bash -c` 命令串在顶层
+      `;`/`&&`/`||` 拆成多次独立执行（2026-10-24 实测，详见
+      flash_run/README §8）。复合逻辑一律收进 run_flash.sh 脚本文件。
+    """
+    argv = (["wsl", "bash", "-c", cmd] if os.name == "nt"
+            else ["bash", "-c", cmd])
     return subprocess.run(
-        ["wsl", "bash", "-c", cmd],
+        argv,
         capture_output=True, text=True,
         encoding="utf-8", errors="replace",
         timeout=timeout,
@@ -152,6 +174,34 @@ def _dimension_from_setup_args(setup_args: str) -> int:
     """
     m = re.search(r"-(\d)d\b", setup_args)
     return int(m.group(1)) if m else 1
+
+
+def _effective_nproc(scenario: "SimulationScenario", params: Dict[str, Any]) -> int:
+    """本场景实际可用的 MPI 进程数。
+
+    两级约束（取小）：
+      1. 装置资源（CPU 核数 × 80% ÷ 该维度并行数）——原 `_generate_run_scripts` 的算法；
+      2. **块数上限**：FLASH 要求 MPI 进程数 ≤ 初始块数，否则报
+         "not enough blocks" 直接 abort。1D 场景的 nblockx 通常只有 4~8，
+         而资源探测会给出十几核 ⇒ 无约束时 1D 场景根本起不来。
+
+    ★ 这是 2026-10-24 极短验证实测暴露的：桌面机 (24 核) 探测出 9 进程，
+      而 ch_center 的 nblockx=4 ⇒ FLASH 直接拒绝启动。
+    """
+    from flash.flash_run.env.resource_config import get_resource_config
+    try:
+        rc = get_resource_config()
+        dim = _dimension_from_setup_args(scenario.flash_setup_args)
+        nproc = rc.get_effective_nproc(dim, total_cpus=os.cpu_count() or 8)
+    except Exception:
+        nproc = 1
+    try:
+        nblockx = int(params.get("nblockx", 0) or 0)
+    except (TypeError, ValueError):
+        nblockx = 0
+    if nblockx > 0:
+        nproc = min(nproc, nblockx)
+    return max(1, nproc)
 
 
 def _build_cache_fingerprint(sim_input_dir: Path, setup_args: str) -> str:
@@ -532,6 +582,7 @@ def _run_flash_wsl(
     setup_args: str = "",
     mpi_nproc: Optional[int] = None,  # 显式 MPI 进程数, None=按装置×维度自动
     force_recompile: bool = False,  # True=删除缓存, 强制 setup+make; False=复用已编译 flash4
+    basenm: str = "lasslab_",  # FLASH 输出前缀（par 的 basenm），决定 chk 文件名
 ) -> Tuple[bool, int]:
     """在 WSL 中执行 FLASH 仿真 (使用生成的 run_flash.sh)"""
     user_name = get_user_name()
@@ -561,24 +612,40 @@ def _run_flash_wsl(
     if r.stderr:
         print("STDERR:", r.stderr[-500:])
 
-    ls_r = _wsl_sh(f"ls {run_tmp}/lasslab_hdf5_chk_* 2>/dev/null || echo 'NONE'", timeout=30)
-    files = [f.strip() for f in ls_r.stdout.strip().split("\n") if f.strip() and f != "NONE"]
-    n_files = len(files)
+    n_files = _count_chk_in_run(run_tmp, basenm)
     print(f"  [Simulator] {n_files} 个 HDF5 文件")
     return n_files > 0, n_files
 
 
-def _collect_hdf5_from_wsl(run_tmp: str, local_tmp: Path) -> int:
-    ls_r = _wsl_sh(f"ls {run_tmp}/lasslab_hdf5_chk_* 2>/dev/null || echo 'NONE'", timeout=30)
-    files = [f.strip() for f in ls_r.stdout.strip().split("\n") if f.strip() and f != "NONE"]
+def _count_chk_in_run(run_tmp: str, basenm: str = "lasslab_") -> int:
+    """统计运行目录下的 chk 文件数（basenm 参数化，不再硬编码 lasslab_）。"""
+    ls_r = _wsl_sh(f"ls {run_tmp}/{basenm}hdf5_chk_* 2>/dev/null || echo 'NONE'",
+                   timeout=30)
+    files = [f.strip() for f in ls_r.stdout.strip().split("\n")
+             if f.strip() and f != "NONE"]
+    return len(files)
+
+
+def _collect_hdf5_from_wsl(run_tmp: str, local_tmp: Path,
+                           basenm: str = "lasslab_") -> int:
+    ls_r = _wsl_sh(f"ls {run_tmp}/{basenm}hdf5_chk_* 2>/dev/null || echo 'NONE'",
+                   timeout=30)
+    files = [f.strip() for f in ls_r.stdout.strip().split("\n")
+             if f.strip() and f != "NONE"]
     if not files:
         return 0
+    n = 0
     for f in files:
         fname = os.path.basename(f)
         local_path = local_tmp / fname
-        wsl_local = _win_to_wsl(str(local_path))
-        subprocess.run(["wsl", "cp", f, wsl_local], capture_output=True, timeout=30)
-    return len(files)
+        if os.name == "nt":
+            wsl_local = _win_to_wsl(str(local_path))
+            subprocess.run(["wsl", "cp", f, wsl_local], capture_output=True, timeout=30)
+        else:
+            shutil.copy2(f, local_path)      # Linux: run_tmp 即本机路径
+        if local_path.exists():
+            n += 1
+    return n
 
 
 # ===========================================================================
@@ -697,12 +764,16 @@ class FlashSimulatorEngine:
         scenario: SimulationScenario,
         flash_home: Optional[str] = None,  # None = 自动检测
         verbose: bool = True,
+        mode: str = "auto",                # 执行目标：auto/local/wsl/hpc-remote/hpc-insitu
     ):
         self.scenario = scenario
         # 延迟解析: 构造时不探测 WSL (避免 WSL 未安装/响应慢时拖慢全局测试),
         # 仅在真实运行 FLASH 时由 _run_flash_wsl 解析安装路径。
         self.flash_home = flash_home
         self.verbose = verbose
+        # ★ 2026-10-24：默认 auto（平台自适应），判定统一走
+        #   flash.flash_run.execution.resolve_target，引擎内不另写一套。
+        self.mode = (mode or "auto").strip() or "auto"
 
     def run(
         self,
@@ -716,6 +787,7 @@ class FlashSimulatorEngine:
         output_fields: Optional[List[str]] = None,
         force_recompile: bool = False,  # True=强制重新编译; False(默认)=复用已编译 flash4
         dry_run: bool = False,  # True=跳过 FLASH, 合成结构化输出 (无 FLASH 依赖)
+        mode: Optional[str] = None,  # 覆盖构造时的 mode (默认仍 auto)
     ) -> SimulationOutput:
         """运行一次 FLASH 仿真
 
@@ -733,6 +805,10 @@ class FlashSimulatorEngine:
                               result.h5 + chk 占位文件 + run.log 并返回
                               success=True。当 run_flash=True 但本机未检测到
                               FLASH 安装时, 引擎会**自动**切换为 dry-run。
+            mode:             执行目标 (auto/local/wsl/hpc-remote/hpc-insitu)，
+                              覆盖构造时的值。默认 auto = 平台自适应
+                              （Windows+WSL→wsl；Linux→local；有 slurm→hpc-insitu）。
+                              引擎只承接本机执行；超算目标明确报错并指引场景脚本/CLI。
         Note:
             编译缓存: 首次运行执行 setup+make, 产物缓存于
             ~/<user>/FLASH/FLASH4.8/<user>/flash4_<sim_name>_<指纹>.bin。
@@ -741,6 +817,43 @@ class FlashSimulatorEngine:
         """
         scenario = self.scenario
         params_override = params_override or {}
+
+        # ── 0. 执行目标解析（auto 平台自适应；先于目录创建/输入生成）──
+        #   ★ 2026-10-24：引擎默认 auto。判定只有一份实现
+        #     （flash_run.execution.resolve_target），此处不另写一套。
+        #     失败/被拒一律显式返回，**不**回退 dry-run 合成 ——
+        #     那正是 G3"FLASH 没跑却报 success=True"的形态。
+        _mode = (mode or self.mode or "auto").strip() or "auto"
+        try:
+            target, _trace = resolve_target(_mode, ENGINE_POLICY)
+        except ExecutionTargetError as exc:
+            for _line in str(exc).splitlines():
+                print("  " + _line)
+            return SimulationOutput(
+                result_h5_path="", run_dir="",
+                n_chk=0, n_timesteps=0, fields=[], input_params={},
+                success=False,
+                error_message=f"执行目标解析失败 (mode={_mode}): {exc}",
+            )
+        for _line in _trace:
+            print("  " + _line)
+        if self.verbose:
+            print(f"  [Simulator] 执行目标: {target}  (mode={_mode})")
+        if mode_is_remote(target):
+            _hint = (
+                f"引擎只承接本机执行（local/wsl），当前判定为 {target}。\n"
+                f"  超算执行请改用场景脚本或统一 CLI：\n"
+                f"    · ch_center: python flash/scenarios/public/center_evolution/"
+                f"ch_center/laserslab1d_local_custom.py  (RUN_MODE='auto')\n"
+                f"    · 统一入口: python -m flash.scenarios.cli <场景> --mode {target}"
+            )
+            print("  [X] " + _hint.replace("\n", "\n      "))
+            return SimulationOutput(
+                result_h5_path="", run_dir="",
+                n_chk=0, n_timesteps=0, fields=[], input_params={},
+                success=False,
+                error_message=_hint,
+            )
 
         # ── 1. 解析参数 ──
         params = dict(scenario.default_params)
@@ -812,6 +925,11 @@ class FlashSimulatorEngine:
         elif run_flash:
             if self.verbose:
                 print(f"  [Simulator] 执行 FLASH...")
+            # ★ 1D 场景的 MPI 进程数必须 ≤ 初始块数（FLASH 要求每进程至少一块，
+            #   否则 abort "not enough blocks"）。场景 params 里的 nblockx
+            #   才是真实块数，资源探测给出的核数（台式机 80%/并行数）可能远大于它。
+            if mpi_nproc is None:
+                mpi_nproc = _effective_nproc(scenario, params)
             try:
                 ok, hdf5_count = _run_flash_wsl(
                     sim_input_dir=sim_input_dir,
@@ -823,6 +941,7 @@ class FlashSimulatorEngine:
                     setup_args=scenario.flash_setup_args,
                     mpi_nproc=mpi_nproc,
                     force_recompile=force_recompile,
+                    basenm=scenario.basenm,
                 )
             except Exception as _fe:
                 ok, hdf5_count = False, 0
@@ -874,11 +993,11 @@ class FlashSimulatorEngine:
         else:
             print(f"  [Simulator] 变分辨率网格插值 ({len(chosen_fields)} 个字段)...")
             local_tmp = Path(tempfile.mkdtemp(prefix=f"flash_hdf5_{rid}_"))
-            n_collected = _collect_hdf5_from_wsl(run_tmp, local_tmp)
+            n_collected = _collect_hdf5_from_wsl(run_tmp, local_tmp, scenario.basenm)
             print(f"  [Simulator] 已收集 {n_collected} 个 HDF5 到临时目录")
             _cleanup_wsl(run_tmp)
             fields = scenario.interpolate(
-                flash_files=sorted(local_tmp.glob("lasslab_hdf5_chk_*")),
+                flash_files=sorted(local_tmp.glob(f"{scenario.basenm}hdf5_chk_*")),
                 t_grid=t_grid, x_grid=x_grid,
                 var_names=chosen_fields,
             )
@@ -900,6 +1019,7 @@ class FlashSimulatorEngine:
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
             import h5py as _h5py
+            import numpy as np
 
             plots_dir = run_dir / "sim_output_plots"
             plots_dir.mkdir(parents=True, exist_ok=True)
@@ -915,12 +1035,53 @@ class FlashSimulatorEngine:
                 "font.size": 20, "axes.labelsize": 22, "axes.titlesize": 26,
                 "xtick.labelsize": 20, "ytick.labelsize": 20, "legend.fontsize": 18,
                 "lines.linewidth": 2.5, "figure.dpi": 150, "savefig.dpi": 450,
+                # 字体：Times New Roman 优先，无该字体时按度量兼容的 serif 栈回退
+                #（与 ch_center/modes_test/plot_style.py 保持一致）
+                "font.family": "serif",
+                "font.serif": ["Times New Roman", "Nimbus Roman",
+                               "Liberation Serif", "DejaVu Serif"],
             })
 
             _n_times = min(6, len(_t))
             _time_inds = [int(i * (len(_t) - 1) / (_n_times - 1)) for i in range(_n_times)]
 
-            print(f"  [Simulator] ✅ sim_output_plots/ ({len(list(plots_dir.iterdir()))} 张)")
+            # ── 实际绘图（2026-10-24 补全）──
+            #   旧实现只算 _time_inds 就打印"✅ (0 张)" ⇒ **报喜不报忧**：
+            #   目录建了却一张图没有，下游以为已出图。现补画 1×3 诊断图
+            #   （密度 / 电子温度 / 压强），全英文标注、Times New Roman。
+            #   ★ chk 内温度单位是 **K**（§J 铁律），显示时须 /11604.518
+            #     换算成 eV，否则标签写 eV 而数值是 K（3500 "eV"）。
+            _K_TO_EV = 11604.518
+            _plt_fields = [("dens", "Density (g/cm$^3$)", 1.0),
+                           ("tele", "Electron Temperature (eV)", 1.0 / _K_TO_EV),
+                           ("pres", "Pressure (g/cm$^3$ s$^{-2}$)", 1.0)]
+            _plt_fields = [(k, lab, sc) for k, lab, sc in _plt_fields if k in _data]
+            if _plt_fields and len(_t) > 0:
+                _fig, _axes = plt.subplots(
+                    len(_plt_fields), 1, figsize=(10, 3.6 * len(_plt_fields)),
+                    sharex=True, squeeze=False)
+                for _ax, (_key, _lab, _scale) in zip(_axes[:, 0], _plt_fields):
+                    _arr = np.asarray(_data[_key]) * _scale
+                    for _ti in _time_inds:
+                        if _ti >= _arr.shape[0]:
+                            continue
+                        _ax.plot(_x_um, _arr[_ti],
+                                 label=f"t = {_t_ps[_ti]:.3g} ps")
+                    _ax.set_ylabel(_lab)
+                    _ax.grid(alpha=0.3)
+                _axes[0, 0].legend(fontsize=14, loc="upper right")
+                _axes[-1, 0].set_xlabel("x (um)")
+                _fig.suptitle(f"{scenario.name} — short validation "
+                              f"(tmax = {float(params.get('tmax', 0)):.2e} s)")
+                _fig.tight_layout()
+                _fig.savefig(str(plots_dir / "diagnostic_profiles.png"))
+                plt.close(_fig)
+
+            _n_plots = len(list(plots_dir.iterdir()))
+            if _n_plots == 0:
+                print("  [Simulator] ⚠ sim_output_plots/ 为空（无可绘制字段）")
+            else:
+                print(f"  [Simulator] ✅ sim_output_plots/ ({_n_plots} 张)")
         except Exception as _e:
             print(f"  [Simulator] ⚠ sim_output_plots 生成跳过: {_e}")
 
@@ -929,7 +1090,7 @@ class FlashSimulatorEngine:
             # dry-run: 写合成 chk 占位文件 (保证目录结构与下游一致)
             n_chk = 0
             if keep_flash_raw:
-                stub = sim_output_dir / "lasslab_hdf5_chk_0000.h5"
+                stub = sim_output_dir / f"{scenario.basenm}hdf5_chk_0000.h5"
                 try:
                     import h5py as _h5
                     with _h5.File(str(stub), "w") as _sf:
@@ -941,7 +1102,7 @@ class FlashSimulatorEngine:
                 print(f"  [Simulator] 合成 chk 占位 → sim_output/ (dry-run)")
         else:
             if keep_flash_raw:
-                chk_files = sorted(local_tmp.glob("lasslab_hdf5_chk_*"))
+                chk_files = sorted(local_tmp.glob(f"{scenario.basenm}hdf5_chk_*"))
                 moved = 0
                 for f in chk_files:
                     shutil.move(str(f), str(sim_output_dir / f.name))

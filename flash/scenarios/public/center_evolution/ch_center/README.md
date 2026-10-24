@@ -102,6 +102,32 @@ python flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custo
 | `FLASH_HPC_WORKDIR` | `temp`（默认，一次性目录）/ `runs`（包目录外置契约） |
 | `FLASH_EXTRACTION_MODE` | 本地分析提取方案（`yt` / `h5py`） |
 
+> ★ 不设 `FLASH_RUN_WORKDIR` / `FLASH_COLLECT_DIR` 时，场景会**自动分配**
+> 每轮独立的工作目录（WSL ext4：`/root/flash_ch_center_work`）与收集目录
+> （`flash_input/outputfiles/`），并在收集前清空旧产物 —— 否则短跑的
+> 3 个 chk 会与上一轮长跑的数百个 chk 混成一份（静默污染）。
+
+### 3.3 统一入口（推荐）
+
+```bash
+# 三个公开场景统一入口，缺省 --mode auto
+python -m flash.scenarios.cli run ch_center --tmax 1e-13
+python -m flash.scenarios.cli list
+python -m flash.scenarios.cli explain ch_center     # 只打印判定轨迹
+```
+
+### 3.4 `tmax` 覆盖规则（极短验证）
+
+`--tmax` 只改**终止时间**，脉冲/网格/EOS/激光逐字不变 ⇒ 仍是同一算例。
+但它必须落到 par 文件才生效：
+
+- **场景脚本路径**：`main(tmax=...)` 会核对 par 中的 tmax，不一致时**强制重建
+  输入**（否则覆盖被静默忽略 —— 输入已就绪时旧实现直接跑旧 tmax）。
+- **引擎路径**：`build_par(params)` 直接取 `params["tmax"]`。
+- **dt 联动**：`dtmax ≤ tmax×1.05`、`dtinit ≤ tmax×0.1`（统一实现在
+  `flash/scenarios/public/time_control.py`），否则 FLASH 会浪费步长跨越 tmax
+  甚至第一步就结束。
+
 ## 5. 多执行模式测试（modes_test/）
 
 同一算例在五种执行路径下的对比测试框架（2026-10-24 建成，五模式全绿）：

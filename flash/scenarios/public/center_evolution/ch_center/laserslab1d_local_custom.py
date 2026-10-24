@@ -85,6 +85,9 @@ if str(_PARENT) not in sys.path:
 # ── RemoteSession 导入 ───────────────────────────────
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
+# ── 时间控制收缩（短跑时 dtmax/dtinit 随 tmax 缩）──
+from flash.scenarios.public.time_control import fit_time_controls
+
 # ── 用户信息（统一走 runner.get_sim_user_dir）──
 def _get_sim_user_dir() -> str:
     from flash.scenarios.runner import get_sim_user_dir as _sud
@@ -286,11 +289,20 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     par_gen.set("rt_mgdXrBoundaryType", "vacuum")
 
     # 时间参数
-    par_gen.set_time(
+    # ★ dtmax/dtinit 必须随 tmax 收缩：场景默认 dtmax=1e-12，而极短验证
+    #   tmax=1e-13 ⇒ dtmax > tmax，FLASH 会浪费步长跨越 tmax（甚至直接拒绝）。
+    #   统一走 flash.scenarios.public.time_control.fit_time_controls。
+    _dtinit, _dtmin, _dtmax = fit_time_controls(
         tmax=tmax,
         dtinit=1e-15,
         dtmin=1e-16,
         dtmax=cfg["dtmax"],
+    )
+    par_gen.set_time(
+        tmax=tmax,
+        dtinit=_dtinit,
+        dtmin=_dtmin,
+        dtmax=_dtmax,
     )
     par_gen.set("nend", 10000000)
 
@@ -1079,8 +1091,29 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     #   包装脚本传进 WSL（不依赖 wsl.exe 是否透传 Windows 进程环境，不可控）。
     #   FLASH_RUN_WORKDIR  每轮独立 cwd  → 并发安全 + 不收集历史 chk
     #   FLASH_COLLECT_DIR  每轮独立收纳  → 产物按轮归档
+    #
+    # ★★ 2026-10-24 补默认（此前只有"外部设置了环境变量"才有隔离）：
+    #   单独跑场景时两者为空 ⇒ run_flash.sh 回落到 objdir，Step 6 的
+    #   `cp *chk*` 会把**上一轮**残留的 chk 一并收集（实测：tmax=1e-13 s
+    #   的短跑只产出 3 个 chk，却报"找到 342 个 HDF5 输出"——全是上一轮
+    #   1.188 ns 的旧文件）。这会让短跑结果被历史数据彻底污染。
+    #   修法：默认给每轮分配独立 workdir（WSL ext4，避免 drvfs 上
+    #   HDF5 MPI-IO 间歇失败）与独立收集目录（INPUT_DIR/outputfiles/）。
     _wd = os.environ.get("FLASH_RUN_WORKDIR", "").strip()
     _cd = os.environ.get("FLASH_COLLECT_DIR", "").strip()
+    if not _wd:
+        # ★ 工作目录必须落 **WSL 原生 ext4**（/root/...），不能放 /mnt/e：
+        #   HDF5 MPI-IO 写 drvfs 会间歇失败（ADIOI_GEN_READCONTIG:
+        #   "No data available" → SIGABRT 134），短跑偶然通过、长跑必崩
+        #   （2026-10-24 实测，见 flash_run/README §8）。产物收集目录仍可
+        #   留在 /mnt/e（普通 cp，非 MPI-IO）。
+        _wd = "/root/flash_ch_center_work"
+        os.environ["FLASH_RUN_WORKDIR"] = _wd
+        log(f"隔离变量: FLASH_RUN_WORKDIR={_wd}（默认每轮独立工作目录，WSL ext4）")
+    if not _cd:
+        _cd = str(INPUT_DIR / "outputfiles")
+        os.environ["FLASH_COLLECT_DIR"] = _cd
+        log(f"隔离变量: FLASH_COLLECT_DIR={_cd}")
     if _wd:
         log(f"隔离变量: FLASH_RUN_WORKDIR={_wd}")
     if _cd:
@@ -1276,6 +1309,30 @@ def main(credential_name: Optional[str] = None,
         from flash.input_gen.gen_checker import DependencyChecker
 
         missing = DependencyChecker(INPUT_DIR).missing_standard()
+        # ★★ 2026-10-24：`--tmax` 覆盖必须**落到 par 文件**。
+        #   旧行为：tmax 只写进 cfg，而 par 只在"文件缺失"时才重新生成 ⇒
+        #   输入已就绪时 tmax 覆盖被**静默忽略**（跑的还是旧 tmax）。
+        #   极短验证（tmax=1e-13 s）因此完全失效，且不报任何错。
+        #   修法：覆盖存在且与 par 中的 tmax 不一致 ⇒ 强制重建输入。
+        _want_tmax = cfg.get("tmax_override_s")
+        _par_path = INPUT_DIR / "laserslab_chcenter.par"
+        if _want_tmax and _par_path.is_file():
+            try:
+                _cur = None
+                for _ln in _par_path.read_text(encoding="utf-8",
+                                               errors="replace").splitlines():
+                    if _ln.strip().startswith("tmax"):
+                        _cur = float(_ln.split("=")[1].split("#")[0].strip())
+                        break
+                if _cur is not None and abs(_cur - float(_want_tmax)) > 1e-30:
+                    log(f"par 中 tmax={_cur:.3e} s 与请求的 {_want_tmax:.3e} s 不一致"
+                        f" → 强制重建输入（否则覆盖被静默忽略）", "WARN")
+                    generate_input_files(cfg)
+                    missing = []
+            except Exception as _e:
+                log(f"par tmax 核对失败（将按需重建）: {_e}", "WARN")
+                generate_input_files(cfg)
+                missing = []
         if missing:
             log(f"缺失 {len(missing)} 项必须文件: {missing}", "WARN")
             log("自动调用 input_gen 生成器生成必须文件 ...", "INFO")

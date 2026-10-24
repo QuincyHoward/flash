@@ -29,6 +29,9 @@ class SimulationScenario:
         build_par:            函数 (params) → .par 文件内容字符串
         build_grid:           函数 (params) → (t_grid, x_grid) numpy arrays
         interpolate:          函数 (flash_files, t_grid, x_grid, var_names) → {field: array}
+
+        basenm:              FLASH 输出文件前缀（par 的 basenm 参数）。引擎据此
+                             收集 chk（`{basenm}hdf5_chk_*`），不再硬编码。
     """
     name: str
     description: str
@@ -37,6 +40,7 @@ class SimulationScenario:
     sim_name: str
     flash_setup_args: str
     run_dir_name: str = "runs"  # 运行目录名 (如 "runs", "runs_ch_center")
+    basenm: str = "lasslab_"   # FLASH 输出文件前缀（par 的 basenm）
 
     default_params: Dict[str, Any] = field(default_factory=dict)
     default_output_fields: List[str] = field(default_factory=lambda: [

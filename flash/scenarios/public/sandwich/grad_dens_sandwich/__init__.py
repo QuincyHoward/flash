@@ -46,6 +46,7 @@ _spec.loader.exec_module(_pb)
 _build_par, BeamConfig = _pb.build_par, _pb.BeamConfig
 
 from flash.scenarios.base import SimulationScenario
+from flash.scenarios.public.time_control import fit_time_controls
 from flash.scenarios.registry import register
 
 
@@ -148,6 +149,15 @@ def _make_build_par(def_mod):
                 f"  原因: 新 EOS/opacity 表在 290K 时扩散求解器可能产生负时间步。"
             )
 
+        # ── 时间控制：dtmax/dtinit 必须随 tmax 收缩（极短验证必需）──
+        #   tmax=1e-13 s 时若仍用 dtmax=1.05e-9，FLASH 会浪费步长跨越 tmax。
+        _dtinit, _dtmin, _dtmax = fit_time_controls(
+            tmax=tmax_val,
+            dtinit=params.get("dtinit", def_mod.DEFAULT_DTINIT),
+            dtmin=params.get("dtmin", def_mod.DEFAULT_DTMIN),
+            dtmax=params.get("dtmax", def_mod.DEFAULT_DTMAX),
+        )
+
         _par_result = _build_par(
             sim_name=def_mod.SIM_NAME,
             xmin_cm=params.get("xmin_cm", def_mod.XMIN_CM),
@@ -161,9 +171,10 @@ def _make_build_par(def_mod):
             sim_rhoTarg=params.get("sim_rhoTarg", def_mod.DEFAULT_RHO_TARG),
             sim_rhoCham=params.get("sim_rhoCham", def_mod.DEFAULT_RHO_CHAM),
             tmax=tmax_val,
-            dtinit=params.get("dtinit", def_mod.DEFAULT_DTINIT),
-            dtmin=params.get("dtmin", def_mod.DEFAULT_DTMIN),
-            dtmax=params.get("dtmax", tmax_val * 1.05),
+            # ★ dtmax/dtinit 随 tmax 收缩（极短验证 1e-13 s 必需）
+            dtinit=_dtinit,
+            dtmin=_dtmin,
+            dtmax=_dtmax,
             plot_interval_step=params.get("plot_interval_step",
                                           def_mod.DEFAULT_PLOT_INTERVAL_STEP),
             laser_pulse=pulse,
@@ -190,12 +201,17 @@ def _make_build_grid(def_mod):
         )
         t_max = min(
             params.get("output_t_max", def_mod.OUTPUT_T_MAX),
+            # ★ 与 par 的 tmax 同源（否则 tmax 覆盖只改 par、不改输出网格）
             params.get("tmax", max(params.get("laser_times", [0])) + 0.1e-9),
         )
+        # ★ 输出时间步长随 tmax 收缩（极短验证 1e-13 s：否则 t_grid 只剩 1 点）
+        t_step = params.get("output_t_step", def_mod.OUTPUT_T_STEP)
+        if t_max > 0:
+            t_step = min(t_step, t_max / 20.0)
         return bvg(
             t_min=params.get("output_t_min", def_mod.OUTPUT_T_MIN),
             t_max=t_max,
-            t_step=params.get("output_t_step", def_mod.OUTPUT_T_STEP),
+            t_step=t_step,
         )
     return _grid_fn
 
@@ -251,6 +267,7 @@ scenario_grad = _AutoGenScenario(
     name="grad_dens_sandwich",
     description="HE-CH-Si-CH-HE 渐变密度 CH 超高斯激光 (order=4, 1ns, 5e14 W/cm²)",
     run_dir_name="runs_grad_dens_sandwich",
+    basenm="lasslab_",
     scenario_dir=_HERE,
     sim_input_dir=_HERE / "sim_input",
     sim_name=_D.SIM_NAME,

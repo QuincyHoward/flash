@@ -31,6 +31,7 @@ from flash.scenarios.interpolator import (
     build_variable_grid as _build_variable_grid,
     interpolate_flash_to_grid as _interpolate,
 )
+from flash.scenarios.public.time_control import fit_time_controls
 from flash.scenarios.registry import register
 
 
@@ -242,9 +243,17 @@ def _build_par(params: dict) -> str:
     _add("cfl", params.get("cfl", 0.2))
     _add("dt_diff_factor", 1e100)
     _add("tmax", tmax)
-    _add("dtmin", params.get("dtmin", 1e-16))
-    _add("dtinit", params.get("dtinit", 1e-16))
-    _add("dtmax", params.get("dtmax", tmax*1.05))
+    # ★ dtmax/dtinit 随 tmax 收缩（极短验证 1e-13 s 必需）：
+    #   dtmax 若 ≥ tmax，FLASH 会浪费步长跨越 tmax；dtinit 若 ≥ tmax 则白跑。
+    _dtinit, _dtmin, _dtmax = fit_time_controls(
+        tmax=tmax,
+        dtinit=params.get("dtinit", 1e-16),
+        dtmin=params.get("dtmin", 1e-16),
+        dtmax=params.get("dtmax", tmax * 1.05),
+    )
+    _add("dtmin", _dtmin)
+    _add("dtinit", _dtinit)
+    _add("dtmax", _dtmax)
     _add("nend", nend)
 
     # ── Mesh ──
@@ -277,10 +286,15 @@ def _build_grid(params: dict):
         params.get("output_t_max", 1.0e-9),
         params.get("tmax", 1.2e-9),
     )
+    # ★ 输出时间步长也必须随 tmax 收缩：极短验证 (tmax=1e-13 s) 时若仍用
+    #   10 ps 步长，t_grid 只剩 1 个点 ⇒ 插值分母为 0（"division by zero"）。
+    t_step = params.get("output_t_step", 10e-12)
+    if t_max > 0:
+        t_step = min(t_step, t_max / 20.0)
     return _build_variable_grid(
         t_min=params.get("output_t_min", 0.0),
         t_max=t_max,
-        t_step=params.get("output_t_step", 10e-12),
+        t_step=t_step,
         xmin=xmin,
         xmax=xmax,
         nx=params.get("output_nx", 2000),
@@ -542,6 +556,7 @@ scenario = ChCenterScenario(
     sim_input_dir=_HERE / "flash_input",
     sim_name="LaserSlab1D_new",
     run_dir_name="runs_ch_center",
+    basenm="lasslab_",
     flash_setup_args=(
         "-1d +cartesian -nxb=16 "
         "-maxblocks=2048 +hdf5typeio species=cham,targ "
