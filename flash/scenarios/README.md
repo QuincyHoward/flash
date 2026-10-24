@@ -122,6 +122,9 @@ https://gitee.com/physimx/flash
 | **tmax** | 1.2e-9 s |
 | **输出字段** | 7 个 (dens, tele, tion, trad, ye, sumy, pres) |
 | **备注** | 基于原始 FLASH LaserSlab 配置, EOS 表已替换为自研高分辨表 |
+| **多模式测试** | `center_evolution/ch_center/modes_test/`：五执行路径（Windows→WSL /
+  Windows→HPC / WSL→WSL / WSL→HPC / HPC→HPC insitu）同算例 dens/nele 对比，
+  驱动 `run_mode_test.py` + 分析 `analyze_modes.py`，用法与历史坑见其 README |
 
 #### VCH_ml / OneCH_ml (private, 多薄层, 2026-08-30 由 layer_tracer_CH_ml 更名拆分)
 
