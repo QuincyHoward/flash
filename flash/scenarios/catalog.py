@@ -67,7 +67,20 @@ class CatalogEntry:
         mod = importlib.import_module(self.rel_module)
         if not hasattr(mod, "main"):
             return {"ok": False, "reason": f"{self.rel_module} 无 main()"}
-        ok = mod.main()
+
+        # 能接收参数的 main 优先显式传参（比环境变量更可测、且不污染子进程）；
+        # 只传该 main 签名里真正存在的参数，老脚本零改动仍可跑。
+        import inspect
+        try:
+            params = inspect.signature(mod.main).parameters
+        except (TypeError, ValueError):
+            params = {}
+        kwargs: Dict[str, Any] = {}
+        if "mode" in params:
+            kwargs["mode"] = target or None
+        if "tmax" in params and opts.tmax:
+            kwargs["tmax"] = opts.tmax
+        ok = mod.main(**kwargs)
         return {"ok": bool(ok), "reason": "" if ok else "场景 main() 返回 False"}
 
     def _runner_script(self, opts: ExecOptions) -> Dict[str, Any]:

@@ -573,11 +573,25 @@ ed_maxPulseSections=300 \
             '# ── Step 4: Copy input files to run dir ──',
             'echo ""',
             'echo "[4/6] Copying input files to run directory..."',
-            'cd "$FLASH_HOME/$OBJ_DIR"',
-            'mkdir -p outputfiles',
+            # 运行工作目录 (2026-10-24):
+            #   默认 = objdir（历史行为，手动运行完全不变）。
+            #   FLASH_RUN_WORKDIR 指向**每轮独立**目录时:
+            #     ① 两次运行可并发（各自 cwd 不同，不抢同一个 outputfiles/）；
+            #     ② 不会把 objdir 里**上一轮残留**的 chk/plt 一并收集 ——
+            #        这是"同一物理场景不同模式对比"最致命的污染源：
+            #        短 tmax 只覆盖 chk_0000..N，旧的 chk_N+1.. 仍在，
+            #        Step 6 的 `cp *chk*` 会把两轮结果混成一份。
+            'if [ -n "${FLASH_RUN_WORKDIR:-}" ]; then',
+            '    RUN_WORKDIR="$FLASH_RUN_WORKDIR"',
+            'else',
+            '    RUN_WORKDIR="$FLASH_HOME/$OBJ_DIR"',
+            'fi',
+            'mkdir -p "$RUN_WORKDIR"',
+            'cd "$RUN_WORKDIR"',
+            'echo "  Run workdir:  $RUN_WORKDIR"',
             'cp "$SCRIPT_DIR/$PAR_FILE" ./ 2>/dev/null || true',
             'cp "$SCRIPT_DIR"/*.cn4 ./ 2>/dev/null || true',
-            'echo "  Input files ready in $FLASH_HOME/$OBJ_DIR."',
+            'echo "  Input files ready in $RUN_WORKDIR."',
             "",
             '# ── Step 5: Run FLASH ──',
             'echo ""',

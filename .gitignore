@@ -562,3 +562,6 @@ test/_extract_chk_params.out
 flash_sim_runs/
 # ★ 护栏基线必须入库（否则 fresh clone 上 334 处历史债会全部误报为"新增违规"）
 !flash/input_gen/gen_checker/baseline_guards.txt
+
+# ch_center 多模式测试产物 (chk/日志/图, 可重新生成; 脚本本身入库)
+flash/scenarios/public/center_evolution/ch_center/modes_test/results/

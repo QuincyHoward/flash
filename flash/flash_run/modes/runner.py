@@ -405,11 +405,15 @@ def run_wsl(spec: WslSpec, cfg: Dict[str, Any]) -> bool:
             shutil.rmtree(p, ignore_errors=True)
             p.mkdir(parents=True, exist_ok=True)
 
+    # ★ 2026-10-24：命令串内禁用顶层 `;` —— 本机 wsl.exe 会把它拆成多次
+    #   独立执行（`$?` 恒 0、变量不传递）。改用 &&/|| 链写退出码哨兵，
+    #   使 wsl.exe 进程返回码同样可信（下方解析实际用脚本内回显，不受影响）。
     cmd = (
         f"cd {wsl_dir} && "
         f"FLASH_COLLECT_DIR='{_to_wsl_path(outdir)}' "
-        f"bash {spec.run_sh_name} > {run_log_name} 2>&1; "
-        f"echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
+        f"bash {spec.run_sh_name} > {run_log_name} 2>&1 "
+        f"&& echo \"FLASH_EXIT_CODE=0\" >> {run_log_name} "
+        f"|| echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
     )
     log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
     log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")

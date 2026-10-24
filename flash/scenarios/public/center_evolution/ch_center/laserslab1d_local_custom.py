@@ -32,6 +32,7 @@ import sys
 import os
 import re
 import time
+import shutil
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -46,11 +47,16 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 # ── 运行模式 ─────────────────────────────────────────
-# "wsl": 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
-# "hpc": 超算 RemoteSession 运行（需 SSH 凭据）
-# 一键切换即修改此行; 也可用环境变量 FLASH_RUN_MODE 覆盖
-# (resolve_run_mode 解析规则统一见 flash.scenarios.runner)
-RUN_MODE = "wsl"
+# "auto"      : **默认**，按平台自适应判定（推荐）
+#                  Windows 有 WSL        → wsl      （wsl.exe → bash run_flash.sh）
+#                  WSL / Linux 宿主      → local    （bash run_flash.sh）
+#                  HPC 登录/计算节点     → hpc-insitu（本机 sbatch）
+#                  ↳ 判定表唯一实现在 flash.flash_run.execution.resolve_target
+# "wsl"       : 本地 WSL 运行 FLASH（无需 SSH/超算，快速测试）
+# "local"     : 本机 Linux（含 WSL 内部）直接运行，不套 wsl.exe
+# "hpc-remote": 超算 RemoteSession（上传→提交→分析→下载）
+# 覆盖优先级: main(mode=...) > 环境变量 FLASH_RUN_MODE > 本行 RUN_MODE
+RUN_MODE = "auto"
 
 # ── 本地分析提取模式 ────────────────────────────────
 # 本地分析/绘图使用的 AMR 数据提取方案:
@@ -196,6 +202,12 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
 
     pulse_total_ns = cfg["pulse_duration_ns"] + 2 * cfg["rise_fall_ps"] * 1e-3  # ns
     tmax = pulse_total_ns * 1e-9 * cfg["tmax_multiplier"]
+    # `tmax_override_s`（由 main(tmax=...) 注入）：只改**终止时间**，
+    # 物理设置（脉冲波形/网格/EOS/激光）逐字不变 ⇒ 跨模式对比仍属同一算例。
+    _ov = cfg.get("tmax_override_s")
+    if _ov:
+        tmax = float(_ov)
+        log(f"   tmax 覆盖为 {tmax:.3e} s（仅缩短终止时间，物理设置不变）", "WARN")
 
     sim_path = f"{SIM_USER_DIR}/LaserSlab_ChCenter"
     objdir = f"{SIM_USER_DIR}/LaserSlab_ChCenter"
@@ -475,7 +487,11 @@ def upload_to_hpc(session: RemoteSession, remote_dir: str) -> bool:
         files.append(analysis_script)
     success = 0
     for f in files:
-        ok = session.upload(str(f), f"{remote_dir}/")
+        # ★ 2026-10-24：remote_path 必须是**文件全路径**（不带尾斜杠）——
+        #   sftp.put 对以 "/" 结尾的目标报 OSError: Failure（实测复现，
+        #   上传 0/18 全败）；旧写法 f"{remote_dir}/" 双重踩雷（另一雷是
+        #   `~` 不展开，已在 main() 侧改为绝对路径）。
+        ok = session.upload(str(f), f"{remote_dir}/{f.name}")
         if ok:
             success += 1
         else:
@@ -522,10 +538,19 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
         # ★ 链接期补 Intel MPI 库路径: QC 树 Makefile.h 链接 -lmpi -lmpifort
         #   (Intel MPI 2022.1, 路径取自登录节点 LIBRARY_PATH 实测)；作业计算节点
         #   的链接搜索路径不含它 ⇒ 必须显式注入 LIBRARY_PATH/LD_LIBRARY_PATH。
+        # ★★★ 2026-10-24 运行时符号错误修复（作业 4921721 FAILED 127）★★★
+        #   libmpifort.so.12 只在 mpi/latest/**lib**/，且 MPII_F_TRUE 是**导入**
+        #   符号（nm: U），必须由 mpi/latest/**lib/release**/libmpi.so.12 提供
+        #   （nm: R 已定义）。旧注入把 LD_LIBRARY_PATH 写成
+        #   `mpi/latest/release`（**不存在的目录，笔误**）⇒ 计算节点环境里其它
+        #   libmpi.so.12 副本（intelpython 内置精简 MPI 等）抢先加载 ⇒
+        #   `symbol lookup error: libmpifort.so.12: undefined symbol: MPII_F_TRUE`。
+        #   现改为与登录节点默认环境一致的 lib/release:lib 顺序，确保 libmpi
+        #   先于任何 inherited 副本解析到带该符号的版本。
         impi_env = (
             "export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
             "/public1/soft/oneAPI/2022.1/mpi/latest/lib:$LIBRARY_PATH\n"
-            "export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/release:"
+            "export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
             "/public1/soft/oneAPI/2022.1/mpi/latest/lib:$LD_LIBRARY_PATH\n"
         )
         session.run(
@@ -611,8 +636,13 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
                 log(f"      {line}")
 
     # ── 验证输出 ────────────────────────────────
+    # ★ 2026-10-24：`head -1` 取字典序**最旧**的 outputfiles_* —— insitu 模式
+    #   （remote_dir=flash_input，多轮复用）会命中上一轮的产物目录，把旧 run 的
+    #   chk 当成本轮结果（实测复现：3 个 outputfiles_* 时指向 11:20 的旧目录）。
+    #   目录名带时间戳 ⇒ `sort | tail -1` 即最新一轮；hpc-remote 每轮独立
+    #   remote_dir，行为不变。
     out, _, _ = session.run(
-        f"ls -d {remote_dir}/outputfiles_* 2>/dev/null | head -1 || "
+        f"ls -d {remote_dir}/outputfiles_* 2>/dev/null | sort | tail -1 || "
         f"ls {remote_dir}/outputfiles/*chk* 2>/dev/null | head -1 || "
         f"echo NO_CHK",
         timeout=10,
@@ -808,6 +838,13 @@ def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
     analysis_script = SCRIPT_DIR / "hpc_analyze_ch_center.py"
     analysis_ok = False
     if analysis_script.exists():
+        # ★ 2026-10-24：insitu 没有 upload_to_hpc 步骤，分析脚本不在
+        #   flash_input/ 里 ⇒ 远端 `python hpc_analyze_ch_center.py` 必然
+        #   FileNotFoundError（实测两轮分析全败）。先就地拷入再跑。
+        try:
+            shutil.copy2(analysis_script, INPUT_DIR / analysis_script.name)
+        except OSError as e:
+            log(f"分析脚本拷入 flash_input 失败: {e}", "WARN")
         analysis_ok = upload_and_run_analysis(
             shim, remote_dir, actual_output, analysis_script, cfg)
     else:
@@ -819,17 +856,34 @@ def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
         for p in plots_src.glob("*.png"):
             shutil.copy2(p, run_dir / "plots" / p.name)
     # chk 产物 → runs output 目录（chk-only，fetch_policy）
+    #   FLASH_COLLECT_DIR 生效时（批量矩阵）改投该目录，与 local/wsl/hpc-remote
+    #   三种模式落同一处，便于跨模式逐帧对比。
+    _alt = os.environ.get("FLASH_COLLECT_DIR", "").strip()
+    out_dst = Path(_alt) if _alt else (run_dir / "output")
+    out_dst.mkdir(parents=True, exist_ok=True)
     try:
         from flash.flash_run.remote.fetch_policy import select_fetch_files
         outp = Path(actual_output)
         if outp.is_dir():
+            # ★ 2026-10-24：basenm 传空串 ⇒ classify_names 的 prefix 过滤
+            #   （只放行 wsl_run_/basenm 前缀）把全部 chk 滤掉 ⇒ "收集 0 文件"
+            #   的静默失败（实测复现）。basenm 从 .par 解析（权威来源，
+            #   形如 basenm = "lasslab_"），解析不到才回落空串。
+            _basenm = ""
+            for _pf in sorted(INPUT_DIR.glob("*.par")):
+                _m = re.search(r'^\s*basenm\s*=\s*"([^"]+)"',
+                               _pf.read_text(encoding="utf-8", errors="replace"),
+                               re.MULTILINE)
+                if _m:
+                    _basenm = _m.group(1)
+                    break
             picked, stats = select_fetch_files(
                 [p.name for p in outp.iterdir() if p.is_file()],
-                basenm="", with_plt=False)
+                basenm=_basenm, with_plt=False)
             for n in picked:
-                shutil.copy2(outp / n, run_dir / "output" / n)
-            log(f"就地收集 {len(picked)} 文件 (plt 跳过={stats['plt_skipped']})",
-                "OK")
+                shutil.copy2(outp / n, out_dst / n)
+            log(f"就地收集 {len(picked)} 文件 (basenm={_basenm!r}, "
+                f"plt 跳过={stats['plt_skipped']}) → {out_dst}", "OK")
     except Exception as e:  # noqa: BLE001
         log(f"chk 收集跳过: {e}", "WARN")
 
@@ -838,11 +892,16 @@ def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
     print(f"  runs 目录: {run_dir}")
     print(f"  分析图像:  {run_dir / 'plots'} (n={len(list((run_dir / 'plots').glob('*.png')))})")
     print("=" * 65)
-    # ★ 2026-10-24：旧判据 `(run_dir / "output").is_dir()` 恒为真（目录在 :769
-    #   就建好了）⇒ "分析失败但 FLASH 成功"也会报成功，属 G6 同类静默失败。
-    #   现要求：分析成功 **或** 确有产物（chk/plt）落地。
+    # ★ 2026-10-24：旧判据 `(run_dir / "output").is_dir()` 恒为真（目录在建
+    #   run_dir 时就建好了）⇒ "分析失败但 FLASH 成功"也会报成功，属 G6 同类
+    #   静默失败。现要求：分析成功 **或** 确有产物（chk/plt）落地 —— 产物
+    #   包括 FLASH_COLLECT_DIR（批量矩阵模式，chk 直接落那里，runs/output
+    #   反而为空），三者任一非空即认。
+    _alt = os.environ.get("FLASH_COLLECT_DIR", "").strip()
+    _collect_has = bool(list(Path(_alt).glob("*chk*"))) if _alt else False
     _has_artifacts = bool(list((run_dir / "output").glob("*")) or
-                          list((run_dir / "plots").glob("*.png")))
+                          list((run_dir / "plots").glob("*.png")) or
+                          _collect_has)
     return bool(analysis_ok or _has_artifacts)
 
 
@@ -1008,17 +1067,52 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     print("-" * 50)
     # 输出重定向到 WSL 内日志文件 + 追加退出码，再从 Windows 侧读取：
     #   wsl.exe 从无控制台/非交互上下文 (如某些 IDE 子进程) 启动时，
-    #   stdout 管道捕获可能静默为空 (exit=0 或 exit=1 但无任何输出)，
-    #   导致旧实现出现 "(exit=1, 空日志)" 的无声失败。写文件绕开该问题。
+    #   stdout 管道捕获可能静默为空。写文件绕开该问题（退出码由包装脚本
+    #   的 FLASH_EXIT_CODE 哨兵 + wsl.exe 进程 rc 双通道带回，见上方注释）。
     run_log_name = "wsl_console.log"
     console_log = INPUT_DIR / run_log_name
     try:
         console_log.unlink()
     except OSError:
         pass
+    # ★ 运行隔离（2026-10-24）：FLASH_RUN_WORKDIR / FLASH_COLLECT_DIR 经
+    #   包装脚本传进 WSL（不依赖 wsl.exe 是否透传 Windows 进程环境，不可控）。
+    #   FLASH_RUN_WORKDIR  每轮独立 cwd  → 并发安全 + 不收集历史 chk
+    #   FLASH_COLLECT_DIR  每轮独立收纳  → 产物按轮归档
+    _wd = os.environ.get("FLASH_RUN_WORKDIR", "").strip()
+    _cd = os.environ.get("FLASH_COLLECT_DIR", "").strip()
+    if _wd:
+        log(f"隔离变量: FLASH_RUN_WORKDIR={_wd}")
+    if _cd:
+        log(f"隔离变量: FLASH_COLLECT_DIR={_cd}")
+    # ★★★ 2026-10-24 假成功修复（模式测试首跑实测复现，代价：一次完整跑崩）★★★
+    # 本机 wsl.exe 会把 `bash -c` 命令串在**顶层 `;` / `&&` / `||`** 处拆成
+    # 多次独立执行（实测：`false; echo $?`→0；`X=5; echo $X`→空；
+    # `false > log 2>&1 && echo RC=0 || echo RC=$?` → 恒写 RC=0；
+    # 只有最后一片段的 rc 能透传）。⇒ 复合命令、env 前缀、行内哨兵**全部不可信**：
+    # 旧写法 `... ; echo "FLASH_EXIT_CODE=$?"` 的哨兵段在全新 shell 里执行，
+    # $? 恒为 0 ⇒ FLASH 崩溃（exit 134，57 个部分 chk）被报成"运行成功"。
+    # 解法：全部逻辑收进**脚本文件**（bash 正常解析，无拆分），wsl 侧只发
+    # 一条简单命令 `bash <wrapper> <args...>`（rc 正常透传，实测 134→134）。
+    _wrap = INPUT_DIR / "run_flash_wsl.sh"
+    # ★ write_bytes + 显式 \n：Windows 上 write_text 会写成 CRLF，bash 解析
+    #   "$1"\r 之类直接崩（实测 rc=2 无日志）——本机 .gitattributes 也规定 LF。
+    _wrap.write_bytes(
+        ("#!/bin/bash\n"
+         "# 由 main_wsl 自动生成 —— 规避 wsl.exe 命令串拆分（2026-10-24，勿手改）\n"
+         "set -u\n"
+         'WSL_DIR="$1"; WORKDIR="$2"; COLLECT="$3"; LOG="$4"\n'
+         'cd "$WSL_DIR" || exit 1\n'
+         'export FLASH_RUN_WORKDIR="$WORKDIR" FLASH_COLLECT_DIR="$COLLECT"\n'
+         'bash run_flash.sh > "$LOG" 2>&1\n'
+         "rc=$?\n"
+         'echo "FLASH_EXIT_CODE=$rc" >> "$LOG"\n'
+         "exit $rc\n").encode("utf-8"),
+    )
     cmd = (
-        f"cd {wsl_dir} && bash run_flash.sh > {run_log_name} 2>&1; "
-        f"echo \"FLASH_EXIT_CODE=$?\" >> {run_log_name}"
+        f"bash '{_to_wsl_path(_wrap)}' '{wsl_dir}' "
+        f"'{_to_wsl_path(Path(_wd)) if _wd else '/tmp'}' "
+        f"'{_to_wsl_path(Path(_cd)) if _cd else '/tmp'}' '{run_log_name}'"
     )
     log(f"执行: wsl bash -c \"{cmd[:100]}...\"")
     log("首次运行需编译 FLASH，可能耗时 10~60 分钟 ...")
@@ -1045,10 +1139,15 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
             return False
 
         combined = console_txt.strip()
-        if flash_rc == 0 and console_txt.strip():
-            break              # WSL 正常返回且日志文件有内容
-        if flash_rc != 0 and combined:
-            break              # FLASH 真实失败，已有诊断输出
+        # 退出码判定以**哨兵**为权威（包装脚本写入，2026-10-24 起可信；
+        # wsl.exe 进程 rc 是简单命令的透传，同样可信）：
+        #   · 有哨兵 ⇒ 命令完整执行过（无论成败），无需重试；
+        #   · 无哨兵 + 有输出 + rc=0 ⇒ 旧形态脚本，按成功收下；
+        #   · 无哨兵 + 有输出 + rc!=0 ⇒ 真实失败，带诊断输出；
+        #   · 完全无输出 ⇒ WSL 冷启动/VM 竞态等瞬态故障，重试。
+        _has_marker = re.search(r"FLASH_EXIT_CODE=(\d+)", console_txt) is not None
+        if _has_marker or combined:
+            break
         log(f"WSL 无输出 (exit={flash_rc})，疑似冷启动/捕获异常，5s 后重试...", "WARN")
         time.sleep(5)
 
@@ -1056,8 +1155,8 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
         log("WSL 启动失败 (多次重试后仍无输出)", "ERROR")
         return False
 
-    # 提取 WSL 内 FLASH 退出码（管道返回码在捕获异常时不可靠）
-    flash_exit = flash_rc
+    # 提取 WSL 内 FLASH 退出码：哨兵优先（内层真相），无哨兵才信进程 rc
+    flash_exit = flash_rc if flash_rc is not None else -1
     m = re.search(r"FLASH_EXIT_CODE=(\d+)", console_txt)
     if m:
         flash_exit = int(m.group(1))
@@ -1070,8 +1169,9 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
         return False
     log(f"FLASH 运行成功 ✓ (完整日志: {wsl_log})")
 
-    # 检查输出
-    outdir = INPUT_DIR / "outputfiles"
+    # 检查输出（FLASH_COLLECT_DIR 生效时产物不在 INPUT_DIR/outputfiles）
+    _collect = os.environ.get("FLASH_COLLECT_DIR", "").strip()
+    outdir = Path(_collect) if _collect else (INPUT_DIR / "outputfiles")
     h5s = (
         sorted(outdir.glob("*chk*"))
         or sorted(outdir.glob("*plt*"))
@@ -1118,13 +1218,41 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     return True
 
 
-def main(credential_name: Optional[str] = None):
+def main(credential_name: Optional[str] = None,
+         mode: Optional[str] = None,
+         tmax: Optional[float] = None):
+    """唯一入口。`mode`/`tmax` 为空时分别回落到 FLASH_RUN_MODE / RUN_MODE 与场景默认值。
+
+    ★ 2026-10-24：`mode` 缺省 = auto（平台自适应）。判定只走
+      `flash.flash_run.execution.resolve_target`，**不在本文件里另写一套**。
+    """
     print("\n" + "=" * 65)
     print(" FLASH LaserSlab1D Custom Simulation v1.1")
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 65)
 
     cfg = dict(config_constants)
+
+    # ── 运行模式判定（先于任何生成/上传：模式不同则行为不同）──
+    from flash.flash_run.execution import (
+        DEFAULT_POLICY,
+        ExecutionTargetError,
+        resolve_target,
+    )
+    _explicit = (mode or "").strip() or os.environ.get("FLASH_RUN_MODE", "").strip() or RUN_MODE
+    try:
+        run_mode, _trace = resolve_target(_explicit, DEFAULT_POLICY)
+    except ExecutionTargetError as exc:
+        log("运行模式判定失败", "ERROR")
+        for _line in str(exc).splitlines():
+            print("  " + _line)
+        return False
+    for _line in _trace:
+        print("  " + _line)
+
+    if tmax:
+        # 只改终止时间：脉冲/网格/EOS/激光逐字不变 ⇒ 跨模式对比仍是同一算例
+        cfg["tmax_override_s"] = float(tmax)
 
     # ── 参数摘要 ──
     print(f"\n  参数配置:")
@@ -1163,6 +1291,21 @@ def main(credential_name: Optional[str] = None):
             log(f"必须文件已生成: {INPUT_DIR}")
         else:
             log("FLASH 仿真必须文件已就绪（gen_checker 检查通过），无需重新生成", "OK")
+
+        # ── 生成物**陈旧**检查：存在 ≠ 可用 ──
+        # 旧版 run_flash.sh 不认识 FLASH_RUN_WORKDIR，所有运行共用 objdir，
+        # 短 tmax 只覆盖 chk_0000..N，Step 6 的 `cp *chk*` 会把上一轮的
+        # chk_N+1.. 一并收集 ⇒ 跨模式对比数据被静默污染。缺能力标记即重建。
+        _sh = INPUT_DIR / "run_flash.sh"
+        try:
+            _sh_txt = _sh.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            _sh_txt = ""
+        if _sh.is_file() and "FLASH_RUN_WORKDIR" not in _sh_txt:
+            log("run_flash.sh 为旧版生成物（不支持 FLASH_RUN_WORKDIR 运行隔离），"
+                "按当前生成器重建", "WARN")
+            generate_input_files(cfg)
+
         log(f"输入文件目录: {INPUT_DIR}")
 
         # ── 步骤 1.5: 文件内在关联检查（check_relations）──
@@ -1193,10 +1336,9 @@ def main(credential_name: Optional[str] = None):
         return False
 
     # ── 运行模式分支 ────────────────────────────
-    from flash.scenarios.runner import resolve_run_mode
-    run_mode = resolve_run_mode(RUN_MODE)
-    log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
-    if run_mode == "wsl":
+    # local / wsl 共用本地流水线（Linux 宿主不再套 wsl.exe，见 _run_wsl_with_progress）
+    log(f"运行模式: {run_mode} (explicit={_explicit!r}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
+    if run_mode in ("wsl", "local"):
         return main_wsl(cfg)
     if run_mode == "hpc-insitu":
         return main_hpc_insitu(cfg)
@@ -1216,12 +1358,21 @@ def main(credential_name: Optional[str] = None):
             #     (flash_sim 包同级, 输出外置契约; setup/make 仍在 FLASH 树 objdir)
             workdir_mode = os.environ.get("FLASH_HPC_WORKDIR", "temp").strip().lower()
             remote_run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+            # ★ 2026-10-24：remote_dir 必须解析成**绝对路径**再交给 SFTP ——
+            #   paramiko 的 sftp 不展开 `~`（实测：文件落进字面 `~/QC/...`
+            #   垃圾目录，上传看似成功实则全部落错位置）。先经 shell 探一次
+            #   $HOME（exec 通道可靠），失败即明确报错，绝不静默用 ~ 形式。
+            _home_out, _, _ = session.run("printf '%s' \"$HOME\"", timeout=15)
+            _home = (_home_out or "").strip()
+            if not _home.startswith("/"):
+                log(f"无法解析远端 $HOME（得到 {_home!r}），中止上传", "ERROR")
+                return False
             if workdir_mode == "runs":
                 _pkg_root = _resolve_hpc_pkg_root(session)
                 remote_dir = f"{_pkg_root.parent}/flash_sim_runs/ch_center/hpc_{remote_run_id}"
                 log(f"工作目录模式: runs (包目录契约, 模式④)")
             else:
-                remote_dir = f"~/{SIM_USER_DIR}/AI/AItemp/flash_custom_{remote_run_id}"
+                remote_dir = f"{_home}/{SIM_USER_DIR}/AI/AItemp/flash_custom_{remote_run_id}"
             session.run(f"mkdir -p {remote_dir}", timeout=10)
             log(f"远程目录: {remote_dir}")
 
@@ -1238,6 +1389,12 @@ def main(credential_name: Optional[str] = None):
                 log("FLASH 运行失败! 跳过分析。", "WARN")
                 return False
             log(f"    输出目录: {actual_output}")
+
+            # 批量矩阵（FLASH_COLLECT_DIR 生效）: 无条件回传 chk，
+            # 与 local/wsl 落在同一目录，供跨模式逐帧 dens/nele 对比。
+            if os.environ.get("FLASH_COLLECT_DIR", "").strip():
+                download_hdf5_to_local(session, remote_dir, actual_output,
+                                       with_plt=False)
 
             # ── 步骤 4: 上传并运行分析脚本 ──────
             print("\n[步骤 4/5] 上传并运行 HPC 分析脚本")
@@ -1322,8 +1479,18 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str,
     search_dirs.append(f"{remote_dir}/outputfiles")
     search_dirs.append(f"{remote_dir}/outputfiles_*")
 
+    # ★ 2026-10-24 模式测试：head -50 是交互模式的上限，但批量矩阵
+    #   （FLASH_COLLECT_DIR 生效）需要**全部帧**做跨模式时序对比 ——
+    #   短 tmax 跑 50+ chk 时旧上限会静默截断，导致对比数据缺尾帧。
+    #   现改为 FLASH_LS_LIMIT 可配（默认 50，行为不变；批量模式置大）。
+    try:
+        _ls_limit = int(os.environ.get("FLASH_LS_LIMIT", "50"))
+    except ValueError:
+        _ls_limit = 50
+    if _ls_limit <= 0:
+        _ls_limit = 100000
     ls_cmd = " || ".join(
-        f"ls {d}/*chk* {d}/*plt* 2>/dev/null | head -50"
+        f"ls {d}/*chk* {d}/*plt* 2>/dev/null | head -{_ls_limit}"
         for d in search_dirs
     ) + " || echo NO_H5"
     out, _, _ = session.run(ls_cmd, timeout=15)
@@ -1353,19 +1520,29 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str,
             log(f"    ★ chk-only 模式: 跳过 {_nplt} 个 plt 文件 "
                 f"(with_plt=True 可改)", "INFO")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # 批量矩阵（FLASH_COLLECT_DIR）需要**全部**帧做时序对比；交互模式仍只取 10 个
+    # （多取会让一次性运行等很久且通常用不到）。
+    _dest = Path(os.environ["FLASH_COLLECT_DIR"]) if os.environ.get(
+        "FLASH_COLLECT_DIR", "").strip() else OUTPUT_DIR
+    _dest.mkdir(parents=True, exist_ok=True)
+    try:
+        _limit = int(os.environ.get("FLASH_FETCH_LIMIT", "10"))
+    except ValueError:
+        _limit = 10
+    _picked = remote_files if _limit <= 0 else remote_files[:_limit]
     n = 0
-    for rf in remote_files[:10]:
-        local_path = str(OUTPUT_DIR / Path(rf).name)
+    for rf in _picked:
+        local_path = str(_dest / Path(rf).name)
         ok = session.download(rf, local_path)
         if ok:
             n += 1
-    log(f"  下载 {n} 个 HDF5 文件到 {OUTPUT_DIR}", "OK")
+    log(f"  下载 {n} 个 HDF5 文件到 {_dest}", "OK")
 
     if n > 0:
         try:
             from flash.output_processors.loader import FlashDataLoader
             from flash.output_processors.plotter import FlashPlotter
-            h5_files = sorted(OUTPUT_DIR.glob("*chk*")) or sorted(OUTPUT_DIR.glob("*plt*"))
+            h5_files = sorted(_dest.glob("*chk*")) or sorted(_dest.glob("*plt*"))
             if h5_files:
                 container = FlashDataLoader(str(h5_files[0])).load(
                     compute_derived=True, extraction_mode=EXTRACTION_MODE,

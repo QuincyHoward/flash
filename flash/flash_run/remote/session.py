@@ -95,12 +95,34 @@ def _paramiko_run(route: Dict[str, Any], command: str, timeout: int = 60) -> Tup
 
 def _paramiko_put(route: Dict[str, Any], local_path: str,
                   remote_path: str, timeout: int = 120) -> bool:
-    """paramiko SFTP 上传（自动创建远端父目录）。"""
+    """paramiko SFTP 上传（自动创建远端父目录）。
+
+    ★ 2026-10-24 两处加固（模式测试实测复现：上传 0/18 全败）：
+      ① **尾斜杠**：调用方常传 `"{dir}/"` 表示目录，但 sftp.put 对以 "/"
+         结尾的目标报 `OSError: Failure`（SFTP 服务端拒绝以目录方式打开
+         文件）。此处归一：记录目录意图 → 剥掉尾斜杠 → 意图为目录且末段
+         不是本地文件名时，自动追加本地 basename。
+      ② **`~` 不展开**：paramiko SFTP 是纯协议通道，不像 shell 那样展开
+         `~`——文件会落进主目录下**字面名为 `~` 的垃圾目录**。此处对以
+         "~/" 开头的目标，经**同一连接**的 exec 通道探一次 $HOME 再展开
+         （零额外建连）。
+    """
+    # ① 尾斜杠归一（目录意图 → 补本地 basename）
+    _dir_intent = remote_path.endswith("/")
+    remote_path = (remote_path.rstrip("/") or "/")
+    if _dir_intent and posixpath.basename(remote_path) != Path(local_path).name:
+        remote_path = remote_path + "/" + Path(local_path).name
     try:
         cli = _connect_paramiko(route, timeout)
     except Exception:
         return False
     try:
+        if remote_path.startswith("~/"):
+            _stdin, _stdout, _stderr = cli.exec_command("printf '%s' \"$HOME\"",
+                                                        timeout=15)
+            home = (_stdout.read().decode("utf-8", errors="replace") or "").strip()
+            if home.startswith("/"):
+                remote_path = home + remote_path[1:]
         sftp = cli.open_sftp()
         remote_dir = posixpath.dirname(remote_path)
         if remote_dir:
