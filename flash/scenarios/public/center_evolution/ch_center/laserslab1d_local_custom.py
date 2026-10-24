@@ -542,8 +542,29 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
             log("  [run] ⚠ Intel MPI 路径注入失败 — 链接期可能 -lmpi 缺失", "WARN")
 
     # ── 尝试 SLURM 提交 ──────────────────────────
+    # ★ 2026-10-24 实测缺陷：此处原为 `timeout=30`，但 NC-E 上
+    #   `source /public1/soft/modules/module.sh` + 两次 `module load`
+    #   本身就要 40~60s ⇒ `Command ... timed out after 30 seconds`，
+    #   而 sbatch **其实已经提交成功**（squeue 里能看到 RUNning 的作业）。
+    #   结果是"作业在跑、封装层报 FAIL"—— 比失败更糟：会导致重复提交。
+    #   现放宽到 180s，并在超时后回查 squeue，避免把已提交当失败。
     sbatch_cmd = f"cd {remote_dir} && {MODULES_LOAD} && sbatch submit_flash.sh 2>&1"
-    out, err, code = session.run(sbatch_cmd, timeout=30)
+    _t0 = time.time()
+    try:
+        out, err, code = session.run(sbatch_cmd, timeout=180)
+    except Exception as exc:  # noqa: BLE001 - 超时也要判断是否已提交
+        log(f"    sbatch 调用异常: {type(exc).__name__}; 回查 squeue 判断是否已提交", "WARN")
+        out, err, code = "", "", 1
+    log(f"    sbatch 返回 rc={code} 耗时 {time.time() - _t0:.0f}s")
+    if code != 0 or "Submitted batch job" not in (out or ""):
+        # 回查：刚提交的作业名 = FLASH_batch（见 submit_flash.sh 的 #SBATCH --job-name）
+        q_out, _, _ = session.run(
+            "squeue -u $(whoami) -h -o '%i %j %T' 2>/dev/null | grep FLASH_batch | tail -1",
+            timeout=30)
+        if (q_out or "").strip():
+            out = f"Submitted batch job {q_out.split()[0]}"
+            code = 0
+            log(f"    回查确认已提交: {q_out.strip()}", "OK")
 
     if code == 0 and "Submitted batch job" in out:
         job_id = out.strip().split()[-1]
@@ -812,7 +833,12 @@ def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
     print(f"  runs 目录: {run_dir}")
     print(f"  分析图像:  {run_dir / 'plots'} (n={len(list((run_dir / 'plots').glob('*.png')))})")
     print("=" * 65)
-    return analysis_ok or (run_dir / "output").is_dir()
+    # ★ 2026-10-24：旧判据 `(run_dir / "output").is_dir()` 恒为真（目录在 :769
+    #   就建好了）⇒ "分析失败但 FLASH 成功"也会报成功，属 G6 同类静默失败。
+    #   现要求：分析成功 **或** 确有产物（chk/plt）落地。
+    _has_artifacts = bool(list((run_dir / "output").glob("*")) or
+                          list((run_dir / "plots").glob("*.png")))
+    return bool(analysis_ok or _has_artifacts)
 
 
 # =====================================================================

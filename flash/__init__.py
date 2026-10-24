@@ -112,14 +112,34 @@ def _resolve_version() -> str:
     #      改 pyproject 后不重装就会读到旧值 —— 实测 0.1.7 vs 0.1.11）
     try:
         import tomllib
-        from pathlib import Path
+    except ImportError:                      # ★ Python < 3.11（超算 venv 就是 3.10）
+        tomllib = None
 
-        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
-        if pyproject.is_file():
-            with open(pyproject, "rb") as fh:
+    from pathlib import Path
+
+    _pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    if tomllib is not None:
+        try:
+            with open(_pyproject, "rb") as fh:
                 return str(tomllib.load(fh)["project"]["version"])
-    except Exception:  # noqa: BLE001 - 版本号解析失败不应阻断 import
-        pass
+        except Exception:  # noqa: BLE001 - 版本号解析失败不应阻断 import
+            pass
+    else:
+        # 无 tomllib 时用最小解析：取 [project] 段里的 version = "x.y.z"。
+        # ★ 2026-10-24 实测缺陷：HPC venv 是 Python 3.10.8，tomllib 不存在，
+        #   旧实现静默落到 importlib.metadata ⇒ 源码树明明是 0.1.11，
+        #   却报安装时的 0.1.7（与 §S 三件套一致性要求冲突）。
+        try:
+            in_project = False
+            for raw in _pyproject.read_text(encoding="utf-8").splitlines():
+                line = raw.strip()
+                if line.startswith("["):
+                    in_project = (line == "[project]")
+                    continue
+                if in_project and line.startswith("version"):
+                    return line.split("=", 1)[1].strip().strip("\"'")
+        except Exception:  # noqa: BLE001
+            pass
     # ② 否则用已安装发行版的元数据（wheel 安装场景）
     try:
         from importlib.metadata import PackageNotFoundError
