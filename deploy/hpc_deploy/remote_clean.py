@@ -42,7 +42,7 @@ TARGET_DIR = f"{BASE}/flash_sim"
 
 def _ssh():
     sys.path.insert(0, str(REPO_ROOT))
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
     return RemoteSession("flash_ssh")
 
 

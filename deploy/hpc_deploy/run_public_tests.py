@@ -375,7 +375,7 @@ def main() -> int:
                         encoding="utf-8", newline="\n")
 
     sys.path.insert(0, str(REPO_ROOT))
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     print(f"[08] 场景: {scenes}")
     print(f"[08] 阶段: A(全局+生成自检) + {'B(sbatch 真跑)' if phase_b else 'B 跳过'}")

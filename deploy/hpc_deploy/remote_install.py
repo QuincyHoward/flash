@@ -104,7 +104,7 @@ def main() -> int:
     local_sh.write_text(script, encoding="utf-8", newline="\n")
 
     sys.path.insert(0, str(REPO_ROOT))
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     print(f"[06] 目标: {TARGET_DIR}")
     print(f"[06] 命名环境: FLASH_VENV_DIR={VENV_NAME}（用户要求显式命名）")

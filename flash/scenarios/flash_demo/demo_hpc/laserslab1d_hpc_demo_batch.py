@@ -996,7 +996,9 @@ def main(credential_name: Optional[str] = None):
     from flash.scenarios.runner import resolve_run_mode
     run_mode = resolve_run_mode(RUN_MODE)
     log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
-    if run_mode != "hpc":
+    # ★ 2026-10-24 修复：resolve_run_mode 归一 "hpc" → "hpc-remote"，
+    #   旧写法 `!= "hpc"` 归一后恒真 ⇒ batch 入口永远 return False。
+    if run_mode not in ("hpc", "hpc-remote"):
         log("demo_hpc(batch) 仅实现 hpc 运行; wsl 请使用 trace/center 场景的共享 runner", "ERROR")
         return False
 

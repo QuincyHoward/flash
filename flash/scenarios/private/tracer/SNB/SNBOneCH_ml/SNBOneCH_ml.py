@@ -181,7 +181,9 @@ config_constants = {
     #      M1 纪律: 改参数前先与"已验证成功的配置"做穷尽键级差分。
     #   ⚠ 注意: 这是 **辐射 MGD** 的通量模式; 电子热传导的 diff_eleFlMode
     #     保持 "fl_harmonic" (两条独立通道)。
-    "rt_mgdFlMode": "fl_harmonic",
+    # ★ 2026-10-24 修复（解耦计划 G5）：原为 fl_harmonic，与
+    #   _SNB_REQUIRED_PAR_VALUES 的 fl_larsen 自相矛盾 ⇒ 每轮判"陈旧"重生成。
+    "rt_mgdFlMode": "fl_larsen",
     "rt_mgdFlCoef": 1.0,
     # ★★★ 流体 Riemann 求解器 (2026-09-12 定案)
     #   原值 "hllc" → eos_nr WARN 3091 次, tele 最低 -3.3e7 K (负内能)。
@@ -1797,8 +1799,10 @@ def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(
         description="SNBOneCH_ml: OneCH_ml 几何/材料 + SNB 模型 (FLASHSNB; wsl/hpc 一行切换)")
-    ap.add_argument("--mode", default=None, choices=["wsl", "hpc"],
-                    help="运行模式: hpc=超算 (默认), wsl=本地 WSL (需 --nproc 按本机核数); "
+    ap.add_argument("--mode", default=None,
+                    choices=["wsl", "hpc", "hpc-remote", "hpc-insitu"],
+                    help="运行模式: hpc=超算 (默认; 规范名 hpc-remote), "
+                         "hpc-insitu=超算登录节点就地编排, wsl=本地 WSL (需 --nproc 按本机核数); "
                          "可用 FLASH_RUN_MODE 环境变量覆盖")
     ap.add_argument("--account", default="flash_ssh",
                     choices=["flash_ssh", "flash_ssh_2"],
@@ -1857,7 +1861,19 @@ def main() -> int:
     # par iProcs 必须与 mpiexec -n 一致 (+ug 块数=iProcs; AMR 下不匹配同样致命:
     # 实测 +ug 4块/16进程 → Logfile_open io_status=29 → MPI_Abort)
     cfg["nprocs"] = nproc
-    mode = (args.mode or os.environ.get("FLASH_RUN_MODE", "hpc")).lower()
+    # ★ 2026-10-24 修复（解耦计划 G7）：--mode 走全仓统一别名归一；
+    #   旧实现不归一 ⇒ 传 --mode hpc-remote 会落 else 在本地跑 131 进程。
+    from flash.flash_run.modes.runner import normalize_run_mode
+
+    _raw_mode = (args.mode or os.environ.get("FLASH_RUN_MODE", "hpc")).strip().lower()
+    if _raw_mode == "local":
+        raise SystemExit(
+            "[X] SNB 场景禁止 --mode local / FLASH_RUN_MODE=local：\n"
+            "    本场景 nprocs=131 是超算配置，本地会严重超订。\n"
+            "    请用 --mode hpc（或 hpc-insitu）；确需本地跑请显式 --mode wsl --nproc <本机核数>。"
+        )
+    _canon_mode = normalize_run_mode(_raw_mode)
+    mode = {"hpc-remote": "hpc"}.get(_canon_mode, _canon_mode)
     # ★ 2026-10-21: 默认改为 hpc。理由: 本场景 nprocs 是超算配置 (131)，
     #   本机 24 核上 131 进程严重超订 —— 实测 36 min 只推进 4 步
     #   (t=4.6e-15，目标 1e-11)，同场景 24 进程 75 步仅 52 s。SNB 极短

@@ -830,13 +830,24 @@ class FlashSimulatorEngine:
                     print(f"  ⚠️ FLASH 执行异常: {_fe}")
 
             if not ok:
-                # FLASH 未安装 / 编译失败 / 运行错误 → 自动回退 dry-run 合成,
-                # 保证测试在无 FLASH 或 FLASH 不可用的环境下也能全部通过。
-                if self.verbose:
-                    print("  [Simulator] FLASH 未产出 (未安装/编译失败/运行错误), "
-                          "自动回退 dry-run 合成模式")
-                synthetic = True
-                hdf5_count = 1
+                # ★★ 2026-10-24 修复"静默造假"（解耦计划 G3）：
+                #    旧行为 = FLASH 失败 → 回退 dry-run 合成 → 最终 success=True，
+                #    等于把"FLASH 根本没跑"报成成功；在 Linux/HPC 上（无 wsl 命令）
+                #    更是必然走到这里，产生看起来正常的假结果。
+                #    现在 = 真实运行失败一律返回失败；合成数据只允许显式 dry_run。
+                if run_flash and not dry_run:
+                    _cleanup_wsl(run_tmp)
+                return SimulationOutput(
+                    result_h5_path=str(flash_in_dir / "input_params.json"),
+                    run_dir=str(run_dir),
+                    n_chk=0, n_timesteps=0, fields=[],
+                    input_params=input_params,
+                    success=False,
+                    error_message=(
+                        "FLASH 未产出 chk（未安装/编译失败/运行错误）。"
+                        "如需无 FLASH 的结构化占位输出，请显式传 dry_run=True。"
+                    ),
+                )
         # 若 run_flash=False 且非 dry_run: hdf5_count 保持 0 → Step 7 返回失败 (保留原语义)
 
         # ── 7. 处理输出 ──

@@ -21,6 +21,18 @@ from flash.scenarios.base import SimulationScenario
 _SCENARIO_REGISTRY: Dict[str, tuple] = {}
 
 
+def _ensure_loaded() -> None:
+    """首次访问时预热场景包（2026-10-24：`scenarios/__init__` 改为惰性）。
+
+    ★ 若 import 期间发生异常，`warm_registry()` 会抛；这里**不吞**，
+      因为"注册表空着"会导致 get_scenario 报"未知场景"——
+      正是 G8 要消灭的那种误导性错误。
+    """
+    from flash.scenarios import warm_registry
+
+    warm_registry()
+
+
 def _lazy_import(module_path: str, attr: str):
     """延迟导入场景模块"""
     import importlib
@@ -41,6 +53,7 @@ def register(name: str, module_path: str, attr: str = "scenario"):
 
 def get_scenario(name: str) -> SimulationScenario:
     """按名称获取场景实例"""
+    _ensure_loaded()
     if name not in _SCENARIO_REGISTRY:
         raise KeyError(
             f"未知场景: '{name}'. 可用: {', '.join(sorted(_SCENARIO_REGISTRY))}"
@@ -51,6 +64,7 @@ def get_scenario(name: str) -> SimulationScenario:
 
 def list_scenarios() -> List[Tuple[str, str]]:
     """列出所有已注册场景 (名称, 描述)"""
+    _ensure_loaded()
     results = []
     for name in sorted(_SCENARIO_REGISTRY):
         try:

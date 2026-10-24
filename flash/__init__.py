@@ -53,10 +53,14 @@ except ImportError:
     FlashEnvManager = None
     get_env_manager = None
 
-try:
-    from .flash_run.remote.remote_deploy import FlashRemoteDeploy
-except ImportError:
-    FlashRemoteDeploy = None
+#: ★ 2026-10-24（解耦计划 B0）：`FlashRemoteDeploy` 改为**惰性**。
+#: 原写法虽包在 try 里，但仍是**急切执行** —— `remote_deploy.py` 模块级
+#: `import paramiko`，导致 `import flash` 就拉起 paramiko+cryptography，
+#: 使「基础设施层零重依赖」名不副实。现由模块级 `__getattr__` 按需提供，
+#: 且保持旧语义（paramiko 缺失时返回 None 而不是抛错）。
+_LAZY_IMPORTS = {
+    "FlashRemoteDeploy": (".flash_run.remote.remote_deploy", "FlashRemoteDeploy"),
+}
 
 try:
     from .test.math_test import LaserSlabCa1D, FlashMathTest
@@ -142,6 +146,27 @@ __standalone__ = _STANDALONE
 def __dir__():
     """Return list of public attributes (for AI agents)."""
     return sorted(__all__)
+
+
+def __getattr__(name):
+    """PEP 562 惰性导出（见文件头 `_LAZY_IMPORTS`）。
+
+    语义保持：子模块 import 失败时返回 None（旧 `try/except ImportError`
+    行为），不向调用方抛错 —— 否则 `from flash import FlashRemoteDeploy`
+    会在无 paramiko 的环境里硬失败。
+    """
+    try:
+        mod_name, attr = _LAZY_IMPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    from importlib import import_module
+
+    try:
+        value = getattr(import_module(mod_name, __name__), attr)
+    except ImportError:
+        value = None
+    globals()[name] = value
+    return value
 
 
 # Warm-up: pre-import common submodules (improves tab completion)

@@ -28,6 +28,7 @@
   python run_all.py --skip 01a,01b # 跳过已完成的本地预演
 """
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -39,7 +40,9 @@ ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
 TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
 REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
-MANAGED_PY = Path(r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe")
+#: ★ 2026-10-24：原 MANAGED_PY 写死本机 `C:\Users\Administrator\...python.exe`
+#:   （换机即失效，且该解释器无 cryptography/paramiko）。已删除 —— 解释器
+#:   选择统一走 `pick_py()` → flash.flash_run.env.venv_paths。
 
 STEPS = [
     ("00",  "remote_clean.py",         "★ 远端安装目录归档清空（dry-run 默认）"),
@@ -62,12 +65,42 @@ STEP_ARGS: dict = {"01b": ["--offline"]}
 
 
 def pick_py() -> str:
-    """★ SSH 相关步骤（02/05/06/07）必须用项目 .venv（含 cryptography/paramiko，
-    凭据 Fernet 解密依赖）；managed python 无这些包会 ModuleNotFoundError。"""
-    venv_py = REPO_ROOT / ".venv" / "Scripts" / "python.exe"
-    if venv_py.is_file():
-        return str(venv_py)
-    return str(MANAGED_PY) if MANAGED_PY.is_file() else sys.executable
+    """选解释器：**唯一事实源 = flash.flash_run.env.venv_paths**。
+
+    ★ 2026-10-24（解耦计划 B3）修三处历史缺陷：
+      1. 旧实现只认无后缀 `.venv/Scripts/python.exe`，而 01a/01b 实际建的是
+         `.venv-win`/`.venv-linux` ⇒ 本机两套环境**并行且静默**：
+         01a 用新 venv、02/05/06/07 用旧 venv（缺包时症状是"解密失败"，
+         完全指不到 venv）。
+      2. 旧实现**不读 `FLASH_VENV_DIR`** ⇒ 部署链里注入的 venv 被忽略。
+      3. 旧实现兜底到写死的 `C:\\Users\\Administrator\\...python.exe`
+         （换机/换用户即失效，且该解释器没有 cryptography/paramiko）。
+    """
+    env_dir = os.environ.get("FLASH_VENV_DIR", "").strip()
+    candidates: list[Path] = [Path(env_dir)] if env_dir else []
+
+    try:                                    # deploy → flash_run 是允许方向
+        from flash.flash_run.env.venv_paths import repo_root, venv_python
+
+        py = venv_python(repo_root() or REPO_ROOT, "local")
+        if py and py.is_file():
+            candidates.append(Path(py))
+    except Exception:                       # noqa: BLE001 - 未安装/旧版本时退回本地探测
+        pass
+
+    candidates += [REPO_ROOT / ".venv-win", REPO_ROOT / ".venv-linux", REPO_ROOT / ".venv"]
+    # 只探本平台的布局：Windows 上 `.venv-linux/bin/python` 是符号链接，
+    # `is_file()` 会抛 WinError 1920（不是返回 False），会打断整个探测。
+    subs = (("Scripts", "python.exe"),) if os.name == "nt" else (("bin", "python"),)
+    for d in candidates:
+        for sub in subs:
+            p = Path(d).joinpath(*sub)
+            try:
+                if p.is_file():
+                    return str(p)
+            except OSError:
+                continue
+    return sys.executable
 
 
 def run_step(key: str, script: str, extra: list) -> int:

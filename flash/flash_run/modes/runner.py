@@ -175,8 +175,25 @@ def discover_flash_home() -> Optional[str]:
 # ── 目录契约（运行输出外置，2026-10-22）──────────────────
 
 def package_root() -> Path:
-    """flash_sim 包根目录（start_flash.py 所在层）。"""
+    """flash 包目录（``.../flash/flash``）。
+
+    ★★ **命名有误导性，但承重，禁止"顺手修正"**：``runs_root()`` 依赖
+    ``package_root().parent`` 得到仓库根下的 ``flash_sim_runs``；若改成
+    仓库根，所有既有 run 目录会搬家。
+    ⇒ 需要**仓库根**（venv/源码树判据）请用 :func:`repo_root`。
+    """
     return Path(__file__).resolve().parents[2]
+
+
+def repo_root() -> Optional[Path]:
+    """仓库根（含 pyproject.toml 且含 start_flash.py）；安装态返回 None。
+
+    唯一事实源 = :mod:`flash.flash_run.env.venv_paths`（纯 stdlib，可被部署侧
+    按文件路径加载）。**不要**在此重复实现向上探测逻辑。
+    """
+    from flash.flash_run.env.venv_paths import repo_root as _rr
+
+    return _rr(Path(__file__).resolve().parent)
 
 
 def runs_root() -> Path:
@@ -194,28 +211,20 @@ def runs_root() -> Path:
 
 
 def resolve_venv_python() -> Optional[Path]:
-    """解析本平台项目 venv 解释器（与 start_flash.py L968-1014 同规则）。
+    """解析本平台项目 venv 解释器（**委托** ``env/venv_paths`` 唯一事实源）。
 
-    优先级: FLASH_VENV_DIR > .venv-win/.venv-linux/.venv-mac（按平台）> 旧 .venv。
+    优先级: ``FLASH_VENV_DIR`` > ``<repo_root>/.venv-<平台>`` > ``<repo_root>/.venv``。
+    ★ 2026-10-24 修复：旧实现用 ``package_root()``（= 包目录 ``.../flash/flash``）
+      拼 ``.venv-*``，路径恒不存在 ⇒ 本机实测永远返回 None。根必须用
+      :func:`repo_root`；``package_root`` 是 runs_root 的承重点，不能动。
     找不到返回 None（不猜测系统 python）。
     """
-    env = os.environ.get("FLASH_VENV_DIR", "").strip()
-    cands: List[Path] = []
-    if env:
-        cands.append(Path(env))
-    plat = "win" if os.name == "nt" else ("mac" if sys.platform == "darwin" else "linux")
-    root = package_root()
-    if os.name == "nt":
-        sub = ("Scripts", "python.exe")
-    else:
-        sub = ("bin", "python")
-    cands.append(root / f".venv-{plat}")
-    cands.append(root / ".venv")
-    for c in cands:
-        py = c.joinpath(*sub)
-        if py.is_file():
-            return py
-    return None
+    from flash.flash_run.env.venv_paths import venv_python
+
+    root = repo_root()
+    if root is None:
+        return None
+    return venv_python(root, kind="local")
 
 
 # ── 维度感知资源默认值 ───────────────────────────────────
@@ -536,64 +545,40 @@ def load_hpc_routes(credential: str) -> List[Tuple[str, int]]:
 
 
 class Remote:
-    """paramiko 远程连接 (多路由自动尝试)。"""
+    """远程连接适配器 —— 唯一 SSH 实现是 `flash.flash_run.remote.session.RemoteSession`。
+
+    ★ 2026-10-24（解耦计划 B1）：本类原为 runner 内的**第 4 套** paramiko 实现
+    （与 remote_deploy / remote_ssh_helper / SNB._HpcRemote 重复）。现降级为
+    薄适配层，**保留全部 8 个方法**（connect/close/run/upload/download/
+    exists/listdir/__enter__/__exit__）：5 个工具脚本从
+    `flash.scenarios.runner` 导入它且不在 CI 内，删类会静默失联。
+    """
 
     def __init__(self, credential: str = "flash_ssh",
                  routes: Optional[List[Tuple[str, int]]] = None):
         self.credential = credential
-        # 线路来自 ~/.physimx/flash/hpc_accounts.json (不再包内硬编码)
-        self.routes = routes if routes is not None else load_hpc_routes(credential)
-        self.client = None
-        self.sftp = None
+        # 字段保留（HpcSpec.routes 的 19 处实参来源）；选路交给 RemoteSession
+        self.routes = routes
+        self._session = None
         self.home = ""
 
+    # ── 连接面 ──
     def connect(self) -> None:
-        from flash._core.credentials import load_ssh_credentials
-        cred = load_ssh_credentials(self.credential)
-        if not cred:
-            raise RuntimeError(f"凭据未找到: {self.credential}")
-        username = cred.get("ssh_username") or cred.get("username", "")
-        password = cred.get("password", "")
-        if not username or not password:
-            raise RuntimeError(f"凭据 {self.credential} 缺少 ssh_username/password")
-        if not self.routes:
-            raise RuntimeError(
-                f"账户 {self.credential} 未配置 SSH 线路。请在 "
-                f"~/.physimx/flash/hpc_accounts.json 的 "
-                f"accounts.{self.credential}.routes 中补充 "
-                f"[{{\"host\": ..., \"port\": ..., \"label\": ...}}]"
-                f" (格式见 flash._core.credentials.hpc_config 模块说明)"
-            )
+        from flash.flash_run.remote.session import RemoteSession
 
-        import paramiko
-        last_err = ""
-        for host, port in self.routes:
-            try:
-                client = paramiko.SSHClient()
-                client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                client.connect(
-                    hostname=host, port=port, username=username, password=password,
-                    timeout=25, allow_agent=False, look_for_keys=False,
-                    banner_timeout=15, auth_timeout=25,
-                )
-                self.client = client
-                self.sftp = client.open_sftp()
-                i, o, e = client.exec_command("echo $HOME", timeout=15)
-                self.home = o.read().decode(errors="replace").strip()
-                log(f"已连接 {username}@{host}:{port} (HOME={self.home})", "OK")
-                return
-            except Exception as exc:  # noqa: BLE001
-                last_err = f"{host}:{port} -> {type(exc).__name__}: {exc}"
-                log(f"路由失败: {last_err}", "WARN")
-        raise RuntimeError(f"全部路由连接失败: {last_err}")
+        self._session = RemoteSession(self.credential, verbose=True)
+        self._session.__enter__()
+        out, _err, _rc = self._session.run("echo $HOME", timeout=15)
+        self.home = out.strip()
+        log(f"已连接 HOME={self.home}", "OK")
 
     def close(self) -> None:
-        for obj in (self.sftp, self.client):
+        if self._session is not None:
             try:
-                obj and obj.close()
+                self._session.__exit__(None, None, None)
             except Exception:  # noqa: BLE001
                 pass
-        self.sftp = self.client = None
+            self._session = None
 
     def __enter__(self) -> "Remote":
         self.connect()
@@ -602,38 +587,32 @@ class Remote:
     def __exit__(self, *a):
         self.close()
 
+    # ── 命令/文件面 ──
     def _res(self, path: str) -> str:
         if path.startswith("~/"):
             return self.home + "/" + path[2:]
         return path
 
     def run(self, cmd: str, timeout: int = 120) -> Tuple[str, str, int]:
-        i, o, e = self.client.exec_command(cmd, timeout=timeout)
-        out = o.read().decode(errors="replace")
-        err = e.read().decode(errors="replace")
-        code = i.channel.recv_exit_status()
-        return out, err, code
+        return self._session.run(cmd, timeout=timeout)
 
     def upload(self, local: str, remote: str) -> None:
-        self.sftp.put(local, self._res(remote))
+        self._session.upload(local, self._res(remote))
 
     def download(self, remote: str, local: str) -> bool:
         remote = self._res(remote)
-        try:
-            self.sftp.stat(remote)
-        except FileNotFoundError:
+        if not self._session.exists(remote):
             log(f"远程文件不存在: {remote}", "WARN")
             return False
         Path(local).parent.mkdir(parents=True, exist_ok=True)
-        self.sftp.get(remote, local)
-        return True
+        return self._session.download(remote, local)
 
     def exists(self, remote: str) -> bool:
-        try:
-            self.sftp.stat(self._res(remote))
-            return True
-        except FileNotFoundError:
-            return False
+        return self._session.exists(self._res(remote))
+
+    def listdir(self, remote: str) -> List[str]:
+        """列目录文件名（供 fetch_policy 归属过滤使用）。"""
+        return self._session.listdir(self._res(remote))
 
 
 @dataclass
@@ -653,6 +632,11 @@ class HpcSpec:
     state_file: str = "hpc_task.json"
     download_extra: Optional[Callable[[Remote, str], List[Tuple[str, Path]]]] = None
     # 额外下载项: (远程路径, 本地路径) 列表; 由 runner 在下载阶段调用
+    # ── 产物回收（★ 2026-10-24 新增：不再写死 3 个文件，统一走 fetch_policy）──
+    basenm: str = ""                    # 输出前缀（如 "lasslab_"）；空=不过滤归属
+    with_plt: bool = False              # False = chk-only（全仓默认策略）
+    frames: int = 0                     # chk 抽帧；0 = 全量
+    log_names: Tuple[str, ...] = ()     # 额外精确匹配的日志名
 
 
 class HpcRunner:
@@ -812,19 +796,50 @@ class HpcRunner:
         st = self._load_state()
         remote_dir = st["remote_dir"]
         local_map: Dict[str, Path] = {}
-        files: List[Tuple[str, Path]] = [
-            (f"{remote_dir}/analysis/dens_timespace.png", spec.plots_dir / "dens_timespace.png"),
-            (f"{remote_dir}/analysis/summary.json", spec.output_dir / "summary.json"),
-        ]
         with Remote(spec.credential, spec.routes) as r:
             outdir = self._find_output_dir(r, remote_dir)
-            files.append((f"{outdir}/flash_run.log", spec.output_dir / "flash_run.log"))
+            # 分析产物 + 运行日志（固定项）
+            files: List[Tuple[str, Path]] = [
+                (f"{remote_dir}/analysis/dens_timespace.png",
+                 spec.plots_dir / "dens_timespace.png"),
+                (f"{remote_dir}/analysis/summary.json",
+                 spec.output_dir / "summary.json"),
+                (f"{outdir}/flash_run.log", spec.output_dir / "flash_run.log"),
+            ]
             if spec.download_extra:
                 files.extend(spec.download_extra(r, remote_dir) or [])
             for rf, local in files:
                 if r.download(rf, str(local)):
                     local_map[Path(rf).name] = local
                     log(f"下载 {Path(rf).name} → {local}", "OK")
+
+            # ★★★ 2026-10-24 修复（解耦计划 G4）：HDF5 产物回收统一走
+            #   fetch_policy（chk-only 唯一策略源）。此前这里只下 3 个固定文件，
+            #   **完全不回收 chk/plt** ⇒ 结果全留在超算，与"统一回收"的契约矛盾。
+            from flash.flash_run.remote.fetch_policy import classify_names, pick_frames
+
+            names = r.listdir(outdir)
+            chks, plts, fixed = classify_names(
+                names,
+                basenm=spec.basenm or "",
+                log_names=spec.log_names,
+                extra_prefixes=("wsl_run_",) if spec.basenm else (),
+            )
+            picked = pick_frames(chks, spec.frames) + \
+                (plts if spec.with_plt else []) + fixed
+            n_ok = 0
+            for name in picked:
+                local = spec.output_dir / name
+                if local.name in local_map:
+                    continue
+                if r.download(f"{outdir}/{name}", str(local)):
+                    local_map[name] = local
+                    n_ok += 1
+            log(f"HDF5 回收: {n_ok} 个（chk={len(chks)} 选中 "
+                f"{len(pick_frames(chks, spec.frames))}, plt={'保留' if spec.with_plt else '跳过'}）",
+                "OK")
+            if not picked:
+                log("远端无可回收产物（检查 basenm 与输出目录）", "WARN")
         log(f"本地输出: {spec.output_dir}", "OK")
         return local_map
 
@@ -894,7 +909,7 @@ def run_scenario(wsl_spec: Optional[WslSpec], hpc_spec: Optional[HpcSpec],
     if mode == "hpc-insitu":
         if insitu_spec is None:
             raise RuntimeError("hpc-insitu 模式需要提供 InsituSpec")
-        from flash.scenarios.insitu_runner import run_insitu  # 延迟导入
+        from .hpc_insitu import run_insitu  # 同包（B1 已迁入执行层）
         return run_insitu(insitu_spec, cfg)
     if hpc_spec is None:
         raise RuntimeError(f"{mode} 模式需要提供 HpcSpec")
@@ -903,11 +918,17 @@ def run_scenario(wsl_spec: Optional[WslSpec], hpc_spec: Optional[HpcSpec],
 
 # ── 环境自检（--check-env，三端一致性核验）──────────────
 
-def _check_env() -> int:
-    """报告当前平台的执行能力矩阵（Windows / WSL / 超算 各跑一次留档）。"""
+def _check_env(strict: bool = False) -> int:
+    """报告当前平台的执行能力矩阵（Windows / WSL / 超算 各跑一次留档）。
+
+    Args:
+        strict: True 时任一关键项缺失即返回 1（可作部署门禁）；
+                默认 False 只报告不拦截，避免破坏既有脚本。
+    """
     print("=" * 64)
     print("flash-sim 运行环境自检 (--check-env)")
     print("=" * 64)
+    problems: List[str] = []
 
     native = detect_native_linux()
     plat = "Linux/WSL-native" if native else "Windows"
@@ -948,6 +969,27 @@ def _check_env() -> int:
     print(f"  hpc-insitu  : {'✓' if slurm else '✗ (无 slurm)'}"
           f" — 超算登录节点直接编排")
 
+    # ── 问题聚合（I5：缺失项须能作为门禁）──────────────
+    if venv_py is None:
+        problems.append("venv 解释器未找到（先跑 start_flash.py）")
+    if repo_root() is None:
+        problems.append("未定位到源码树根（wheel 安装态；venv/场景树不可判定）")
+    if not (native or _which("wsl")) and not cred.is_file():
+        problems.append("没有任何可用执行模式（无 wsl 命令、亦无 SSH 凭据）")
+
+    try:
+        import flash.scenarios as _scen
+        from flash.scenarios.registry import list_scenarios
+
+        _scenes = list_scenarios()
+        _n_ok = sum(1 for _, d in _scenes if d != "(加载失败)")
+        print(f"[场景注册]   {_n_ok} 可用 / {len(_scenes)} 已注册；"
+              f"包={','.join(_scen.registered_packages()) or '(无)'}")
+        if _scenes and _n_ok == 0:
+            problems.append("场景全部加载失败（疑似发布物打包缺文件）")
+    except Exception as _e:  # noqa: BLE001
+        print(f"[场景注册]   异常: {_e}")
+
     try:
         import subprocess as _sp
         head = _sp.run(["git", "rev-parse", "--short", "HEAD"], cwd=package_root(),
@@ -955,7 +997,14 @@ def _check_env() -> int:
         print(f"[git HEAD]   {head.stdout.strip() or 'N/A'}（对照超算 bundle 同步）")
     except Exception:  # noqa: BLE001
         print("[git HEAD]   N/A")
+
     print("=" * 64)
+    if problems:
+        print("[结论] 存在待修项：")
+        for _p in problems:
+            print(f"  - {_p}")
+        return 1 if strict else 0
+    print("[结论] 全部关键项就绪")
     return 0
 
 
@@ -965,7 +1014,9 @@ if __name__ == "__main__":  # pragma: no cover
     _ap = _argparse.ArgumentParser(description="flash-sim 统一场景运行器")
     _ap.add_argument("--check-env", action="store_true",
                      help="报告平台/venv/FLASH 树/slurm/凭据能力矩阵")
+    _ap.add_argument("--strict", action="store_true",
+                     help="与 --check-env 联用：存在待修项时返回非零（可作门禁）")
     _args = _ap.parse_args()
     if _args.check_env:
-        sys.exit(_check_env())
+        sys.exit(_check_env(strict=_args.strict))
     _ap.print_help()

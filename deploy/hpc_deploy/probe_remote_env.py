@@ -68,7 +68,7 @@ def main() -> int:
 
     # 复用包内 RemoteSession（Windows 默认 paramiko，自动建父目录、3 次重试）
     sys.path.insert(0, str(REPO_ROOT))
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     results = []
     with open(log_path, "w", encoding="utf-8", errors="replace") as lf:

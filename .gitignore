@@ -557,3 +557,8 @@ test/_extract_chk_params.out
 /flash/flash_run/remote/test/logs/
 /flash/flash_run/remote/test/packages/
 /flash/flash_run/remote/test/results/
+
+# ★ 运行输出外置目录（2026-10-24，解耦计划 B5）：与 flash/**/runs_*/** 成对维护
+flash_sim_runs/
+# ★ 护栏基线必须入库（否则 fresh clone 上 334 处历史债会全部误报为"新增违规"）
+!flash/input_gen/gen_checker/baseline_guards.txt

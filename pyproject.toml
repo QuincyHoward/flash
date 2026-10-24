@@ -275,8 +275,25 @@ include = [
     "pyproject.toml",
 ]
 exclude = [
-    # ★ 模块化改造（2026-10-22）: 与 wheel target 成对 —— 部署工具/依赖锁/产物区不入包
-    "/deploy/**",
+    # ★★ sdist 拆弹（2026-10-24，解耦计划 B5）：
+    #   实测 artifacts/dist/flash_sim-0.1.11.tar.gz = 11103 条 / 37.5 MB，
+    #   其中 **.venv-linux 占 10074 条（90.7%）**，另有 temp_delete/ 28 条。
+    #   根因：include 的 `**/*.py` 把虚拟环境里的 site-packages 全卷进来，
+    #   而 .gitignore 对 hatchling **无效**（打包器不读 git 忽略规则）。
+    #   注意：hatchling **exclude 优先于 include**，故只能在此排除，不能靠 include 收窄。
+    ".venv/**",
+    ".venv-*/**",
+    "/temp_delete/**",
+    "/.idea/**",
+    # ★ 部署工具精确化（原为 `/deploy/**` 整目录排除，导致 sdist 内 deploy/ 为 0 条，
+    #   而 start_flash.py 依赖 deploy/_wh_common.py ⇒ sdist 解包后离线安装必 FATAL）。
+    #   ⇒ 仅排除"控制器侧/构建期"脚本，保留离线安装所需的 7 个 .py + README。
+    "/deploy/hpc_deploy/**",            # 控制器侧：依赖 paramiko + flash.scenarios
+    "/deploy/build_wheelhouse.py",      # 联网机造包（sdist 用户用不到）
+    "/deploy/wheel_leak_audit.py",      # 构建期护栏
+    "/deploy/test_offline_install.py",  # 开发门禁（import 上述两个脚本）
+    "/deploy/build_wheelhouse.bat",
+    "/deploy/install_offline.bat",      # Windows 启动器（U 盘流程用，非 sdist 必需）
     "/deps_lock/**",
     "/artifacts/**",
     # ★ 护栏补漏（2026-10-22，与 wheel target 成对）

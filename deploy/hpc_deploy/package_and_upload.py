@@ -77,7 +77,7 @@ def main() -> int:
         log_f.flush()
 
     sys.path.insert(0, str(REPO_ROOT))
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     local_sha = ""
     t_start = time.time()

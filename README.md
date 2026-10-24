@@ -55,6 +55,7 @@ pip install flash-sim
 - [运行环境](#运行环境)
 - [开发指南](#开发指南)
 - [文档索引](#文档索引)
+- [版本更新日志](PhySimX_flash_CHANGELOG.md)
 - [许可](#许可)
 
 ---
@@ -281,24 +282,28 @@ plotter.plot("dens", save_path="dens.png")
 flash/
 ├─ interface.py            # FlashSimulator（旧版 mock/real 统一接口）
 ├─ _core/                  # 核心抽象：BaseSimulator / schema / registry / credentials(加密)
-├─ scenarios/              # 场景系统
+├─ scenarios/              # 场景层（只做物理搭建 + 参数覆盖 + 分析回调）
 │  ├─ base.py              #   SimulationScenario 数据类
 │  ├─ registry.py          #   register / get_scenario / list_scenarios
 │  ├─ simulator.py         #   FlashSimulatorEngine 统一引擎（管线中枢）
-│  └─ {collision_compression, center_evolution, plasma_preparation}/  # 物理场景
+│  ├─ insitu_runner.py     #   超算登录节点就地编排（待迁入 flash_run/modes/）
+│  └─ public/ private/ flash_demo/   # 公开示例 / 私有研究线 / 演示脚本
 ├─ input_gen/              # 输入生成（按产物分子包，每个含 generator.py）
 │  ├─ gen_par/  gen_config/  gen_makefile/  gen_sim_data/  gen_sim_init/
 │  ├─ gen_sim_initblock/  gen_eos_op/  gen_shell_script/  gen_Grid_markRefineDerefine/
-├─ flash_run/              # 运行管理
-│  ├─ env/                 #   FlashEnvManager / FlashEnvironment / resource_config
-│  └─ remote/              #   FlashRemoteDeploy（SSH/SFTP + SBATCH + 路由优选）
+│  └─ gen_checker/         #   生成质量检查（含 check_scene_sources 去运行化护栏）
+├─ flash_run/              # 执行层（唯一知道"怎么跑"的地方）
+│  ├─ modes/runner.py      #   四模式执行体 + 目标解析 + HpcRunner + 环境自检
+│  ├─ hpc.py               #   超算技能 CLI（status/submit/cancel/wait/download/…）
+│  ├─ env/                 #   FlashEnvManager / resource_config / venv_paths(venv 唯一事实源)
+│  └─ remote/              #   SSH/SFTP + slurm 控制 + fetch_policy（chk-only 唯一策略）
 ├─ output_processors/      # 输出处理
 │  ├─ hdf5processor/       #   FlashHDF5File / DataCalculator / DATA_CONFIG
 │  ├─ loader/              #   FlashDataLoader / FlashDataContainer
 │  ├─ plotter/             #   FlashPlotter（自适应维度）
 │  └─ parallel.py          #   多文件 / 多变量并行加速
 ├─ config/                 # FlashConfig 运行配置
-├─ scenarios/flash_demo/  # 参考示例与一键脚本
+├─ scenarios/flash_demo/   # 参考示例与一键脚本
 ├─ docs/ scripts/ utils/   # 文档 / Git 工具 / 辅助脚本
 └─ test/                   # 测试套件
 ```
@@ -381,6 +386,15 @@ python start_flash.py --no-tests# 只装环境
 
 自动完成：检查/创建项目专属虚拟环境（含**环境健康检查**：关键依赖可导入 + pytest 可启动）→ 安装 flash 包及全部依赖 → 运行三套全局测试 → 生成纯文本报告 `test/reports/INSTALL_TEST_REPORT.txt`（含**环境版本快照**；pytest 日志同目录）。
 
+> **三种部署流程**（同一入口）：
+> ① 在线机直接装并测试 → `python start_flash.py`
+> ② 在线机造包 + 导 U 盘 → 离线机安装 → `--make-wheelhouse` / `--export-usb`，再 `--offline`
+> ③ 离线机直接装并测试 → `python start_flash.py --offline --check` 后 `--offline`
+>
+> **sdist 现已自足（2026-10-24）**：源码包从 37.5 MB 降至 4.6 MB，且包含
+> `deploy/_wh_common.py`、`deploy/install_offline.py`，因此「解包 sdist → 离线安装」
+> 这条路径可用（此前 `/deploy/**` 被整目录排除，离线预检直接 FATAL）。
+
 | 参数 | 作用 |
 |---|---|
 | `--make-wheelhouse` | 联网机造 wheelhouse（转发到 `build_wheelhouse.py`） |
@@ -412,20 +426,26 @@ python start_flash.py --no-tests# 只装环境
 `flash/scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
 
 ```bash
-# 本地 WSL 模式（★脚本默认 RUN_MODE = "wsl"，零修改即可跑）
+# ★ 推荐：显式指定模式（auto = 平台自适应，按 README §典型工作流 0 判定表选择）
 # Windows — 内部经 wsl bash -c 转发
-.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py --mode auto
 
 # Linux / WSL — 直接跑
-.venv-linux\bin\python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py
+.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py --mode auto
 
-# 超算模式：将脚本顶部 RUN_MODE 改为 "hpc"（需 SSH 凭据 flash_ssh）
-# 也可用环境变量临时覆盖，无需改文件：
-set FLASH_RUN_MODE=hpc   # Windows CMD
+# 超算远端（需 SSH 凭据 flash_ssh）：本机驱动 → 上传 → sbatch → 回收
+... laserslab1d_local_custom.py --mode hpc-remote
+# 已在超算登录节点：就地 sbatch 编排，不自连 SSH
+... laserslab1d_local_custom.py --mode hpc-insitu
+
+# 环境变量等价覆盖（无需改文件）
+set FLASH_RUN_MODE=hpc-remote      # Windows CMD
+export FLASH_RUN_MODE=hpc-remote   # bash
 ```
 
-- 运行模式：脚本顶部 `RUN_MODE = "wsl"`（本地 WSL，**默认**）/ `"hpc"`（超算），一行切换；
-  环境变量 `FLASH_RUN_MODE` 优先级更高（也可用于 `--profile` 之外的临时覆盖）
+- 运行模式：**`--mode auto`（默认，平台自适应）** / `local` / `wsl` / `hpc-remote` / `hpc-insitu`；
+  优先级 `--mode` > `FLASH_RUN_MODE` > 场景默认。判定依据会打印在日志首行，
+  **不做静默兜底**（例：SNB 族只允许超算，若在 Windows 上跑 auto 会明确报错并给出修复建议）。
 - **跨平台（09-10 实测）**：Windows 上以 `.venv-win\Scripts\python.exe` 调用，内部经
   `wsl bash -c` 转发；**若已在 WSL 内**（如离线机把仓库放在 `/mnt/e/...` 并用 Linux
   解释器执行），脚本自动改用 `bash -c`，路径转换也幂等，两种方式都可直接跑。
@@ -585,15 +605,32 @@ flash-setup
 
 ## 典型工作流
 
-### 0. 功能模块地图（2026-10-22 模块化改造）
+### 0. 功能模块地图（2026-10-24 解耦改造）
 
-三个功能模块**独立分工、显式接口解耦**（便于维护与调用）：
+三个功能模块**独立分工、显式接口解耦**，依赖方向单调、可机器校验：
 
 ```
-deploy/          安装部署（根目录）：造包 / 离线安装 / 环境自检 / 超算部署链 / wheel 护栏
-flash/flash_run/ 运行层：三模式执行体 (modes/) + 超算技能 CLI (hpc.py) + 装置配置 (env/)
-flash/scenarios/ 场景层：只做场景搭建 + 参数覆盖（禁止内联 SSH/sbatch/装置路径）
+deploy/          部署层：造包 / 离线安装 / 环境自检 / 超算部署链 / wheel 护栏
+                 → 禁止 import flash.scenarios；允许 import flash.flash_run
+flash/flash_run/ 执行层：目标解析 / 四模式执行体 / SSH / slurm / 产物回收 / 装置配置
+                 → 禁止 import flash.scenarios
+flash/scenarios/ 场景层：只做物理搭建 + 参数覆盖 + 分析回调
+                 → 禁止内联 ssh/sbatch/paramiko/["wsl"/分区表/装置绝对路径
+flash/input_gen/ 输入生成层：无运行细节
 ```
+
+**执行目标模型（新）**：`EXEC_TARGETS = local | wsl | hpc-remote | hpc-insitu`
+
+| 目标 | 何时命中 | 说明 |
+|---|---|---|
+| `hpc-insitu` | 本机有 `sbatch`+`sacct`+`sinfo` | 脚本已在超算登录节点，就地 sbatch 编排（不自连 SSH） |
+| `local` | 本机为 Linux/WSL 原生 | 直接 `bash run_flash.sh` |
+| `wsl` | Windows 且存在 `wsl` 命令 | 经 `wsl.exe` 转发到发行版内执行 |
+| `hpc-remote` | 显式指定（Windows/Linux 均可） | 本机驱动 → SSH → 超算 |
+
+`--mode auto`（**默认**）按上表自上而下判定，并打印命中依据；
+`--mode <target>` 与 `FLASH_RUN_MODE` 环境变量始终可覆盖。
+`RUN_MODES` 旧三元组保持兼容（`hpc` 为 `hpc-remote` 的永久别名）。
 
 常用入口：
 
@@ -604,6 +641,9 @@ python start_flash.py [--offline] [--wheelhouse D] [--profile full|runtime|lite]
 #   机器可读 lock: deps_lock/requirements-{win,wsl,hpc}.txt
 python deps_lock/generate_locks.py --check
 
+# 运行环境自检（可作门禁：存在待修项时 --strict 返回非零）
+python -m flash.flash_run.modes.runner --check-env [--strict]
+
 # 超算技能统一 CLI（本地/登录节点两侧可调）
 python -m flash.flash_run.hpc status | submit | cancel | wait | download | route-test | nodes
 
@@ -613,6 +653,10 @@ python -m flash.input_gen.gen_checker.check_scene_sources
 # 构建产物统一落 artifacts/（dist、wheelhouse、logs），不污染根目录
 python deploy/wheel_leak_audit.py <wheel>   # 造包后必跑的护栏
 ```
+
+> **虚拟环境路径单一事实源**：`flash/flash_run/env/venv_paths.py`（纯 stdlib）。
+> 优先级 `FLASH_VENV_DIR` > `<仓库根>/.venv-<平台>` > 旧 `.venv`。
+> 超算侧固定 `<TARGET>/.venv-hpc-nce`。安装/部署/运行时三侧共用，不再各自实现。
 
 ### 1. 完整仿真工作流
 
@@ -1013,21 +1057,37 @@ python start_flash.py     # venv check → auto-rebuild if broken → 3 test sui
 python start_flash.py --no-tests   # install the environment only
 ```
 
-Run the built-in 1D LaserSlab scenario (`RUN_MODE` defaults to `"wsl"`, so no
-editing is required):
+Run the built-in 1D LaserSlab scenario with platform auto-detection:
 
 ```bash
-# Windows — forwarded to WSL internally
-.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
-
-# Linux / WSL — runs directly
-.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py
+# --mode auto (default) picks the target by the decision table below
+.venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py --mode auto
+.venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py --mode auto
 ```
+
+**Execution targets** (`EXEC_TARGETS`, 2026-10-24): `local` | `wsl` | `hpc-remote` | `hpc-insitu`
+
+| Order | Probe | Target |
+|---|---|---|
+| 1 | `sbatch` + `sacct` + `sinfo` all present | `hpc-insitu` (on login node, no self-SSH) |
+| 2 | POSIX native (`os.name != "nt"`) | `local` |
+| 3 | Windows with `wsl` on PATH | `wsl` |
+| 4 | none of the above | explicit error with the probe trace |
+
+`--mode` and `FLASH_RUN_MODE` always override. The legacy `RUN_MODES` triple is
+kept as an alias layer (`hpc` → `hpc-remote`), so existing scripts keep working.
+Scenarios may restrict the allowed set (e.g. the SNB family allows only
+`hpc-remote`/`hpc-insitu` and refuses to run locally).
 
 The FLASH installation directory is resolved automatically: the
 `FLASH_SIM_USER_DIR` environment variable → the encrypted credential store →
 a scan of `$HOME/*/FLASH/FLASH4.8` → the literal `hello`. The scan matters
 because clean clones and air-gapped machines have no `credentials.enc`.
+
+Virtual-environment lookup lives in **one** place
+(`flash/flash_run/env/venv_paths.py`, stdlib-only): `FLASH_VENV_DIR` >
+`<repo>/.venv-<platform>` > legacy `.venv`; on the HPC side it is
+`<TARGET>/.venv-hpc-nce`. It never falls back to `sys.executable`.
 
 Generate scenario input files explicitly (optional; normally auto-generated):
 
@@ -1036,8 +1096,19 @@ python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --check   
 python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --force   # regenerate all
 ```
 
-See [README.md] (Chinese) for the full documentation, or run the global test
-suite:
+Environment self-check (usable as a gate — non-zero exit on findings):
+
+```bash
+python -m flash.flash_run.modes.runner --check-env --strict
+```
+
+Distribution note (2026-10-24): the sdist shrank from 37.5 MB to **4.6 MB** and now
+ships `deploy/_wh_common.py` + `deploy/install_offline.py`, so
+"unpack sdist → offline install" works (previously the whole `deploy/` directory
+was excluded and the offline preflight aborted).
+
+See [README.md] (Chinese) for the full documentation, the
+[changelog](PhySimX_flash_CHANGELOG.md), or run the global test suite:
 
 ```bash
 python scripts/05_test/run_global_tests.py     # framework + input + output suites

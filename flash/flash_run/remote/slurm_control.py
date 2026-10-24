@@ -62,7 +62,8 @@ class RemoteExecutor:
     """远端会话适配器（hpc-remote）：包装 RemoteSession / _HpcRemote 等对象。
 
     被包装对象须已有 ``run(cmd, timeout=...) -> (out, err, rc)`` 方法
-    （flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper.RemoteSession 即是）。"""
+    （``flash.flash_run.remote.session.RemoteSession`` 即是；旧路径
+    ``flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper`` 为兼容壳）。"""
 
     def __init__(self, session: Any) -> None:
         self._session = session

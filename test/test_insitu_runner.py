@@ -18,8 +18,10 @@ sys.path.insert(0, str(_ROOT))
 
 import pytest
 
-import flash.scenarios.insitu_runner as ir
+import flash.flash_run.modes.hpc_insitu as ir   # 实现模块（monkeypatch 目标）
 from flash.flash_run.remote.slurm_control import SlurmJobSpec
+# ★ 兼容性断言：旧路径 flash.scenarios.insitu_runner 仍须可用（B1 迁移后为转发壳）。
+#   公开 API 故意从旧路径导入，确保 shim 不断链。
 from flash.scenarios.insitu_runner import (
     InsituSpec,
     collect_local,
@@ -142,7 +144,18 @@ def test_run_insitu_without_slurm_fails_fast(spec, monkeypatch):
 
 def test_run_insitu_run_id_increments(spec, tmp_path, monkeypatch):
     monkeypatch.setattr(ir, "sbatch_available", lambda exe: True)
-    monkeypatch.setattr(ir, "run_job_chain", lambda exe, jobs, wd, **kw: True)
+
+    def _fake_chain(exe, jobs, wd, **kw):
+        # ★ 2026-10-24：G6 起"收集 0 文件"判失败。旧测试靠"产物已被上一轮
+        #   collect_move 移走、第二轮空收集仍返回 True"通过，等于把缺陷当契约。
+        #   真实 FLASH 每轮都会重写 chk ⇒ 此处模拟重产出，保持严格判据。
+        obj = tmp_path / "FLASH4.8" / "SNB_obj"
+        obj.mkdir(parents=True, exist_ok=True)
+        (obj / "snbonechmug_hdf5_chk_0000").write_bytes(b"chk")
+        (obj / "wsl_run_snbonech_m.log").write_bytes(b"log")
+        return True
+
+    monkeypatch.setattr(ir, "run_job_chain", _fake_chain)
     assert run_insitu(spec) is True
     assert run_insitu(spec) is True
     ids = sorted(p.name for p in spec.runs_dir.iterdir())

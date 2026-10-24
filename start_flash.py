@@ -828,7 +828,7 @@ def run_suites() -> dict:
 # ---------------------------------------------------------------------------
 # 主流程
 # ---------------------------------------------------------------------------
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """命令行参数。在线为默认；--offline 切到离线模式。"""
     ap = argparse.ArgumentParser(
         prog="start_flash.py",
@@ -865,7 +865,75 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--export-profile", default=None,
                     choices=list(OFFLINE_PROFILES),
                     help="--make-wheelhouse 用的档位（默认 full）")
-    return ap.parse_args()
+
+    # ── 部署目标（2026-10-24 解耦计划 B3）─────────────────────────
+    # 统一入口：此前"本机安装"与"超算部署链"是两套命令、两套解释器选择，
+    # 且 run_all.py 写死本机绝对路径 Python。现在都从 start_flash.py 进。
+    ap.add_argument("--target", default="auto",
+                    choices=["auto", "win", "wsl", "hpc"],
+                    help="部署目标：auto(默认,按平台) | win(Windows 本地) | "
+                         "wsl(WSL 内重新启动自己) | hpc(委托 deploy/hpc_deploy/run_all.py)")
+    return ap.parse_args(argv)
+
+
+# ---------------------------------------------------------------------------
+# --target 分流（B3）
+# ---------------------------------------------------------------------------
+def _to_wsl_path(p: str) -> str:
+    """`E:\\a\\b` → `/mnt/e/a/b`（幂等）。"""
+    s = str(p).replace("\\", "/")
+    if s.startswith("/"):
+        return s
+    if len(s) > 1 and s[1] == ":":
+        return f"/mnt/{s[0].lower()}{s[2:]}"
+    return s
+
+
+def run_hpc_deploy(passthrough: list[str]) -> int:
+    """`--target hpc`：委托超算部署链（11 步）。
+
+    ★ 该链需要**完整源码树**（含 deploy/hpc_deploy/ 与 paramiko 凭据）。
+      在 sdist 解包目录里必须明确报错 —— 若"尽力而为"会产生半套部署
+      （计划风险 R24）。
+    """
+    chain = Path(PROJECT_DIR) / "deploy" / "hpc_deploy" / "run_all.py"
+    if not chain.is_file():
+        print("[X] --target hpc 需要完整源码树（缺少 deploy/hpc_deploy/run_all.py）")
+        print("    ① 这是**控制器侧**命令：请在 git clone 的完整仓库里运行"
+              "（不是 sdist 解包目录）")
+        print("    ② 只做离线安装请用：python start_flash.py --offline --wheelhouse <dir>")
+        return 2
+
+    try:
+        from deploy.targets import resolve_deploy_target      # noqa: PLC0415
+    except ImportError:
+        sys.path.insert(0, str(PROJECT_DIR))
+        from deploy.targets import resolve_deploy_target      # noqa: PLC0415
+
+    _target, trace = resolve_deploy_target("hpc")
+    for line in trace:
+        print(line)
+    cmd = [sys.executable, str(chain), *passthrough]
+    print(f"[hpc] {' '.join(cmd)}")
+    return subprocess.run(cmd, cwd=str(PROJECT_DIR)).returncode
+
+
+def reexec_in_wsl(extra_args: list[str]) -> int:
+    """`--target wsl`（Windows 侧）：在 WSL 内用 Linux venv 重新启动自己。"""
+    script = Path(__file__).resolve()
+    wsl_script = _to_wsl_path(str(script))
+    venv_py_local = Path(str(PROJECT_DIR)) / ".venv-linux" / "bin" / "python"
+    # ★ Windows 上该路径是符号链接，is_file() 会抛 OSError（WinError 1920）
+    try:
+        has_venv = venv_py_local.is_file()
+    except OSError:
+        has_venv = False
+    py = _to_wsl_path(str(venv_py_local)) if has_venv else "python3"
+    inner = f"cd {wsl_script.rsplit('/', 1)[0]} && {py} {wsl_script}"
+    if extra_args:
+        inner += " " + " ".join(extra_args)
+    print(f"[wsl] {inner}")
+    return subprocess.run(["wsl", "--", "bash", "-lc", inner]).returncode
 
 
 def resolve_offline_mode(args: argparse.Namespace) -> bool:
@@ -951,12 +1019,36 @@ def run_utility_commands(args: argparse.Namespace) -> int:
 def main() -> int:
     global VENV_DIR, VENV_PY, BASE_PY, OFFLINE
 
-    args = parse_args()
+    # `--` 之后一律透传（--target hpc 时交给 run_all.py，不经 argparse）
+    _argv = sys.argv[1:]
+    _passthrough: list[str] = []
+    if "--" in _argv:
+        _i = _argv.index("--")
+        _argv, _passthrough = _argv[:_i], _argv[_i + 1:]
+
+    args = parse_args(_argv)
 
     # ── 统一入口分流（09-10）：造包 / 导 U盘 这两个动作与「安装」互斥，
     #    放最前面处理，避免为造包去建 venv（那是离线机才需要的）。
     if args.make_wheelhouse or args.export_usb:
         return run_utility_commands(args)
+
+    # ── --target 分流（2026-10-24 B3）──────────────────────────
+    if args.target == "hpc":
+        return run_hpc_deploy(_passthrough)
+    if args.target == "wsl" and os.name == "nt":
+        # 去掉 --target/其值 再进 WSL（WSL 内 os.name=posix ⇒ 不会递归）
+        clean: list[str] = []
+        _skip = False
+        for a in _argv:
+            if _skip:
+                _skip = False
+                continue
+            if a == "--target":
+                _skip = True
+                continue
+            clean.append(a)
+        return reexec_in_wsl(clean)
 
     OFFLINE = resolve_offline_mode(args)
 
