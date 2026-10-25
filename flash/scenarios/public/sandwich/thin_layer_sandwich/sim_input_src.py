@@ -813,13 +813,13 @@ cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "
 module purge >/dev/null 2>&1
 module load mpich/3.2-gcc9.3 >/dev/null 2>&1
 module load hdf5/1.8.18 >/dev/null 2>&1
-export LIBRARY_PATH="@IMPI_LIBS@:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="@IMPI_LIBS@:@HDF5_LIB@:${LD_LIBRARY_PATH:-}";export PATH="@IMPI_BIN@:$PATH"
-# ★ 用 mpirun 而非 srun：Intel MPI **没有** libpmi*，与 SLURM 的 PMI2
-#   不兼容 ⇒ srun 报 "mpi/pmi2: invalid client request" + PMII_Init
-#   致命错误 ⇒ 作业 CANCELLED（超算实测）。用 Intel MPI 的 hydra bootstrap。
-# ★★ -genv 转发环境（2026-10-26 实测）：hydra bootstrap 走 ssh 启动远端
-#   进程，**默认不转发**环境变量 ⇒ 计算节点上 libhdf5.so.10 /
-#   libgfortran.so.5 不可见 ⇒ "error while loading shared libraries"。
-mpirun -genv LD_LIBRARY_PATH "$LD_LIBRARY_PATH" -genv PATH "$PATH" -np ${SLURM_NTASKS:-4} ./flash4
+export LIBRARY_PATH="@RUNTIME_LIBS@:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="@RUNTIME_LIBS@:${LD_LIBRARY_PATH:-}";export PATH="@IMPI_BIN@:$PATH"
+# ★ 用 srun（2026-10-26 实测）：与 ch_center 场景**已验证成功**的路径一致。
+#   Intel MPI 经 SLURM 的 PMI2 启动（SLURM 的 libpmi2.so 必须在
+#   LD_LIBRARY_PATH 里，见 @RUNTIME_LIBS@）。
+#   ✗ 不用 mpirun：hydra bootstrap 在 SLURM 作业内 MPI_Init 处 abort
+#     （实测作业 4924502 exit 46）；✗ 不用无 PMI 路径的裸 srun
+#     （报 "mpi/pmi2: invalid client request"，实测作业 4924491）。
+srun -n ${SLURM_NTASKS:-4} ./flash4
 ''',
 }

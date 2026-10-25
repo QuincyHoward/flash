@@ -82,21 +82,19 @@ cd "$R"
 module purge >/dev/null 2>&1
 module load mpich/3.2-gcc9.3 >/dev/null 2>&1
 module load hdf5/1.8.18 >/dev/null 2>&1
-# 保留 Intel MPI 库路径（module 会覆盖 LIBRARY_PATH/LD_LIBRARY_PATH）
-export LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}"
-export LD_LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}"
+# 保留 Intel MPI / SLURM PMI / HDF5 库路径（module 会覆盖
+# LIBRARY_PATH/LD_LIBRARY_PATH；★ SLURM 的 PMI 库是 Intel MPI 走
+# srun 的前提，缺了会报 "mpi/pmi2: invalid client request"）
+export LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:${LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}"
 export PATH="/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH"
 
-# ★ 用 mpirun 而非 srun（2026-10-26 实测）：Intel MPI **没有** libpmi*，
-#   与 SLURM 的 PMI2 不兼容 ⇒ srun 报
-#   "slurmstepd: error: mpi/pmi2: invalid client request"
-#   + "Fatal error in PMII_Init" ⇒ 作业 CANCELLED。
-#   ⇒ 用 Intel MPI 自带的 hydra bootstrap（mpirun）。
-# ★★ 必须用 -genv 转发环境（2026-10-26 实测）：Intel MPI 的 hydra
-#   bootstrap 走 ssh 启动远端进程，**默认不转发** 环境变量 ⇒ 计算节点上
-#   libhdf5.so.10 / libgfortran.so.5 不可见 ⇒
-#   "./flash4: error while loading shared libraries: libhdf5.so.10"。
-#   ⇒ -genv LD_LIBRARY_PATH / PATH 显式传过去。
-mpirun -genv LD_LIBRARY_PATH "$LD_LIBRARY_PATH" -genv PATH "$PATH" \
-       -np ${SLURM_NTASKS:-7} ./flash4
+# ★ 用 srun（2026-10-26 实测）：与 ch_center 场景**已验证成功**的路径一致。
+#   Intel MPI 经 SLURM 的 PMI2 启动（SLURM 提供 libpmi2.so，必须在
+#   LD_LIBRARY_PATH 里 —— 见上）。
+#   ✗ 不用 mpirun：hydra bootstrap 在 SLURM 作业内与 SLURM 的进程分配
+#     打架（实测作业 4924502：MPI_Init 处 abort，exit 46）。
+#   ✗ 不用裸 srun + 无 PMI 路径：报 "mpi/pmi2: invalid client request"
+#     + "Fatal error in PMII_Init" ⇒ 作业 CANCELLED（实测作业 4924491）。
+srun -n ${SLURM_NTASKS:-7} ./flash4
 echo "=== Output: $R ==="

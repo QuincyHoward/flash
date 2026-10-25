@@ -49,6 +49,12 @@ INTEL_MPI_LIB = f"{ONEAPI_ROOT}/mpi/latest/lib"
 #: HDF5 库目录（FLASH Makefile.h 已硬编码 -I/-L 到 1.8.18）
 HDF5_LIB = f"{SOFT_ROOT}/hdf5/1.8.18/lib"
 
+#: SLURM 的 PMI 库目录（★ Intel MPI 走 srun 时**必须**可见，否则
+#: "slurmstepd: error: mpi/pmi2: invalid client request" +
+#: "Fatal error in PMII_Init" ⇒ 作业 CANCELLED。实测超算既有
+#: libpmi.so（PMI1）与 libpmi2.so（PMI2），缺任一都会失败。）
+SLURM_LIB = "/opt/slurm/slurm/lib"
+
 #: 作业分区（★ 不写进场景脚本；由本模块提供）
 HPC_PARTITION = "v5_192"
 
@@ -67,6 +73,16 @@ def intel_mpi_lib_dirs() -> List[str]:
       （ch_center 场景 2026-10-24 作业 4921721 FAILED 127 同款事故）。
     """
     return [INTEL_MPI_LIB_RELEASE, INTEL_MPI_LIB]
+
+
+def runtime_lib_dirs() -> List[str]:
+    """**运行阶段**需要的库目录（顺序敏感）。
+
+    ★ 包含 SLURM 的 PMI 库（Intel MPI 走 srun 时必需，否则
+      "mpi/pmi2: invalid client request" ⇒ 作业 CANCELLED）。
+    ★ 顺序：Intel MPI (release:lib) → SLURM PMI → HDF5。
+    """
+    return [*intel_mpi_lib_dirs(), SLURM_LIB, HDF5_LIB]
 
 
 def build_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
@@ -120,6 +136,8 @@ TEMPLATE_TOKENS = {
     "@IMPI_BIN@": lambda: INTEL_MPI_BIN,
     "@IMPI_LIBS@": lambda: ":".join(intel_mpi_lib_dirs()),
     "@HDF5_LIB@": lambda: HDF5_LIB,
+    "@RUNTIME_LIBS@": lambda: ":".join(runtime_lib_dirs()),
+    "@SLURM_LIB@": lambda: SLURM_LIB,
 }
 
 #: 必须**独占一行**的占位符（其值是**多行** shell 片段，接在行尾会让
