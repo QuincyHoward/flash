@@ -1014,19 +1014,19 @@ fi
 echo "  SCRIPT_DIR = $SCRIPT_DIR (par x $(compgen -G "$SCRIPT_DIR/*.par" | wc -l))"
 
 cd $F
-# ★★ 源文件拷贝与 setup 都**在登录节点**完成（2026-10-26 实测）：
-#   ① setup 在**计算节点**会永久挂起（实测 thin_layer 作业 4924531：
-#      RUNNING 17 分钟，objdir 零文件）；
-#   ② setup 读取 SimulationMain/<场景>/ 下的源文件 ⇒ 必须**先拷贝后 setup**。
-#   ⇒ 由 deploy/hpc_deploy/submit_sandwich.py 在登录节点按
-#      「拷贝 → setup → sbatch」顺序完成；本脚本只做 make + 运行。
-# ★ 二进制存在 **且** 源文件不比它新 ⇒ 跳过编译（否则每轮 2 分钟）。
-if [ -x "$O/flash4" ] && [ -z "$(find "$SCRIPT_DIR" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
-    echo "  [compile] 二进制已存在且源文件未变，跳过 make: $O/flash4"
+# ★★ 源文件拷贝 / setup / **编译**都**在登录节点**完成
+#   （2026-10-26 实测）：FLASH 的 make 首步 setup_depends.py 要 os.walk
+#   扫描 1500+ 源文件 —— 该步骤在**计算节点**上 11 分钟不出 .o
+#   （objdir 1748 条目 / .o 恒为 0），在**登录节点**上秒级完成。
+#   ⇒ 由 deploy/hpc_deploy/submit_sandwich.py 在登录节点完成
+#     「拷贝 → setup → 编译」，本脚本只负责运行。
+#   ★ 兜底：若二进制不存在（登录节点编译被跳过），此处补编一次。
+if [ -x "$O/flash4" ]; then
+    echo "  [compile] 二进制已存在（登录节点已编译），跳过 make"
 else
     if [ ! -f "$O/Makefile" ]; then
-        echo "  [FATAL] objdir 无 Makefile —— 请先在**登录节点**执行 setup"
-        echo "         （用 deploy/hpc_deploy/submit_sandwich.py 提交即可自动完成）"
+        echo "  [FATAL] objdir 无 Makefile —— 请用 deploy/hpc_deploy/submit_sandwich.py 提交"
+        echo "         （它会在登录节点完成 拷贝→setup→编译）"
         exit 2
     fi
     cd $O

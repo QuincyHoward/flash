@@ -120,7 +120,15 @@ def main() -> int:
         print(f"[FATAL] 拷贝失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
         return 1
 
-    # ---- 3. setup（登录节点！计算节点会永久挂起）----
+    # ---- 3. setup + 编译（登录节点！）----
+    # ★★ 为什么编译也放登录节点（2026-10-26 实测）：
+    #   FLASH 的 `make` 第一步是 setup_depends.py —— 它用 os.walk 扫描
+    #   1500+ 源文件生成 Makefile.Depend。实测该步骤在**计算节点**上
+    #   **11 分钟不出 .o**（objdir 1748 条目但 .o 恒为 0），
+    #   而在**登录节点**上**秒级完成**（Makefile.Depend 352 KB）。
+    #   ★ 这与 grad 场景的成功记录一致：其二进制时间戳对应登录节点操作
+    #     （01:27 生成，1550 个 .o + 13 MB 二进制）。
+    #   ⇒ 登录节点做「拷贝 → setup → make」，sbatch 作业只负责**运行**。
     if not args.skip_setup:
         setup_cmd = (
             "cd {f} && export PATH={imp}:$PATH && "
@@ -140,6 +148,25 @@ def main() -> int:
         print((out or "").strip()[-600:], flush=True)
         if "SUCCESS" not in (out or ""):
             print(f"[FATAL] setup 未成功（rc={rc}）\n{(err or '')[-600:]}", flush=True)
+            return 1
+
+        # 编译（登录节点；make -j7 与 grad 一致）
+        print("[submit] 编译（登录节点，make -j7）...", flush=True)
+        make_cmd = (
+            "cd {o} && export PATH={imp}:$PATH && "
+            "export LIBRARY_PATH={libs} && "
+            "make -j7 2>&1 | tail -6; "
+            "test -x {o}/flash4 && echo BUILD_OK || echo BUILD_FAIL"
+        ).format(
+            o=f"{flash_home}/QC/{objdir}",
+            imp="/public1/soft/oneAPI/2022.1/mpi/latest/bin",
+            libs=("/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
+                  "/public1/soft/oneAPI/2022.1/mpi/latest/lib"),
+        )
+        out, err, rc = sh(make_cmd, timeout=7200)
+        print((out or "").strip()[-800:], flush=True)
+        if "BUILD_OK" not in (out or ""):
+            print(f"[FATAL] 编译失败 rc={rc}\n{(err or '')[-800:]}", flush=True)
             return 1
 
     # ---- 4. sbatch 提交 ----
