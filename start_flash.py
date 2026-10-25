@@ -145,10 +145,109 @@ OFFLINE_PIP_FLAGS = ("--no-index",)
 OFFLINE = False
 WHEELHOUSE = ""
 
+#: 超算（SLURM 集群）探测结果缓存：(是否超算, 说明)
+_HPC_PROBE: tuple[bool, str] | None = None
+
 
 # ---------------------------------------------------------------------------
 # 工具函数
 # ---------------------------------------------------------------------------
+
+def _probe_existing_venv(venv_dir: str) -> tuple[bool, str]:
+    """探测指定目录下的 venv 是否**已存在且健康**。
+
+    返回 (可用, 说明)。健康判据复用 `check_env_health`（关键依赖齐全 +
+    pytest 能启动）—— 与 Step 1 的复用判据**同一份实现**，避免两处口径不一
+    （一处说健康、一处说不健康 ⇒ 用户看到的报告自相矛盾）。
+
+    ★ 用途（2026-10-25 超算修正）：超算部署目录没有 wheelhouse，
+      若无条件做离线预检就会中止；但那里往往已有 `.venv-hpc-nce`
+      且健康 ⇒ 应直接复用，而不是逼用户先造 212 MB 的 wheelhouse。
+    """
+    if not venv_dir or not os.path.isdir(venv_dir):
+        return False, f"环境目录不存在: {venv_dir}"
+    py = os.path.join(venv_dir, "Scripts", "python.exe") if os.name == "nt" \
+        else os.path.join(venv_dir, "bin", "python")
+    if not os.path.isfile(py):
+        return False, f"解释器不存在: {py}"
+    ok, problems = check_env_health(py)
+    if ok:
+        return True, f"venv 健康（{venv_dir}）"
+    return False, f"venv 不健康: {'; '.join(problems[:3])}"
+
+
+def _hpc_venv_dir(project_dir: str) -> str:
+    """超算侧命名环境目录（默认 `<项目根>/.venv-hpc-nce`）。
+
+    ★ 事实源 = `flash/flash_run/env/venv_paths.py`（`kind="hpc"`），与
+      `deploy/hpc_deploy/remote_install.py`、insitu 执行体一致 ⇒ 三处不再
+      各写一份名字。但该模块在**安装前**可能不可导入（flash 未装），
+      故此处按文件路径加载，退化时用同名常量（与 venv_paths 同名，
+      可由 `FLASH_HPC_VENV_NAME` 覆盖）。
+    """
+    name = os.environ.get("FLASH_HPC_VENV_NAME", "").strip() or ".venv-hpc-nce"
+    p = os.path.join(project_dir, "flash", "flash_run", "env", "venv_paths.py")
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_flash_venv_paths", p)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            name = mod.hpc_venv_name()
+    except Exception:
+        pass                       # 退化：用上面的常量
+    return os.path.join(project_dir, name)
+
+
+def probe_hpc() -> tuple[bool, str]:
+    """探测当前是否运行在 **SLURM 超算**（登录节点或计算节点）。
+
+    判据（三条同时满足，缺一即判定"非超算"）：
+      1. `sbatch` / `sacct` / `sinfo` 三个命令都在 PATH；
+      2. `sinfo -s` 能成功返回**分区行**（控制器可达，而不只是装了客户端）；
+      3. `SLURM_CLUSTER_NAME` 或 `SLURM_JOB_ID` 至少一个存在（作业上下文）。
+
+    ★ 为什么必须有这条：**超算部署目录不含 wheelhouse**（212 MB，不随
+      代码同步，只在 `package_and_upload.py` 全量部署时落地）。而
+      `resolve_offline_mode` 的原判据是「wheelhouse/MANIFEST.json 存在」
+      ⇒ 在超算上该判据**永远为假** ⇒ 误走在线分支 ⇒ pip 访问 PyPI ⇒
+      超算无外网 ⇒ SSL 失败 ⇒ 60 s 无限重试。2026-10-25 用户实跑复现。
+
+    ★ 判据 2 不可省：`apt install slurm-client` 也会装上三个命令，
+      但连不上控制器。只查 `which sbatch` 会把装了客户端的普通机器
+      误判成超算（与 flash_run.execution._probe_slurm_healthy 同一教训）。
+    """
+    global _HPC_PROBE
+    if _HPC_PROBE is not None:
+        return _HPC_PROBE
+    import shutil
+    import subprocess
+    missing = [c for c in ("sbatch", "sacct", "sinfo") if shutil.which(c) is None]
+    if missing:
+        _HPC_PROBE = (False, f"缺少 SLURM 命令: {','.join(missing)}")
+        return _HPC_PROBE
+    try:
+        r = subprocess.run(["sinfo", "-s"], capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.SubprocessError) as exc:
+        _HPC_PROBE = (False, f"sinfo 无法执行: {exc}")
+        return _HPC_PROBE
+    if r.returncode != 0:
+        _HPC_PROBE = (False, f"sinfo rc={r.returncode}（控制器不可达？）")
+        return _HPC_PROBE
+    lines = [ln for ln in (r.stdout or "").splitlines() if ln.strip()]
+    if len(lines) < 2:                      # 1 行表头 + ≥1 分区
+        _HPC_PROBE = (False, "sinfo 无分区行（控制器不可达）")
+        return _HPC_PROBE
+    ctx = []
+    for k in ("SLURM_CLUSTER_NAME", "SLURM_JOB_ID", "SLURM_JOB_NAME"):
+        v = os.environ.get(k, "").strip()
+        if v:
+            ctx.append(f"{k}={v}")
+    why = f"SLURM 控制器可达（{len(lines) - 1} 分区）"
+    if ctx:
+        why += "；" + ", ".join(ctx)
+    _HPC_PROBE = (True, why)
+    return _HPC_PROBE
 def log(msg: str) -> None:
     print(msg, flush=True)
 
@@ -250,10 +349,52 @@ def run_pip(args: list, step: str, cwd=None, retries: int = 3) -> None:
                 log("    处理：在联网机重跑 deploy\\build_wheelhouse.py")
                 log("          （确认 --profile 与本机一致），重新拷贝整个 wheelhouse 目录。")
                 raise SystemExit(f"[FATAL] 离线安装失败: {step}")
+            # ★★ 2026-10-25：**无外网**是"环境性失败"而非"网络抖动" ⇒
+            #   重试 3×（每次等 60 s）纯属浪费：超算上必然同样失败。
+            #   判据 = pip 输出里的 SSL / 连接类关键词（超算实测报
+            #   "the ssl module in Python is not available" +
+            #   "No matching distribution found"）。命中即**立即报错**。
+            if _looks_like_no_network(r):
+                log("")
+                log("  ★ 检测到**无外网 / SSL 不可用**（pip 无法访问 PyPI）——"
+                    "这不是网络抖动，重试无意义。")
+                log("    修法（按优先级）：")
+                log("      ① 超算 / 离线机：改用离线安装")
+                log("           python start_flash.py --offline --wheelhouse <wheelhouse 目录>")
+                log("         （wheelhouse 由联网机 deploy\\build_wheelhouse.py 生成）")
+                log("      ② 已装好命名环境时：直接复用，无需重装")
+                log("           export FLASH_VENV_DIR=<项目根>/.venv-hpc-nce")
+                log("      ③ 确实需要联网：检查代理 / 证书后设 FLASH_FORCE_ONLINE=1")
+                raise SystemExit(f"[FATAL] pip 步骤失败（无外网）: {step}")
         if i < retries:
             log("[wait] 疑似网络中断，等待 60s 后重试 ...")
             time_sleep(60)
     raise SystemExit(f"[FATAL] pip 步骤失败: {step}")
+
+
+#: pip 输出里表示"**根本没有外网**"的关键词（区分于真正的网络抖动）。
+#: ★ 命中即立即失败：这类错误重试必然同样失败，等待 60 s×3 只是浪费时间
+#:   （2026-10-25 超算实跑：ssl module not available ⇒ 重试到用户 Ctrl-C）。
+_NO_NETWORK_MARKERS = (
+    "ssl module is not available",
+    "SSLError",
+    "SSL: CERTIFICATE_VERIFY_FAILED",
+    "No matching distribution found",
+    "Could not fetch URL https://pypi.org",
+    "Failed to establish a new connection",
+    "Name or service not known",
+    "Temporary failure in name resolution",
+    "Network is unreachable",
+    "Connection refused",
+)
+
+
+def _looks_like_no_network(r) -> bool:
+    """pip 输出是否表明"本机根本没有外网"（而非网络抖动）。"""
+    if r is None:
+        return False
+    blob = ((r.stdout or "") + "\n" + (r.stderr or "")).lower()
+    return any(m.lower() in blob for m in _NO_NETWORK_MARKERS)
 
 
 def time_sleep(sec: float) -> None:
@@ -939,9 +1080,17 @@ def reexec_in_wsl(extra_args: list[str]) -> int:
 def resolve_offline_mode(args: argparse.Namespace) -> bool:
     """三路开关求或：命令行 --offline > 环境变量 FLASH_OFFLINE=1。
 
-    另加**自动探测**兜底：项目根存在 wheelhouse/MANIFEST.json 时，
-    即使没显式传 --offline 也自动转离线（避免离线机上误走在线分支，
-    白等 40 分钟超时）。可用 FLASH_FORCE_ONLINE=1 强制关掉自动探测。
+    另加两条**自动探测**兜底：
+
+    A. **超算（SLURM）⇒ 强制离线**（2026-10-25 用户实跑复现）：
+       超算部署目录**不含 wheelhouse**（212 MB 不随代码同步），
+       而 B 条判据（MANIFEST.json 存在）在超算上永远为假 ⇒ 误走在线分支
+       ⇒ pip 访问 PyPI ⇒ 超算无外网 ⇒ SSL 失败 ⇒ 60 s 无限重试。
+       ⇒ 超算上默认走**离线安装**，缺包**立即报错**（见 run_pip 的离线分支）。
+
+    B. 项目根存在 wheelhouse/MANIFEST.json 时自动转离线
+       （避免离线机上误走在线分支，白等 40 分钟超时）。
+       可用 FLASH_FORCE_ONLINE=1 强制关掉自动探测。
 
     ★ 探测信号只能是 MANIFEST.json **本身**，绝不能用「deploy/
       目录存在」这类间接信号 —— 该目录随仓库分发，联网机上永远存在，
@@ -952,9 +1101,15 @@ def resolve_offline_mode(args: argparse.Namespace) -> bool:
         return True
     if os.environ.get("FLASH_FORCE_ONLINE", "").strip() == "1":
         return False
+    # ── A. 超算 ⇒ 强制离线 ──
+    is_hpc, why = probe_hpc()
+    if is_hpc:
+        log(f"[auto] 检测到超算环境（{why}）→ 强制离线安装模式"
+            f"（超算通常无外网；如需联网请设 FLASH_FORCE_ONLINE=1）")
+        return True
     wh = args.wheelhouse or os.environ.get("FLASH_WHEELHOUSE", "").strip()
     cand = wh or os.path.join(PROJECT_DIR, "wheelhouse")
-    # ★ 唯一判据：wheelhouse 目录里确实躺着 MANIFEST.json
+    # ── B. 唯一判据：wheelhouse 目录里确实躺着 MANIFEST.json ──
     if os.path.isfile(os.path.join(cand, "MANIFEST.json")):
         log(f"[auto] 检测到 {cand}\\MANIFEST.json → 自动切换离线模式"
             f"（如需强制在线请设 FLASH_FORCE_ONLINE=1）")
@@ -1063,13 +1218,26 @@ def main() -> int:
     #   （解释器分别是 PE / ELF，numpy 等扩展也是win_amd64 vs manylinux），
     #   共用会导致「在 Windows 跑 start_flash.py 把 WSL 的 venv 删掉重建」。
     #   FLASH_VENV_DIR 显式指定时仍以用户为准。
+    #
+    # ★★ 2026-10-25 超算修正：超算上用**命名环境 .venv-hpc-nce**
+    #   （deploy/hpc_deploy/remote_install.py 离线装出来的那个），而不是
+    #   新建 .venv-linux。原因：
+    #     · 超算**无 wheelhouse**（212 MB 不随代码同步）⇒ 新建环境必失败；
+    #     · .venv-hpc-nce 已是**可用的离线环境**（实测 flash 0.1.11 可导入）；
+    #     · 新建 .venv-linux 还会留下一个装不起来的空壳，误导后续排查。
+    #   命名规则的事实源是 flash/flash_run/env/venv_paths.py（kind="hpc"），
+    #   与部署链、insitu 执行体保持一致，避免三处各写一份。
     _whc_v = None
     try:
         _whc_v = _load_wh_common()
     except SystemExit:
         pass
+    _is_hpc, _hpc_why = probe_hpc()
     if os.environ.get("FLASH_VENV_DIR", "").strip():
         VENV_DIR = os.environ["FLASH_VENV_DIR"].strip()
+    elif _is_hpc:
+        VENV_DIR = _hpc_venv_dir(PROJECT_DIR)
+        log(f"[info] 超算环境（{_hpc_why}）→ 使用命名环境: {VENV_DIR}")
     elif _whc_v is not None:
         VENV_DIR = _whc_v.venv_dir(PROJECT_DIR)
     else:
@@ -1120,11 +1288,26 @@ def main() -> int:
     # ---- Step 0: 前置校验 -------------------------------------------------
     # 注意：base解释器存在性在离线模式下由 setup_offline 的专门分支处理
     #       （那里能给"wheelhouse 内附安装程序"的可操作提示）。
+    #
+    # ★★ 2026-10-25 超算修正：**已有健康的命名环境 ⇒ 不做 wheelhouse 预检**。
+    #   超算部署目录不含 wheelhouse（212 MB 不随代码同步），若无条件跑
+    #   setup_offline 就会因"找不到 wheelhouse"而中止 —— 但那台机器上
+    #   `.venv-hpc-nce` 早已离线装好且健康（实测 flash 0.1.11 可导入）。
+    #   ⇒ 先探命名环境是否可用，可用则直接进 Step 1 复用；不可用才要求
+    #     wheelhouse（并给出明确的"怎么把 wheelhouse 弄上来"指引）。
+    _reuse_named_env = False
     if OFFLINE:
-        log("\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）...")
-        setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
-        if not os.path.isfile(BASE_PY):
-            raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
+        _named_ok, _named_why = _probe_existing_venv(VENV_DIR)
+        if _named_ok:
+            _reuse_named_env = True
+            log(f"\n[step 0/5] 检测到可用的现有环境（{_named_why}）"
+                f"→ 跳过 wheelhouse 预检，直接复用")
+            log(f"[info] 环境: {VENV_DIR}")
+        else:
+            log("\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）...")
+            setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
+            if not os.path.isfile(BASE_PY):
+                raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
     elif not os.path.isfile(BASE_PY):
         raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
     for name, rel in TEST_SUITES:
@@ -1189,7 +1372,18 @@ def main() -> int:
         install_mode = "全新创建（.venv 在 .gitignore 中，master 不含此目录）"
 
     # ---- Step 2: 构建环境（创建 + setuptools 修复 + flash 安装） ------------
-    if not os.path.isfile(VENV_PY):
+    # ★★ 2026-10-25 超算修正：**离线 + 已有健康环境 ⇒ 完全跳过 pip**。
+    #   否则 fix_setuptools/install_flash_package 会去访问 PyPI ⇒ 超算无外网
+    #   ⇒ SSL 失败 ⇒ 60 s 重试（用户实跑复现的原始故障链）。
+    #   跳过是**正确**的：环境已健康（依赖齐全 + pytest 可启动），
+    #   无需重装；真要重装时显式 FLASH_FORCE_CLEAN=1。
+    _skip_pip = bool(_reuse_named_env and OFFLINE
+                     and os.path.isfile(VENV_PY))
+    if _skip_pip:
+        log("\n[step 2/5] 复用已健康的离线环境 → 跳过 pip 安装"
+            "（离线模式不联网；如需重装请设 FLASH_FORCE_CLEAN=1）")
+        flash_verify = ""
+    elif not os.path.isfile(VENV_PY):
         log("\n[step 2/5] 构建环境（创建 venv + 修复 setuptools + 安装 flash 包）...")
         flash_verify = provision()
     else:

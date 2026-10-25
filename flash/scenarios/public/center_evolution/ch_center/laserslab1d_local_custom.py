@@ -56,7 +56,7 @@ if hasattr(sys.stdout, "reconfigure"):
 # "local"     : 本机 Linux（含 WSL 内部）直接运行，不套 wsl.exe
 # "hpc-remote": 超算 RemoteSession（上传→提交→分析→下载）
 # 覆盖优先级: main(mode=...) > 环境变量 FLASH_RUN_MODE > 本行 RUN_MODE
-RUN_MODE = "auto"
+RUN_MODE = "hpc-remote"
 
 # ── 本地分析提取模式 ────────────────────────────────
 # 本地分析/绘图使用的 AMR 数据提取方案:
