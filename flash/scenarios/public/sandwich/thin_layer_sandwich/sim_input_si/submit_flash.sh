@@ -13,15 +13,13 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #     oneAPI 2022.1 自带的 libmpifort）⇒ 链接必 FAIL。
 #   实测对照（超算）：无 module ⇒ OK；load mpich ⇒ FAIL；
 #     load hdf5/1.8.18 ⇒ FAIL（连显式 -L 都救不回）。
-#   ★ FLASH 的 Makefile.h 已**硬编码**绝对路径（LINK=.../mpiifort、
-#     -I/public1/soft/hdf5/1.8.18/include）⇒ 本就不需要任何 module。
+#   ★ FLASH 的 Makefile.h 已**硬编码**绝对路径 ⇒ 本就不需要任何 module。
 #   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LIBRARY_PATH/LD_LIBRARY_PATH。
-MPIIFORT_DIR=/public1/soft/oneAPI/2022.1/mpi/latest/bin
-IMPI_LIB=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release
-IMPI_LIB2=/public1/soft/oneAPI/2022.1/mpi/latest/lib
-HDF5_LIB=/public1/soft/hdf5/1.8.18/lib
-export PATH="$MPIIFORT_DIR:$PATH"
-export LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:${LIBRARY_PATH:-}"
-export LD_LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:$HDF5_LIB:${LD_LIBRARY_PATH:-}"
+# ★ 装置参数**不在场景层硬编码**（架构护栏 R-SCENE-05）——
+#   由 flash.flash_run.env.devices 统一提供，生成器渲染进脚本。
+export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
+export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
+
 mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F;./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc)
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R";srun -n ${SLURM_NTASKS:-4} ./flash4

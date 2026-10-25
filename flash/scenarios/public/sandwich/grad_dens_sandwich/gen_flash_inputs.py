@@ -82,6 +82,17 @@ def check_input_files() -> list:
     return [f for f in required if not (SIM_INPUT_DIR / f).exists()]
 
 
+def _render(content: str) -> str:
+    """渲染模板占位符（装置参数下沉到 flash_run.env.devices）。
+
+    ★ 架构护栏 R-SCENE-05：场景层**不得**硬编码装置参数（模块/分区/
+      站点软件根的绝对路径）⇒ 模板里用 @DEV_EXPORTS@ 占位，
+      由 flash.flash_run.env.devices（唯一事实源）渲染。
+    """
+    from flash.flash_run.env.devices import shell_exports
+    return content.replace("@DEV_EXPORTS@", shell_exports())
+
+
 def generate_input_files(force: bool = False) -> None:
     """写出全部 sim_input 文件 (幂等: force=False 时已存在则跳过)。"""
     src = _load_src()
@@ -92,7 +103,7 @@ def generate_input_files(force: bool = False) -> None:
         dst = SIM_INPUT_DIR / name
         if dst.exists() and not force:
             continue
-        dst.write_text(content, encoding="utf-8", newline="\n")
+        dst.write_text(_render(content), encoding="utf-8", newline="\n")
         print(f"  [gen] {name}")
 
     # 2) cn4 表: 从包内中央表库复制

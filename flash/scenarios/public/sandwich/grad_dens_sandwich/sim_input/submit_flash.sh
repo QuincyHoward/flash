@@ -15,19 +15,18 @@ RUN_ID="${2:-000001}"
 #     oneAPI 2022.1 自带的 libmpifort）⇒ 链接必 FAIL。
 #   实测对照（超算）：无 module ⇒ OK；load mpich ⇒ FAIL；
 #     load hdf5/1.8.18 ⇒ FAIL（连显式 -L 都救不回）。
-#   ★ 而 FLASH 的 Makefile.h 已**硬编码**绝对路径
-#     （LINK=/public1/soft/oneAPI/2022.1/mpi/latest/bin/mpiifort，
-#       -I/public1/soft/hdf5/1.8.18/include）⇒ 本就不需要任何 module。
-#   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LD_LIBRARY_PATH。
-MPIIFORT_DIR=/public1/soft/oneAPI/2022.1/mpi/latest/bin
-IMPI_LIB=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release
-IMPI_LIB2=/public1/soft/oneAPI/2022.1/mpi/latest/lib
-HDF5_LIB=/public1/soft/hdf5/1.8.18/lib
-export PATH="$MPIIFORT_DIR:$PATH"
-# ★ 顺序 lib/release:lib —— libmpifort.so.12 只在 mpi/latest/lib/，
-#   而 MPII_F_TRUE 是**导入**符号，必须由 lib/release/libmpi.so.12 提供。
-export LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:${LIBRARY_PATH:-}"
-export LD_LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:$HDF5_LIB:${LD_LIBRARY_PATH:-}"
+#   ★ 而 FLASH 的 Makefile.h 已**硬编码**绝对路径 ⇒ 本就不需要任何 module。
+#   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LIBRARY_PATH/LD_LIBRARY_PATH。
+# ★ 装置参数（Intel MPI / HDF5 路径）**不在场景层硬编码**（架构护栏
+#   R-SCENE-05）—— 由 flash.flash_run.env.devices 统一提供，
+#   生成器在写文件时渲染进脚本（占位符 export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
+export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
+）。
+export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
+export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
+
 F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8
 S=$F/source/Simulation/SimulationMain/QC/${SIM_NAME}_${RUN_ID}
 O=$F/QC/object_${SIM_NAME}_${RUN_ID}
