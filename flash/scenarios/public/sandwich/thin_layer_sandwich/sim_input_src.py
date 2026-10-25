@@ -810,8 +810,11 @@ cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "
 #   但**运行阶段需要模块** —— 二进制依赖 libgfortran.so.5 与
 #   libhdf5.so.10，这两个库只在模块环境里可见（实测：加载模块后
 #   `ldd flash4 | grep "not found"` 为空）。
+# ★★ 运行阶段环境（2026-10-26 实测）：module purge 必须；★★ **不加载
+#   mpich/3.2-gcc9.3**（它把 LD_LIBRARY_PATH 指向 Intel 2018 的 MPI ⇒
+#   与 oneAPI 2022.1 编译的二进制版本不匹配 ⇒ MPI_Init SIGSEGV
+#   forrtl severe(174)，实测作业 4924506）。只加载 hdf5/1.8.18。
 module purge >/dev/null 2>&1
-module load mpich/3.2-gcc9.3 >/dev/null 2>&1
 module load hdf5/1.8.18 >/dev/null 2>&1
 export LIBRARY_PATH="@RUNTIME_LIBS@:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="@RUNTIME_LIBS@:${LD_LIBRARY_PATH:-}";export PATH="@IMPI_BIN@:$PATH"
 # ★ 用 srun（2026-10-26 实测）：与 ch_center 场景**已验证成功**的路径一致。

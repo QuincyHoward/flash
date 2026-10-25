@@ -34,13 +34,16 @@ cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "
 #   但**运行阶段需要模块** —— 二进制依赖 libgfortran.so.5 与
 #   libhdf5.so.10，这两个库只在模块环境里可见（实测：加载模块后
 #   `ldd flash4 | grep "not found"` 为空）。
+# ★★ 运行阶段环境（2026-10-26 实测）：module purge 必须；★★ **不加载
+#   mpich/3.2-gcc9.3**（它把 LD_LIBRARY_PATH 指向 Intel 2018 的 MPI ⇒
+#   与 oneAPI 2022.1 编译的二进制版本不匹配 ⇒ MPI_Init SIGSEGV
+#   forrtl severe(174)，实测作业 4924506）。只加载 hdf5/1.8.18。
 module purge >/dev/null 2>&1
-module load mpich/3.2-gcc9.3 >/dev/null 2>&1
 module load hdf5/1.8.18 >/dev/null 2>&1
-export LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}";export PATH="/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH"
+export LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64:${LD_LIBRARY_PATH:-}";export PATH="/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH"
 # ★ 用 srun（2026-10-26 实测）：与 ch_center 场景**已验证成功**的路径一致。
 #   Intel MPI 经 SLURM 的 PMI2 启动（SLURM 的 libpmi2.so 必须在
-#   LD_LIBRARY_PATH 里，见 /public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib）。
+#   LD_LIBRARY_PATH 里，见 /public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64）。
 #   ✗ 不用 mpirun：hydra bootstrap 在 SLURM 作业内 MPI_Init 处 abort
 #     （实测作业 4924502 exit 46）；✗ 不用无 PMI 路径的裸 srun
 #     （报 "mpi/pmi2: invalid client request"，实测作业 4924491）。

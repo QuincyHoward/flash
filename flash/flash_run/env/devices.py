@@ -55,6 +55,14 @@ HDF5_LIB = f"{SOFT_ROOT}/hdf5/1.8.18/lib"
 #: libpmi.so（PMI1）与 libpmi2.so（PMI2），缺任一都会失败。）
 SLURM_LIB = "/opt/slurm/slurm/lib"
 
+#: oneAPI 编译器**运行时**库目录（libimf / libsvml / libirng / libintlc）
+#: ★ 二进制由 Intel MPI 编译 ⇒ 运行期依赖这些库；不在 LD_LIBRARY_PATH
+#:   里则 "./flash4: error while loading shared libraries: libimf.so"。
+ONEAPI_RT_LIB = f"{ONEAPI_ROOT}/compiler/2022.0.0/linux/compiler/lib/intel64_lin"
+
+#: GCC 运行时库目录（libgfortran.so.5 等）
+GCC_LIB = f"{SOFT_ROOT}/gcc/9.3.0/lib64"
+
 #: 作业分区（★ 不写进场景脚本；由本模块提供）
 HPC_PARTITION = "v5_192"
 
@@ -78,11 +86,23 @@ def intel_mpi_lib_dirs() -> List[str]:
 def runtime_lib_dirs() -> List[str]:
     """**运行阶段**需要的库目录（顺序敏感）。
 
-    ★ 包含 SLURM 的 PMI 库（Intel MPI 走 srun 时必需，否则
-      "mpi/pmi2: invalid client request" ⇒ 作业 CANCELLED）。
-    ★ 顺序：Intel MPI (release:lib) → SLURM PMI → HDF5。
+    ★ 顺序：Intel MPI (release:lib) → SLURM PMI → HDF5 → oneAPI runtime
+      → GCC runtime。
+      - Intel MPI release 在前：`MPII_F_TRUE` 导入符号须由
+        lib/release/libmpi.so.12 提供（见 intel_mpi_lib_dirs 注释）。
+      - SLURM PMI：Intel MPI 走 srun 的前提（否则 PMI2 报错）。
+      - oneAPI runtime：libimf/libsvml/libirng/libintlc，Intel 编译的
+        二进制运行期必需。
+      - GCC runtime：libgfortran.so.5（FLASH 用 gfortran 编的 C/C++ 部分）。
+
+    ★★ **不要** `module load mpich/3.2-gcc9.3`：它会把 LD_LIBRARY_PATH
+      指向 **Intel 2018** 的 MPI（/public1/soft/intel/2018/.../mpi/intel64/lib）
+      ⇒ 加载旧版 libmpi.so.12，与 oneAPI 2022.1 编译的二进制**版本不匹配**
+      ⇒ MPI_Init 处 SIGSEGV（forrtl: severe (174)），实测作业 4924506。
+      ⇒ 运行阶段只加载 hdf5/1.8.18（提供 libhdf5.so.10 与 gfortran 依赖链），
+        其余库全部由本模块的显式路径提供。
     """
-    return [*intel_mpi_lib_dirs(), SLURM_LIB, HDF5_LIB]
+    return [*intel_mpi_lib_dirs(), SLURM_LIB, HDF5_LIB, ONEAPI_RT_LIB, GCC_LIB]
 
 
 def build_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
