@@ -63,7 +63,27 @@ cp $O/flash4 "$R/"
 cp "$S"/*.cn4 "$R/"
 cp "$S/${SIM_NAME}_${RUN_ID}.par" "$R"/flash.par
 cd "$R"
-# ★ 用 srun 而非 mpirun（2026-10-26 归一）：SLURM 作业内用 mpirun 会与
-#   SLURM 的进程分配打架（ch_center 场景已实测 srun 路径可用）。
-srun -n ${SLURM_NTASKS:-7} ./flash4
+
+# ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
+#   编译/链接阶段**必须无模块**（module 会屏蔽 oneAPI 自带的 libmpifort
+#   ⇒ 链接期 'cannot find -lmpifort/-lmpi'）；
+#   但**运行阶段需要模块** —— 二进制依赖 libgfortran.so.5 与
+#   libhdf5.so.10，这两个库只在模块环境里可见（实测：加载模块后
+#   `ldd flash4 | grep "not found"` 为空；无模块则 libhdf5/libgfortran
+#   全部 not found ⇒ 运行即失败）。
+#   ⇒ 运行前再加载一次模块（编译已完成，不影响已生成的二进制）。
+module purge >/dev/null 2>&1
+module load mpich/3.2-gcc9.3 >/dev/null 2>&1
+module load hdf5/1.8.18 >/dev/null 2>&1
+# 保留 Intel MPI 库路径（module 会覆盖 LIBRARY_PATH/LD_LIBRARY_PATH）
+export LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}"
+export PATH="/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH"
+
+# ★ 用 mpirun 而非 srun（2026-10-26 实测）：Intel MPI **没有** libpmi*，
+#   与 SLURM 的 PMI2 不兼容 ⇒ srun 报
+#   "slurmstepd: error: mpi/pmi2: invalid client request"
+#   + "Fatal error in PMII_Init" ⇒ 作业 CANCELLED。
+#   ⇒ 用 Intel MPI 自带的 hydra bootstrap（mpirun）。
+mpirun -np ${SLURM_NTASKS:-7} ./flash4
 echo "=== Output: $R ==="

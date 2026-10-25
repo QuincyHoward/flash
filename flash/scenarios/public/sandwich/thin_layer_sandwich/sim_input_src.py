@@ -800,6 +800,20 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（超算作业 4924488 实测教训）。
 @DEV_EXPORTS@
 mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F;./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc)
-cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R";srun -n ${SLURM_NTASKS:-4} ./flash4
+cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R"
+# ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
+#   编译/链接阶段**必须无模块**（module 会屏蔽 oneAPI 自带的 libmpifort
+#   ⇒ 链接期 'cannot find -lmpifort/-lmpi'）；
+#   但**运行阶段需要模块** —— 二进制依赖 libgfortran.so.5 与
+#   libhdf5.so.10，这两个库只在模块环境里可见（实测：加载模块后
+#   `ldd flash4 | grep "not found"` 为空）。
+module purge >/dev/null 2>&1
+module load mpich/3.2-gcc9.3 >/dev/null 2>&1
+module load hdf5/1.8.18 >/dev/null 2>&1
+export LIBRARY_PATH="@IMPI_LIBS@:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="@IMPI_LIBS@:@HDF5_LIB@:${LD_LIBRARY_PATH:-}";export PATH="@IMPI_BIN@:$PATH"
+# ★ 用 mpirun 而非 srun：Intel MPI **没有** libpmi*，与 SLURM 的 PMI2
+#   不兼容 ⇒ srun 报 "mpi/pmi2: invalid client request" + PMII_Init
+#   致命错误 ⇒ 作业 CANCELLED（超算实测）。用 Intel MPI 的 hydra bootstrap。
+mpirun -np ${SLURM_NTASKS:-4} ./flash4
 ''',
 }

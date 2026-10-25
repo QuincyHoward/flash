@@ -114,6 +114,40 @@ def shell_exports(indent: str = "") -> str:
     )
 
 
+#: 场景脚本模板里可用的占位符 → 取值函数
+TEMPLATE_TOKENS = {
+    "@DEV_EXPORTS@": shell_exports,
+    "@IMPI_BIN@": lambda: INTEL_MPI_BIN,
+    "@IMPI_LIBS@": lambda: ":".join(intel_mpi_lib_dirs()),
+    "@HDF5_LIB@": lambda: HDF5_LIB,
+}
+
+#: 必须**独占一行**的占位符（其值是**多行** shell 片段，接在行尾会让
+#: 首行被注释吞掉、后续行裸露执行 ⇒ bash 语法错；
+#: 超算实测作业 4924488: "line 25: ）。: command not found"）
+MULTILINE_TOKENS = ("@DEV_EXPORTS@",)
+
+
+def render_template(content: str) -> str:
+    """渲染场景脚本模板里的装置参数占位符。
+
+    ★ **多行**占位符（见 MULTILINE_TOKENS）必须独占一行；
+      **单行**占位符（路径等）可内联在 export 语句中。
+      违反前者时显式 raise，避免同类问题静默进入产物。
+    """
+    for i, line in enumerate(content.splitlines(), 1):
+        for tok in MULTILINE_TOKENS:
+            if tok in line and line.strip() != tok:
+                raise ValueError(
+                    f"多行占位符 {tok} 必须独占一行（第 {i} 行: {line!r}）"
+                    " —— 否则渲染后首条 export 会被注释吞掉"
+                    "（超算作业 4924488 实测教训）")
+    out = content
+    for tok, fn in TEMPLATE_TOKENS.items():
+        out = out.replace(tok, fn())
+    return out
+
+
 def partition() -> str:
     """作业分区名（可用环境变量覆盖）。"""
     return os.environ.get("FLASH_HPC_PARTITION", "").strip() or HPC_PARTITION
