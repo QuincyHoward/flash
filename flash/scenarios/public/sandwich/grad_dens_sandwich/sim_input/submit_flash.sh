@@ -19,10 +19,10 @@ RUN_ID="${2:-000001}"
 #   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LIBRARY_PATH/LD_LIBRARY_PATH。
 # ★ 装置参数（Intel MPI / HDF5 路径）**不在场景层硬编码**（架构护栏
 #   R-SCENE-05）—— 由 flash.flash_run.env.devices 统一提供，
-#   生成器在写文件时渲染进脚本（占位符 export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
-export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
-export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
-）。
+#   生成器在写文件时渲染进脚本（占位符见下一行）。
+#   ★ 占位符必须**独占一行**（不能接在注释行尾）：否则渲染后首条 export
+#   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（实测作业 4924488
+#   "line 25: ）。: command not found"）。
 export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
 export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
 export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}

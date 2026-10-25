@@ -795,7 +795,9 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #   ★ FLASH 的 Makefile.h 已**硬编码**绝对路径 ⇒ 本就不需要任何 module。
 #   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LIBRARY_PATH/LD_LIBRARY_PATH。
 # ★ 装置参数**不在场景层硬编码**（架构护栏 R-SCENE-05）——
-#   由 flash.flash_run.env.devices 统一提供，生成器渲染进脚本。
+#   由 flash.flash_run.env.devices 统一提供，生成器渲染进脚本（占位符见下一行）。
+#   ★ 占位符必须**独占一行**（不能接在注释行尾）：否则渲染后首条 export
+#   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（超算作业 4924488 实测教训）。
 @DEV_EXPORTS@
 mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F;./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc)
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R";srun -n ${SLURM_NTASKS:-4} ./flash4

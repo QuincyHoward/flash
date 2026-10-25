@@ -89,8 +89,20 @@ def _render(content: str) -> str:
     ★ 架构护栏 R-SCENE-05：场景层**不得**硬编码装置参数（模块/分区/
       站点软件根的绝对路径）⇒ 模板里用 @DEV_EXPORTS@ 占位，
       由 flash.flash_run.env.devices（唯一事实源）渲染。
+
+    ★ 占位符必须**独占一行**（行首即行尾，前后无其它字符）：
+      若接在注释行尾，渲染后首条 export 会被注释吞掉、后续行裸露执行
+      ⇒ bash 语法错（超算实测作业 4924488：
+      "line 25: ）。: command not found"）。此处显式校验并报错。
     """
     from flash.flash_run.env.devices import shell_exports
+    if "@DEV_EXPORTS@" in content:
+        for i, line in enumerate(content.splitlines(), 1):
+            if "@DEV_EXPORTS@" in line and line.strip() != "@DEV_EXPORTS@":
+                raise ValueError(
+                    f"占位符 @DEV_EXPORTS@ 必须独占一行（第 {i} 行: {line!r}）"
+                    " —— 否则渲染后首条 export 会被注释吞掉"
+                    "（超算作业 4924488 实测教训）")
     return content.replace("@DEV_EXPORTS@", shell_exports())
 
 
