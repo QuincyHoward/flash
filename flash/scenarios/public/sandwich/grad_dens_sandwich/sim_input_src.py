@@ -992,7 +992,10 @@ RUN_ID="${2:-000001}"
 F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8
 S=$F/source/Simulation/SimulationMain/QC/${SIM_NAME}_${RUN_ID}
 O=$F/QC/object_${SIM_NAME}_${RUN_ID}
-R=/tmp/flash_${SIM_NAME}_$$
+# ★ 产物目录放**并行盘**（2026-10-26）：原用 /tmp（= 节点本地盘），
+#   计算节点跑完的 chk 在登录节点**看不到**（跨节点不可见）⇒ 收集到 0 个。
+#   ⇒ 用 $SLURM_SUBMIT_DIR（提交目录，在并行盘上）。
+R="${SLURM_SUBMIT_DIR:-$PWD}/run_${SIM_NAME}_${RUN_ID}_$$"
 
 mkdir -p "$S"
 # ★★ 2026-10-26 实测修复：sbatch 下 `$0` = spool 目录里的脚本副本
