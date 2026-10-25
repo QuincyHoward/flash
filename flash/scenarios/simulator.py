@@ -840,18 +840,22 @@ class FlashSimulatorEngine:
         if self.verbose:
             print(f"  [Simulator] 执行目标: {target}  (mode={_mode})")
         if mode_is_remote(target):
-            # ★★ 2026-10-26：dry_run 与"执行目标"无关 —— dry_run **不调用
-            #   FLASH**，只在本地造目录结构 + 合成 result.h5/chk 占位。
-            #   而干跑用例（test_engine_dryrun / test_real_flash_run 的默认
-            #   dry_run=True）本意是验证"目录结构与数据完整性"，
-            #   在超算上跑时 auto 正确判为 hpc-insitu ⇒ 若一律拒绝，
-            #   这两条用例会因"平台"而非"功能"失败（超算实跑复现：
-            #   framework 219 passed / 2 failed，失败原因与功能无关）。
-            #   ⇒ dry_run 放行并显式打印说明；**真实执行**（dry_run=False）
-            #     仍严格拒绝远程目标，绝不静默降级。
-            if dry_run:
-                print(f"  [Simulator] dry_run=True（不执行 FLASH）"
-                      f"→ 忽略远程目标 {target}，仅在本机造结构与合成输出")
+            # ★★ 2026-10-26：只有**真正要执行 FLASH** 时才校验远程目标。
+            #   dry_run=True 或 run_flash=False 都不执行 FLASH（只在本机造
+            #   目录结构 + 合成/占位输出），与"在哪台机器上跑"无关。
+            #   而干跑用例（test_engine_dryrun 用 run_flash=False、
+            #   test_real_flash_run 默认 dry_run=True）本意是验证"目录结构
+            #   与数据完整性"，在超算上跑时 auto 正确判为 hpc-insitu ⇒
+            #   若一律拒绝，这两条用例会因"平台"而非"功能"失败
+            #   （超算实跑复现：framework 219 passed / 2 failed）。
+            #   ⇒ 不执行 FLASH 时放行并显式打印说明；**真实执行**
+            #     （run_flash=True 且 dry_run=False）仍严格拒绝远程目标，
+            #     绝不静默降级。
+            _will_run_flash = bool(run_flash) and not dry_run
+            if not _will_run_flash:
+                _why = "dry_run=True" if dry_run else "run_flash=False"
+                print(f"  [Simulator] {_why}（不执行 FLASH）"
+                      f"→ 忽略远程目标 {target}，仅在本机造结构与输出")
             else:
                 _hint = (
                     f"引擎只承接本机执行（local/wsl），当前判定为 {target}。\n"
