@@ -799,7 +799,10 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #   ★ 占位符必须**独占一行**（不能接在注释行尾）：否则渲染后首条 export
 #   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（超算作业 4924488 实测教训）。
 @DEV_EXPORTS@
-mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F;./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc)
+mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F
+# ★ 复用已编译二进制（2026-10-26）：原脚本无条件重跑 setup+make
+#   （每轮约 2 分钟）。与 ch_center 场景一致：二进制存在即跳过。
+if [ -x "$O/flash4" ]; then echo "  [compile] 二进制已存在，跳过 setup+make"; else ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc); fi
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R"
 # ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
 #   编译/链接阶段**必须无模块**（module 会屏蔽 oneAPI 自带的 libmpifort
@@ -814,6 +817,9 @@ export LIBRARY_PATH="@IMPI_LIBS@:${LIBRARY_PATH:-}";export LD_LIBRARY_PATH="@IMP
 # ★ 用 mpirun 而非 srun：Intel MPI **没有** libpmi*，与 SLURM 的 PMI2
 #   不兼容 ⇒ srun 报 "mpi/pmi2: invalid client request" + PMII_Init
 #   致命错误 ⇒ 作业 CANCELLED（超算实测）。用 Intel MPI 的 hydra bootstrap。
-mpirun -np ${SLURM_NTASKS:-4} ./flash4
+# ★★ -genv 转发环境（2026-10-26 实测）：hydra bootstrap 走 ssh 启动远端
+#   进程，**默认不转发**环境变量 ⇒ 计算节点上 libhdf5.so.10 /
+#   libgfortran.so.5 不可见 ⇒ "error while loading shared libraries"。
+mpirun -genv LD_LIBRARY_PATH "$LD_LIBRARY_PATH" -genv PATH "$PATH" -np ${SLURM_NTASKS:-4} ./flash4
 ''',
 }

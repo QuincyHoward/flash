@@ -1015,10 +1015,17 @@ done
 cp "$SCRIPT_DIR"/*.par "$S/${SIM_NAME}_${RUN_ID}.par"
 
 cd $F
-rm -rf "$O"
-./setup -auto "QC/${SIM_NAME}_${RUN_ID}" -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 ed_maxPulseSections=240 -objdir="QC/object_${SIM_NAME}_${RUN_ID}"
-cd $O
-make -j7
+# ★ 复用已编译二进制（2026-10-26）：原脚本无条件 `rm -rf "$O"` + setup
+#   + make，每轮重编约 2 分钟，迭代时极慢。与 ch_center 场景一致：
+#   二进制存在即跳过编译。★ 用不同 RUN_ID 可并存多套二进制。
+if [ -x "$O/flash4" ]; then
+    echo "  [compile] 二进制已存在，跳过 setup+make: $O/flash4"
+else
+    rm -rf "$O"
+    ./setup -auto "QC/${SIM_NAME}_${RUN_ID}" -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 ed_maxPulseSections=240 -objdir="QC/object_${SIM_NAME}_${RUN_ID}"
+    cd $O
+    make -j7
+fi
 
 mkdir -p "$R"
 cp $O/flash4 "$R/"
@@ -1047,7 +1054,13 @@ export PATH="@IMPI_BIN@:$PATH"
 #   "slurmstepd: error: mpi/pmi2: invalid client request"
 #   + "Fatal error in PMII_Init" ⇒ 作业 CANCELLED。
 #   ⇒ 用 Intel MPI 自带的 hydra bootstrap（mpirun）。
-mpirun -np ${SLURM_NTASKS:-7} ./flash4
+# ★★ 必须用 -genv 转发环境（2026-10-26 实测）：Intel MPI 的 hydra
+#   bootstrap 走 ssh 启动远端进程，**默认不转发** 环境变量 ⇒ 计算节点上
+#   libhdf5.so.10 / libgfortran.so.5 不可见 ⇒
+#   "./flash4: error while loading shared libraries: libhdf5.so.10"。
+#   ⇒ -genv LD_LIBRARY_PATH / PATH 显式传过去。
+mpirun -genv LD_LIBRARY_PATH "$LD_LIBRARY_PATH" -genv PATH "$PATH" \
+       -np ${SLURM_NTASKS:-7} ./flash4
 echo "=== Output: $R ==="
 ''',
 }
