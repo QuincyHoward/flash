@@ -840,20 +840,33 @@ class FlashSimulatorEngine:
         if self.verbose:
             print(f"  [Simulator] 执行目标: {target}  (mode={_mode})")
         if mode_is_remote(target):
-            _hint = (
-                f"引擎只承接本机执行（local/wsl），当前判定为 {target}。\n"
-                f"  超算执行请改用场景脚本或统一 CLI：\n"
-                f"    · ch_center: python flash/scenarios/public/center_evolution/"
-                f"ch_center/laserslab1d_local_custom.py  (RUN_MODE='auto')\n"
-                f"    · 统一入口: python -m flash.scenarios.cli <场景> --mode {target}"
-            )
-            print("  [X] " + _hint.replace("\n", "\n      "))
-            return SimulationOutput(
-                result_h5_path="", run_dir="",
-                n_chk=0, n_timesteps=0, fields=[], input_params={},
-                success=False,
-                error_message=_hint,
-            )
+            # ★★ 2026-10-26：dry_run 与"执行目标"无关 —— dry_run **不调用
+            #   FLASH**，只在本地造目录结构 + 合成 result.h5/chk 占位。
+            #   而干跑用例（test_engine_dryrun / test_real_flash_run 的默认
+            #   dry_run=True）本意是验证"目录结构与数据完整性"，
+            #   在超算上跑时 auto 正确判为 hpc-insitu ⇒ 若一律拒绝，
+            #   这两条用例会因"平台"而非"功能"失败（超算实跑复现：
+            #   framework 219 passed / 2 failed，失败原因与功能无关）。
+            #   ⇒ dry_run 放行并显式打印说明；**真实执行**（dry_run=False）
+            #     仍严格拒绝远程目标，绝不静默降级。
+            if dry_run:
+                print(f"  [Simulator] dry_run=True（不执行 FLASH）"
+                      f"→ 忽略远程目标 {target}，仅在本机造结构与合成输出")
+            else:
+                _hint = (
+                    f"引擎只承接本机执行（local/wsl），当前判定为 {target}。\n"
+                    f"  超算执行请改用场景脚本或统一 CLI：\n"
+                    f"    · ch_center: python flash/scenarios/public/center_evolution/"
+                    f"ch_center/laserslab1d_local_custom.py  (RUN_MODE='auto')\n"
+                    f"    · 统一入口: python -m flash.scenarios.cli <场景> --mode {target}"
+                )
+                print("  [X] " + _hint.replace("\n", "\n      "))
+                return SimulationOutput(
+                    result_h5_path="", run_dir="",
+                    n_chk=0, n_timesteps=0, fields=[], input_params={},
+                    success=False,
+                    error_message=_hint,
+                )
 
         # ── 1. 解析参数 ──
         params = dict(scenario.default_params)
