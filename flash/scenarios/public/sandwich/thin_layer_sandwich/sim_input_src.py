@@ -798,7 +798,15 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #   ★ 占位符必须**独占一行**（不能接在注释行尾）：否则渲染后首条 export
 #   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（超算作业 4924488 实测教训）。
 @DEV_EXPORTS@
-mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F
+mkdir -p "$S" "$R"
+# ★ 精确拷贝（2026-10-26）：原 `cp "$D"/* "$S"/` 会把 D 目录里的
+#   **子目录**（如上次运行留下的 grid_rede_run/）也往 S 里拷 ⇒ 递归、
+#   且把日志/产物混进源码目录（实测 "cp: omitting directory" 警告）。
+#   ⇒ 只拷 FLASH 真正需要的文件类型。
+for f in Config Makefile *.F90 *.cn4 *.par; do
+    [ -f "$D/$f" ] && cp "$D/$f" "$S/"
+done
+cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件重跑 setup+make
 #   （每轮约 2 分钟）。与 ch_center 场景一致：二进制存在即跳过。
 #   ★ 但**源文件比二进制新**时必须重编（否则用旧二进制跑新输入，

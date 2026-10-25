@@ -22,7 +22,15 @@ export PATH=/public1/soft/oneAPI/2022.1/mpi/latest/bin:$PATH
 export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:${LIBRARY_PATH:-}
 export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
 
-mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F
+mkdir -p "$S" "$R"
+# ★ 精确拷贝（2026-10-26）：原 `cp "$D"/* "$S"/` 会把 D 目录里的
+#   **子目录**（如上次运行留下的 grid_rede_run/）也往 S 里拷 ⇒ 递归、
+#   且把日志/产物混进源码目录（实测 "cp: omitting directory" 警告）。
+#   ⇒ 只拷 FLASH 真正需要的文件类型。
+for f in Config Makefile *.F90 *.cn4 *.par; do
+    [ -f "$D/$f" ] && cp "$D/$f" "$S/"
+done
+cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件重跑 setup+make
 #   （每轮约 2 分钟）。与 ch_center 场景一致：二进制存在即跳过。
 #   ★ 但**源文件比二进制新**时必须重编（否则用旧二进制跑新输入，
