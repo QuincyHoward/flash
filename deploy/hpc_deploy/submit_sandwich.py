@@ -97,7 +97,30 @@ def main() -> int:
         print(f"[FATAL] 生成输入失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
         return 1
 
-    # ---- 2. setup（登录节点！计算节点会挂起）----
+    # ---- 2. 拷源文件到 SimulationMain（登录节点！）----
+    # ★ 顺序至关重要（2026-10-26 实测）：
+    #   setup 会**读取** SimulationMain/<场景>/ 下的 Config/Makefile/*.F90
+    #   来生成 objdir ⇒ 必须**先拷贝、再 setup**。
+    #   反了（先 setup 后拷贝）⇒ setup 时源目录是空的 ⇒ objdir 里没有
+    #   .F90 符号链接 ⇒ make 无从编译（实测 objdir 98 文件 / 零 .o，
+    #   作业挂起 7 分钟零进展）。
+    # ★ 拷完再 setup，且**都要在登录节点**做（计算节点会挂起）。
+    copy_cmd = (
+        'S={s}; mkdir -p "$S" && '
+        'find {d} -maxdepth 1 -type f \\( -name "Config" -o -name "Makefile" '
+        '-o -name "*.F90" -o -name "*.cn4" -o -name "*.par" \\) '
+        '-exec cp -f {{}} "$S/" \\; && '
+        'echo "  [copy] $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"'
+    ).format(s=f"{flash_home}/source/Simulation/SimulationMain/QC/{auto.split('/', 1)[-1]}",
+             d=sim_input)
+    print("[submit] 拷贝源文件到 SimulationMain（登录节点）...", flush=True)
+    out, err, rc = sh(copy_cmd, timeout=900)
+    print((out or "").strip()[-300:], flush=True)
+    if rc != 0:
+        print(f"[FATAL] 拷贝失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
+        return 1
+
+    # ---- 3. setup（登录节点！计算节点会永久挂起）----
     if not args.skip_setup:
         setup_cmd = (
             "cd {f} && export PATH={imp}:$PATH && "
@@ -119,7 +142,7 @@ def main() -> int:
             print(f"[FATAL] setup 未成功（rc={rc}）\n{(err or '')[-600:]}", flush=True)
             return 1
 
-    # ---- 3. sbatch 提交 ----
+    # ---- 4. sbatch 提交 ----
     sub = "cd {d} && sbatch submit_flash.sh {rid} 2>&1 | tail -2".format(
         d=sim_input, rid=args.run_id)
     print("[submit] sbatch ...", flush=True)

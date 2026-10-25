@@ -798,35 +798,22 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 #   ★ 占位符必须**独占一行**（不能接在注释行尾）：否则渲染后首条 export
 #   会被注释吞掉、后续行裸露执行 ⇒ bash 语法错（超算作业 4924488 实测教训）。
 @DEV_EXPORTS@
-mkdir -p "$S" "$R"
-# ★ 精确拷贝（2026-10-26）：
-#   原 `cp "$D"/* "$S"/` 会把 D 里的**子目录**也往 S 拷 ⇒ 递归 + 产物混入。
-#   ★★ 但**不能**写成 `for f in Config Makefile *.F90 *.cn4 *.par` ——
-#      bash 的 for 列表里 glob **只展开一次**且用**当前 cwd**（此处不是 D），
-#      ⇒ `*.F90` 等展开为空 ⇒ 循环体只处理 Config/Makefile 两个显式名，
-#      **.F90 / .cn4 / .par 一个都没拷**（实测 cp 循环只拷 2 个文件），
-#      后面 setup 因缺 Simulation_initBlock.F90 而半途而废 ⇒ 作业挂起。
-#   ⇒ 改用 `find` 在循环**内部**按路径取文件（glob 语义正确）。
-find "$D" -maxdepth 1 -type f \( -name 'Config' -o -name 'Makefile' \
-     -o -name '*.F90' -o -name '*.cn4' -o -name '*.par' \) \
-     -exec cp -f {} "$S/" \;
-echo "  [copy] 已拷 $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"
-cd $F
-# ★★ 编译策略（2026-10-26 实测修正）：
-#   ★ setup **必须在登录节点跑**（不能在计算节点里跑）——
-#     实测作业 4924531/4924535 在计算节点执行 setup 时**永久挂起**
-#     （RUNNING 17 分钟，objdir 一个文件都没生成；而同一命令在登录节点
-#     秒完，SUCCESS + SETUP_RC=0）⇒ 计算节点上的 setup 不可用。
-#     ⇒ 由提交方（登录节点）先跑 setup，本脚本只做 make + 运行。
-#   ★ 二进制存在 **且** 源文件不比它新 ⇒ 跳过编译（否则每轮 2 分钟）。
+mkdir -p "$R"; cd $F
+# ★★ 源文件拷贝与 setup 都**在登录节点**完成（2026-10-26 实测）：
+#   ① setup 在**计算节点**会永久挂起（实测作业 4924531/4924535：
+#      RUNNING 17 分钟，objdir 零文件）；
+#   ② setup 读取 SimulationMain/<场景>/ 下的源文件 ⇒ 必须**先拷贝后 setup**，
+#      否则 setup 时源目录是空的 ⇒ objdir 无 .F90 链接 ⇒ make 无从编译
+#      （实测 objdir 98 文件 / 零 .o，作业挂起 7 分钟零进展）。
+#   ⇒ 由 deploy/hpc_deploy/submit_sandwich.py 在登录节点按
+#      「拷贝 → setup → sbatch」顺序完成；本脚本只做 make + 运行。
+# ★ 二进制存在 **且** 源文件不比它新 ⇒ 跳过编译（否则每轮 2 分钟）。
 if [ -x "$O/flash4" ] && [ -z "$(find "$D" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
   echo "  [compile] 二进制已存在且源文件未变，跳过 make"
 else
   if [ ! -f "$O/Makefile" ]; then
-    echo "  [FATAL] objdir 无 Makefile —— 请先在**登录节点**执行 setup："
-    echo "         cd \$FLASH_HOME && ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 \\"
-    echo "           -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t \\"
-    echo "           +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede"
+    echo "  [FATAL] objdir 无 Makefile —— 请先在**登录节点**执行 setup"
+    echo "         （用 deploy/hpc_deploy/submit_sandwich.py 提交即可自动完成）"
     exit 2
   fi
   cd $O; make -j$(nproc)

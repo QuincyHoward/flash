@@ -1012,25 +1012,23 @@ if [ "$_n_par" -eq 0 ]; then
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 fi
 echo "  SCRIPT_DIR = $SCRIPT_DIR (par x $(compgen -G "$SCRIPT_DIR/*.par" | wc -l))"
-# ★ 用 find 在循环内部按路径取文件（2026-10-26）：
-#   bash 的 for 列表里 glob **只展开一次**且用**当前 cwd**（此处不是
-#   SCRIPT_DIR）⇒ `*.cn4` 展开为空 ⇒ **EOS 表一个都没拷**。
-#   （grad 此前能跑通是**侥幸**：$S 目录上一轮已存在且含 .cn4；
-#     首次运行/换 RUN_ID 必然失败。）
-find "$SCRIPT_DIR" -maxdepth 1 -type f \( -name 'Config' -o -name 'Makefile' \
-     -o -name '*.F90' -o -name '*.cn4' \) -exec cp -f {} "$S/" \;
-cp -f "$SCRIPT_DIR"/*.par "$S/${SIM_NAME}_${RUN_ID}.par"
-echo "  [copy] 已拷 $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"
 
 cd $F
-# ★ 复用已编译二进制（2026-10-26）：原脚本无条件 `rm -rf "$O"` + setup
-#   + make，每轮重编约 2 分钟，迭代时极慢。与 ch_center 场景一致：
-#   二进制存在即跳过编译。★ 用不同 RUN_ID 可并存多套二进制。
+# ★★ 源文件拷贝与 setup 都**在登录节点**完成（2026-10-26 实测）：
+#   ① setup 在**计算节点**会永久挂起（实测 thin_layer 作业 4924531：
+#      RUNNING 17 分钟，objdir 零文件）；
+#   ② setup 读取 SimulationMain/<场景>/ 下的源文件 ⇒ 必须**先拷贝后 setup**。
+#   ⇒ 由 deploy/hpc_deploy/submit_sandwich.py 在登录节点按
+#      「拷贝 → setup → sbatch」顺序完成；本脚本只做 make + 运行。
+# ★ 二进制存在 **且** 源文件不比它新 ⇒ 跳过编译（否则每轮 2 分钟）。
 if [ -x "$O/flash4" ] && [ -z "$(find "$SCRIPT_DIR" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
-    echo "  [compile] 二进制已存在且源文件未变，跳过 setup+make: $O/flash4"
+    echo "  [compile] 二进制已存在且源文件未变，跳过 make: $O/flash4"
 else
-    rm -rf "$O"
-    ./setup -auto "QC/${SIM_NAME}_${RUN_ID}" -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 ed_maxPulseSections=240 -objdir="QC/object_${SIM_NAME}_${RUN_ID}"
+    if [ ! -f "$O/Makefile" ]; then
+        echo "  [FATAL] objdir 无 Makefile —— 请先在**登录节点**执行 setup"
+        echo "         （用 deploy/hpc_deploy/submit_sandwich.py 提交即可自动完成）"
+        exit 2
+    fi
     cd $O
     make -j7
 fi
