@@ -23,19 +23,38 @@ export LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/
 export LD_LIBRARY_PATH=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:/public1/soft/oneAPI/2022.1/mpi/latest/lib:/public1/soft/hdf5/1.8.18/lib:${LD_LIBRARY_PATH:-}
 
 mkdir -p "$S" "$R"
-# ★ 精确拷贝（2026-10-26）：原 `cp "$D"/* "$S"/` 会把 D 目录里的
-#   **子目录**（如上次运行留下的 grid_rede_run/）也往 S 里拷 ⇒ 递归、
-#   且把日志/产物混进源码目录（实测 "cp: omitting directory" 警告）。
-#   ⇒ 只拷 FLASH 真正需要的文件类型。
-for f in Config Makefile *.F90 *.cn4 *.par; do
-    [ -f "$D/$f" ] && cp "$D/$f" "$S/"
-done
+# ★ 精确拷贝（2026-10-26）：
+#   原 `cp "$D"/* "$S"/` 会把 D 里的**子目录**也往 S 拷 ⇒ 递归 + 产物混入。
+#   ★★ 但**不能**写成 `for f in Config Makefile *.F90 *.cn4 *.par` ——
+#      bash 的 for 列表里 glob **只展开一次**且用**当前 cwd**（此处不是 D），
+#      ⇒ `*.F90` 等展开为空 ⇒ 循环体只处理 Config/Makefile 两个显式名，
+#      **.F90 / .cn4 / .par 一个都没拷**（实测 cp 循环只拷 2 个文件），
+#      后面 setup 因缺 Simulation_initBlock.F90 而半途而废 ⇒ 作业挂起。
+#   ⇒ 改用 `find` 在循环**内部**按路径取文件（glob 语义正确）。
+find "$D" -maxdepth 1 -type f \( -name 'Config' -o -name 'Makefile' \
+     -o -name '*.F90' -o -name '*.cn4' -o -name '*.par' \) \
+     -exec cp -f {} "$S/" \;
+echo "  [copy] 已拷 $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"
 cd $F
-# ★ 复用已编译二进制（2026-10-26）：原脚本无条件重跑 setup+make
-#   （每轮约 2 分钟）。与 ch_center 场景一致：二进制存在即跳过。
-#   ★ 但**源文件比二进制新**时必须重编（否则用旧二进制跑新输入，
-#   物理结果不对却看不出来 —— 静默错误）。
-if [ -x "$O/flash4" ] && [ -z "$(find "$D" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then echo "  [compile] 二进制已存在且源文件未变，跳过 setup+make"; else ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc); fi
+# ★★ 编译策略（2026-10-26 实测修正）：
+#   ★ setup **必须在登录节点跑**（不能在计算节点里跑）——
+#     实测作业 4924531/4924535 在计算节点执行 setup 时**永久挂起**
+#     （RUNNING 17 分钟，objdir 一个文件都没生成；而同一命令在登录节点
+#     秒完，SUCCESS + SETUP_RC=0）⇒ 计算节点上的 setup 不可用。
+#     ⇒ 由提交方（登录节点）先跑 setup，本脚本只做 make + 运行。
+#   ★ 二进制存在 **且** 源文件不比它新 ⇒ 跳过编译（否则每轮 2 分钟）。
+if [ -x "$O/flash4" ] && [ -z "$(find "$D" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
+  echo "  [compile] 二进制已存在且源文件未变，跳过 make"
+else
+  if [ ! -f "$O/Makefile" ]; then
+    echo "  [FATAL] objdir 无 Makefile —— 请先在**登录节点**执行 setup："
+    echo "         cd \$FLASH_HOME && ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 \\"
+    echo "           -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t \\"
+    echo "           +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede"
+    exit 2
+  fi
+  cd $O; make -j$(nproc)
+fi
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R"
 # ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
 #   编译/链接阶段**必须无模块**（module 会屏蔽 oneAPI 自带的 libmpifort

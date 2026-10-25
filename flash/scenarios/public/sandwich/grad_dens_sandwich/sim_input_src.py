@@ -1012,10 +1012,15 @@ if [ "$_n_par" -eq 0 ]; then
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 fi
 echo "  SCRIPT_DIR = $SCRIPT_DIR (par x $(compgen -G "$SCRIPT_DIR/*.par" | wc -l))"
-for f in Config Simulation_data.F90 Simulation_init.F90 Simulation_initBlock.F90 Grid_markRefineDerefine.F90 Makefile *.cn4; do
-    [ -f "$SCRIPT_DIR/$f" ] && cp "$SCRIPT_DIR/$f" "$S/"
-done
-cp "$SCRIPT_DIR"/*.par "$S/${SIM_NAME}_${RUN_ID}.par"
+# ★ 用 find 在循环内部按路径取文件（2026-10-26）：
+#   bash 的 for 列表里 glob **只展开一次**且用**当前 cwd**（此处不是
+#   SCRIPT_DIR）⇒ `*.cn4` 展开为空 ⇒ **EOS 表一个都没拷**。
+#   （grad 此前能跑通是**侥幸**：$S 目录上一轮已存在且含 .cn4；
+#     首次运行/换 RUN_ID 必然失败。）
+find "$SCRIPT_DIR" -maxdepth 1 -type f \( -name 'Config' -o -name 'Makefile' \
+     -o -name '*.F90' -o -name '*.cn4' \) -exec cp -f {} "$S/" \;
+cp -f "$SCRIPT_DIR"/*.par "$S/${SIM_NAME}_${RUN_ID}.par"
+echo "  [copy] 已拷 $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"
 
 cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件 `rm -rf "$O"` + setup
