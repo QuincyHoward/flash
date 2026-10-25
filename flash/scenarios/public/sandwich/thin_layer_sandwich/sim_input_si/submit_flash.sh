@@ -40,7 +40,11 @@ else
     echo "         （用 deploy/hpc_deploy/submit_sandwich.py 提交即可自动完成）"
     exit 2
   fi
-  cd $O; make -j$(nproc)
+  # ★ 用固定 -j7（**不是** -j$(nproc)）：SLURM 作业内 nproc 返回**节点全部**
+  #   核数（48+），48 路并行编译 FLASH（1500+ 源文件）会**耗尽节点内存**
+  #   ⇒ make 卡死（实测作业 4924548：11:55 零 .o，objdir 1748 条目只增不减）。
+  #   grad 场景用 -j7 实测成功（1550 个 .o + 13MB 二进制，01:27）。
+  cd $O; make -j7
 fi
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R"
 # ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
