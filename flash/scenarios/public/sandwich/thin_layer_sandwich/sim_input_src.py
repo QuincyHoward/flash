@@ -779,8 +779,7 @@ wsl bash -c "mkdir -p /tmp/run_grid_rede && cp ~/${FLASH_SIM_USER_DIR:-QC}/FLASH
 ''',
     'submit_flash.sh': r'''#!/bin/bash
 #SBATCH --job-name=grid_rede --output=grid_rede_%j.log --partition=v5_192 --ntasks=4 --time=01:00:00
-F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8;S=$F/source/Simulation/SimulationMain/QC/grid_rede;O=$F/QC/object_grid_rede;R=$SLURM_SUBMIT_DIR/${SLURM_JOB_NAME}_run
-# ★★ 2026-10-26 实测修复：sbatch 下 `$0` = spool 目录里的脚本副本
+F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8;S=$F/source/Simulation/SimulationMain/QC/grid_rede;O=$F/QC/object_grid_rede;R=$SLURM_SUBMIT_DIR/${SLURM_JOB_NAME}_run# ★★ 2026-10-26 实测修复：sbatch 下 `$0` = spool 目录里的脚本副本
 #   （/var/spool/slurm/d/jobNNNN/），不是提交目录 ⇒ `dirname "$0"`
 #   解析出的路径没有 par/cn4 ⇒ 作业立刻 FAILED
 #   （grad_dens_sandwich 实测："cp: cannot stat '.../jobNNNN/*.par'"）。
@@ -802,7 +801,9 @@ D=${SLURM_SUBMIT_DIR:-$PWD};_np=$(compgen -G "$D/*.par" | wc -l);[ "$_np" -eq 0 
 mkdir -p "$S" "$R";cp "$D"/* "$S"/;cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件重跑 setup+make
 #   （每轮约 2 分钟）。与 ch_center 场景一致：二进制存在即跳过。
-if [ -x "$O/flash4" ]; then echo "  [compile] 二进制已存在，跳过 setup+make"; else ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc); fi
+#   ★ 但**源文件比二进制新**时必须重编（否则用旧二进制跑新输入，
+#   物理结果不对却看不出来 —— 静默错误）。
+if [ -x "$O/flash4" ] && [ -z "$(find "$D" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then echo "  [compile] 二进制已存在且源文件未变，跳过 setup+make"; else ./setup -auto QC/grid_rede -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 -objdir=QC/object_grid_rede;cd $O;make -j$(nproc); fi
 cp $O/flash4 "$R"/;cp "$S"/*.cn4 "$R"/;cp "$S"/grid_rede.par "$R"/flash.par;cd "$R"
 # ★★ 2026-10-26 运行阶段环境（两阶段策略，实测必需）：
 #   编译/链接阶段**必须无模块**（module 会屏蔽 oneAPI 自带的 libmpifort

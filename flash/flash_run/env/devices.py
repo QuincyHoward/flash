@@ -66,7 +66,8 @@ INTEL2018_ROOT = f"{SOFT_ROOT}/intel/2018/compilers_and_libraries_2018.2.199/lin
 INTEL2018_MPI_LIB = f"{INTEL2018_ROOT}/mpi/intel64/lib"
 
 #: GCC 运行时库目录（libgfortran.so.5 等）
-GCC_LIB = f"{SOFT_ROOT}/gcc/9.3.0/lib64"
+#: ★ 实测：`gcc/9.3.0/lib64` **不存在**，实际在 `gcc/9.3.0-new/lib64`
+GCC_LIB = f"{SOFT_ROOT}/gcc/9.3.0-new/lib64"
 
 #: 作业分区（★ 不写进场景脚本；由本模块提供）
 HPC_PARTITION = "v5_192"

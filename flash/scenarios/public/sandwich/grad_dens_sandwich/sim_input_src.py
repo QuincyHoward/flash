@@ -1021,8 +1021,8 @@ cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件 `rm -rf "$O"` + setup
 #   + make，每轮重编约 2 分钟，迭代时极慢。与 ch_center 场景一致：
 #   二进制存在即跳过编译。★ 用不同 RUN_ID 可并存多套二进制。
-if [ -x "$O/flash4" ]; then
-    echo "  [compile] 二进制已存在，跳过 setup+make: $O/flash4"
+if [ -x "$O/flash4" ] && [ -z "$(find "$SCRIPT_DIR" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
+    echo "  [compile] 二进制已存在且源文件未变，跳过 setup+make: $O/flash4"
 else
     rm -rf "$O"
     ./setup -auto "QC/${SIM_NAME}_${RUN_ID}" -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 ed_maxPulseSections=240 -objdir="QC/object_${SIM_NAME}_${RUN_ID}"

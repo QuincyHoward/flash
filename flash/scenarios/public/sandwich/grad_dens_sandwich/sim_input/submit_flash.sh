@@ -59,8 +59,8 @@ cd $F
 # ★ 复用已编译二进制（2026-10-26）：原脚本无条件 `rm -rf "$O"` + setup
 #   + make，每轮重编约 2 分钟，迭代时极慢。与 ch_center 场景一致：
 #   二进制存在即跳过编译。★ 用不同 RUN_ID 可并存多套二进制。
-if [ -x "$O/flash4" ]; then
-    echo "  [compile] 二进制已存在，跳过 setup+make: $O/flash4"
+if [ -x "$O/flash4" ] && [ -z "$(find "$SCRIPT_DIR" -maxdepth 1 -name '*.F90' -newer "$O/flash4" 2>/dev/null)" ]; then
+    echo "  [compile] 二进制已存在且源文件未变，跳过 setup+make: $O/flash4"
 else
     rm -rf "$O"
     ./setup -auto "QC/${SIM_NAME}_${RUN_ID}" -1d +cartesian -nxb=16 -maxblocks=2048 +hdf5typeio species=cham,targ,poly +mtmmmt +laser +uhd3t +mgd mgd_meshgroups=10 ed_maxPulseSections=240 -objdir="QC/object_${SIM_NAME}_${RUN_ID}"
@@ -88,7 +88,7 @@ cd "$R"
 #      **Intel 2018** 的 MPI ⇒ 加载旧版 libmpi.so.12，与 oneAPI 2022.1
 #      编译的二进制版本不匹配 ⇒ MPI_Init 处 SIGSEGV
 #      （forrtl: severe (174)，实测作业 4924506）。
-#      只加载 hdf5/1.8.18（提供 libhdf5.so.10）；其余库由 /public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64 提供。
+#      只加载 hdf5/1.8.18（提供 libhdf5.so.10）；其余库由 /public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0-new/lib64 提供。
 #   ③ 编译/链接阶段**不能**有 module（会屏蔽 oneAPI 自带的 libmpifort
 #      ⇒ 链接期 'cannot find -lmpifort/-lmpi'）⇒ module 只在
 #      **编译完成之后**的运行阶段加载（两阶段环境）。
@@ -97,13 +97,13 @@ module load hdf5/1.8.18 >/dev/null 2>&1
 # 完整运行库路径：Intel MPI 2022.1 (release:lib) → SLURM PMI → HDF5
 #                → oneAPI runtime (libimf/libsvml/...) → GCC runtime
 # ★ module 会覆盖 LD_LIBRARY_PATH ⇒ 必须在 module 之后重新导出。
-export LIBRARY_PATH="/public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64:${LIBRARY_PATH:-}"
-export LD_LIBRARY_PATH="/public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64:${LD_LIBRARY_PATH:-}"
+export LIBRARY_PATH="/public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0-new/lib64:${LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="/public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0-new/lib64:${LD_LIBRARY_PATH:-}"
 export PATH="/public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/bin:$PATH"
 
 # ★ 用 srun（2026-10-26 实测）：与 ch_center 场景**已验证成功**的路径一致。
 #   Intel MPI 经 SLURM 的 PMI2 启动（SLURM 提供 libpmi2.so，必须在
-#   LD_LIBRARY_PATH 里 —— 见 /public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0/lib64）。
+#   LD_LIBRARY_PATH 里 —— 见 /public1/soft/intel/2018/compilers_and_libraries_2018.2.199/linux/mpi/intel64/lib:/opt/slurm/slurm/lib:/public1/soft/hdf5/1.8.18/lib:/public1/soft/oneAPI/2022.1/compiler/2022.0.0/linux/compiler/lib/intel64_lin:/public1/soft/gcc/9.3.0-new/lib64）。
 #   ✗ 不用 mpirun：hydra bootstrap 在 SLURM 作业内与 SLURM 的进程分配
 #     打架（实测作业 4924502：MPI_Init 处 abort，exit 46）。
 srun -n ${SLURM_NTASKS:-7} ./flash4
