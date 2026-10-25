@@ -358,6 +358,47 @@ def test_no_network_markers() -> None:
 
 
 # ---------------------------------------------------------------------------
+# 4d. ★ 离线 Step 0 跳过判定（WHEELHOUSE 全局变量必须被赋值）
+# ---------------------------------------------------------------------------
+
+def test_should_setup_offline() -> None:
+    section("[4d] ★ 离线预检跳过判定（WHEELHOUSE 空 ⇒ pip 拿到空 find-links）")
+    if start_flash is None:
+        check("可导入 start_flash", False, "预检跳过判定整节无法验证")
+        return
+
+    orig_clean = os.environ.pop("FLASH_FORCE_CLEAN", None)
+    try:
+        # 正样本：环境健康 + 无显式指定 ⇒ 可跳过（超算复用场景）
+        need, why = start_flash._should_setup_offline(None, True)
+        check("★ 环境健康 + 无 --wheelhouse → 可跳过预检", need is False, why)
+
+        # 负样本 1：显式 --wheelhouse ⇒ 必须预检（否则 WHEELHOUSE 为空）
+        need, why = start_flash._should_setup_offline("/path/to/wh", True)
+        check("★ 负样本：显式 --wheelhouse → 必须预检", need is True, why)
+
+        # 负样本 2：FLASH_FORCE_CLEAN=1 ⇒ 必须预检（要重建必然要装包）
+        os.environ["FLASH_FORCE_CLEAN"] = "1"
+        need, why = start_flash._should_setup_offline(None, True)
+        check("★ 负样本：FLASH_FORCE_CLEAN=1 → 必须预检", need is True, why)
+
+        # 负样本 3：环境不健康 ⇒ 必须预检
+        os.environ.pop("FLASH_FORCE_CLEAN", None)
+        need, why = start_flash._should_setup_offline(None, False)
+        check("★ 负样本：环境不健康 → 必须预检", need is True, why)
+
+        # 组合：显式 --wheelhouse + 环境健康 + FORCE_CLEAN（三者同真）
+        os.environ["FLASH_FORCE_CLEAN"] = "1"
+        need, why = start_flash._should_setup_offline("/wh", True)
+        check("★ 组合：三条件同真 → 必须预检", need is True, why)
+        check("★ 组合：reason 非空（供日志自解释）", bool(why), why)
+    finally:
+        os.environ.pop("FLASH_FORCE_CLEAN", None)
+        if orig_clean is not None:
+            os.environ["FLASH_FORCE_CLEAN"] = orig_clean
+
+
+# ---------------------------------------------------------------------------
 # 5. ★ 覆盖度预检 + MANIFEST 校验（含负例）
 # ---------------------------------------------------------------------------
 
@@ -1092,6 +1133,7 @@ def main() -> int:
     test_switch_matrix()
     test_hpc_probe()
     test_no_network_markers()
+    test_should_setup_offline()
     test_gates(root)
     test_bat_convention()
     test_no_root_pollution(root)

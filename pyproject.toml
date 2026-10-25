@@ -135,7 +135,17 @@ exclude = [
     "**/flash_input_old/**",
     "flash/input_gen/test/**",
     "flash/output_processors/test/**",
-    # === ★ 大体积第三方参考数据（必须排除，否则 wheel 达 GB 级）===
+    # === ★ 五执行模式测试框架的产物（2026-10-26 实测踩坑）===
+    # flash/scenarios/public/center_evolution/ch_center/modes_test/results/
+    #   = win-wsl / wsl-wsl / wsl-hpc 等每轮实跑产出的 chk/log/报告
+    #   （实测 1714 个文件 / 640 MB，单个 chk 444 KB ⇒ wheel 暴涨到 280 MB，
+    #    远超 20 MB 红线，wheel_leak_audit 直接 FAIL）
+    # ★ 已核对 git ls-files：该目录**零**已跟踪文件（modes_test 下仅 README.md /
+    #   analyze_modes.py / plot_style.py / run_mode_test.py 四个源码入包）
+    #   ⇒ 精确排除 results/ 不误伤任何源码。
+    "flash/scenarios/**/modes_test/results/**",
+    "flash/scenarios/**/modes_test/**/chk/**",
+    # === ★★ 大体积第三方参考数据（必须排除，否则 wheel 达 GB 级）===
     # Multi1D++ 便携包 ≈1.5GB（.dat 参考数据 + .rar 压缩包），是外部
     #   第三方参考解，**不是**本包自研代码，随包分发无意义。
     # ★ .gitignore:72-73,132-133 早已排除，pyproject 侧历史上一直缺失
@@ -303,6 +313,10 @@ exclude = [
     "flash/flash_run/remote/test/results/**",
     "flash/flash_run/remote/test/packages/**",
     "flash/scenarios/public/sandwich/**/sim_input*/**/*.cn4",
+    # === ★ 五执行模式测试产物（2026-10-26，与 wheel target 成对维护）===
+    #   modes_test/results/ = 各模式实跑的 chk/log/报告（实测 640 MB）
+    "flash/scenarios/**/modes_test/results/**",
+    "flash/scenarios/**/modes_test/**/chk/**",
     # === FLASH CENTER compliance exclusions ===
     "flash/flash_src/**",
     "FLASH4.8/**",

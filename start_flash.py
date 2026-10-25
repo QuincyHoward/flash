@@ -427,6 +427,33 @@ def _load_wh_common():
         )
 
 
+def _should_setup_offline(wh_arg: str | None,
+                          named_env_ok: bool) -> tuple[bool, str]:
+    """离线模式下**是否必须**跑 setup_offline（wheelhouse 预检 + 定位）。
+
+    ★ 背景（2026-10-26 超算实测踩坑）：
+      `WHEELHOUSE` 是模块级全局变量，**只在 setup_offline() 里被赋值**。
+      若 Step 0 因"venv 健康"而跳过 setup_offline，随后 Step 2 又因
+      FLASH_FORCE_CLEAN=1 而要真正装包 ⇒ pip 拿到**空的** `--find-links=`
+      ⇒ 报 "Could not find a version that satisfies the requirement setuptools"，
+      而错误提示里的 wheelhouse 路径也是空的 ⇒ 极难自查。
+
+    ★ 判据（任一成立 ⇒ 必须预检）：
+      1. 用户显式 `--wheelhouse <路径>`：明确要用这个 wheelhouse；
+      2. `FLASH_FORCE_CLEAN=1`：要清零重建 ⇒ 必然要重新装包；
+      3. 现有环境**未**通过健康检查：本来就要重建。
+
+    返回 (need_setup, reason)；reason 用于日志说明（不参与判定）。
+    """
+    if wh_arg:
+        return True, "用户显式指定 --wheelhouse"
+    if os.environ.get("FLASH_FORCE_CLEAN") == "1":
+        return True, "FLASH_FORCE_CLEAN=1 强制重建"
+    if not named_env_ok:
+        return True, "现有环境不可用"
+    return False, "现有环境健康且无显式指定"
+
+
 def setup_offline(wh_arg: str | None, profile: str) -> None:
     """离线模式初始化：定位 wheelhouse + 校验清单 + 覆盖度预检。
 
@@ -1298,13 +1325,15 @@ def main() -> int:
     _reuse_named_env = False
     if OFFLINE:
         _named_ok, _named_why = _probe_existing_venv(VENV_DIR)
-        if _named_ok:
+        _need_offline_setup, _why = _should_setup_offline(args.wheelhouse, _named_ok)
+        if _named_ok and not _need_offline_setup:
             _reuse_named_env = True
             log(f"\n[step 0/5] 检测到可用的现有环境（{_named_why}）"
                 f"→ 跳过 wheelhouse 预检，直接复用")
             log(f"[info] 环境: {VENV_DIR}")
         else:
-            log("\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）...")
+            log(f"\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）"
+                f"— {_why} ⇒ 不可跳过 ...")
             try:
                 setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
             except SystemExit as _se:
