@@ -1305,7 +1305,24 @@ def main() -> int:
             log(f"[info] 环境: {VENV_DIR}")
         else:
             log("\n[step 0/5] 离线模式前置校验（wheelhouse 清单 + 依赖覆盖度）...")
-            setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
+            try:
+                setup_offline(args.wheelhouse, os.environ.get("FLASH_PROFILE", "full"))
+            except SystemExit as _se:
+                # ★ 2026-10-25：超算上缺 wheelhouse 时，**补一条最可行的出路**：
+                #   部署链（deploy/hpc_deploy/）早已装好命名环境 .venv-hpc-nce，
+                #   只是本次 FLASH_VENV_DIR 指错了。给出可直接复制的命令，
+                #   免得用户以为"必须造 212 MB wheelhouse"才能用超算。
+                if _is_hpc:
+                    log("")
+                    log("  ★ 超算上的推荐做法（**不需要** wheelhouse）：")
+                    log(f"      export FLASH_VENV_DIR={_hpc_venv_dir(PROJECT_DIR)}")
+                    log("      python start_flash.py")
+                    log("    （该环境由 deploy/hpc_deploy/remote_install.py 离线装好）")
+                    log("    若该环境也不存在，再考虑：")
+                    log("      ① 联网机：python deploy\\build_wheelhouse.py --profile full")
+                    log("      ② 整目录拷贝 wheelhouse/ 到超算后：")
+                    log("         python start_flash.py --offline --wheelhouse <路径>")
+                raise
             if not os.path.isfile(BASE_PY):
                 raise SystemExit(f"[FATAL] base Python 不存在: {BASE_PY}")
     elif not os.path.isfile(BASE_PY):

@@ -170,9 +170,14 @@ def test_switch_matrix() -> None:
     orig_dir = start_flash.PROJECT_DIR
     env_backup = {k: os.environ.get(k) for k in
                   ("FLASH_OFFLINE", "FLASH_FORCE_ONLINE", "FLASH_WHEELHOUSE")}
+    # ★★ 2026-10-25：超算判据必须**隔离**再测 —— 本测试文件本身会在超算上跑，
+    #   而超算上 probe_hpc() 恒为 True ⇒ "无 wheelhouse → 在线" 断言必然失败。
+    #   ⇒ 统一 mock 成"非超算"，再单独用 mock 测超算分支（见 test_hpc_probe）。
+    orig_probe = start_flash.probe_hpc
 
     def restore():
         start_flash.PROJECT_DIR = orig_dir
+        start_flash.probe_hpc = orig_probe
         for k, v in env_backup.items():
             if v is None:
                 os.environ.pop(k, None)
@@ -182,6 +187,7 @@ def test_switch_matrix() -> None:
     try:
         for k in env_backup:
             os.environ.pop(k, None)
+        start_flash.probe_hpc = lambda: (False, "mock: 非超算")
         tmp = Path(tempfile.mkdtemp())
 
         # 关键回归：仓库里存在 deploy/（随仓库分发），
@@ -209,9 +215,146 @@ def test_switch_matrix() -> None:
 
         check("--offline → 离线", start_flash.resolve_offline_mode(B) is True)
 
+        # ── 超算分支（2026-10-25）──
+        # 超算部署目录**没有 wheelhouse**（212 MB 不随代码同步），
+        # 若此时仍判在线 ⇒ pip 会去访问 PyPI ⇒ 超算无外网 ⇒ SSL 失败
+        # ⇒ 60 s 无限重试（用户 2026-10-25 实跑复现）。
+        shutil.rmtree(tmp, ignore_errors=True)
+        tmp = Path(tempfile.mkdtemp())
+        start_flash.PROJECT_DIR = tmp
+        start_flash.probe_hpc = lambda: (True, "mock: 超算")
+        check("★ 超算 + 无 wheelhouse → 强制离线",
+              start_flash.resolve_offline_mode(A) is True,
+              "★ 超算无外网，判在线会访问 PyPI 失败后无限重试")
+
+        os.environ["FLASH_FORCE_ONLINE"] = "1"
+        check("★ 超算 + FLASH_FORCE_ONLINE=1 → 强制在线",
+              start_flash.resolve_offline_mode(A) is False,
+              "★ 显式开关必须能覆盖自动探测")
+        os.environ.pop("FLASH_FORCE_ONLINE")
+
+        os.environ["FLASH_OFFLINE"] = "1"
+        check("★ 超算 + FLASH_OFFLINE=1 → 离线",
+              start_flash.resolve_offline_mode(A) is True)
+        os.environ.pop("FLASH_OFFLINE")
+
         shutil.rmtree(tmp, ignore_errors=True)
     finally:
         restore()
+
+
+# ---------------------------------------------------------------------------
+# 4b. ★ 超算探测（SLURM）判据 — 正/负样本
+# ---------------------------------------------------------------------------
+
+def test_hpc_probe() -> None:
+    section("[4b] ★ 超算（SLURM）探测判据（含负样本）")
+    if start_flash is None:
+        check("可导入 start_flash", False, "超算探测整节无法验证")
+        return
+
+    import shutil as _shutil
+    import subprocess as _subprocess
+
+    orig_which = _shutil.which
+    orig_run = _subprocess.run
+    orig_cache = start_flash._HPC_PROBE
+
+    class _R:
+        def __init__(self, rc, out=""):
+            self.returncode = rc
+            self.stdout = out
+            self.stderr = ""
+
+    def _patch(which_map, sinfo_rc, sinfo_out):
+        _shutil.which = lambda n, *a, **k: which_map.get(n)
+        _subprocess.run = lambda *a, **k: _R(sinfo_rc, sinfo_out)
+        start_flash._HPC_PROBE = None      # 清缓存，逼真实探测
+
+    try:
+        full = {"sbatch": "/x/sbatch", "sacct": "/x/sacct", "sinfo": "/x/sinfo"}
+        parts = "PartitionName\n  cpu\n"
+
+        # 正样本：三命令齐备 + sinfo 返回分区行 + 作业上下文
+        _patch(full, 0, parts)
+        os.environ["SLURM_CLUSTER_NAME"] = "nc-e"
+        ok, why = start_flash.probe_hpc()
+        check("★ 超算探测正样本：三命令 + sinfo 分区行 → True", ok is True, why)
+        check("★ 超算探测说明含分区数", "分区" in why, why)
+
+        # 负样本 1：只装了 slurm 客户端但控制器不可达（sinfo 失败）
+        _patch(full, 1, "")
+        ok, why = start_flash.probe_hpc()
+        check("★ 负样本：sinfo rc≠0 → 非超算", ok is False, why)
+
+        # 负样本 2：sinfo 成功但无分区行（仅表头）
+        _patch(full, 0, "PartitionName\n")
+        ok, why = start_flash.probe_hpc()
+        check("★ 负样本：sinfo 无分区行 → 非超算", ok is False, why)
+
+        # 负样本 3：缺少 sbatch/sacct/sinfo 之一
+        _patch({"sbatch": "/x/sbatch", "sinfo": "/x/sinfo"}, 0, parts)
+        ok, why = start_flash.probe_hpc()
+        check("★ 负样本：缺 sacct → 非超算", ok is False, why)
+
+        # 负样本 4：完全没有 slurm
+        _patch({}, 0, parts)
+        ok, why = start_flash.probe_hpc()
+        check("★ 负样本：无 SLURM 命令 → 非超算", ok is False, why)
+
+        # 普通工作站（无作业上下文）也不该判成超算吗？—— 应判超算：
+        # 有完整 SLURM + 控制器可达 ⇒ 就是集群环境（登录节点也属此类）。
+        _patch(full, 0, parts)
+        os.environ.pop("SLURM_CLUSTER_NAME", None)
+        ok, why = start_flash.probe_hpc()
+        check("★ 登录节点（无作业上下文）仍判超算", ok is True, why)
+    finally:
+        _shutil.which = orig_which
+        _subprocess.run = orig_run
+        start_flash._HPC_PROBE = orig_cache
+        os.environ.pop("SLURM_CLUSTER_NAME", None)
+
+
+# ---------------------------------------------------------------------------
+# 4c. ★ 无外网判据（pip 输出 → 立即失败，不做 60 s 重试）
+# ---------------------------------------------------------------------------
+
+def test_no_network_markers() -> None:
+    section("[4c] ★ 无外网判据（pip SSL 失败 → 立即报错，不重试）")
+    if start_flash is None:
+        check("可导入 start_flash", False, "无外网判据整节无法验证")
+        return
+
+    class _R:
+        def __init__(self, out="", err=""):
+            self.returncode = 1
+            self.stdout = out
+            self.stderr = err
+
+    # 超算实测原文（2026-10-25）：ssl module is not available + No matching distribution
+    hpc_out = ("Could not fetch URL https://pypi.org/simple/setuptools/: ... "
+               "SSLError(\"Can't connect to HTTPS URL because the SSL module is "
+               "not available.\") - skipping\n"
+               "ERROR: Could not find a version that satisfies the requirement "
+               "setuptools (from versions: none)\n"
+               "ERROR: No matching distribution found for setuptools\n")
+    check("★ 超算 SSL 失败输出 → 判为无外网",
+          start_flash._looks_like_no_network(_R(out=hpc_out)) is True)
+
+    # 网络抖动（DNS 暂时解析失败）也是环境性失败 → 同样不应重试
+    check("★ DNS 解析失败 → 判为无外网",
+          start_flash._looks_like_no_network(
+              _R(err="Temporary failure in name resolution")) is True)
+
+    # 负样本：普通的包冲突/构建失败（**不是**网络问题）→ 不应误判为无外网
+    check("★ 负样本：包冲突（非网络）→ 不判无外网",
+          start_flash._looks_like_no_network(
+              _R(err="ERROR: Cannot install flash_sim: package conflict")) is False)
+
+    # 负样本：超时（网络慢但通）→ 不判无外网（保留重试机会）
+    check("★ 负样本：普通超时 → 不判无外网",
+          start_flash._looks_like_no_network(
+              _R(err="Read timed out. (read timeout=15)")) is False)
 
 
 # ---------------------------------------------------------------------------
@@ -947,6 +1090,8 @@ def main() -> int:
     test_requirement_name()
     test_pyproject_parsing(root)
     test_switch_matrix()
+    test_hpc_probe()
+    test_no_network_markers()
     test_gates(root)
     test_bat_convention()
     test_no_root_pollution(root)
