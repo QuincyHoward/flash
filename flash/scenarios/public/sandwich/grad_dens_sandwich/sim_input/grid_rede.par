@@ -440,9 +440,9 @@ tstep_change_factor            = 1.1
 cfl                            = 0.2
 dt_diff_factor                 = 1e+100
 tmax                           = 1.4e-09
-dtmin                          = 1e-15
+dtmin                          = 1e-16
 dtinit                         = 1e-16
-dtmax                          = 1.47e-09
+dtmax                          = 1e-09
 nend                           = 10000000
 
 ##############################
