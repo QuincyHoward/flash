@@ -691,6 +691,61 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 
 ---
 
+## 超算（NC-E）实测记录（2026-10-26）
+
+三个公开场景在超算 **NC-E（scfa2696，分区 v5_192）全部跑通**：
+
+| 场景 | 作业号 | 状态 | 耗时 | chk | 提交方式 |
+|---|---|---|---|---|---|
+| `ch_center` | 4924413 | COMPLETED | — | 341 | 场景脚本 `laserslab1d_local_custom.py`（`FLASH_RUN_MODE=hpc-insitu`） |
+| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `deploy/hpc_deploy/submit_sandwich.py` |
+| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `deploy/hpc_deploy/submit_sandwich.py` |
+
+超算侧测试套件（离线重装后）：framework 221 passed / input_gen 86 passed /
+output_processors 45 passed —— 全绿。
+
+### 环境铁律（全部由实跑对照实验确定，勿凭直觉改）
+
+1. **超算强制离线安装**：`start_flash.py` 自动探测 SLURM（三命令齐备 +
+   `sinfo -s` 返回分区行）⇒ 走 `--no-index` 离线模式并复用命名环境
+   `.venv-hpc-nce`；超算无外网，pip 命中 SSL 类错误即**立即失败**（不重试）。
+2. **编译期禁 `module load`**：module 设置的 `LIBRARY_PATH`/`CPATH` 指向旧
+   Intel 2018 环境，会屏蔽 oneAPI 2022.1 自带的 `libmpifort` ⇒ 链接期
+   `cannot find -lmpifort/-lmpi`。对照实测：无 module ⇒ OK；load mpich ⇒
+   FAIL；load hdf5 ⇒ FAIL。
+3. **运行期用 Intel 2018 的 `mpi/intel64/lib`**：oneAPI 2022.1 的
+   `lib/release` 组合在该集群会 `MPI_Init` SIGSEGV（forrtl severe 174）。
+   运行库链（顺序敏感）：Intel MPI → SLURM PMI（`srun` 必需）→ HDF5 →
+   oneAPI runtime → GCC runtime（`gcc/9.3.0-new/lib64`）。
+4. **`setup` 与 `make` 必须在登录节点**：计算节点上 `setup` 永久挂起；
+   `setup_depends.py`（扫描 1500+ 源文件）在计算节点 11 分钟不出 `.o`，
+   在登录节点秒级完成。⇒ `submit_sandwich.py` 统一在登录节点执行
+   「拷源文件 → setup → `make -j7`」，sbatch 作业只负责运行。
+5. **产物必须落并行盘**（`$SLURM_SUBMIT_DIR`）：`/tmp` 是节点本地盘，
+   跨节点不可见 ⇒ 登录节点收集到 0 个 chk。
+6. **装置参数唯一事实源** = `flash/flash_run/env/devices.py`（架构护栏
+   R-SCENE-05 禁止场景层硬编码分区/模块/站点路径）；场景脚本模板用
+   `@DEV_EXPORTS@` / `@RUNTIME_LIBS@` 等占位符，由生成器渲染。
+
+### 离线安装（"U 盘式"迁移）
+
+```bash
+# 1) 联网机造 wheelhouse（本地平台）或交叉造 Linux 版
+python deploy/build_wheelhouse.py --profile full
+python deploy/hpc_deploy/build_wheelhouse_linux.py      # 交叉 manylinux
+
+# 2) 只更新本体 wheel（依赖闭包复用，秒级）
+python deploy/hpc_deploy/refresh_body_wheel.py --body artifacts/dist_new/flash_sim-0.1.11-py3-none-any.whl
+
+# 3) 迁移到超算（tar → SFTP → 双端 SHA256 → 展开 → 离线安装）
+python deploy/hpc_deploy/migrate_wheelhouse.py
+
+# 4) 强制清零重装（超算无外网 ⇒ 全程 --no-index）
+python start_flash.py --offline --wheelhouse <wheelhouse 路径>   # 远端执行
+```
+
+---
+
 ## 许可、致谢与商用
 
 flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节](../README.md#许可)、[LICENSE](../LICENSE) 与 [NOTICE](../NOTICE)。
