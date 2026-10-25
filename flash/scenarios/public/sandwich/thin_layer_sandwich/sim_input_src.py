@@ -779,7 +779,9 @@ wsl bash -c "mkdir -p /tmp/run_grid_rede && cp ~/${FLASH_SIM_USER_DIR:-QC}/FLASH
 ''',
     'submit_flash.sh': r'''#!/bin/bash
 #SBATCH --job-name=grid_rede --output=grid_rede_%j.log --partition=v5_192 --ntasks=4 --time=01:00:00
-F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8;S=$F/source/Simulation/SimulationMain/QC/grid_rede;O=$F/QC/object_grid_rede;R=$SLURM_SUBMIT_DIR/${SLURM_JOB_NAME}_run# ★★ 2026-10-26 实测修复：sbatch 下 `$0` = spool 目录里的脚本副本
+F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8;S=$F/source/Simulation/SimulationMain/QC/grid_rede;O=$F/QC/object_grid_rede
+R="${SLURM_SUBMIT_DIR:-$PWD}/grid_rede_run_$$"
+# ★★ 2026-10-26 实测修复：sbatch 下 `$0` = spool 目录里的脚本副本
 #   （/var/spool/slurm/d/jobNNNN/），不是提交目录 ⇒ `dirname "$0"`
 #   解析出的路径没有 par/cn4 ⇒ 作业立刻 FAILED
 #   （grad_dens_sandwich 实测："cp: cannot stat '.../jobNNNN/*.par'"）。
