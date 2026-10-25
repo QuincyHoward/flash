@@ -60,6 +60,11 @@ SLURM_LIB = "/opt/slurm/slurm/lib"
 #:   里则 "./flash4: error while loading shared libraries: libimf.so"。
 ONEAPI_RT_LIB = f"{ONEAPI_ROOT}/compiler/2022.0.0/linux/compiler/lib/intel64_lin"
 
+#: Intel 2018 发行版里的 MPI 库（★ **运行阶段**用这一套，见
+#: runtime_lib_dirs 注释）
+INTEL2018_ROOT = f"{SOFT_ROOT}/intel/2018/compilers_and_libraries_2018.2.199/linux"
+INTEL2018_MPI_LIB = f"{INTEL2018_ROOT}/mpi/intel64/lib"
+
 #: GCC 运行时库目录（libgfortran.so.5 等）
 GCC_LIB = f"{SOFT_ROOT}/gcc/9.3.0/lib64"
 
@@ -86,23 +91,28 @@ def intel_mpi_lib_dirs() -> List[str]:
 def runtime_lib_dirs() -> List[str]:
     """**运行阶段**需要的库目录（顺序敏感）。
 
-    ★ 顺序：Intel MPI (release:lib) → SLURM PMI → HDF5 → oneAPI runtime
-      → GCC runtime。
-      - Intel MPI release 在前：`MPII_F_TRUE` 导入符号须由
-        lib/release/libmpi.so.12 提供（见 intel_mpi_lib_dirs 注释）。
-      - SLURM PMI：Intel MPI 走 srun 的前提（否则 PMI2 报错）。
-      - oneAPI runtime：libimf/libsvml/libirng/libintlc，Intel 编译的
-        二进制运行期必需。
-      - GCC runtime：libgfortran.so.5（FLASH 用 gfortran 编的 C/C++ 部分）。
+    ★ 顺序：Intel 2018 MPI → SLURM PMI → HDF5 → oneAPI runtime → GCC runtime。
+      - Intel 2018 MPI 放最前：★ 该集群上 ch_center 场景（作业 4924413
+        COMPLETED，341 chk）用的就是这套。实测对照（超算，同一二进制）：
+          oneAPI 2022.1 的 lib/release + lib  ⇒ MPI_Init SIGSEGV
+                                              （forrtl severe 174）
+          Intel 2018 的 mpi/intel64/lib       ⇒ 正常启动（仅缺 libimf）
+        ⇒ 二进制虽由 oneAPI 2022.1 编译，但其 mpiifort 实际是
+          **Intel MPI 2021.5.0**（与 2018 目录里那份同版本）⇒ 2018 路径
+          的 libmpi 与之 ABI 兼容。
+      - SLURM PMI：Intel MPI 走 srun 的前提（否则 "mpi/pmi2: invalid
+        client request" ⇒ 作业 CANCELLED）。
+      - oneAPI runtime：libimf/libsvml/libirng/libintlc（Intel 编译产物
+        的运行期依赖）。
+      - GCC runtime：libgfortran.so.5。
 
-    ★★ **不要** `module load mpich/3.2-gcc9.3`：它会把 LD_LIBRARY_PATH
-      指向 **Intel 2018** 的 MPI（/public1/soft/intel/2018/.../mpi/intel64/lib）
-      ⇒ 加载旧版 libmpi.so.12，与 oneAPI 2022.1 编译的二进制**版本不匹配**
-      ⇒ MPI_Init 处 SIGSEGV（forrtl: severe (174)），实测作业 4924506。
-      ⇒ 运行阶段只加载 hdf5/1.8.18（提供 libhdf5.so.10 与 gfortran 依赖链），
-        其余库全部由本模块的显式路径提供。
+    ★★ **不要** `module load mpich/3.2-gcc9.3`：它把 LD_LIBRARY_PATH 指向
+      **Intel 2018** 的 MPI —— 虽然本模块也用 2018 路径，但顺序与 module
+      注入的混杂会导致旧副本抢先加载 ⇒ 稳妥做法是运行阶段**不加载
+      mpich 模块**，只加载 hdf5/1.8.18（提供 libhdf5.so.10），
+      其余库全部由本模块的显式路径提供（module 后必须重新 export）。
     """
-    return [*intel_mpi_lib_dirs(), SLURM_LIB, HDF5_LIB, ONEAPI_RT_LIB, GCC_LIB]
+    return [INTEL2018_MPI_LIB, SLURM_LIB, HDF5_LIB, ONEAPI_RT_LIB, GCC_LIB]
 
 
 def build_env(base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
@@ -153,7 +163,10 @@ def shell_exports(indent: str = "") -> str:
 #: 场景脚本模板里可用的占位符 → 取值函数
 TEMPLATE_TOKENS = {
     "@DEV_EXPORTS@": shell_exports,
-    "@IMPI_BIN@": lambda: INTEL_MPI_BIN,
+    # ★ 运行阶段的 MPI 工具链用 **2018** 目录（其 mpiifort = Intel MPI
+    #   2021.5.0，与 oneAPI 2022.1 自带的同版本 ⇒ ABI 兼容；
+    #   而 oneAPI 的 lib/release 组合实测 MPI_Init SIGSEGV）。
+    "@IMPI_BIN@": lambda: f"{INTEL2018_ROOT}/mpi/intel64/bin",
     "@IMPI_LIBS@": lambda: ":".join(intel_mpi_lib_dirs()),
     "@HDF5_LIB@": lambda: HDF5_LIB,
     "@RUNTIME_LIBS@": lambda: ":".join(runtime_lib_dirs()),
