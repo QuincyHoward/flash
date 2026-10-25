@@ -9,12 +9,25 @@
 set -e
 SIM_NAME="grad_dens_sandwich"
 RUN_ID="${2:-000001}"
-# ★ 模块加载（2026-10-26 补）：原脚本**不加载任何 module** ⇒ 编译/运行
-#   缺 MPI 与 HDF5 环境（上次作业在更早的 par 拷贝处就 FAILED，尚未暴露）。
-#   归一到 ch_center 场景已实测通过的组合。
-module purge >/dev/null 2>&1
-module load mpich/3.2-gcc9.3
-module load hdf5/1.8.18
+# ★★ 2026-10-26 实测修复（链接失败 'ld: cannot find -lmpifort/-lmpi'）：
+#   根因 = **任何 `module load` 都会污染 ifort/mpiifort 的隐式 MPI 库路径**
+#   （module 设的 LIBRARY_PATH/CPATH 指向旧 Intel 2018 环境，屏蔽了
+#     oneAPI 2022.1 自带的 libmpifort）⇒ 链接必 FAIL。
+#   实测对照（超算）：无 module ⇒ OK；load mpich ⇒ FAIL；
+#     load hdf5/1.8.18 ⇒ FAIL（连显式 -L 都救不回）。
+#   ★ 而 FLASH 的 Makefile.h 已**硬编码**绝对路径
+#     （LINK=/public1/soft/oneAPI/2022.1/mpi/latest/bin/mpiifort，
+#       -I/public1/soft/hdf5/1.8.18/include）⇒ 本就不需要任何 module。
+#   ⇒ 解法：不加载 module，改用绝对路径 + 显式 LD_LIBRARY_PATH。
+MPIIFORT_DIR=/public1/soft/oneAPI/2022.1/mpi/latest/bin
+IMPI_LIB=/public1/soft/oneAPI/2022.1/mpi/latest/lib/release
+IMPI_LIB2=/public1/soft/oneAPI/2022.1/mpi/latest/lib
+HDF5_LIB=/public1/soft/hdf5/1.8.18/lib
+export PATH="$MPIIFORT_DIR:$PATH"
+# ★ 顺序 lib/release:lib —— libmpifort.so.12 只在 mpi/latest/lib/，
+#   而 MPII_F_TRUE 是**导入**符号，必须由 lib/release/libmpi.so.12 提供。
+export LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:${LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$IMPI_LIB:$IMPI_LIB2:$HDF5_LIB:${LD_LIBRARY_PATH:-}"
 F=$HOME/${FLASH_SIM_USER_DIR:-QC}/FLASH/FLASH4.8
 S=$F/source/Simulation/SimulationMain/QC/${SIM_NAME}_${RUN_ID}
 O=$F/QC/object_${SIM_NAME}_${RUN_ID}
