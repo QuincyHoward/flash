@@ -76,7 +76,24 @@ GEN_SCRIPT = {
 
 
 def sh(cmd: str, timeout: int = 3600) -> tuple[str, str, int]:
-    """执行远端命令（单条，避免 shell 拆分坑）。"""
+    """执行命令 —— **就地优先**，不在超算上时回退 SSH。
+
+    ★ 关键（架构一致性）：本脚本既可在**本机**跑（经 SSH 驱动超算），
+      也可直接在**超算登录节点**跑。hpc-insitu 的铁律是「绝不 SSH 自连」
+      ⇒ 在超算上必须走就地 subprocess，否则会因缺凭据直接失败
+      （实测："凭据未找到: flash_ssh"）。
+
+    判据：能否 import 到本机的 flash 包且 `sbatch` 可用 ⇒ 就地执行。
+    """
+    import shutil
+    import subprocess
+
+    if shutil.which("sbatch"):
+        # 就地（超算登录节点）：直接 subprocess，不碰 SSH
+        r = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=timeout)
+        return (r.stdout or ""), (r.stderr or ""), r.returncode
+
     from flash.flash_run.remote.session import RemoteSession
     with RemoteSession("flash_ssh") as s:
         out, err, rc = s.run(cmd, timeout=timeout)
