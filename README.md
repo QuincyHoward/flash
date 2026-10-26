@@ -16,8 +16,7 @@
 
 ## 仓库地址 (Repository)
 
-本项目**双平台同步托管** —— Gitee (码云) 为开发主阵地, GitHub 为国际镜像:
-
+本项目在 Gitee 与 GitHub **双平台同步维护**；国内用户建议使用 Gitee，海外用户可使用 GitHub 镜像。
 ```
 Gitee  : https://gitee.com/physimx/flash
 GitHub : https://github.com/QuincyHoward/flash
