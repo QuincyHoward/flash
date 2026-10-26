@@ -704,7 +704,7 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 超算侧测试套件（离线重装后）：framework 221 passed / input_gen 86 passed /
 output_processors 45 passed —— 全绿。
 
-### 环境铁律（全部由实跑对照实验确定，勿凭直觉改）
+### 环境要点（全部由实跑对照实验确定，勿凭直觉改）
 
 1. **超算强制离线安装**：`start_flash.py` 自动探测 SLURM（三命令齐备 +
    `sinfo -s` 返回分区行）⇒ 走 `--no-index` 离线模式并复用命名环境
@@ -717,15 +717,52 @@ output_processors 45 passed —— 全绿。
    `lib/release` 组合在该集群会 `MPI_Init` SIGSEGV（forrtl severe 174）。
    运行库链（顺序敏感）：Intel MPI → SLURM PMI（`srun` 必需）→ HDF5 →
    oneAPI runtime → GCC runtime（`gcc/9.3.0-new/lib64`）。
-4. **`setup` 与 `make` 必须在登录节点**：计算节点上 `setup` 永久挂起；
-   `setup_depends.py`（扫描 1500+ 源文件）在计算节点 11 分钟不出 `.o`，
-   在登录节点秒级完成。⇒ `submit_sandwich.py` 统一在登录节点执行
-   「拷源文件 → setup → `make -j7`」，sbatch 作业只负责运行。
-5. **产物必须落并行盘**（`$SLURM_SUBMIT_DIR`）：`/tmp` 是节点本地盘，
-   跨节点不可见 ⇒ 登录节点收集到 0 个 chk。
+4. **⚠ 编译/运行放在哪，决定快慢**（2026-10-26 修正，勿再当"铁律"）：
+   中间产物写在**共享并行盘**上 ⇒ make 漫长；写在**节点本地 tmpfs**上 ⇒
+   setup 2 s + make 31 s（1550 个 `.o`）。⇒ 统一把编译 objdir 与运行目录
+   放在节点本地 scratch，产物再归档回共享盘。
+   ⇒ **编译/运行/归档全部在计算节点内完成**，登录节点只做提交与轮询
+   （登录节点是交互资源，不该被长时间占用；作业内编译才能吃满计算核）。
+5. **产物要归档，不能留在 scratch**：scratch 随节点生命周期消失 ⇒ 归档
+   目标必须在**共享并行盘**上（`$SLURM_SUBMIT_DIR` 一侧）。
 6. **装置参数唯一事实源** = `flash/flash_run/env/devices.py`（架构护栏
    R-SCENE-05 禁止场景层硬编码分区/模块/站点路径）；场景脚本模板用
    `@DEV_EXPORTS@` / `@RUNTIME_LIBS@` 等占位符，由生成器渲染。
+
+### 目录拓扑与资源规格（`flash.flash_run.remote.job_layout`）
+
+一次超算作业的目录分三类，各有职责：
+
+| 类别 | 放什么 | 为什么 |
+|---|---|---|
+| **scratch**（节点本地 tmpfs） | 编译 objdir、运行工作目录 | 快（内存盘）；用完即弃 |
+| **shared**（共享并行盘） | 输入源、最终产物、作业日志 | 持久、跨节点可见 |
+| **archive**（shared 内） | 从 scratch 归档回的 chk | 唯一持久的产物落点 |
+
+作业体由 `flash.flash_run.remote.job_scripts.render_job_body()` 生成，
+固定四阶段顺序：
+
+```
+scratch 探测 → stage(输入) → build(编译) → run(运行) → archive(归档)
+```
+
+提交时可直接指定资源与目录（`SlurmJobSpec` 扩展字段）：
+
+```python
+SlurmJobSpec(
+    name="flash_scene",
+    script=render_job_body(layout, build=..., run=...),
+    partition="v5_192", nodes=1, ntasks=16, cpus_per_task=1,
+    time_limit="02:00:00", mem_per_node="32G", account="flash_ssh",
+    chdir="/shared/proj", out_dir="/shared/proj/logs",
+)
+```
+
+★ 三条容易踩的（均有超算复现）：
+- `setup` 在 objdir 里遇到**实体 `.F90`** 会 `input()` 提问 ⇒ 批处理里
+  `EOFError`。⇒ objdir 保持干净 + 喂 `Y` + `-parfile`。
+- `find` 多 pattern 必须用 `-o` 连接，否则**静默拷 0 个**。
+- 归档用的 glob **不能加引号**（引住则 shell 不展开 ⇒ 拷不出文件）。
 
 ### 离线安装（"U 盘式"迁移）
 

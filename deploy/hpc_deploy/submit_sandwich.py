@@ -99,6 +99,9 @@ def main() -> int:
     ap.add_argument("--account", default="")
     ap.add_argument("--scratch-root", default="",
                     help="节点本地 scratch 根（默认作业内自动探测 tmpfs）")
+    ap.add_argument("--scratch-prefix", default="",
+                    help="scratch 下的作业专属子目录名"
+                         "（默认含 ${SLURM_JOB_ID} ⇒ 并发隔离）")
     ap.add_argument("--shared-root", default="",
                     help="共享并行盘根（默认 flash_sim 根目录）")
     args = ap.parse_args()
@@ -136,9 +139,14 @@ def main() -> int:
         return 1
 
     # ---- 2. 构造目录拓扑 ----
+    # ★ scratch 用**节点本地 tmpfs**（作业内再按文件系统类型复核），
+    #   shared 用**共享并行盘**（输入/产物/日志，跨节点可见）。
+    #   scratch_prefix 含 ${SLURM_JOB_ID} ⇒ 并发作业互不干扰。
     layout = JobLayout(
         scratch_root=args.scratch_root or "/tmp",
         shared_root=shared_root,
+        scratch_prefix=args.scratch_prefix
+        or "flash_${SLURM_JOB_ID:-$$}",
         build_dir=f"flash_build_{args.scene}_{args.run_id}",
         run_dir=f"flash_run_{args.scene}_{args.run_id}",
         output_dir=f"flash_output/{args.scene}/{args.run_id}",
