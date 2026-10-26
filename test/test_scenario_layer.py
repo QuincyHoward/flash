@@ -77,6 +77,25 @@ def test_device_defaults_are_scene_agnostic():
         assert not any(s in k.lower() for s in ("snb", "ch_center", "sandwich"))
 
 
+def test_slurm_account_is_not_credential_name():
+    """★★ SLURM 计费账户 ≠ SSH 凭据名（超算实测：混用即被拒）。
+
+    实测：`#SBATCH --account=flash_ssh` ⇒
+    "sbatch: error: Batch job submission failed: Invalid account or
+    account/partition combination specified"。
+    ⇒ `account` 取 `sacct -X --format=Account` 的值（nc-e），
+      凭据名（flash_ssh）只用于选 SSH 路由。
+    """
+    from flash.flash_run.env.devices import credential_name, device_default
+
+    account = device_default("account")
+    cred = credential_name()
+    assert account, "必须提供 SLURM 计费账户"
+    assert account != cred, "计费账户与凭据名不得相同（否则就是混淆了）"
+    # 凭据名默认值保持不变（历史约定）
+    assert cred == "flash_ssh"
+
+
 # ── 场景超算提交声明 ───────────────────────────────────────────────
 
 def test_scene_hpc_job_declarations():

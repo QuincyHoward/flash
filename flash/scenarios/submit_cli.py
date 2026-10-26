@@ -30,6 +30,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from flash.flash_run.env.devices import credential_name
 from flash.scenarios.hpc_job import get_scene_hpc_job
 
 
@@ -119,12 +120,12 @@ def _executor():
 
     ★ hpc-insitu 铁律：**绝不 SSH 自连** —— 已在超算上时直接 subprocess。
     """
+    from flash.flash_run.env.devices import credential_name
     from flash.flash_run.remote.executors import LocalExecutor, SSHExecutor
 
     if shutil.which("sbatch"):
         return LocalExecutor(), "local(insitu)"
-    return SSHExecutor(credential="flash_ssh"), "ssh(remote)"
-
+    return SSHExecutor(credential=credential_name()), "ssh(remote)"
 
 def _remote_capture(cmd: str, timeout: int = 60) -> str:
     """在超算上执行命令并**取回 stdout**（就地优先，否则 SSH）。"""
@@ -136,7 +137,7 @@ def _remote_capture(cmd: str, timeout: int = 60) -> str:
         return (r.stdout or "").strip()
 
     from flash.flash_run.remote.session import RemoteSession
-    with RemoteSession("flash_ssh") as s:
+    with RemoteSession(credential_name()) as s:
         out, _err, _rc = s.run(cmd, timeout=timeout)
     return (out or "").strip()
 
@@ -157,7 +158,7 @@ def _run_remote_cmd(cmd: str, timeout: int = 1800) -> int:
         return r.returncode
 
     from flash.flash_run.remote.session import RemoteSession
-    with RemoteSession("flash_ssh") as s:
+    with RemoteSession(credential_name()) as s:
         out, err, rc = s.run(cmd, timeout=timeout)
     print((out or "").strip()[-2000:], flush=True)
     if err:

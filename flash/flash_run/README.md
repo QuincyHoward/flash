@@ -127,15 +127,21 @@ print(result.ok, result.target, result.run_dir)
 ```
 
 ```python
-# 装置默认值（**与场景无关**）：账户 / venv / 装置档位
-from flash.flash_run.env.devices import device_default
-ACCOUNT = device_default("account")        # → flash_ssh
-VENV    = device_default("insitu_venv")    # → .venv-hpc-nce
+# 装置默认值（**与场景无关**）：SLURM 计费账户 / venv / 装置档位
+from flash.flash_run.env.devices import device_default, credential_name
+ACCOUNT   = device_default("account")     # → nc-e（★ SLURM 计费账户）
+VENV      = device_default("insitu_venv") # → .venv-hpc-nce
+CRED      = credential_name()             # → flash_ssh（★ SSH 凭据名，选路由用）
 
 # 场景专属默认值（**场景层**）：核数等由网格决定的量
 from flash.scenarios.device_defaults import get_scene_nprocs
 NPROCS  = get_scene_nprocs("SNBOneCH_ml")  # → 131
 ```
+
+★ **`account` 与凭据名必须分开**（超算实测 2026-10-26）：
+`#SBATCH --account=flash_ssh` 会被拒（"Invalid account or
+account/partition combination specified"）——
+凭据名只用于选 SSH 路由，计费账户取 `sacct -X --format=Account`（`nc-e`）。
 
 ★ **边界**：`flash_run` 只提供**通用机制**（策略 / 目标判定 / 目录规划 /
 作业体渲染 / 提交 / 轮询 / 回收）。任何"某场景族"的常量都在场景层：

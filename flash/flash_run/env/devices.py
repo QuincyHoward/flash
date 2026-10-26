@@ -79,20 +79,34 @@ HPC_PARTITION = "v5_192"
 HPC_PARTITION_WIDE = "v6_384"
 
 # ── 装置默认值（2026-10-26 从 resource_config 迁入）────────────────
-#: 与场景**无关**的装置档位：计费账户名 / 登录节点 venv 目录名 / 装置分类。
+#: 与场景**无关**的装置档位：SLURM 计费账户 / 登录节点 venv 目录名 / 装置分类。
 #:
 #: ★ 为什么在这里：这些是**站点事实**（哪个账户、哪个 venv），
 #:   任何场景都能用 ⇒ 属执行层的装置事实源；
 #:   而"某场景族该用多少核"是**网格事实** ⇒ 归场景层
 #:   `flash.scenarios.device_defaults`。
+#:
+#: ★★ `account` 是 **SLURM 计费账户名**，**不是**凭据名！
+#:   凭据名（`flash_ssh`）用于选 SSH 路由；计费账户用于 `#SBATCH --account=`。
+#:   两者混用 ⇒ 提交被拒："Invalid account or account/partition combination
+#:   specified"（超算实测 2026-10-26）。
 DEVICE_DEFAULTS: Dict[str, str] = {
-    # 超算计费账户名（凭据名，与 ~/.physimx/flash/hpc_accounts.json 对应）
-    "account": "flash_ssh",
+    # SLURM 计费账户（`sacct -X --format=Account` 实测）
+    "account": "nc-e",
     # 登录节点 venv 目录名（离线安装链创建）
     "insitu_venv": ".venv-hpc-nce",
     # 装置分类（hpc / laptop / desktop —— 见 resource_config.classify_device）
     "device": "hpc",
 }
+
+
+def credential_name() -> str:
+    """SSH **凭据名**（默认 `flash_ssh`）—— 与 SLURM 计费账户无关。
+
+    ★ 两者必须分开：凭据名选路由，计费账户写 `#SBATCH --account=`。
+      环境变量 `FLASH_CREDENTIAL` 可覆盖。
+    """
+    return os.environ.get("FLASH_CREDENTIAL", "").strip() or "flash_ssh"
 
 
 def device_default(key: str, default: str = "") -> str:
@@ -103,7 +117,7 @@ def device_default(key: str, default: str = "") -> str:
     用法::
 
         from flash.flash_run.env.devices import device_default
-        ACCOUNT = device_default("account")     # → flash_ssh
+        ACCOUNT = device_default("account")     # → nc-e（SLURM 计费账户）
     """
     env_key = "FLASH_" + key.upper()
     override = os.environ.get(env_key, "").strip()
