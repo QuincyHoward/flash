@@ -221,19 +221,51 @@ class SlurmJobSpec:
     timeout: int = 3600
     depends_on: str = ""           # 前置 JobID（空 = 不依赖）
     poll: float = 0                # 轮询间隔秒；0=自动（timeout>7200→60s 否则 20s）
+    # ── 资源规格（2026-10-26 新增）──
+    cpus_per_task: int = 1         # 每 rank 核数（>1 时渲染 --cpus-per-task）
+    time_limit: str = ""           # 墙钟上限（如 "02:00:00"）
+    mem_per_node: str = ""         # 每节点内存（如 "16G"）
+    account: str = ""              # 计费账户
+    qos: str = ""                  # QoS
+    constraint: str = ""           # 节点特性约束
+    # ── 目录规格（2026-10-26 新增）──
+    chdir: str = ""                # 作业起始目录（渲染 --chdir）
+    out_dir: str = ""              # 日志落点目录（空 = 用 workdir）
 
 
 def render_sbatch(spec: SlurmJobSpec, workdir: str) -> str:
-    """SlurmJobSpec → 完整 sbatch 脚本文本（LF 行尾）。"""
+    """SlurmJobSpec → 完整 sbatch 脚本文本（LF 行尾）。
+
+    ★ 目录语义（2026-10-26）：
+      - ``cd {workdir}`` 仍写入（作业体默认工作目录）；
+      - ``spec.chdir`` 非空时额外渲染 ``#SBATCH --chdir=``（调度器层面
+        切目录，不依赖 shell 的 cd 生效顺序）；
+      - ``spec.out_dir`` 非空时日志落到该目录（否则与 workdir 同目录）。
+    """
+    log_dir = spec.out_dir or workdir
     lines = ["#!/bin/bash"]
     if spec.partition:
         lines.append(f"#SBATCH -p {spec.partition}")
     if spec.nodes > 1:
         lines.append(f"#SBATCH -N {spec.nodes}")
     lines.append(f"#SBATCH --ntasks={spec.ntasks}")
+    if spec.cpus_per_task > 1:
+        lines.append(f"#SBATCH --cpus-per-task={spec.cpus_per_task}")
+    if spec.time_limit:
+        lines.append(f"#SBATCH --time={spec.time_limit}")
+    if spec.mem_per_node:
+        lines.append(f"#SBATCH --mem-per-node={spec.mem_per_node}")
+    if spec.account:
+        lines.append(f"#SBATCH --account={spec.account}")
+    if spec.qos:
+        lines.append(f"#SBATCH --qos={spec.qos}")
+    if spec.constraint:
+        lines.append(f"#SBATCH --constraint={spec.constraint}")
+    if spec.chdir:
+        lines.append(f"#SBATCH --chdir={spec.chdir}")
     lines.append(f"#SBATCH -J {spec.name}")
-    lines.append(f"#SBATCH -o {workdir}/{spec.name}_%j.out")
-    lines.append(f"#SBATCH -e {workdir}/{spec.name}_%j.out")
+    lines.append(f"#SBATCH -o {log_dir}/{spec.name}_%j.out")
+    lines.append(f"#SBATCH -e {log_dir}/{spec.name}_%j.out")
     if spec.depends_on:
         lines.append(f"#SBATCH --dependency=afterok:{spec.depends_on}")
     lines.append("")

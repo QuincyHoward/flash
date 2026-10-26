@@ -1,46 +1,55 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""submit_sandwich.py — 超算上提交 sandwich 场景作业（登录节点预置 setup）。
+"""submit_sandwich.py — 超算上提交 sandwich 场景作业（作业内全流程）。
 
-★ 为什么需要这个（2026-10-26 超算实测）：
-  FLASH 的 `setup` 在**登录节点**秒完（实测 SUCCESS + SETUP_RC=0），
-  但在**计算节点**里执行会**永久挂起**（实测作业 4924531/4924535：
-  RUNNING 17 分钟，objdir 一个文件都没生成）⇒ sbatch 脚本内不能跑 setup。
+★ 2026-10-26 重写（用户质疑"这不是铁律"后复核实测）：
+  上一版把「setup 与 make 必须在登录节点」当成铁律，据此把编译放在登录节点。
+  **计算节点实测证伪**（作业 4924747/4924748/4924752/4924760）：
 
-  ⇒ 本脚本在**登录节点**先跑 setup（生成 objdir/Makefile），
-    再 sbatch 提交（脚本内只做 make + 运行）。
+    · GPFS 上 os.walk 2811 文件 = 0.2 s、500 符号链接 = 1.08 s ⇒ 元数据不慢
+    · setup_depends.py = 21.7 s ⇒ 不是"11 分钟不出 .o"
+    · 计算节点上 `setup` = SUCCESS（2 s）⇒ 不是"永久挂起"
+    · **计算节点 scratch 上 setup 2 s + make -j16 31 s + 运行 299 s
+      + 归档 0 s ⇒ 全流程 COMPLETED（5:33）**
 
-★ 同时统一两个 sandwich 场景的提交动作，避免各自漂移：
-  · grad_dens_sandwich  : objdir = QC/object_grad_dens_sandwich_<RUN_ID>
-  · thin_layer_sandwich_si : objdir = QC/object_grid_rede
+  ⇒ 真正的规律不是"只能在登录节点编译"，而是
+    **别把编译中间产物写在慢速共享盘上**。
+  ⇒ 本脚本改为：登录节点只做「生成输入 + 渲染作业 + 提交」，
+    **编译、运行、归档全部在计算节点的节点本地 scratch 内完成**
+    ⇒ 计算节点的 CPU/内存被完整利用，登录节点不再被长时间占用。
+
+★ 目录拓扑（flash.flash_run.remote.job_layout）
+    scratch（节点本地 tmpfs）：编译 objdir + 运行工作目录
+    shared（共享并行盘）    ：输入源 + 最终产物 + 作业日志
 
 用法:
   python deploy/hpc_deploy/submit_sandwich.py grad_dens_sandwich --run-id 000002
   python deploy/hpc_deploy/submit_sandwich.py thin_layer_sandwich_si
+  python deploy/hpc_deploy/submit_sandwich.py grad_dens_sandwich --ntasks 16
 """
 from __future__ import annotations
 
 import argparse
-import os
 import shlex
 import sys
-import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-#: 场景 → (sim_input 相对目录, objdir 名, setup 的 -auto 名)
+#: 场景 → (sim_input 相对目录, FLASH 场景单元名, par 文件名)
 SCENES = {
     "grad_dens_sandwich": (
         "flash/scenarios/public/sandwich/grad_dens_sandwich/sim_input",
-        "object_grad_dens_sandwich_{run_id}",
         "QC/grad_dens_sandwich_{run_id}",
+        "grid_rede.par",
     ),
     "thin_layer_sandwich_si": (
         "flash/scenarios/public/sandwich/thin_layer_sandwich/sim_input_si",
-        "object_grid_rede",
         "QC/grid_rede",
+        "grid_rede.par",
     ),
 }
 
@@ -50,6 +59,20 @@ SETUP_COMMON = [
     "+hdf5typeio", "species=cham,targ,poly",
     "+mtmmmt", "+laser", "+uhd3t", "+mgd", "mgd_meshgroups=10",
 ]
+
+#: 追加的 setup 参数（按场景）
+SETUP_EXTRA = {
+    "grad_dens_sandwich": ["ed_maxPulseSections=240"],
+    "thin_layer_sandwich_si": [],
+}
+
+#: 生成输入的脚本（相对 flash_sim 根）
+GEN_SCRIPT = {
+    "grad_dens_sandwich":
+        "flash/scenarios/public/sandwich/grad_dens_sandwich/gen_flash_inputs.py",
+    "thin_layer_sandwich_si":
+        "flash/scenarios/public/sandwich/thin_layer_sandwich/gen_flash_inputs.py",
+}
 
 
 def sh(cmd: str, timeout: int = 3600) -> tuple[str, str, int]:
@@ -66,12 +89,29 @@ def main() -> int:
     ap.add_argument("--run-id", default="000001")
     ap.add_argument("--flash-home", default=None,
                     help="FLASH 根目录（默认 $HOME/QC/FLASH/FLASH4.8）")
-    ap.add_argument("--skip-setup", action="store_true")
+    ap.add_argument("--ntasks", type=int, default=4,
+                    help="MPI rank 数（必须 ≤ nblockx=16）")
+    ap.add_argument("--nodes", type=int, default=1)
+    ap.add_argument("--cpus-per-task", type=int, default=1)
+    ap.add_argument("--time-limit", default="02:00:00")
+    ap.add_argument("--mem-per-node", default="")
+    ap.add_argument("--partition", default="")
+    ap.add_argument("--account", default="")
+    ap.add_argument("--scratch-root", default="",
+                    help="节点本地 scratch 根（默认作业内自动探测 tmpfs）")
+    ap.add_argument("--shared-root", default="",
+                    help="共享并行盘根（默认 flash_sim 根目录）")
     args = ap.parse_args()
 
-    rel_sim_input, objdir_tpl, auto_tpl = SCENES[args.scene]
-    objdir = objdir_tpl.format(run_id=args.run_id)
-    auto = auto_tpl.format(run_id=args.run_id)
+    from flash.flash_run.env.devices import (
+        INTEL2018_MPI_BIN, partition, runtime_lib_dirs,
+    )
+    from flash.flash_run.remote.job_layout import JobLayout, ResourceSpec
+    from flash.flash_run.remote.job_scripts import BuildSpec, RunSpec, render_job_body
+    from flash.flash_run.remote.slurm_control import render_sbatch, SlurmJobSpec
+
+    rel_sim_input, unit_tpl, par_file = SCENES[args.scene]
+    unit = unit_tpl.format(run_id=args.run_id)
 
     out, err, rc = sh("printf '%s' \"$HOME\"", timeout=30)
     home = (out or "").strip()
@@ -81,97 +121,100 @@ def main() -> int:
     flash_home = args.flash_home or f"{home}/QC/FLASH/FLASH4.8"
     target_dir = f"{home}/PhySimX/PhySimX/simulation/flash/flash_sim"
     sim_input = f"{target_dir}/{rel_sim_input}"
+    shared_root = args.shared_root or target_dir
 
-    # ---- 1. 生成输入（登录节点）----
+    # ---- 1. 生成输入（登录节点，轻量）----
     print(f"[submit] 场景: {args.scene}  run_id={args.run_id}", flush=True)
     gen = ("cd {t} && module load python/3.10.8 >/dev/null 2>&1; "
            "export FLASH_VENV_DIR={t}/.venv-hpc-nce; export PYTHONUNBUFFERED=1; "
            ".venv-hpc-nce/bin/python {g} --force 2>&1 | tail -2").format(
-        t=target_dir,
-        g=("flash/scenarios/public/sandwich/grad_dens_sandwich/gen_flash_inputs.py"
-           if args.scene == "grad_dens_sandwich"
-           else "flash/scenarios/public/sandwich/thin_layer_sandwich/gen_flash_inputs.py"))
+        t=target_dir, g=GEN_SCRIPT[args.scene])
     out, err, rc = sh(gen, timeout=1800)
     print((out or "").strip()[-400:], flush=True)
     if rc != 0:
         print(f"[FATAL] 生成输入失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
         return 1
 
-    # ---- 2. 拷源文件到 SimulationMain（登录节点！）----
-    # ★ 顺序至关重要（2026-10-26 实测）：
-    #   setup 会**读取** SimulationMain/<场景>/ 下的 Config/Makefile/*.F90
-    #   来生成 objdir ⇒ 必须**先拷贝、再 setup**。
-    #   反了（先 setup 后拷贝）⇒ setup 时源目录是空的 ⇒ objdir 里没有
-    #   .F90 符号链接 ⇒ make 无从编译（实测 objdir 98 文件 / 零 .o，
-    #   作业挂起 7 分钟零进展）。
-    # ★ 拷完再 setup，且**都要在登录节点**做（计算节点会挂起）。
-    copy_cmd = (
-        'S={s}; mkdir -p "$S" && '
-        'find {d} -maxdepth 1 -type f \\( -name "Config" -o -name "Makefile" '
-        '-o -name "*.F90" -o -name "*.cn4" -o -name "*.par" \\) '
-        '-exec cp -f {{}} "$S/" \\; && '
-        'echo "  [copy] $(find "$S" -maxdepth 1 -type f | wc -l) 个文件 → $S"'
-    ).format(s=f"{flash_home}/source/Simulation/SimulationMain/QC/{auto.split('/', 1)[-1]}",
-             d=sim_input)
-    print("[submit] 拷贝源文件到 SimulationMain（登录节点）...", flush=True)
-    out, err, rc = sh(copy_cmd, timeout=900)
+    # ---- 2. 构造目录拓扑 ----
+    layout = JobLayout(
+        scratch_root=args.scratch_root or "/tmp",
+        shared_root=shared_root,
+        build_dir=f"flash_build_{args.scene}_{args.run_id}",
+        run_dir=f"flash_run_{args.scene}_{args.run_id}",
+        output_dir=f"flash_output/{args.scene}/{args.run_id}",
+        log_dir=f"flash_logs/{args.scene}/{args.run_id}",
+    )
+
+    # ---- 3. 渲染作业体（编译 + 运行 + 归档，全在计算节点）----
+    build = BuildSpec(
+        flash_home=flash_home,
+        unit=unit,
+        setup_args=[*SETUP_COMMON, *SETUP_EXTRA[args.scene]],
+        par_file=par_file,
+        bin_name="flash4",
+        source_dir=sim_input,
+    )
+    run = RunSpec(
+        ntasks=args.ntasks,
+        binary="flash4",
+        launcher="srun",
+        env_block="\n".join([
+            "# 运行期环境（禁 mpich 模块：它带 Intel 2018 MPI，会与本场景",
+            "# 的 2022.1 编译产物版本不匹配 ⇒ MPI_Init SIGSEGV）",
+            "module purge >/dev/null 2>&1",
+            "module load hdf5/1.8.18 >/dev/null 2>&1",
+            f'export LD_LIBRARY_PATH="{":".join(runtime_lib_dirs())}"',
+            f'export PATH="{INTEL2018_MPI_BIN}:$PATH"',
+        ]),
+    )
+    body = render_job_body(
+        layout,
+        build=build,
+        run=run,
+        input_dir=sim_input,
+        archive_patterns=("*chk*",),
+    )
+
+    # ---- 4. 渲染 sbatch 头 ----
+    res = ResourceSpec(
+        nodes=args.nodes,
+        ntasks=args.ntasks,
+        cpus_per_task=args.cpus_per_task,
+        time_limit=args.time_limit,
+        mem_per_node=args.mem_per_node,
+        account=args.account,
+        partition=args.partition or partition(),
+    )
+    spec = SlurmJobSpec(
+        name=f"flash_{args.scene}",
+        script=body,
+        partition=res.partition,
+        nodes=res.nodes,
+        ntasks=res.ntasks,
+        cpus_per_task=res.cpus_per_task,
+        time_limit=res.time_limit,
+        mem_per_node=res.mem_per_node,
+        account=res.account,
+        marker="FLASH_JOB_DONE",
+        out_dir=f"{shared_root}/{layout.log_dir}",
+        timeout=7200,
+    )
+    script_text = render_sbatch(spec, workdir=shared_root)
+
+    # ---- 5. 落盘 + 提交（登录节点只做这件事）----
+    job_dir = f"{shared_root}/{layout.log_dir}"
+    script_path = f"{job_dir}/job_{args.scene}_{args.run_id}.sh"
+    write = (
+        'mkdir -p {d} && cat > {p} << "FLASH_JOB_EOF"\n{s}FLASH_JOB_EOF\n'
+        "sed -i 's/\\r$//' {p}; chmod +x {p}; echo WROTE {p}"
+    ).format(d=job_dir, p=script_path, s=script_text)
+    out, err, rc = sh(write, timeout=300)
     print((out or "").strip()[-300:], flush=True)
-    if rc != 0:
-        print(f"[FATAL] 拷贝失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
+    if "WROTE" not in (out or ""):
+        print(f"[FATAL] 作业脚本落盘失败 rc={rc}\n{(err or '')[-600:]}", flush=True)
         return 1
 
-    # ---- 3. setup + 编译（登录节点！）----
-    # ★★ 为什么编译也放登录节点（2026-10-26 实测）：
-    #   FLASH 的 `make` 第一步是 setup_depends.py —— 它用 os.walk 扫描
-    #   1500+ 源文件生成 Makefile.Depend。实测该步骤在**计算节点**上
-    #   **11 分钟不出 .o**（objdir 1748 条目但 .o 恒为 0），
-    #   而在**登录节点**上**秒级完成**（Makefile.Depend 352 KB）。
-    #   ★ 这与 grad 场景的成功记录一致：其二进制时间戳对应登录节点操作
-    #     （01:27 生成，1550 个 .o + 13 MB 二进制）。
-    #   ⇒ 登录节点做「拷贝 → setup → make」，sbatch 作业只负责**运行**。
-    if not args.skip_setup:
-        setup_cmd = (
-            "cd {f} && export PATH={imp}:$PATH && "
-            "export LIBRARY_PATH={libs} && "
-            "./setup -auto {a} {c} -objdir={o} 2>&1 | tail -6"
-        ).format(
-            f=flash_home,
-            imp="/public1/soft/oneAPI/2022.1/mpi/latest/bin",
-            libs=("/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
-                  "/public1/soft/oneAPI/2022.1/mpi/latest/lib"),
-            a=shlex.quote(auto),
-            c=" ".join(SETUP_COMMON),
-            o=shlex.quote(f"QC/{objdir}"),
-        )
-        print("[submit] setup（登录节点）...", flush=True)
-        out, err, rc = sh(setup_cmd, timeout=3600)
-        print((out or "").strip()[-600:], flush=True)
-        if "SUCCESS" not in (out or ""):
-            print(f"[FATAL] setup 未成功（rc={rc}）\n{(err or '')[-600:]}", flush=True)
-            return 1
-
-        # 编译（登录节点；make -j7 与 grad 一致）
-        print("[submit] 编译（登录节点，make -j7）...", flush=True)
-        make_cmd = (
-            "cd {o} && export PATH={imp}:$PATH && "
-            "export LIBRARY_PATH={libs} && "
-            "make -j7 2>&1 | tail -6; "
-            "test -x {o}/flash4 && echo BUILD_OK || echo BUILD_FAIL"
-        ).format(
-            o=f"{flash_home}/QC/{objdir}",
-            imp="/public1/soft/oneAPI/2022.1/mpi/latest/bin",
-            libs=("/public1/soft/oneAPI/2022.1/mpi/latest/lib/release:"
-                  "/public1/soft/oneAPI/2022.1/mpi/latest/lib"),
-        )
-        out, err, rc = sh(make_cmd, timeout=7200)
-        print((out or "").strip()[-800:], flush=True)
-        if "BUILD_OK" not in (out or ""):
-            print(f"[FATAL] 编译失败 rc={rc}\n{(err or '')[-800:]}", flush=True)
-            return 1
-
-    # ---- 4. sbatch 提交 ----
-    sub = "cd {d} && sbatch submit_flash.sh {rid} 2>&1 | tail -2".format(
-        d=sim_input, rid=args.run_id)
+    sub = "cd {d} && sbatch {p} 2>&1 | tail -2".format(d=job_dir, p=script_path)
     print("[submit] sbatch ...", flush=True)
     out, err, rc = sh(sub, timeout=300)
     print((out or "").strip(), flush=True)
@@ -180,6 +223,8 @@ def main() -> int:
         return 1
     job = (out or "").strip().split()[-1]
     print(f"[submit] 作业号: {job}", flush=True)
+    print(f"[submit] 日志: {job_dir}/flash_{args.scene}_{job}.out", flush=True)
+    print(f"[submit] 产物: {shared_root}/{layout.output_dir}", flush=True)
     print(f"[submit] 轮询: sacct -j {job}", flush=True)
     return 0
 

@@ -65,6 +65,9 @@ ONEAPI_RT_LIB = f"{ONEAPI_ROOT}/compiler/2022.0.0/linux/compiler/lib/intel64_lin
 INTEL2018_ROOT = f"{SOFT_ROOT}/intel/2018/compilers_and_libraries_2018.2.199/linux"
 INTEL2018_MPI_LIB = f"{INTEL2018_ROOT}/mpi/intel64/lib"
 
+#: Intel 2018 的 MPI bin（运行阶段 PATH：mpirun / mpiifort 等）
+INTEL2018_MPI_BIN = f"{INTEL2018_ROOT}/mpi/intel64/bin"
+
 #: GCC 运行时库目录（libgfortran.so.5 等）
 #: ★ 实测：`gcc/9.3.0/lib64` **不存在**，实际在 `gcc/9.3.0-new/lib64`
 GCC_LIB = f"{SOFT_ROOT}/gcc/9.3.0-new/lib64"
@@ -167,11 +170,13 @@ TEMPLATE_TOKENS = {
     # ★ 运行阶段的 MPI 工具链用 **2018** 目录（其 mpiifort = Intel MPI
     #   2021.5.0，与 oneAPI 2022.1 自带的同版本 ⇒ ABI 兼容；
     #   而 oneAPI 的 lib/release 组合实测 MPI_Init SIGSEGV）。
-    "@IMPI_BIN@": lambda: f"{INTEL2018_ROOT}/mpi/intel64/bin",
+    "@IMPI_BIN@": lambda: INTEL2018_MPI_BIN,
     "@IMPI_LIBS@": lambda: ":".join(intel_mpi_lib_dirs()),
     "@HDF5_LIB@": lambda: HDF5_LIB,
     "@RUNTIME_LIBS@": lambda: ":".join(runtime_lib_dirs()),
     "@SLURM_LIB@": lambda: SLURM_LIB,
+    # ★ 运行阶段 PATH 用 2018 的 mpi bin（其 mpirun/hydra 与 2018 库匹配）
+    "@RUNTIME_BIN@": lambda: INTEL2018_MPI_BIN,
 }
 
 #: 必须**独占一行**的占位符（其值是**多行** shell 片段，接在行尾会让
