@@ -14,8 +14,8 @@
 因此 submit/轮询/哨兵判定只写一遍。
 
 来源（收编）:
-  * SNBOneCH_m._hpc_wait_job     → wait_for_job
-  * SNBOneCH_m._hpc_detect_partition → detect_partition
+  * 旧版场景自带的 _hpc_wait_job      → wait_for_job
+  * 旧版场景自带的 _hpc_detect_partition → detect_partition
   * HpcRunner.monitor (runner.py) → wait_for_job（同一语义）
 设计约束（超算实测铁律）:
   * 长作业轮询间隔自动放宽（timeout>7200 → 60s），减少 SSH 连接次数
@@ -124,7 +124,7 @@ def tail(exe: CommandExecutor, path_glob: str, n: int = 25) -> str:
 
 def detect_partition(exe: CommandExecutor, known: Dict[str, str],
                      account: str) -> str:
-    """sinfo 探测可用分区（收编 SNBOneCH_m._hpc_detect_partition L1153）。
+    """sinfo 探测可用分区（收编自旧版场景脚本的 _hpc_detect_partition）。
 
     sinfo 首行可能是不可用分区 (NC-E 'all inact') → 只认 avail=up，
     已知映射 (HPC_PARTITION[account]) 优先。"""
@@ -151,7 +151,7 @@ def detect_partition(exe: CommandExecutor, known: Dict[str, str],
 
 
 def cores_per_node(exe: CommandExecutor, partition: str, default: int = 48) -> int:
-    """查询分区每节点核数（-N 计算依据；收编 SNBOneCH_m L1250-1255）。"""
+    """查询分区每节点核数（-N 计算依据；收编自旧版场景脚本）。"""
     out, _, _ = exe.run(f'sinfo -h -p {partition} -o "%c" | head -1', timeout=30)
     try:
         return int((out or "").strip().splitlines()[0])
@@ -162,7 +162,7 @@ def cores_per_node(exe: CommandExecutor, partition: str, default: int = 48) -> i
 def wait_for_job(exe: CommandExecutor, job_id: str, marker: str = "",
                  out_glob: str = "", timeout: int = 3600, poll: int = 0,
                  log_fn: Callable[[str, str], None] = log) -> bool:
-    """sacct 轮询至 COMPLETED/FAILED 并确认 marker（收编 SNBOneCH_m._hpc_wait_job）。
+    """sacct 轮询至 COMPLETED/FAILED 并确认 marker（收编自旧版场景脚本）。
 
     Args:
         marker: 作业输出中应出现的字符串（如 BUILD_OK）；空串跳过确认。

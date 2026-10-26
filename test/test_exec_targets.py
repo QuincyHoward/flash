@@ -27,13 +27,15 @@ from flash.flash_run.execution import (
     ExecOptions,
     NprocRule,
     SceneSpec,
-    SNB_POLICY,
     mode_is_local,
     mode_is_remote,
     normalize_target,
     resolve_target,
     run_scene,
 )
+# ★ 场景族策略在**场景层**（执行层不含任何场景信息）——
+#   见 flash.scenarios.policies。
+from flash.scenarios.policies import SNB_POLICY
 
 
 # ── 词汇表 ────────────────────────────────────────────────────────

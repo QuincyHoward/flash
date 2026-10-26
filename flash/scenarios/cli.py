@@ -57,6 +57,23 @@ def _build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--explain-target", action="store_true")
     p_run.add_argument("--json", action="store_true", help="以 JSON 输出结果")
     p_run.add_argument("args", nargs="*", help="透传给底层场景脚本的额外参数")
+
+    p_sub = sub.add_parser("submit", help="提交场景到超算（作业内 stage→编译→运行→归档）")
+    p_sub.add_argument("scene")
+    p_sub.add_argument("--run-id", default="000001")
+    p_sub.add_argument("--ntasks", type=int, default=None,
+                       help="MPI rank 数（默认取场景声明；必须 ≤ nblockx）")
+    p_sub.add_argument("--nodes", type=int, default=1)
+    p_sub.add_argument("--cpus-per-task", type=int, default=1)
+    p_sub.add_argument("--time-limit", default=None)
+    p_sub.add_argument("--mem-per-node", default="")
+    p_sub.add_argument("--partition", default="")
+    p_sub.add_argument("--scratch-root", default="",
+                       help="节点本地 scratch 根（默认作业内自动探测 tmpfs）")
+    p_sub.add_argument("--scratch-prefix", default="")
+    p_sub.add_argument("--shared-root", default="")
+    p_sub.add_argument("--dry-run", action="store_true",
+                       help="只渲染作业脚本，不落盘不提交")
     return ap
 
 
@@ -72,6 +89,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         for name, desc, allowed in list_scenes():
             print(f"{name:<16} {','.join(allowed):<34} {desc}")
         return 0
+
+    if ns.cmd == "submit":
+        # ★ 提交是**独立子命令**（不进 run_scene 的目标判定）：
+        #   超算提交本身就是 hpc 行为，不需要 auto 判定；
+        #   场景声明在 flash.scenarios.hpc_job，执行在 flash.flash_run。
+        from flash.scenarios.submit_cli import main as submit_main
+
+        argv = ["--run-id", ns.run_id, "--nodes", str(ns.nodes),
+                "--cpus-per-task", str(ns.cpus_per_task)]
+        if ns.ntasks is not None:
+            argv += ["--ntasks", str(ns.ntasks)]
+        if ns.time_limit:
+            argv += ["--time-limit", ns.time_limit]
+        if ns.mem_per_node:
+            argv += ["--mem-per-node", ns.mem_per_node]
+        if ns.partition:
+            argv += ["--partition", ns.partition]
+        if ns.scratch_root:
+            argv += ["--scratch-root", ns.scratch_root]
+        if ns.scratch_prefix:
+            argv += ["--scratch-prefix", ns.scratch_prefix]
+        if ns.shared_root:
+            argv += ["--shared-root", ns.shared_root]
+        if ns.dry_run:
+            argv += ["--dry-run"]
+        return submit_main([ns.scene, *argv])
 
     try:
         scene = get_scene(ns.scene)

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """chk-only 下载策略 —— 全场景唯一来源（single source of truth）。
 
-★★★ 2026-09-16 用户定案：**所有场景**（SNB 及非 SNB 通用场景）的远端结果
+★★★ 2026-09-16 用户定案：**所有场景**的远端结果
 下载默认 **只取 chk，不取 plt**；plt 必须显式 opt-in（--with-plt / with_plt=True）。
 
-依据（SNBVTi2 / SNBVTi2_ml 实测，2026-09-16）：
-  - 分析链 04_analyze_plots.py 只读 chk + 运行日志，plt 全程未被消费；
-  - 体积：plt 单文件 ~2.7 MB vs chk ~14.2 MB —— SNBVTi2 一次 16 ns run
+依据（超算长跑实测，2026-09-16）：
+  - 分析链只读 chk + 运行日志，plt 全程未被消费；
+  - 体积：plt 单文件 ~2.7 MB vs chk ~14.2 MB —— 一次 16 ns run
     228 个 plt ≈ 638 MB 纯冗余流量/磁盘；
   - chk-only + 大文件摊薄 SFTP 握手开销后，400 帧聚合下载实测 10.69 MB/s。
 
@@ -18,11 +18,9 @@
   4. with_plt=False（默认）⇒ plt 全部跳过并计数上报。
 
 消费方（改策略只改本文件）：
-  - SNB 长跑管线 03_run_16ns_pipeline.py（SNBOneCH_ml / SNBVTi2 / SNBVTi2_ml）
-  - _fetch_incremental.py（SNBVTi2 / SNBVTi2_ml）
-  - SNBOneCH_ml.py run_hpc collect；SNBtest t001 run_snb_hpc.py collect_outputs
-  - ch_center download_hdf5_to_local；demo_hpc download_all_outputs
+  - flash_run.remote.artifacts.fetch_artifacts（本包唯一执行点）
   - flash_run.remote.remote_deploy.download_results
+  - 场景层的各类 collect / download 入口（均经上述两点）
   （独立脚本经 importlib 按文件路径加载本模块，避免 import flash 包副作用；
     包内模块用 `from flash.flash_run.remote.fetch_policy import ...`。）
 """

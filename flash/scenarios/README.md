@@ -13,7 +13,7 @@
 | SCENE VARS（物理参数、材料、层厚、脉冲） | `sbatch` / `scancel` / `squeue` / `sacct` 原始命令 |
 | `RUN_MODE = "wsl" \| "hpc"` 模块常量（默认值） | `paramiko` / `SSHClient` 直连 |
 | `nprocs` / `account` / `tmax` 等**覆盖参数** | 装置绝对路径（`/publicfs01`、`AI/Aitemp`）、`.venv-hpc-nce` |
-| `work_base=` 等工作目录参数 | 装置默认值硬编码（应走 `get_scene_device_default()`） |
+| `work_base=` 等工作目录参数 | 装置默认值硬编码（应走 `flash.flash_run.env.devices.device_default()`；场景专属核数走 `flash.scenarios.device_defaults.get_scene_nprocs()`） |
 
 - 运行一律经 `run_scenario(WslSpec(...), HpcSpec(...), cfg, run_mode=None)`
   → `flash.flash_run.modes.runner`；
@@ -698,8 +698,21 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 | 场景 | 作业号 | 状态 | 耗时 | chk | 提交方式 |
 |---|---|---|---|---|---|
 | `ch_center` | 4924413 | COMPLETED | — | 341 | 场景脚本 `laserslab1d_local_custom.py`（`FLASH_RUN_MODE=hpc-insitu`） |
-| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `deploy/hpc_deploy/submit_sandwich.py` |
-| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `deploy/hpc_deploy/submit_sandwich.py` |
+| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `python -m flash.scenarios.cli submit grad_dens_sandwich` |
+| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `python -m flash.scenarios.cli submit thin_layer_sandwich_si` |
+
+> ★ 提交方式已于 2026-10-26 统一：原 `deploy/hpc_deploy/submit_sandwich.py`
+> （内含场景映射表 ⇒ 提交器里长出了子场景知识）已删除，改为
+> **场景层声明 + 执行层通用服务**：
+>
+> | 内容 | 归属 |
+> |---|---|
+> | 场景输入目录 / FLASH 单元名 / setup 参数 | `flash.scenarios.hpc_job` |
+> | 场景族策略（仅超算 / 核数即网格） | `flash.scenarios.policies` |
+> | 场景专属核数默认值 | `flash.scenarios.device_defaults` |
+> | 通用提交实现（渲染 → 落盘 → sbatch） | `flash.flash_run.remote.job_submit` |
+>
+> 护栏 `R-LAYER-03` 机械校验：执行层出现场景名即 CI 失败。
 
 超算侧测试套件（离线重装后）：framework 221 passed / input_gen 86 passed /
 output_processors 45 passed —— 全绿。

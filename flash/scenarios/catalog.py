@@ -36,12 +36,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from flash.flash_run.execution import (
     DEFAULT_POLICY,
-    SNB_POLICY,
     ExecOptions,
     ExecutionPolicy,
     SceneSpec,
     mode_is_remote,
 )
+# ★ 场景族策略在**场景层**（flash.scenarios.policies）——
+#   执行层（flash_run）不认识任何场景。
+from flash.scenarios.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
 
 __all__ = ["CatalogEntry", "CATALOG", "list_scenes", "get_scene", "repo_root"]
 
@@ -156,19 +158,10 @@ class CatalogEntry:
 
 
 #: ── 目录（新增可执行算例 = 这里加一条，不要改引擎注册表） ──
-
-#: 公开场景策略：允许本机两种执行目标（Windows→WSL / Linux→本地）。
-#: ⚠ 与 DEFAULT_POLICY 的区别在 **preferred**：引擎型场景在超算登录节点上
-#:   auto 会判到 hpc-insitu（判据 4：slurm 健康），而引擎不承接超算 ⇒
-#:   显式把 allowed 收窄到 (local, wsl)，让 auto 在超算上**明确报错**
-#:   而不是跑到引擎才给一句模糊提示。
-PUBLIC_SCENE_POLICY = ExecutionPolicy(
-    allowed=("local", "wsl"),
-    preferred="auto",
-    forbid_reason=("公开场景的引擎执行体只承接本机（local/wsl）；"
-                   "在超算上请用该场景自带的 sbatch 脚本"),
-)
-
+#
+#: ★ 策略常量（PUBLIC_SCENE_POLICY / SNB_POLICY）在
+#:   `flash.scenarios.policies` —— **场景层**；
+#:   执行层 `flash.flash_run` 只提供通用机制，不含场景信息。
 
 CATALOG: Tuple[CatalogEntry, ...] = (
     CatalogEntry(

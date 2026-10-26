@@ -8,7 +8,7 @@
   "装置参数（账户/分区/模块）应下沉 flash_run/env/devices.py 或凭据配置"。
 
   ★ 事故背景（超算实测，作业 4924449 FAILED）：
-    两个 sandwich 场景的 sbatch 脚本原本**完全不加载 module** ⇒
+    早期场景自带的 sbatch 脚本**完全不加载 module** ⇒
     编译期缺 MPI/HDF5 环境；补上 `module load mpich/3.2-gcc9.3` 后
     **链接反而失败**：`ld: cannot find -lmpifort / -lmpi`。
     对照实验（超算逐条实测）：
@@ -78,6 +78,40 @@ HPC_PARTITION = "v5_192"
 #: 可选分区（更宽的分区，排队更慢）
 HPC_PARTITION_WIDE = "v6_384"
 
+# ── 装置默认值（2026-10-26 从 resource_config 迁入）────────────────
+#: 与场景**无关**的装置档位：计费账户名 / 登录节点 venv 目录名 / 装置分类。
+#:
+#: ★ 为什么在这里：这些是**站点事实**（哪个账户、哪个 venv），
+#:   任何场景都能用 ⇒ 属执行层的装置事实源；
+#:   而"某场景族该用多少核"是**网格事实** ⇒ 归场景层
+#:   `flash.scenarios.device_defaults`。
+DEVICE_DEFAULTS: Dict[str, str] = {
+    # 超算计费账户名（凭据名，与 ~/.physimx/flash/hpc_accounts.json 对应）
+    "account": "flash_ssh",
+    # 登录节点 venv 目录名（离线安装链创建）
+    "insitu_venv": ".venv-hpc-nce",
+    # 装置分类（hpc / laptop / desktop —— 见 resource_config.classify_device）
+    "device": "hpc",
+}
+
+
+def device_default(key: str, default: str = "") -> str:
+    """取装置默认值（`DEVICE_DEFAULTS` 的只读访问口）。
+
+    环境变量 `FLASH_<KEY>` 可覆盖（如 `FLASH_ACCOUNT`）。
+
+    用法::
+
+        from flash.flash_run.env.devices import device_default
+        ACCOUNT = device_default("account")     # → flash_ssh
+    """
+    env_key = "FLASH_" + key.upper()
+    override = os.environ.get(env_key, "").strip()
+    if override:
+        return override
+    return DEVICE_DEFAULTS.get(key, default)
+
+
 
 def intel_mpi_lib_dirs() -> List[str]:
     """Intel MPI 库目录（**顺序敏感**）。
@@ -87,7 +121,7 @@ def intel_mpi_lib_dirs() -> List[str]:
       `mpi/latest/lib/release/libmpi.so.12` 提供（nm: R 已定义）。
       顺序颠倒 ⇒ 计算节点上其它 libmpi.so.12 副本抢先加载 ⇒
       `symbol lookup error: libmpifort.so.12: undefined symbol: MPII_F_TRUE`
-      （ch_center 场景 2026-10-24 作业 4921721 FAILED 127 同款事故）。
+      （作业 4921721 FAILED 127 同款事故）。
     """
     return [INTEL_MPI_LIB_RELEASE, INTEL_MPI_LIB]
 
@@ -96,8 +130,8 @@ def runtime_lib_dirs() -> List[str]:
     """**运行阶段**需要的库目录（顺序敏感）。
 
     ★ 顺序：Intel 2018 MPI → SLURM PMI → HDF5 → oneAPI runtime → GCC runtime。
-      - Intel 2018 MPI 放最前：★ 该集群上 ch_center 场景（作业 4924413
-        COMPLETED，341 chk）用的就是这套。实测对照（超算，同一二进制）：
+      - Intel 2018 MPI 放最前：★ 该集群上已验证跑通的一次作业
+        （作业 4924413 COMPLETED，341 chk）用的就是这套。实测对照（超算，同一二进制）：
           oneAPI 2022.1 的 lib/release + lib  ⇒ MPI_Init SIGSEGV
                                               （forrtl severe 174）
           Intel 2018 的 mpi/intel64/lib       ⇒ 正常启动（仅缺 libimf）

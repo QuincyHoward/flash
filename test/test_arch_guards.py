@@ -140,6 +140,33 @@ def test_layer02a_allows_function_level_import(tmp_path):
     assert "R-LAYER-02a" not in _codes(repo)
 
 
+def test_layer03_flash_run_must_not_mention_scene_names(tmp_path):
+    """★ 执行层不得出现子场景名（2026-10-26 新增）。
+
+    背景：`SNB_POLICY` / `SCENE_DEVICE_DEFAULTS` 曾写在 `flash_run` 里，
+    提交器 `submit_sandwich.py` 也曾长出场景映射表 ⇒ 执行层被场景污染。
+    """
+    repo = _make_repo(tmp_path, {
+        "flash/flash_run/bad_scene_ref.py": """
+            SNBOneCH_POLICY = {"allowed": ("hpc-remote",)}
+        """,
+    })
+    assert "R-LAYER-03" in _codes(repo)
+
+
+def test_layer03_allows_generic_flash_run_code(tmp_path):
+    """正向样本：通用执行层代码必须 0 违规。"""
+    repo = _make_repo(tmp_path, {
+        "flash/flash_run/ok_generic.py": """
+            from flash.flash_run.remote.job_layout import JobLayout
+
+            def render():
+                return JobLayout().shell_vars()
+        """,
+    })
+    assert "R-LAYER-03" not in _codes(repo)
+
+
 # ── 正向样本：合规代码必须 0 违规（否则规则写宽了也测不出来） ──────
 
 def test_good_scene_has_zero_violations(tmp_path):

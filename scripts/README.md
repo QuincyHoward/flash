@@ -281,7 +281,17 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 
 ## ⚠ 2026-10-22 模块化改造：08_offline_install 已提至根目录 `deploy/`
 
-离线安装（造包/安装/护栏/自检）+ 超算离线部署链（`hpc_deploy/`，原
-`flash/flash_run/remote/test/scripts/`）统一收编到**根目录 `deploy/`**，
-与运行层 `flash/flash_run/`、场景层 `flash/scenarios/` 解耦；构建产物统一落
-根目录 `artifacts/`。详见 `deploy/README.md` 与 `DEPENDENCIES.md`。
+离线安装（造包/安装/护栏/自检）+ 超算离线部署链（`deploy/hpc_deploy/`）统一
+收编到**根目录 `deploy/`**，与运行层 `flash/flash_run/`、场景层
+`flash/scenarios/` 解耦；构建产物统一落根目录 `artifacts/`。
+详见 `deploy/README.md` 与 `DEPENDENCIES.md`。
+
+## ⚠ 2026-10-26：场景诊断探针迁至 `scripts/02_hpc/probes/`
+
+原先放在 `flash/flash_run/remote/test/scripts/` 的一次性诊断探针（`_probe_*.py`
+/ `diag_*.py` / `try_yt*.py` 等）迁至 **`scripts/02_hpc/probes/`**：
+
+- 它们 `import flash.scenarios` ⇒ 属于**场景侧工具**，留在执行层会污染
+  `flash_run`（护栏 `R-LAYER-03` 现会拦执行层里的场景名）；
+- `scripts/` **不入 wheel**（wheel 只含 `flash` 包）⇒ 探针不再随包分发；
+- 超算常用指令与部署测试记录同时迁至 `deploy/hpc_deploy/`。

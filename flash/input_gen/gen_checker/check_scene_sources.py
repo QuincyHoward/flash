@@ -150,6 +150,14 @@ RULES: tuple[Rule, ...] = (
          "执行层不得**模块级**依赖场景层（会造成 import 循环 + 拉入整个场景包）；"
          "确需场景能力请函数内延迟导入，并在 B2 后消除",
          top_level_only=True),
+    Rule("R-LAYER-03", "flash_run",
+         r"\b(SNBOneCH|SNBVTi|SNB_POLICY|ch_center|chcenter"
+         r"|thin_layer_sandwich|grad_dens_sandwich|laserslab1d_local_custom)\w*",
+         "执行层（flash_run）**不得包含子场景信息**："
+         "场景族策略 → flash.scenarios.policies；"
+         "场景核数默认值 → flash.scenarios.device_defaults；"
+         "场景超算提交声明 → flash.scenarios.hpc_job；"
+         "通用提交实现 → flash.flash_run.remote.job_submit"),
 )
 
 #: 规则基线（`--freeze` 生成，只降不升）。格式：`CODE<TAB>相对路径`
@@ -187,8 +195,10 @@ def _iter_scope(repo: Path, scope: str):
         base, skip = repo / "deploy", ("__pycache__",)
     elif scope == "flash_run":
         base = repo / "flash" / "flash_run"
-        # ★ remote/test/scripts 是一次性诊断探针（从不被包 import），
+        # ★ remote/test/ 是一次性诊断产物的存放处（logs/packages/results），
         #   不属执行层代码，排除以免基线段被噪声填满。
+        #   ★ 场景特定探针脚本已于 2026-10-26 迁至 deploy/hpc_deploy/probes/
+        #   （它们 import flash.scenarios ⇒ 不该留在执行层）。
         skip = ("__pycache__", "test")
     else:
         return

@@ -18,7 +18,12 @@
 
     `SceneSpec.runner` 是给**存量脚本**的适配口（它们各有成熟的 main），
     声明式 `build_inputs` 路径给新场景；两者共用同一套策略与判定，
-    不会因为入口不同而绕过 `allowed_modes`（SNB 禁本地就是靠这个）。
+    不会因为入口不同而绕过 `allowed_modes`（"仅超算"约束就是靠这个）。
+
+★ 本模块**不含任何场景族信息**（2026-10-26 拆分）：
+    场景族专属策略（如"某族仅超算 + 核数即网格"）归**场景层**
+    `flash.scenarios.policies`；场景专属核数默认值归
+    `flash.scenarios.device_defaults`。执行层只提供**通用机制**。
 """
 from __future__ import annotations
 
@@ -39,7 +44,6 @@ __all__ = [
     "ExecOptions",
     "RunResult",
     "DEFAULT_POLICY",
-    "SNB_POLICY",
     "normalize_target",
     "mode_is_remote",
     "mode_is_local",
@@ -137,16 +141,11 @@ class ExecutionPolicy:
 
 DEFAULT_POLICY = ExecutionPolicy()
 
-#: SNB 族：非局域热传导算例，nproc 是网格定义的一部分（`iProcs*nxb=25000`
-#: ⇒ `dx=0.02 µm`，改核数即改网格）。且 131/125 进程在 24 核本机必然超订卡死。
-SNB_POLICY = ExecutionPolicy(
-    allowed=("hpc-remote", "hpc-insitu"),
-    requires_slurm=True,
-    forbid_reason=("nproc 是本场景网格定义的一部分（iProcs×nxb=const ⇒ dx=0.02 µm），"
-                   "且 125/131 进程远超本机核数"),
-    nproc=NprocRule(mode="exact", value=None,
-                    note="请用场景自带的 --nproc（默认即超算配置）"),
-)
+# ★★ 场景族策略**不在本模块**（2026-10-26 拆分）
+#   本模块只提供**通用机制**（ExecutionPolicy / NprocRule / resolve_target）。
+#   任何"某场景族只能怎么跑"的约束都属于**场景层** ⇒ 见
+#   `flash.scenarios.policies`（如 SNB 族的"仅超算 + 核数即网格"）。
+#   ⇒ 执行层内不再出现任何子场景名。
 
 
 @dataclass
