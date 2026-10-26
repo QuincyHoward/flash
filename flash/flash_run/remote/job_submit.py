@@ -173,7 +173,8 @@ def submit_job(req: JobRequest, executor=None, dry_run: bool = False) -> Dict[st
         dry_run: True ⇒ 只渲染并返回，**不落盘、不提交**。
 
     Returns:
-        ``{"ok", "job_id", "script_path", "log_dir", "output_dir", "reason"}``
+        ``{"ok", "job_id", "job_name", "script_path", "log_dir", "output_dir",
+        "reason"}``
 
     ★ 成功判据 = **rc==0 且解析出 JobID**：
       "命令返回 0" 不等于"作业已入队"（实测 submit 可能超时但已入队）。
@@ -181,12 +182,13 @@ def submit_job(req: JobRequest, executor=None, dry_run: bool = False) -> Dict[st
     from .executors import LocalExecutor
 
     rendered = render_job(req)
+    base = {
+        "ok": False, "job_id": "", "job_name": rendered.job_name,
+        "script_path": rendered.script_path, "log_dir": rendered.log_dir,
+        "output_dir": rendered.output_dir, "reason": "",
+    }
     if dry_run:
-        return {
-            "ok": True, "job_id": "", "script_path": rendered.script_path,
-            "log_dir": rendered.log_dir, "output_dir": rendered.output_dir,
-            "reason": "dry-run",
-        }
+        return {**base, "ok": True, "reason": "dry-run"}
 
     exe = executor or LocalExecutor()
 
@@ -200,11 +202,8 @@ def submit_job(req: JobRequest, executor=None, dry_run: bool = False) -> Dict[st
     )
     _out, err, rc = exe.run(write_cmd, timeout=120)
     if rc != 0:
-        return {
-            "ok": False, "job_id": "", "script_path": rendered.script_path,
-            "log_dir": rendered.log_dir, "output_dir": rendered.output_dir,
-            "reason": f"作业脚本落盘失败 rc={rc}: {(err or '')[-400:]}",
-        }
+        return {**base,
+                "reason": f"作业脚本落盘失败 rc={rc}: {(err or '')[-400:]}"}
 
     # ② 提交
     sub_cmd = (f"cd {shlex.quote(req.layout.shared_root)} && "
@@ -213,13 +212,6 @@ def submit_job(req: JobRequest, executor=None, dry_run: bool = False) -> Dict[st
     blob = (out or "") + (err or "")
     m = _JOBID_RE.search(blob)
     if not m:
-        return {
-            "ok": False, "job_id": "", "script_path": rendered.script_path,
-            "log_dir": rendered.log_dir, "output_dir": rendered.output_dir,
-            "reason": f"提交失败（未解析出 JobID）: {blob.strip()[-400:]}",
-        }
-    return {
-        "ok": True, "job_id": m.group(1), "script_path": rendered.script_path,
-        "log_dir": rendered.log_dir, "output_dir": rendered.output_dir,
-        "reason": "",
-    }
+        return {**base,
+                "reason": f"提交失败（未解析出 JobID）: {blob.strip()[-400:]}"}
+    return {**base, "ok": True, "job_id": m.group(1)}

@@ -120,10 +120,23 @@ def test_submit_job_returns_job_id():
     assert res["ok"] is True
     assert res["job_id"] == "123456"
     assert res["reason"] == ""
+    # 返回值键集固定（调用方按 key 取用 ⇒ 缺键会 KeyError）
+    assert set(res) == {"ok", "job_id", "job_name", "script_path", "log_dir",
+                        "output_dir", "reason"}
+    assert res["job_name"] == "flash_test"
     # 落盘 + 提交两步都发生了
     assert len(exe.commands) == 2
     assert "cat >" in exe.commands[0]
     assert "sbatch" in exe.commands[1]
+
+
+def test_submit_job_failure_paths_keep_same_keys():
+    """★ 失败路径也必须返回同一套键（否则调用方 KeyError）。"""
+    for exe in (FakeExecutor(write_rc=1), FakeExecutor(submit_out="err")):
+        res = submit_job(_request(), executor=exe)
+        assert res["ok"] is False
+        assert set(res) == {"ok", "job_id", "job_name", "script_path",
+                            "log_dir", "output_dir", "reason"}
 
 
 def test_submit_job_write_failure_is_not_success():
