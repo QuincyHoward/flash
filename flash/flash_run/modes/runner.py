@@ -779,10 +779,35 @@ class HpcRunner:
             script_local = Path(__file__).resolve().parent / spec.remote_analysis_script
         with Remote(spec.credential, spec.routes) as r:
             r.run(f"mkdir -p {remote_dir}/analysis")
-            r.upload(str(script_local), f"{remote_dir}/analysis/{spec.remote_analysis_script}")
+            remote_script = f"{remote_dir}/analysis/{spec.remote_analysis_script}"
+            if not script_local.exists():
+                # ★ 2026-10-27：分析脚本缺失时**显式跳过**（不再静默上传
+                #   不存在的文件——scp_upload 曾静默 False 而上层不查返回值）。
+                #   极短验证不需要超算端绘图；正式出图由场景补齐脚本后启用。
+                log(f"远程分析脚本缺失，跳过超算端绘图: {script_local}", "WARN")
+                return {}
+            if not r.upload(str(script_local), remote_script):
+                raise RuntimeError(f"远程分析脚本上传失败: {script_local}")
+            # ★ 2026-10-27 NC-E 实测双坑：
+            #   ① SFTP 上传后**立即**远程执行会命中登录节点 NFS attr cache
+            #     （文件尚不可见）⇒ 有界等待文件可见后再执行；
+            #   ② 该通道下 shell 不做 `~` 展开 ⇒ test/cd 必须用**绝对路径**
+            #     （r.home 由连接期 `echo $HOME` 探测）。
+            home = (getattr(r, "home", "") or "").rstrip("/")
+            script_abs = (home + remote_script[1:]
+                          if remote_script.startswith("~/") else remote_script)
+            dir_abs = script_abs.rsplit("/", 1)[0]
+            for _attempt in range(6):
+                out_t, _, _ = r.run(f"test -f {script_abs} && echo VISIBLE",
+                                    timeout=30)
+                if "VISIBLE" in (out_t or ""):
+                    break
+                time.sleep(5)
+            else:
+                raise RuntimeError(f"远程分析脚本上传后不可见: {script_abs}")
             outdir = self._find_output_dir(r, remote_dir)
             log(f"输出目录: {outdir}")
-            cmd = f"cd {remote_dir}/analysis && " + spec.remote_analysis_cmd(outdir)
+            cmd = f"cd {dir_abs} && " + spec.remote_analysis_cmd(outdir)
             out, err, code = r.run(cmd, timeout=1800)
             print(out.strip()[-4000:])
             if err.strip():
