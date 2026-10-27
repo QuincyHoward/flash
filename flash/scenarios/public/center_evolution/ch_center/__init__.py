@@ -31,7 +31,7 @@ from flash.scenarios.interpolator import (
     build_variable_grid as _build_variable_grid,
     interpolate_flash_to_grid as _interpolate,
 )
-from flash.scenarios.public.time_control import fit_time_controls
+from flash.scenarios.scripts.time_control import fit_time_controls
 
 
 # ── .par 构建 ──────────────────────────────────────────

@@ -450,11 +450,11 @@ VTi1 这一行就是原始缺陷的判据：修复前该层按 CH 的 6.509/3.5 
   `is_short_run(tmax)` + `short_validation_notice(tmax, scene, where, extra)`
   —— 打印三段信息：本次只保证什么（输入生成 / setup 编译 / 启动写首帧 / 无 NaN）、
   **不产生物理结果**的原因、正式仿真应该改哪个时间参数。
-- **`flash/scenarios/public/run_demo.py`** —— 公开示例统一入口：
+- **`flash/scenarios/scripts/run_demo.py`** —— 公开示例统一入口：
   ```bash
-  python flash/scenarios/public/run_demo.py --list
-  python flash/scenarios/public/run_demo.py --scene ch_center --tmax 1e-11
-  python flash/scenarios/public/run_demo.py --all --tmax 1e-11
+  python flash/scenarios/scripts/run_demo.py --list
+  python flash/scenarios/scripts/run_demo.py --scene ch_center --tmax 1e-11
+  python flash/scenarios/scripts/run_demo.py --all --tmax 1e-11
   ```
   `WHERE_TO_CHANGE` 里登记了每个示例的正式时间参数位置：
   `ch_center` → `__init__.py: params['tmax']`（默认 1.2e-9 s）/

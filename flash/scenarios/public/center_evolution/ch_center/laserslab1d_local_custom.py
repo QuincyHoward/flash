@@ -86,7 +86,7 @@ if str(_PARENT) not in sys.path:
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
 # ── 时间控制收缩（短跑时 dtmax/dtinit 随 tmax 缩）──
-from flash.scenarios.public.time_control import fit_time_controls
+from flash.scenarios.scripts.time_control import fit_time_controls
 
 # ── 用户信息（统一走 runner.get_sim_user_dir）──
 def _get_sim_user_dir() -> str:
@@ -291,7 +291,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     # 时间参数
     # ★ dtmax/dtinit 必须随 tmax 收缩：场景默认 dtmax=1e-12，而极短验证
     #   tmax=1e-13 ⇒ dtmax > tmax，FLASH 会浪费步长跨越 tmax（甚至直接拒绝）。
-    #   统一走 flash.scenarios.public.time_control.fit_time_controls。
+    #   统一走 flash.scenarios.scripts.time_control.fit_time_controls。
     _dtinit, _dtmin, _dtmax = fit_time_controls(
         tmax=tmax,
         dtinit=1e-15,

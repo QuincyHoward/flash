@@ -4,9 +4,9 @@
 用途：拿到 flash-sim 包后，用一条命令确认环境是否可用 ——
 输入能否生成、FLASH 能否 setup/编译/启动、能否写出首帧。
 
-    python flash/scenarios/public/run_demo.py --list
-    python flash/scenarios/public/run_demo.py --scene ch_center --tmax 1e-11
-    python flash/scenarios/public/run_demo.py --all --tmax 1e-11
+    python flash/scenarios/scripts/run_demo.py --list
+    python flash/scenarios/scripts/run_demo.py --scene ch_center --tmax 1e-11
+    python flash/scenarios/scripts/run_demo.py --all --tmax 1e-11
 
 ★ 极短验证不产生物理结果（见 flash/scenarios/hints.py 的说明）。
   正式仿真请按横幅提示修改时间参数，或省略 --tmax 用场景默认值。

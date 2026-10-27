@@ -6,9 +6,9 @@
 极短验证只回答一个问题：**输入能否生成、FLASH 能否启动并写出首帧**。
 它**不产生物理结果**（1e-13 s 内激光尚未有效加热靶材）。
 
-    python flash/scenarios/public/short_validation.py
-    python flash/scenarios/public/short_validation.py --tmax 1e-13
-    python flash/scenarios/public/short_validation.py --scene ch_center
+    python flash/scenarios/scripts/short_validation.py
+    python flash/scenarios/scripts/short_validation.py --tmax 1e-13
+    python flash/scenarios/scripts/short_validation.py --scene ch_center
 
 ★ 三个场景都走**统一入口** `python -m flash.scenarios.cli run <场景>`，
   缺省 `--mode auto`（平台自适应）：

@@ -46,7 +46,7 @@ _spec.loader.exec_module(_pb)
 _build_par, BeamConfig = _pb.build_par, _pb.BeamConfig
 
 from flash.scenarios.base import SimulationScenario
-from flash.scenarios.public.time_control import fit_time_controls
+from flash.scenarios.scripts.time_control import fit_time_controls
 
 
 # ── 超高斯脉冲生成器 ──────────────────────────────────────
