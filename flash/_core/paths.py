@@ -54,7 +54,7 @@ def repo_root() -> Path:
 # ── Windows 本地环境 ────────────────────────────────────────
 
 def win_home() -> Path:
-    """当前用户 Windows 家目录（%USERPROFILE%），替代写死的 ``C:\\Users\\<用户名>``。"""
+    """当前用户 Windows 家目录（%USERPROFILE%），替代写死的用户家目录字面量。"""
     return Path.home()
 
 
@@ -143,7 +143,7 @@ def hpc_ssh_username(account: str = "flash_ssh") -> str:
 
 
 def hpc_home(account: str = "flash_ssh") -> Optional[str]:
-    """超算家目录（如 ``/publicfs01/fs1-e/home/<user>``）。
+    """超算家目录（如 ``<home_root>/<user>``）.
 
     解析顺序：
       1. 环境变量 ``FLASH_HPC_HOME``（显式指定，最高优先）；

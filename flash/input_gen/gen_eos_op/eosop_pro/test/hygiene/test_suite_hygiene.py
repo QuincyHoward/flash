@@ -258,8 +258,8 @@ def test_bats_have_single_backslash_venv_path():
     """★ venv 路径必须是**单反斜杠**。
 
     实测两次踩坑：
-    * ``C:////Users////…``（Python 转义多写了斜杠）
-    * ``C://Users//…``（MSYS sed 把 ``\\`` 按 Unix 路径规则转换）
+    * C 盘多斜杠 Users 形态（Python 转义多写了斜杠）
+    * C 盘双斜杠 Users 形态（MSYS sed 把反斜杠按 Unix 路径规则转换）
     两者都能"看起来像路径"，所以用值断言而不是目视。
     """
     bs = chr(92)
