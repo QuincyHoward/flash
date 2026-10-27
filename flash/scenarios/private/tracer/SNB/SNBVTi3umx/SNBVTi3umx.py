@@ -153,7 +153,7 @@ dx=域宽/(iProcs*nxb), 且 nproc 必须严格等于 iProcs。
 
 ## ★ 新超算入口 (2026-10-27, flash_run 统一提交链)
 
-    python -m flash.scenarios.cli submit SNBVTi3umx [--run-id NNNNNN]
+    python -m flash.scenarios.core.cli submit SNBVTi3umx [--run-id NNNNNN]
     (声明在 flash/scenarios/hpc_job.py::SCENE_HPC_JOBS["SNBVTi3umx"];
      gen_mode=local_upload: 本地生成 + SFTP 上传; launcher=mpiexec;
      ntasks=125 nodes=3; setup_common=SNB_UG_SETUP_COMMON (+ug 精确网格);
@@ -192,7 +192,7 @@ if str(_ROOT) not in sys.path:
 
 
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 
@@ -574,7 +574,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     sim_path = SIM_NAME          # FLASHSNB 内单元: SimulationMain/SNBVTi
     par_filename = PAR_FILENAME
 
-    from flash.scenarios.runner import default_nprocs
+    from flash.scenarios.core.runner import default_nprocs
     nprocs = cfg["nprocs"] or default_nprocs(cfg["dimension"], is_hpc=False)
 
     result: Dict[str, str] = {}

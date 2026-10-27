@@ -10,7 +10,7 @@
   · `dry_run`：只渲染，不落盘不提交
 
 ★ 与场景无关：这里的用例**不出现任何场景名** ——
-  场景声明在 `flash.scenarios.hpc_job`（另见 test_scenarios_modes.py）。
+  场景声明在 `flash.scenarios.core.hpc_job`（另见 test_scenarios_modes.py）。
 """
 from __future__ import annotations
 

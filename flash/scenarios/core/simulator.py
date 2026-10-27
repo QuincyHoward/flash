@@ -5,8 +5,8 @@
 
 用法::
 
-    from flash.scenarios.simulator import FlashSimulatorEngine
-    from flash.scenarios.registry import get_scenario
+    from flash.scenarios.core.simulator import FlashSimulatorEngine
+    from flash.scenarios.core.registry import get_scenario
 
     scenario = get_scenario("thin_layer_sandwich_si")
     engine = FlashSimulatorEngine(scenario)
@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from flash.scenarios.base import SimulationScenario
+from flash.scenarios.core.base import SimulationScenario
 from flash._core.credentials import get_user_name
 from flash.flash_run.execution import (
     DEFAULT_POLICY,
@@ -751,8 +751,8 @@ class FlashSimulatorEngine:
 
     使用方式::
 
-        from flash.scenarios.simulator import FlashSimulatorEngine
-        from flash.scenarios.registry import get_scenario
+        from flash.scenarios.core.simulator import FlashSimulatorEngine
+        from flash.scenarios.core.registry import get_scenario
 
         scenario = get_scenario("thin_layer_sandwich_si")
         engine = FlashSimulatorEngine(scenario)
@@ -862,7 +862,7 @@ class FlashSimulatorEngine:
                     f"  超算执行请改用场景脚本或统一 CLI：\n"
                     f"    · ch_center: python flash/scenarios/public/center_evolution/"
                     f"ch_center/laserslab1d_local_custom.py  (RUN_MODE='auto')\n"
-                    f"    · 统一入口: python -m flash.scenarios.cli <场景> --mode {target}"
+                    f"    · 统一入口: python -m flash.scenarios.core.cli <场景> --mode {target}"
                 )
                 print("  [X] " + _hint.replace("\n", "\n      "))
                 return SimulationOutput(

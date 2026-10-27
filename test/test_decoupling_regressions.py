@@ -132,7 +132,7 @@ def test_g1_no_bare_hpc_literal_compare(rel):
 
 def test_g3_no_synthetic_fallback_on_real_failure():
     """G3：真实 FLASH 失败**不得**回退合成数据并报成功（最危险的静默失败）。"""
-    src = _read("flash/scenarios/simulator.py")
+    src = _read("flash/scenarios/core/simulator.py")
     assert "自动回退 dry-run 合成" not in src, "失败即失败，合成数据只允许显式 dry_run"
     # 失败分支必须返回 success=False
     idx = src.find("FLASH 未产出 chk（未安装/编译失败/运行错误）")

@@ -51,12 +51,12 @@ ch_center/
 
 ```bash
 # 平台自适应：Windows→wsl，WSL/Linux→local，超算登录节点→hpc-insitu
-python -m flash.scenarios.cli run ch_center
+python -m flash.scenarios.core.cli run ch_center
 
 # 显式指定模式与终止时间
-python -m flash.scenarios.cli run ch_center --mode wsl --tmax 2e-10
-python -m flash.scenarios.cli run ch_center --mode hpc-remote
-python -m flash.scenarios.cli explain ch_center        # 只打印目标判定轨迹
+python -m flash.scenarios.core.cli run ch_center --mode wsl --tmax 2e-10
+python -m flash.scenarios.core.cli run ch_center --mode hpc-remote
+python -m flash.scenarios.core.cli explain ch_center        # 只打印目标判定轨迹
 ```
 
 ### 3.2 直跑场景脚本（等价，兼容保留）
@@ -111,9 +111,9 @@ python flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custo
 
 ```bash
 # 三个公开场景统一入口，缺省 --mode auto
-python -m flash.scenarios.cli run ch_center --tmax 1e-13
-python -m flash.scenarios.cli list
-python -m flash.scenarios.cli explain ch_center     # 只打印判定轨迹
+python -m flash.scenarios.core.cli run ch_center --tmax 1e-13
+python -m flash.scenarios.core.cli list
+python -m flash.scenarios.core.cli explain ch_center     # 只打印判定轨迹
 ```
 
 ### 3.4 `tmax` 覆盖规则（极短验证）

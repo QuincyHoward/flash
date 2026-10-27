@@ -90,7 +90,7 @@ from flash.scenarios.scripts.time_control import fit_time_controls
 
 # ── 用户信息（统一走 runner.get_sim_user_dir）──
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 
@@ -105,7 +105,7 @@ SIM_USER_DIR = _get_sim_user_dir()
 #      扫描判据：同时存在 setup 与 source/Simulation/SimulationMain。
 #   4. 都找不到 ⇒ 保留原路径，由 run_flash.sh 报出可操作的错误。
 try:
-    from flash.scenarios.runner import discover_flash_home as _discover
+    from flash.scenarios.core.runner import discover_flash_home as _discover
     FLASH_HOME = _discover() or f"~/{SIM_USER_DIR}/FLASH/FLASH4.8"
 except Exception:            # noqa: BLE001 —— 发现失败不该阻断脚本导入
     FLASH_HOME = f"~/{SIM_USER_DIR}/FLASH/FLASH4.8"
@@ -833,7 +833,7 @@ def main_hpc_insitu(cfg: Dict[str, Any]) -> bool:
     兼容，经 _LocalHpcShim 顶替 SSH）；重活（FLASH/分析）仍走 sbatch 作业。
     产物外置 runs_root()/ch_center/run_NNNNNN/（包目录 git 干净）。"""
     from flash.flash_run.remote.slurm_control import LocalExecutor, sbatch_available
-    from flash.scenarios.runner import allocate_run_id, run_id_name, runs_root
+    from flash.scenarios.core.runner import allocate_run_id, run_id_name, runs_root
 
     exe = LocalExecutor()
     if not sbatch_available(exe):

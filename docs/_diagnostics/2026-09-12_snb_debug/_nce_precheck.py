@@ -18,7 +18,7 @@ except Exception as e:
     lines.append(f"cred_error={e!r}")
 
 try:
-    from flash.scenarios.runner import HpcSpec
+    from flash.scenarios.core.runner import HpcSpec
     lines.append("runner_import=OK")
 except Exception as e:
     lines.append(f"runner_import_error={e!r}")

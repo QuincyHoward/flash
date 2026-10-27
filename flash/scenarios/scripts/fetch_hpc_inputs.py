@@ -51,7 +51,7 @@ def remote():
     r = getattr(_tls, "r", None)
     if r is None:
         sys.path.insert(0, str(root()))
-        from flash.scenarios.runner import Remote
+        from flash.scenarios.core.runner import Remote
         r = Remote("flash_ssh")
         r.connect()
         _tls.r = r

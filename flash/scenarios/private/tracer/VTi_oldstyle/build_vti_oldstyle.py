@@ -445,7 +445,7 @@ def gen_case(depth: int) -> Path:
 # ── 上传 + 提交 ─────────────────────────────────────────
 
 def hpc_spec(depth: int):
-    from flash.scenarios.runner import HpcSpec, user_flash_home
+    from flash.scenarios.core.runner import HpcSpec, user_flash_home
     name = scene(depth)
     home = user_flash_home()
     return HpcSpec(
@@ -476,7 +476,7 @@ def main() -> int:
     if args.gen_only:
         return 0
 
-    from flash.scenarios.runner import HpcRunner
+    from flash.scenarios.core.runner import HpcRunner
     runner = HpcRunner(hpc_spec(args.depth))
     if args.upload:
         runner.upload()

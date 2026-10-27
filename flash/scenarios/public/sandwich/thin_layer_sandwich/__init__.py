@@ -42,7 +42,7 @@ from interpolator import (
     DEFAULT_OUTPUT_FIELDS,
 )
 
-from flash.scenarios.base import SimulationScenario
+from flash.scenarios.core.base import SimulationScenario
 from flash.scenarios.scripts.time_control import fit_time_controls
 
 # ── 新子包导入 ──────────────────────────────────────────

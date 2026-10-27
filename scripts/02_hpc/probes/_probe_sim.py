@@ -2,7 +2,7 @@
 import traceback
 from pathlib import Path
 
-from flash.scenarios.registry import get_scenario
+from flash.scenarios.core.registry import get_scenario
 
 sc = get_scenario("ch_center")
 print("sim_input_dir:", sc.sim_input_dir)

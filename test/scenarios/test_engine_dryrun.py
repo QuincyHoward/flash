@@ -32,8 +32,8 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-from flash.scenarios.registry import get_scenario, list_scenarios
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario, list_scenarios
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 
 def _primary_scenario() -> str:
@@ -52,7 +52,7 @@ def _primary_scenario() -> str:
       且失败信息完全掩盖了真正的根因 (生成器路径 bug)。
       ⇒ 判定条件必须同时要求 .F90 与 .cn4, 缺一即回落到 ch_center。
     """
-    from flash.scenarios.registry import get_scenario
+    from flash.scenarios.core.registry import get_scenario
 
     available = [s[0] for s in list_scenarios()]
     for name in ("thin_layer_sandwich_si", "thin_layer_sandwich_al"):
@@ -154,7 +154,7 @@ def test_engine_with_al_scenario():
 
 def test_engine_plot():
     """测试引擎 plot 方法 (读取已有 result.h5)"""
-    from flash.scenarios.simulator import FlashSimulatorEngine
+    from flash.scenarios.core.simulator import FlashSimulatorEngine
 
     sc = get_scenario(_primary_scenario())
     engine = FlashSimulatorEngine(sc, verbose=False)
@@ -174,7 +174,7 @@ def test_engine_plot():
     print(f"\n  ✔ 找到已有 result.h5: {latest}")
 
     # 测试 plot
-    from flash.scenarios.simulator import SimulationOutput
+    from flash.scenarios.core.simulator import SimulationOutput
     mock_output = SimulationOutput(
         result_h5_path=str(latest),
         run_dir=str(latest.parent.parent.parent),

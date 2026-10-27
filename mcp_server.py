@@ -110,8 +110,8 @@ OVERVIEW_TEXT = f"""\
    超算模式: 脚本顶部 RUN_MODE 改 "hpc", 或环境变量 `FLASH_RUN_MODE=hpc`。
 3. **场景系统调用**:
    ```python
-   from flash.scenarios.registry import get_scenario, list_scenarios
-   from flash.scenarios.simulator import FlashSimulatorEngine
+   from flash.scenarios.core.registry import get_scenario, list_scenarios
+   from flash.scenarios.core.simulator import FlashSimulatorEngine
    engine = FlashSimulatorEngine(get_scenario("thin_layer_sandwich_si"))
    output = engine.run()   # 自动编译→运行→插值→输出
    ```
@@ -180,8 +180,8 @@ API_REFERENCE_TEXT = """\
 
 | 类 | 包路径 | 说明 |
 |----|--------|------|
-| `FlashSimulatorEngine` | `flash.scenarios.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
-| `SimulationScenario` | `flash.scenarios.base` | 场景声明式配置数据类 (钩子: build_par / build_grid / interpolate) |
+| `FlashSimulatorEngine` | `flash.scenarios.core.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
+| `SimulationScenario` | `flash.scenarios.core.base` | 场景声明式配置数据类 (钩子: build_par / build_grid / interpolate) |
 | `FlashSimulator` | `flash` | 旧版统一仿真接口, mock/real 双模式 |
 | `FlashConfig` | `flash.config` | 全局配置管理器 |
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
@@ -233,8 +233,8 @@ gen.save("example1d_new.par")
 ## 场景引擎典型用法
 
 ```python
-from flash.scenarios.registry import get_scenario
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 engine = FlashSimulatorEngine(get_scenario("thin_layer_sandwich_si"))
 output = engine.run()          # 自动编译→运行→插值→输出 result.h5
@@ -656,12 +656,12 @@ def _register_scenarios_via_import() -> List[str]:
 
 
 def tool_list_scenarios() -> str:
-    """动态 import flash.scenarios.registry 返回 list_scenarios(); 失败回落静态清单。"""
+    """动态 import flash.scenarios.core.registry 返回 list_scenarios(); 失败回落静态清单。"""
     try:
         if str(PROJECT_ROOT) not in sys.path:
             sys.path.insert(0, str(PROJECT_ROOT))
         _register_scenarios_via_import()
-        from flash.scenarios.registry import list_scenarios  # type: ignore
+        from flash.scenarios.core.registry import list_scenarios  # type: ignore
 
         pairs = list_scenarios()
         if not pairs:
@@ -879,7 +879,7 @@ def _build_tools() -> Dict[str, Tuple[Dict[str, Any], Callable[..., str]]]:
     )
     add(
         "list_scenarios",
-        "列出所有已注册仿真场景 (动态导入 flash.scenarios.registry; 失败回落静态清单)。",
+        "列出所有已注册仿真场景 (动态导入 flash.scenarios.core.registry; 失败回落静态清单)。",
         {}, [], tool_list_scenarios,
     )
     add(

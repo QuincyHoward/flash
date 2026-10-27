@@ -8,7 +8,7 @@
 ★ 设计：**不产生第三条执行路径**。``run_from_dir`` 只做两件事：
 
     1. 读本目录 ``scene.json`` 拿场景名；
-    2. 转编程式调用 ``flash.scenarios.cli.main(["run", name, *argv])``
+    2. 转编程式调用 ``flash.scenarios.core.cli.main(["run", name, *argv])``
        —— 策略校验、目标判定（resolve_target）、产物回收全部复用
        CLI 的一份实现（R-SCENE-02/03/04 合规：本模块无任何内联
        wsl/bash/sbatch 细节，无场景策略表）。
@@ -55,6 +55,6 @@ def run_from_dir(scene_dir: Path, argv: Sequence[str] = ()) -> int:
         print(f"[X] {mf}: name 为空", file=sys.stderr)
         return 2
 
-    from flash.scenarios.cli import main
+    from flash.scenarios.core.cli import main
 
     return int(main(["run", name, *argv]) or 0)

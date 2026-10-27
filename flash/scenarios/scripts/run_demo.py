@@ -29,9 +29,9 @@ else:
 if _ROOT is not None and str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from flash.scenarios.hints import is_short_run, short_validation_notice  # noqa: E402
-from flash.scenarios.registry import get_scenario, list_scenarios  # noqa: E402
-from flash.scenarios.simulator import FlashSimulatorEngine  # noqa: E402
+from flash.scenarios.core.hints import is_short_run, short_validation_notice  # noqa: E402
+from flash.scenarios.core.registry import get_scenario, list_scenarios  # noqa: E402
+from flash.scenarios.core.simulator import FlashSimulatorEngine  # noqa: E402
 
 # 每个示例的"正式仿真改哪里"（与各场景实际代码位置对应，改动代码时请同步）
 WHERE_TO_CHANGE = {

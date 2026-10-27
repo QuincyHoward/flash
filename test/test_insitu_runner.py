@@ -20,9 +20,9 @@ import pytest
 
 import flash.flash_run.modes.hpc_insitu as ir   # 实现模块（monkeypatch 目标）
 from flash.flash_run.remote.slurm_control import SlurmJobSpec
-# ★ 兼容性断言：旧路径 flash.scenarios.insitu_runner 仍须可用（B1 迁移后为转发壳）。
+# ★ 兼容性断言：旧路径 flash.scenarios.core.insitu_runner 仍须可用（B1 迁移后为转发壳）。
 #   公开 API 故意从旧路径导入，确保 shim 不断链。
-from flash.scenarios.insitu_runner import (
+from flash.scenarios.core.insitu_runner import (
     InsituSpec,
     collect_local,
     resolve_hpc_python,

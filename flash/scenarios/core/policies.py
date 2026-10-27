@@ -50,5 +50,5 @@ PUBLIC_SCENE_POLICY = ExecutionPolicy(
     allowed=("local", "wsl"),
     preferred="auto",
     forbid_reason=("公开场景的引擎执行体只承接本机（local/wsl）；"
-                   "在超算上请用 `python -m flash.scenarios.cli submit <场景>`"),
+                   "在超算上请用 `python -m flash.scenarios.core.cli submit <场景>`"),
 )

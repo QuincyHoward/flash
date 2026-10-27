@@ -24,8 +24,8 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 try:
-    from flash.scenarios.registry import get_scenario, list_scenarios
-    from flash.scenarios.simulator import FlashSimulatorEngine, _flash_detected
+    from flash.scenarios.core.registry import get_scenario, list_scenarios
+    from flash.scenarios.core.simulator import FlashSimulatorEngine, _flash_detected
 except ImportError:
     import pytest; pytest.skip("flash package not available", allow_module_level=True)
 

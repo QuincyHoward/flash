@@ -2,7 +2,7 @@
 
 用法::
 
-    from flash.scenarios.registry import get_scenario, list_scenarios
+    from flash.scenarios.core.registry import get_scenario, list_scenarios
 
     for name, desc in list_scenarios():
         print(f"  {name}: {desc}")
@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from flash.scenarios.base import SimulationScenario
+from flash.scenarios.core.base import SimulationScenario
 
 # 懒加载注册表: 名称 → 导入函数
 _SCENARIO_REGISTRY: Dict[str, tuple] = {}
@@ -33,7 +33,7 @@ def _ensure_loaded() -> None:
       因为"注册表空着"会导致 get_scenario 报"未知场景"——
       正是 G8 要消灭的那种误导性错误。
     """
-    from flash.scenarios.discovery import iter_scene_manifests
+    from flash.scenarios.core.discovery import iter_scene_manifests
 
     for meta in iter_scene_manifests():
         if meta.kind == "script":

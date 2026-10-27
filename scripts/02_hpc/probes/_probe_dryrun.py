@@ -4,8 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, "/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim")
 
-from flash.scenarios.registry import get_scenario, list_scenarios
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario, list_scenarios
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 import flash
 print("flash pkg:", flash.__file__)

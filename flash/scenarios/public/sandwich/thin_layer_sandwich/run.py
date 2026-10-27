@@ -17,6 +17,6 @@ else:
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
-from flash.scenarios.launcher import run_from_dir
+from flash.scenarios.core.launcher import run_from_dir
 
 raise SystemExit(run_from_dir(Path(__file__).resolve().parent, sys.argv[1:]))

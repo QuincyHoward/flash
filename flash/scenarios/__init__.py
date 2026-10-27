@@ -5,14 +5,14 @@ scenarios/
 ├── base.py         ← SimulationScenario 数据类
 ├── registry.py     ← 声明式场景注册表（引擎用）
 ├── catalog.py      ← 可执行场景目录（CLI 用，2026-10-24 新增）
-├── cli.py          ← 统一入口 python -m flash.scenarios.cli
+├── cli.py          ← 统一入口 python -m flash.scenarios.core.cli
 ├── runner.py       ← 兼容壳（转发 flash.flash_run.modes.runner）
 ├── public/         ← 公开示例（随发布包分发）
 ├── flash_demo/     ← 演示场景
 └── private/        ← 私有场景（tracer 系列，不随包分发）
 
 ★ 2026-10-24（解耦计划 B0/C4）：原实现在 **import 时**就 `__import__` 三个
-  子包（public/flash_demo/private），导致 `python -m flash.scenarios.cli list`
+  子包（public/flash_demo/private），导致 `python -m flash.scenarios.core.cli list`
   启动即全量导入所有场景（含 private 告警、h5py/yt 依赖）。
   现改为 `warm_registry()` 显式预热，由 `registry.get_scenario()` /
   `list_scenarios()` 首次调用时自动触发 ⇒ 语义不变，但 CLI 快得多。
@@ -47,7 +47,7 @@ def warm_registry() -> tuple:
     _LOADING = True
     loaded = []
     try:
-        from flash.scenarios.discovery import scenario_base, iter_scene_manifests
+        from flash.scenarios.core.discovery import scenario_base, iter_scene_manifests
 
         base = scenario_base()
         iter_scene_manifests()   # 非法 manifest 在此显式暴露（不吞）
@@ -68,15 +68,22 @@ def registered_packages() -> tuple:
     return _registered_packages
 
 
+#: 旧根级核心模块名 → core/ 子模块（2026-10-27 目录整洁化兼容层）
+_LEGACY_CORE_ATTRS = ("base", "registry", "runner", "simulator", "catalog",
+                      "cli", "hints", "discovery", "launcher", "policies",
+                      "hpc_job", "device_defaults", "submit_cli",
+                      "insitu_runner", "interpolator")
+
+
 def __getattr__(name):
-    """兼容旧行为：访问 `flash.scenarios.<attr>` 前确保已预热。
+    """兼容旧行为：`flash.scenarios.<旧模块名>` → core 子模块。
 
     旧代码依赖 `import flash.scenarios` 的**副作用**（注册表已填充）。
-    现改为：首次访问任何未知属性时预热一次。
+    现改为：首次访问旧模块名时预热一次再转发 core。
     """
-    if name in ("base", "registry", "runner", "simulator", "catalog", "cli", "hints"):
+    if name in _LEGACY_CORE_ATTRS:
         warm_registry()
         from importlib import import_module
 
-        return import_module(f"flash.scenarios.{name}")
+        return import_module(f"flash.scenarios.core.{name}")
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

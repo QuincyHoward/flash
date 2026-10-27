@@ -34,8 +34,8 @@ from flash.flash_run.execution import (
     run_scene,
 )
 # ★ 场景族策略在**场景层**（执行层不含任何场景信息）——
-#   见 flash.scenarios.policies。
-from flash.scenarios.policies import SNB_POLICY
+#   见 flash.scenarios.core.policies。
+from flash.scenarios.core.policies import SNB_POLICY
 
 
 # ── 词汇表 ────────────────────────────────────────────────────────

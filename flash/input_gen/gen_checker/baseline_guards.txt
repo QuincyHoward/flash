@@ -32,8 +32,8 @@ R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi1.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi2.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi3.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi_oldstyle/build_vti_oldstyle.py
+R-SCENE-03	flash/scenarios/core/simulator.py
 R-SCENE-03	flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
-R-SCENE-03	flash/scenarios/simulator.py
 R-SCENE-05	flash/scenarios/flash_demo/demo_hpc/laserslab1d_hpc_demo_batch.py
 R-SCENE-05	flash/scenarios/flash_demo/demo_hpc/laserslab1d_supercomputer_demo.py
 R-SCENE-05	flash/scenarios/flash_demo/hello_flash/deploy_flash.py

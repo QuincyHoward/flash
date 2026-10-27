@@ -4,7 +4,7 @@ scenarios.runner — 兼容壳（2026-10-22 模块化改造）
 
 ★ 运行逻辑已于 2026-10-22 整体迁至 ``flash.flash_run.modes.runner``；
   本文件仅为兼容壳：30+ 现有场景脚本的
-  ``from flash.scenarios.runner import ...``（含下划线名 ``_to_wsl_path``）
+  ``from flash.scenarios.core.runner import ...``（含下划线名 ``_to_wsl_path``）
   经此处转发，**零修改可跑**。
 
 新代码请直接使用::

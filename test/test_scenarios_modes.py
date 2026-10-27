@@ -22,7 +22,7 @@ sys.path.insert(0, str(_ROOT))
 
 import pytest
 
-from flash.scenarios.runner import (
+from flash.scenarios.core.runner import (
     RUN_MODES,
     bash_launcher,
     detect_native_linux,
@@ -96,7 +96,7 @@ def test_runs_root_default_sibling(monkeypatch):
     rr = runs_root()
     assert rr.name == "flash_sim_runs"
     # 兄弟目录: 与包根同父
-    from flash.scenarios.runner import package_root
+    from flash.scenarios.core.runner import package_root
     assert rr.parent == package_root().parent
 
 

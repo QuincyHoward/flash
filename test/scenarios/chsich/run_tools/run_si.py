@@ -71,8 +71,8 @@ def run_si(
     Returns:
         dict: {run_dir, result_h5, plots, simulated, success}
     """
-    from flash.scenarios.registry import get_scenario
-    from flash.scenarios.simulator import FlashSimulatorEngine
+    from flash.scenarios.core.registry import get_scenario
+    from flash.scenarios.core.simulator import FlashSimulatorEngine
 
     sc = get_scenario("thin_layer_sandwich_si")
     engine = FlashSimulatorEngine(sc, verbose=True)

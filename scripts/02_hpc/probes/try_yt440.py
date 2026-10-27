@@ -29,7 +29,7 @@ def w(msg):
 
 # 文件式探针（上传后远端执行，无引号问题）
 PROBE_SIM = """import traceback
-from flash.scenarios.registry import get_scenario
+from flash.scenarios.core.registry import get_scenario
 sc = get_scenario('ch_center')
 print('sim_input_dir:', sc.sim_input_dir)
 try:

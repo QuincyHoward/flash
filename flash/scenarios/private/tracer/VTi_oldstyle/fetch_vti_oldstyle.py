@@ -32,7 +32,7 @@ def _add_repo_root() -> None:
 
 
 _add_repo_root()
-from flash.scenarios.runner import Remote  # noqa: E402
+from flash.scenarios.core.runner import Remote  # noqa: E402
 
 _local = threading.local()
 

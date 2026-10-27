@@ -975,10 +975,10 @@ pause
 #
 # ⇒ 现在：**作业体只有一份**，由 flash.flash_run.remote.job_scripts 渲染
 #   （stage → build → run → archive，全程在计算节点节点本地 scratch）。
-#   场景层只声明"场景是什么"（见 flash.scenarios.hpc_job）。
+#   场景层只声明"场景是什么"（见 flash.scenarios.core.hpc_job）。
 #
 # 用法（推荐 —— 统一入口，负责生成输入 + 渲染 + 提交）：
-#   python -m flash.scenarios.cli submit grad_dens_sandwich --run-id 000002
+#   python -m flash.scenarios.core.cli submit grad_dens_sandwich --run-id 000002
 #
 # 用法（本文件 —— 兜底，直接 sbatch 已生成好的输入）：
 #   sbatch submit_flash.sh 000002
@@ -988,7 +988,7 @@ SIM_NAME="grad_dens_sandwich"
 RUN_ID="${2:-000001}"
 
 echo "[submit_flash] 兜底路径（直接 sbatch 已生成的输入）。"
-echo "[submit_flash] 推荐：python -m flash.scenarios.cli submit $SIM_NAME --run-id $RUN_ID"
+echo "[submit_flash] 推荐：python -m flash.scenarios.core.cli submit $SIM_NAME --run-id $RUN_ID"
 echo "[submit_flash] （统一入口会在计算节点 scratch 内完成 拷贝→setup→编译→运行→归档）"
 
 # 装置参数（Intel MPI / HDF5 路径）由 flash.flash_run.env.devices 统一提供
@@ -1033,7 +1033,7 @@ if [ -x "$O/flash4" ]; then
 else
     if [ ! -f "$O/Makefile" ]; then
         echo "  [FATAL] objdir 无 Makefile —— 请用统一提交入口："
-        echo "         python -m flash.scenarios.cli submit $SIM_NAME --run-id $RUN_ID"
+        echo "         python -m flash.scenarios.core.cli submit $SIM_NAME --run-id $RUN_ID"
         exit 2
     fi
     cd $O

@@ -61,7 +61,7 @@ if str(_ROOT) not in sys.path:
 
 
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 
@@ -200,7 +200,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     objdir = f"{SIM_USER_DIR}/{SIM_NAME}"
     par_filename = PAR_FILENAME
 
-    from flash.scenarios.runner import default_nprocs
+    from flash.scenarios.core.runner import default_nprocs
     nprocs = cfg["nprocs"] or default_nprocs(cfg["dimension"], is_hpc=False)
     slurm_ntasks = cfg["slurm_ntasks"] or default_nprocs(cfg["dimension"], is_hpc=True)
 
@@ -354,7 +354,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     )
     # FLASH 输出收集目录: {场景}/flash_output/outputfiles — 生成脚本与
     # runner.WslSpec.outputfiles_dir 两端必须一致
-    from flash.scenarios.runner import _to_wsl_path
+    from flash.scenarios.core.runner import _to_wsl_path
     collect_dir_wsl = _to_wsl_path(OUTPUT_DIR / "outputfiles")
     wsl_config = {
         "sim_user_dir": SIM_USER_DIR, "dimension": cfg["dimension"],
@@ -690,7 +690,7 @@ def main():
         traceback.print_exc()
         return False
 
-    from flash.scenarios.runner import (
+    from flash.scenarios.core.runner import (
         HpcRunner, HpcSpec, WslSpec, resolve_run_mode, run_wsl, user_flash_home,
     )
 

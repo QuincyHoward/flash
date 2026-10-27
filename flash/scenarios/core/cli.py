@@ -3,10 +3,10 @@
 
 ★ 2026-10-24（解耦计划 B2）：
 
-    python -m flash.scenarios.cli list
-    python -m flash.scenarios.cli explain ch_center          # 只打印判定轨迹
-    python -m flash.scenarios.cli run ch_center              # 默认 --mode auto
-    python -m flash.scenarios.cli run SNBOneCH_ml --mode hpc-remote --tmax 1e-11
+    python -m flash.scenarios.core.cli list
+    python -m flash.scenarios.core.cli explain ch_center          # 只打印判定轨迹
+    python -m flash.scenarios.core.cli run ch_center              # 默认 --mode auto
+    python -m flash.scenarios.core.cli run SNBOneCH_ml --mode hpc-remote --tmax 1e-11
 
 设计约束：
   * `--mode` 缺省 = `auto`（平台自适应）。显式值 / `FLASH_RUN_MODE` 永远优先。
@@ -30,7 +30,7 @@ from flash.flash_run.execution import (
 
 def _build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
-        prog="python -m flash.scenarios.cli",
+        prog="python -m flash.scenarios.core.cli",
         description="flash-sim 统一场景入口（平台自适应，--mode auto 为默认）",
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -83,7 +83,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    from flash.scenarios.catalog import get_scene, list_scenes
+    from flash.scenarios.core.catalog import get_scene, list_scenes
 
     ap = _build_parser()
     ns = ap.parse_args(argv)
@@ -98,8 +98,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     if ns.cmd == "submit":
         # ★ 提交是**独立子命令**（不进 run_scene 的目标判定）：
         #   超算提交本身就是 hpc 行为，不需要 auto 判定；
-        #   场景声明在 flash.scenarios.hpc_job，执行在 flash.flash_run。
-        from flash.scenarios.submit_cli import main as submit_main
+        #   场景声明在 flash.scenarios.core.hpc_job，执行在 flash.flash_run。
+        from flash.scenarios.core.submit_cli import main as submit_main
 
         argv = ["--run-id", ns.run_id, "--cpus-per-task", str(ns.cpus_per_task)]
         if ns.nodes is not None:

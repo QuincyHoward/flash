@@ -1,0 +1,10 @@
+family,scenes,shld_material,script_writes_ms_shld,par_ms_shldA,par_ms_shldZ,verdict,action
+CHTi,CHTi1/2/3,CH,True,6.509,3.5,OK,无需重算
+CHTi_F,CHTi1/2/3_F,CH,True,6.509,3.5,OK,无需重算
+OneCH_ml,1,CH,True,6.509,3.5,OK,无需重算
+TiTi,TiTi1/2/3,Ti,True,6.509,3.5,错误(旧par),需重算(脚本已修)
+VTi,VTi1/2/3,V,True,50.9415,23,OK,已于 2026-10-18 超算重算完成
+VCH_ml,1,V,True,,,错误(脚本原缺),需重算(本次已补 ms_shld)
+VCH_ml_F,1,V,True,6.509,3.5,错误(旧par),需重算(本次已补 ms_shld)
+Au/VAuTi,1,V,True,50.9415,23,OK,无需重算
+SNB/SNBVTi1um/2/2_ml/2um/3um,5,V,True,50.9415,23,OK,"SNB 模板, 本就正确"

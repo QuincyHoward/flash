@@ -45,7 +45,7 @@ sys.modules["grad_dens_par_builder"] = _pb
 _spec.loader.exec_module(_pb)
 _build_par, BeamConfig = _pb.build_par, _pb.BeamConfig
 
-from flash.scenarios.base import SimulationScenario
+from flash.scenarios.core.base import SimulationScenario
 from flash.scenarios.scripts.time_control import fit_time_controls
 
 

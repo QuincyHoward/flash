@@ -58,7 +58,7 @@ RUN_MODE = "wsl"
 
 # ── 用户信息（统一走 runner.get_sim_user_dir: credentials → env → hello）──
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 SIM_USER_DIR = _get_sim_user_dir()
@@ -95,7 +95,7 @@ def main():
     print(f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    from flash.scenarios.runner import resolve_run_mode
+    from flash.scenarios.core.runner import resolve_run_mode
     run_mode = resolve_run_mode(RUN_MODE)
     log(f"运行模式: {run_mode} (RUN_MODE={RUN_MODE}, env FLASH_RUN_MODE={os.environ.get('FLASH_RUN_MODE', '-')})", "INFO")
     if run_mode != "wsl":

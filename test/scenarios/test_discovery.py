@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from flash.scenarios.discovery import (
+from flash.scenarios.core.discovery import (
     ManifestError,
     SceneMeta,
     iter_scene_manifests,
@@ -104,7 +104,7 @@ class TestLoadManifest:
 
     def test_policy_object_resolution(self):
         from flash.flash_run.execution import DEFAULT_POLICY
-        from flash.scenarios.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
+        from flash.scenarios.core.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
         assert SceneMeta(name="a", kind="main").policy_object() is DEFAULT_POLICY
         assert SceneMeta(name="a", kind="main",
                          policy="public_scene").policy_object() is PUBLIC_SCENE_POLICY

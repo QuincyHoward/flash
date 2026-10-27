@@ -2,7 +2,7 @@
 import traceback
 from pathlib import Path
 
-from flash.scenarios.registry import get_scenario
+from flash.scenarios.core.registry import get_scenario
 
 sc = get_scenario("thin_layer_sandwich_si")
 print("name:", sc.name)

@@ -144,7 +144,7 @@ if str(_ROOT) not in sys.path:
 
 
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 
@@ -519,7 +519,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     sim_path = SIM_NAME          # FLASHSNB 内单元: SimulationMain/SNBVTi
     par_filename = PAR_FILENAME
 
-    from flash.scenarios.runner import default_nprocs
+    from flash.scenarios.core.runner import default_nprocs
     nprocs = cfg["nprocs"] or default_nprocs(cfg["dimension"], is_hpc=False)
 
     result: Dict[str, str] = {}

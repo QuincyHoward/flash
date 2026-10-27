@@ -10,7 +10,7 @@
     python flash/scenarios/scripts/short_validation.py --tmax 1e-13
     python flash/scenarios/scripts/short_validation.py --scene ch_center
 
-★ 三个场景都走**统一入口** `python -m flash.scenarios.cli run <场景>`，
+★ 三个场景都走**统一入口** `python -m flash.scenarios.core.cli run <场景>`，
   缺省 `--mode auto`（平台自适应）：
     Windows + WSL  → wsl        （Windows 驱动 → WSL 内跑 FLASH）
     WSL / Linux    → local      （本机直跑）
@@ -73,7 +73,7 @@ def main() -> int:
 
     results = []
     for name in targets:
-        cmd = [py, "-m", "flash.scenarios.cli", "run", name,
+        cmd = [py, "-m", "flash.scenarios.core.cli", "run", name,
                "--tmax", f"{args.tmax:g}", "--mode", args.mode]
         print(f"\n[{name}] {' '.join(cmd)}")
         t0 = time.time()

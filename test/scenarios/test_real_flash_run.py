@@ -30,8 +30,8 @@ if str(_PARENT) not in sys.path:
 
 
 try:
-    from flash.scenarios.registry import get_scenario
-    from flash.scenarios.simulator import FlashSimulatorEngine, _flash_detected
+    from flash.scenarios.core.registry import get_scenario
+    from flash.scenarios.core.simulator import FlashSimulatorEngine, _flash_detected
 except ImportError:
     import pytest; pytest.skip("flash package not available", allow_module_level=True)
 
@@ -109,7 +109,7 @@ def test_real_run(scenario_name="ch_center", flash_timeout=300, dry_run=True):
     (或 `python test_real_flash_run.py --real`)。
     """
     import pytest
-    from flash.scenarios.registry import list_scenarios
+    from flash.scenarios.core.registry import list_scenarios
 
     available = [s[0] for s in list_scenarios()]
     if scenario_name not in available:

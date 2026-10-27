@@ -50,7 +50,7 @@ def test_scenarios_package_import():
 def test_registry_list():
     """测试场景注册表列出所有场景"""
     import pytest
-    from flash.scenarios.registry import list_scenarios
+    from flash.scenarios.core.registry import list_scenarios
 
     scenarios = list_scenarios()
     names = [s[0] for s in scenarios]
@@ -75,7 +75,7 @@ def test_registry_list():
 
 def test_each_scenario_metadata():
     """测试每个场景的元信息完整性"""
-    from flash.scenarios.registry import get_scenario, list_scenarios
+    from flash.scenarios.core.registry import get_scenario, list_scenarios
 
     for name, _ in list_scenarios():
         sc = get_scenario(name)
@@ -110,10 +110,10 @@ def test_each_scenario_metadata():
 def test_no_flash_demo_dependency():
     """验证注册场景不依赖 scenarios/flash_demo/ 路径（旧 Demo 目录）
     正式场景完全独立，仅引用自己的 sim_input 目录"""
-    from flash.scenarios.registry import list_scenarios
+    from flash.scenarios.core.registry import list_scenarios
 
     for name, _ in list_scenarios():
-        from flash.scenarios.registry import get_scenario
+        from flash.scenarios.core.registry import get_scenario
         sc = get_scenario(name)
         sim_input_str = str(sc.sim_input_dir)
         scenario_dir_str = str(sc.scenario_dir)

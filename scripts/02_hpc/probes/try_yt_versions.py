@@ -54,7 +54,7 @@ with RemoteSession("flash_ssh") as s:
     # 3. ensure_sim_input 手动诊断
     probe = (
         "import traceback\n"
-        "from flash.scenarios.registry import get_scenario\n"
+        "from flash.scenarios.core.registry import get_scenario\n"
         "sc = get_scenario('ch_center')\n"
         "print('sim_input_dir:', sc.sim_input_dir)\n"
         "try:\n"

@@ -35,7 +35,7 @@ _root = HERE
 while _root != _root.parent and not (_root / "pyproject.toml").exists():
     _root = _root.parent
 sys.path.insert(0, str(_root))
-from flash.scenarios.runner import Remote  # noqa: E402
+from flash.scenarios.core.runner import Remote  # noqa: E402
 
 PY = str(_root / ".venv" / "Scripts" / "python.exe")
 BUSY = {"RUNNING", "PENDING", "COMPLETING", "CONFIGURING", "REQUEUED"}

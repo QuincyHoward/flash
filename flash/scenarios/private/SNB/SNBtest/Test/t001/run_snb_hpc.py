@@ -118,7 +118,7 @@ if str(ROOT) not in sys.path:
 def get_sim_user_dir() -> str:
     """仿真用户目录 (如 QC) — 走凭据系统, 不硬编码。"""
     try:
-        from flash.scenarios.runner import get_sim_user_dir as g
+        from flash.scenarios.core.runner import get_sim_user_dir as g
         v = g()
         return v
     except Exception:  # noqa: BLE001

@@ -84,8 +84,8 @@ def run_grad(
     Returns:
         dict: {run_dir, result_h5, plots, simulated, success}
     """
-    from flash.scenarios.registry import get_scenario
-    from flash.scenarios.simulator import FlashSimulatorEngine
+    from flash.scenarios.core.registry import get_scenario
+    from flash.scenarios.core.simulator import FlashSimulatorEngine
     from flash.scenarios.collision_compression.grad_dens_sandwich import (
         make_super_gaussian_pulse,
     )
@@ -173,7 +173,7 @@ def run_grad(
     print(f"  ✅ pre-sim plots → {_sim_in_dir}/")
 
     # 抑制引擎的旧版预诊断图生成
-    import flash.scenarios.simulator as _sim_mod
+    import flash.scenarios.core.simulator as _sim_mod
     _orig_pre_diag = _sim_mod._generate_pre_diagnosis
     _sim_mod._generate_pre_diagnosis = lambda *a, **kw: None
 

@@ -50,7 +50,7 @@ def _codes(repo: Path) -> set[str]:
 def test_scene02_direct_executor_call(tmp_path):
     repo = _make_repo(tmp_path, {
         "flash/scenarios/bad_dispatch.py": """
-            from flash.scenarios.runner import run_wsl
+            from flash.scenarios.core.runner import run_wsl
             def main(cfg):
                 run_wsl(spec, cfg)
         """,
@@ -111,7 +111,7 @@ def test_scene08_register_call_in_scenarios(tmp_path):
     """去注册化（2026-10-27）：场景层不得再调 registry.register(...)。"""
     repo = _make_repo(tmp_path, {
         "flash/scenarios/public/bad_scene/__init__.py": (
-            'from flash.scenarios.registry import register\n'
+            'from flash.scenarios.core.registry import register\n'
             'register("bad_scene", "flash.scenarios.public.bad_scene", "scenario")\n'
         ),
     })
@@ -148,7 +148,7 @@ def test_layer01_deploy_imports_scenarios_indented(tmp_path):
 def test_layer02a_flash_run_module_level_import(tmp_path):
     repo = _make_repo(tmp_path, {
         "flash/flash_run/bad_fr.py": """
-            from flash.scenarios.insitu_runner import run_insitu
+            from flash.scenarios.core.insitu_runner import run_insitu
         """,
     })
     assert "R-LAYER-02a" in _codes(repo)
@@ -159,7 +159,7 @@ def test_layer02a_allows_function_level_import(tmp_path):
     repo = _make_repo(tmp_path, {
         "flash/flash_run/ok_fr.py": """
             def run():
-                from flash.scenarios.insitu_runner import run_insitu
+                from flash.scenarios.core.insitu_runner import run_insitu
                 return run_insitu
         """,
     })
@@ -203,7 +203,7 @@ def test_good_scene_has_zero_violations(tmp_path):
             SCENE = SceneSpec(name="good", sim_name="Good", objdir="obj", basenm="g_")
 
             def main(argv=None):
-                from flash.scenarios.cli import run_scene_cli
+                from flash.scenarios.core.cli import run_scene_cli
                 return run_scene_cli(SCENE, argv)
         """,
     })

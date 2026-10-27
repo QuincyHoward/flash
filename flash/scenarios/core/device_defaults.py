@@ -17,7 +17,7 @@
 
 ★ 用法
 
-    from flash.scenarios.device_defaults import get_scene_nprocs
+    from flash.scenarios.core.device_defaults import get_scene_nprocs
     NPROCS = get_scene_nprocs("SNBOneCH_ml")      # → 131
 """
 from __future__ import annotations
@@ -52,7 +52,7 @@ def _merge_manifest_nproc() -> None:
         return
     _merged = True
     try:
-        from flash.scenarios.discovery import iter_scene_manifests
+        from flash.scenarios.core.discovery import iter_scene_manifests
     except Exception:
         return
     for meta in iter_scene_manifests():

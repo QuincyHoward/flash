@@ -9,7 +9,7 @@
 
 用法
 ----
-    from flash.scenarios.hints import short_validation_notice, is_short_run
+    from flash.scenarios.core.hints import short_validation_notice, is_short_run
 
     if is_short_run(tmax):
         short_validation_notice(

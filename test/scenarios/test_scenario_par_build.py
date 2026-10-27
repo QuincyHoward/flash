@@ -32,7 +32,7 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 
-from flash.scenarios.registry import get_scenario, list_scenarios
+from flash.scenarios.core.registry import get_scenario, list_scenarios
 
 
 def _available_scenarios() -> list:
@@ -62,7 +62,7 @@ EXPECTED_EOS = {
 
 def test_each_par_generation():
     """测试每个场景的 .par 文件生成"""
-    from flash.scenarios.registry import list_scenarios
+    from flash.scenarios.core.registry import list_scenarios
 
     for name, desc in list_scenarios():
         sc = get_scenario(name)
@@ -178,7 +178,7 @@ def test_par_override():
 
 def test_sim_input_files():
     """测试 sim_input/ 目录中有必要的 FLASH 源文件"""
-    from flash.scenarios.registry import list_scenarios
+    from flash.scenarios.core.registry import list_scenarios
 
     required_files = ["Config", "Makefile",
                       "Simulation_data.F90", "Simulation_init.F90",

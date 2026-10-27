@@ -115,7 +115,7 @@ if str(_ROOT) not in sys.path:
 
 
 def _get_sim_user_dir() -> str:
-    from flash.scenarios.runner import get_sim_user_dir as _sud
+    from flash.scenarios.core.runner import get_sim_user_dir as _sud
     return _sud()
 
 
@@ -378,7 +378,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     sim_path = SIM_NAME          # FLASHSNB 内单元: SimulationMain/SNBOneCH_m
     par_filename = PAR_FILENAME
 
-    from flash.scenarios.runner import default_nprocs
+    from flash.scenarios.core.runner import default_nprocs
     nprocs = cfg["nprocs"] or default_nprocs(cfg["dimension"], is_hpc=False)
 
     result: Dict[str, str] = {}
@@ -1115,7 +1115,7 @@ def _remote_snb_home() -> str:
 #   一律必须是绝对路径, 否则文件会落进名为 "~" 的字面目录
 #   (2026-09-12 事故: 文件落到 <HOME>/~/SNBOneCH_m_deploy, 而 <HOME>/SNBOneCH_m_deploy 为空)。
 # 目录归属用户: ~/<SIM_USER_DIR>/SNBOneCH_m_deploy, <SIM_USER_DIR> 由专用函数
-# flash.scenarios.runner.get_sim_user_dir() 取得 (禁止硬编码用户名)。
+# flash.scenarios.core.runner.get_sim_user_dir() 取得 (禁止硬编码用户名)。
 _DEPLOY_DIR_CACHE: Dict[str, str] = {}
 
 
@@ -1547,8 +1547,8 @@ def run_hpc_insitu(tmax: Optional[str], nproc: int, skip_build: bool = False,
     from flash.flash_run.remote.slurm_control import (
         LocalExecutor, SlurmJobSpec, cores_per_node, detect_partition,
         run_job_chain, sbatch_available)
-    from flash.scenarios.insitu_runner import collect_local
-    from flash.scenarios.runner import allocate_run_id, run_id_name, runs_root
+    from flash.scenarios.core.insitu_runner import collect_local
+    from flash.scenarios.core.runner import allocate_run_id, run_id_name, runs_root
 
     exe = LocalExecutor()
     if not sbatch_available(exe):

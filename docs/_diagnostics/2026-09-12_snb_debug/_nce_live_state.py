@@ -7,7 +7,7 @@ sys.path.insert(0, str(FLASH_ROOT))
 sys.path.insert(0, str(FLASH_ROOT / "flash"))
 
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession  # noqa: E402
-from flash.scenarios.runner import get_sim_user_dir  # noqa: E402
+from flash.scenarios.core.runner import get_sim_user_dir  # noqa: E402
 
 user = get_sim_user_dir()
 DEPLOY = f"$HOME/{user}/SNBOneCH_ml_deploy"

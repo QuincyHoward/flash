@@ -94,8 +94,8 @@ FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网
 **即插即用**:
 
 ```python
-from flash.scenarios.registry import get_scenario
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 engine = FlashSimulatorEngine(get_scenario("thin_layer_sandwich_si"))
 output = engine.run()  # 自动编译→运行→插值→输出
@@ -119,10 +119,10 @@ output = engine.run()  # 自动编译→运行→插值→输出
 **公开场景统一入口**（三个场景，缺省 `--mode auto` 平台自适应）：
 
 ```bash
-python -m flash.scenarios.cli list                          # 列出场景与允许模式
-python -m flash.scenarios.cli run ch_center                # 缺省 auto
-python -m flash.scenarios.cli run grad_dens_sandwich --tmax 1e-13
-python -m flash.scenarios.cli run thin_layer_sandwich_si
+python -m flash.scenarios.core.cli list                          # 列出场景与允许模式
+python -m flash.scenarios.core.cli run ch_center                # 缺省 auto
+python -m flash.scenarios.core.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.core.cli run thin_layer_sandwich_si
 python flash/scenarios/public/short_validation.py          # 三场景一键极短验证 (tmax=1e-13 s)
 ```
 
@@ -298,7 +298,7 @@ plotter.plot("dens", save_path="dens.png")
 备好 `.F90` / `Config` / `cn4` → 定义 `scenario = SimulationScenario(...)` →
 落一份 `scene.json`（name/kind/module/attr/policy 等，模板抄任一现有场景）→
 （可选）复制一份通用 `run.py` 到目录内即可 `python run.py --dry-run` 直跑。
-`flash.scenarios.discovery` 会自动扫描发现，**不改** `registry`/`catalog`/
+`flash.scenarios.core.discovery` 会自动扫描发现，**不改** `registry`/`catalog`/
 父包 `__init__`。超算提交需在 `scene.json` 追加 `"hpc": {...}` 节
 （见 `flash/scenarios/hpc_job.py` 字段白名单）；核数默认值写 `"nproc_default"`。
 
@@ -453,11 +453,11 @@ python start_flash.py --no-tests# 只装环境
 
 ```bash
 # ★ 推荐入口（2026-10-24）：统一 CLI，--mode 默认 auto（平台自适应）
-python -m flash.scenarios.cli run ch_center            # auto：Win→wsl / Linux→local / 登录节点→hpc-insitu
-python -m flash.scenarios.cli run ch_center --mode hpc-insitu   # 已登录超算：就地 sbatch 编排
-python -m flash.scenarios.cli run ch_center --mode hpc-remote   # 本机驱动：上传 → sbatch → 回收
-python -m flash.scenarios.cli explain ch_center        # 只打印判定轨迹，不执行
-python -m flash.scenarios.cli list                     # 列出可执行场景与允许模式
+python -m flash.scenarios.core.cli run ch_center            # auto：Win→wsl / Linux→local / 登录节点→hpc-insitu
+python -m flash.scenarios.core.cli run ch_center --mode hpc-insitu   # 已登录超算：就地 sbatch 编排
+python -m flash.scenarios.core.cli run ch_center --mode hpc-remote   # 本机驱动：上传 → sbatch → 回收
+python -m flash.scenarios.core.cli explain ch_center        # 只打印判定轨迹，不执行
+python -m flash.scenarios.core.cli list                     # 列出可执行场景与允许模式
 
 # 直跑场景脚本（等价，保留兼容；★ 该脚本**没有** argparse，
 #   模式只能由环境变量指定，传 --mode 会被忽略）
@@ -492,11 +492,11 @@ export FLASH_RUN_MODE=hpc-insitu    # bash
 import sys
 sys.path.insert(0, "path/to/physimx_sim/src/physimx_sim")
 
-from flash.scenarios.registry import get_scenario
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 # 列出所有可用场景
-from flash.scenarios.registry import list_scenarios
+from flash.scenarios.core.registry import list_scenarios
 for name, desc in list_scenarios():
     print(f"{name}: {desc}")
 
@@ -600,8 +600,8 @@ print(result.output_data)
 
 | 类 | 包路径 | 说明 |
 |----|--------|------|
-| `FlashSimulatorEngine` | `flash.scenarios.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
-| `SimulationScenario` | `flash.scenarios.base` | 场景声明式配置数据类 |
+| `FlashSimulatorEngine` | `flash.scenarios.core.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
+| `SimulationScenario` | `flash.scenarios.core.base` | 场景声明式配置数据类 |
 | `FlashSimulator` | `flash` | 旧版统一仿真接口, 支持 mock/real 双模式 (旧接口) |
 | `FlashConfig` | `flash.config` | 全局配置管理器 |
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
@@ -671,7 +671,7 @@ python deps_lock/generate_locks.py --check
 python -m flash.flash_run.modes.runner --check-env [--strict]
 
 # 场景统一入口（唯一实现；--mode 默认 auto，平台自适应）
-python -m flash.scenarios.cli list | explain <scene> | run <scene> [--mode ...]
+python -m flash.scenarios.core.cli list | explain <scene> | run <scene> [--mode ...]
 
 # 超算技能统一 CLI（本地/登录节点两侧可调）
 python -m flash.flash_run.hpc status | submit | cancel | wait | download | route-test | nodes
@@ -1173,8 +1173,8 @@ to 2.x), not the OS. **Use the same Python version on both machines.**
 ## Quick Start
 
 ```python
-from flash.scenarios.registry import get_scenario
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 scenario = get_scenario("thin_layer_sandwich_si")
 engine = FlashSimulatorEngine(scenario, verbose=True)
@@ -1192,10 +1192,10 @@ Run the built-in 1D LaserSlab scenario with platform auto-detection:
 
 ```bash
 # Recommended (2026-10-24): the unified CLI, --mode defaults to auto
-python -m flash.scenarios.cli run ch_center                # auto: Win→wsl, Linux→local, login node→hpc-insitu
-python -m flash.scenarios.cli run ch_center --mode hpc-insitu
-python -m flash.scenarios.cli explain ch_center            # print the decision trace only
-python -m flash.scenarios.cli list
+python -m flash.scenarios.core.cli run ch_center                # auto: Win→wsl, Linux→local, login node→hpc-insitu
+python -m flash.scenarios.core.cli run ch_center --mode hpc-insitu
+python -m flash.scenarios.core.cli explain ch_center            # print the decision trace only
+python -m flash.scenarios.core.cli list
 
 # Running the scene script directly still works, but it has **no argparse** —
 # the mode can only be set via the environment variable (a `--mode` flag is ignored):

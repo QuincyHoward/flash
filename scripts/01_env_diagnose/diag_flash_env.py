@@ -18,7 +18,7 @@ if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
 from flash._core.credentials import get_user_name  # noqa: E402
-from flash.scenarios.simulator import _flash_home_candidates, _detect_flash_home  # noqa: E402
+from flash.scenarios.core.simulator import _flash_home_candidates, _detect_flash_home  # noqa: E402
 
 
 def main():

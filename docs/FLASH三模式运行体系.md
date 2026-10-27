@@ -12,7 +12,7 @@
 | ② 超算 SSH 驱动 | `hpc-remote` | Windows python（凭据+RemoteSession） | 超算计算节点（sbatch） | 模式③④ | `FLASH_RUN_MODE=hpc`（别名永续） |
 | ③ 超算就地 | `hpc-insitu` | **超算登录节点**（.venv-hpc-nce） | 超算计算节点（sbatch） | 模式⑤ | `--mode hpc-insitu` / `FLASH_RUN_MODE=hpc-insitu` |
 
-**解析优先级**（`flash.scenarios.runner.resolve_run_mode`）：
+**解析优先级**（`flash.scenarios.core.runner.resolve_run_mode`）：
 `--mode` 显式 > 环境变量 `FLASH_RUN_MODE` > 场景模块常量 `RUN_MODE`。
 ★ 不做平台自动兜底——模式切换必须显式。
 
@@ -70,7 +70,7 @@ venv 路线自带 h5py 3.14 + yt 4.4.0，替代旧 module 路线。
 ## 6. 三端一致性自检
 
 ```bash
-python -m flash.scenarios.runner --check-env
+python -m flash.scenarios.core.runner --check-env
 ```
 报告：平台判定 / venv / FLASH 树（含 SNB 树）/ runs_root 可写性 / slurm 可用性 /
 凭据存在性 / 三模式各自 ✓✗ / git HEAD（对照超算 bundle 同步）。

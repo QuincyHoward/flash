@@ -11,7 +11,7 @@ import h5py
 FLASH_ROOT = Path(r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
 sys.path.insert(0, str(FLASH_ROOT))
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession  # noqa: E402
-from flash.scenarios.runner import get_sim_user_dir  # noqa: E402
+from flash.scenarios.core.runner import get_sim_user_dir  # noqa: E402
 
 user = get_sim_user_dir()
 OBJ = f"$HOME/{user}/FLASH/FLASHSNB/FLASH4.8/SNBOneCH_ml_ug_obj"

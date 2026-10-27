@@ -1,7 +1,7 @@
 """可执行场景目录 —— 名字 → `SceneSpec` 的唯一映射
 ═════════════════════════════════════════════════════════════════════
 
-★ 2026-10-24（解耦计划 B2）：这是 `python -m flash.scenarios.cli` 的目录源。
+★ 2026-10-24（解耦计划 B2）：这是 `python -m flash.scenarios.core.cli` 的目录源。
 
 为什么不用 `registry.py`：那个注册表登记的是**声明式物理场景**
 （`SimulationScenario` 数据类，供引擎 `FlashSimulatorEngine` 用），
@@ -41,9 +41,9 @@ from flash.flash_run.execution import (
     SceneSpec,
     mode_is_remote,
 )
-# ★ 场景族策略在**场景层**（flash.scenarios.policies）——
+# ★ 场景族策略在**场景层**（flash.scenarios.core.policies）——
 #   执行层（flash_run）不认识任何场景。
-from flash.scenarios.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
+from flash.scenarios.core.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
 
 __all__ = ["CatalogEntry", "CATALOG", "list_scenes", "get_scene", "repo_root"]
 
@@ -128,8 +128,8 @@ class CatalogEntry:
             return {"ok": False,
                     "reason": (f"引擎只承接本机执行（local/wsl），当前目标 {target}；"
                                f"该场景的超算执行请用其自带的 sbatch 脚本")}
-        from flash.scenarios.registry import get_scenario
-        from flash.scenarios.simulator import FlashSimulatorEngine
+        from flash.scenarios.core.registry import get_scenario
+        from flash.scenarios.core.simulator import FlashSimulatorEngine
 
         scenario = get_scenario(self.name)
         engine = FlashSimulatorEngine(scenario)
@@ -162,13 +162,13 @@ class CatalogEntry:
 #: ★ 新增可执行算例 = 场景目录里落一份 ``scene.json``，
 #:   **不要**改这里、不要改引擎注册表（见 ``discovery.py``）。
 #: ★ 策略常量（PUBLIC_SCENE_POLICY / SNB_POLICY）在
-#:   `flash.scenarios.policies` —— **场景层**；
+#:   `flash.scenarios.core.policies` —— **场景层**；
 #:   执行层 `flash.flash_run` 只提供通用机制，不含场景信息。
 
 
 def _build_catalog() -> Tuple[CatalogEntry, ...]:
     """扫 ``scene.json`` 构建目录（纯文件扫描，零 import 场景包）。"""
-    from flash.scenarios.discovery import iter_scene_manifests
+    from flash.scenarios.core.discovery import iter_scene_manifests
 
     entries = []
     for meta in iter_scene_manifests():

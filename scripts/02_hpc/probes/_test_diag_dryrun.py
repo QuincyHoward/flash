@@ -15,8 +15,8 @@ print("cwd:", Path.cwd())
 
 
 def test_diag_dryrun():
-    from flash.scenarios.registry import get_scenario
-    from flash.scenarios.simulator import FlashSimulatorEngine
+    from flash.scenarios.core.registry import get_scenario
+    from flash.scenarios.core.simulator import FlashSimulatorEngine
 
     sc = get_scenario("ch_center")
     print("sim_input_dir:", sc.sim_input_dir)

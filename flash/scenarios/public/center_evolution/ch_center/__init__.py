@@ -1,7 +1,7 @@
 """ch_center — CH 靶中心演化场景
 
 CH 泡沫靶 + 两侧 He + 两束 351nm 激光相向 (5e14 W/cm²)。
-使用 flash.scenarios.interpolator 的共享时空插值, 内联 par_builder。
+使用 flash.scenarios.core.interpolator 的共享时空插值, 内联 par_builder。
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ if _PARENT is not None and str(_PARENT) not in sys.path:
 # 本地场景目录
 _HERE = Path(__file__).parent.resolve()
 
-from flash.scenarios.base import SimulationScenario
-from flash.scenarios.interpolator import (
+from flash.scenarios.core.base import SimulationScenario
+from flash.scenarios.core.interpolator import (
     build_variable_grid as _build_variable_grid,
     interpolate_flash_to_grid as _interpolate,
 )

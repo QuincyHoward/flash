@@ -30,7 +30,7 @@
 
 ★ 使用方式
 
-    python -m flash.scenarios.cli submit grad_dens_sandwich --run-id 000002
+    python -m flash.scenarios.core.cli submit grad_dens_sandwich --run-id 000002
 """
 from __future__ import annotations
 
@@ -186,7 +186,7 @@ def _merge_manifest_hpc_jobs() -> None:
         return
     _merged = True
     try:
-        from flash.scenarios.discovery import iter_scene_manifests
+        from flash.scenarios.core.discovery import iter_scene_manifests
     except Exception:
         return   # discovery 不可用时退回纯内置表（与旧行为一致）
     for meta in iter_scene_manifests():

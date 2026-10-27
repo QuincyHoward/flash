@@ -149,7 +149,7 @@ FLASHSNB 原始开发环境未必是当前 gfortran）；先试 `make` 单线程
 
 - run_id 采用 **6 位零填充**（`run_000001`），预留大规模仿真扩展;
 - 新 run_id = 扫描输出目录现有 `run_NNNNNN*` 的最大 id + 1（工具函数
-  `flash.scenarios.runner.allocate_run_id`，自动读取、无需手工记数）;
+  `flash.scenarios.core.runner.allocate_run_id`，自动读取、无需手工记数）;
 - 每次运行的**输入文件快照**存 `flash_input/run_NNNNNN/`（不同 id 的
   par/Config 可能不同，与 flash_output 的分 id 布局对称）;
 - 输出存 `flash_output/outputfiles/run_NNNNNN_<标签>/`，分析图存

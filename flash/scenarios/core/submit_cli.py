@@ -17,9 +17,9 @@
 
 ★ 用法
 
-    python -m flash.scenarios.cli submit grad_dens_sandwich --run-id 000002
-    python -m flash.scenarios.cli submit thin_layer_sandwich_si --ntasks 16
-    python -m flash.scenarios.cli submit grad_dens_sandwich --dry-run
+    python -m flash.scenarios.core.cli submit grad_dens_sandwich --run-id 000002
+    python -m flash.scenarios.core.cli submit thin_layer_sandwich_si --ntasks 16
+    python -m flash.scenarios.core.cli submit grad_dens_sandwich --dry-run
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Optional
 
 from flash.flash_run.env.devices import credential_name
-from flash.scenarios.hpc_job import get_scene_hpc_job
+from flash.scenarios.core.hpc_job import get_scene_hpc_job
 
 
 # ── 路径解析 ────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ def _upload_inputs(decl, input_dir: Path, source_dir: str) -> int:
 
 def main(argv: Optional[list] = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="python -m flash.scenarios.cli submit",
+        prog="python -m flash.scenarios.core.cli submit",
         description="提交场景到超算（作业内完成 stage→编译→运行→归档）")
     ap.add_argument("scene")
     ap.add_argument("--run-id", default="000001")
