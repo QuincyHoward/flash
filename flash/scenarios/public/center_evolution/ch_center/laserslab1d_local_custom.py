@@ -653,17 +653,27 @@ def run_flash_on_hpc(session: RemoteSession, remote_dir: str) -> Tuple[bool, str
     #   chk 当成本轮结果（实测复现：3 个 outputfiles_* 时指向 11:20 的旧目录）。
     #   目录名带时间戳 ⇒ `sort | tail -1` 即最新一轮；hpc-remote 每轮独立
     #   remote_dir，行为不变。
-    out, _, _ = session.run(
-        f"ls -d {remote_dir}/outputfiles_* 2>/dev/null | sort | tail -1 || "
-        f"ls {remote_dir}/outputfiles/*chk* 2>/dev/null | head -1 || "
-        f"echo NO_CHK",
-        timeout=10,
-    )
-    if "NO_CHK" in out or not out.strip():
+    # ★ 2026-10-27 实测竞态：NC-E 登录节点 NFS 属性缓存 —— 作业 COMPLETED 后
+    #   **立即** `ls outputfiles_*` 可能拿到空结果（计算节点刚写完 /publicfs01，
+    #   登录节点 attr cache 未刷新），把成功跑误判成"未找到输出文件"。
+    #   ⇒ 有界重试（6 次 × 5s），拿到目录即止。
+    actual_output = ""
+    for _attempt in range(6):
+        out, _, _ = session.run(
+            f"ls -d {remote_dir}/outputfiles_* 2>/dev/null | sort | tail -1 || "
+            f"ls {remote_dir}/outputfiles/*chk* 2>/dev/null | head -1 || "
+            f"echo NO_CHK",
+            timeout=10,
+        )
+        if "NO_CHK" not in out and out.strip():
+            actual_output = out.strip()
+            break
+        if _attempt < 5:
+            log(f"    输出目录暂不可见 (NFS 缓存? 重试 {_attempt + 1}/5)...", "WARN")
+            time.sleep(5)
+    if not actual_output:
         log("    未找到输出文件!", "WARN")
         return False, ""
-
-    actual_output = out.strip()
     n_chk_out, _, _ = session.run(f"ls {actual_output}/*chk* 2>/dev/null | wc -l", timeout=10)
     try:
         n_chk = int(n_chk_out.strip())
