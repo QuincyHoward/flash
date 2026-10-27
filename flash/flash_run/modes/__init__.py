@@ -8,6 +8,6 @@ flash.flash_run.modes — 三种运行模式的执行体（2026-10-22 自 scenar
   * （运行细节唯一归属本包；scenarios/runner.py 仅是兼容 re-export 壳）
 
 兼容性:
-  * 老脚本 `from flash.scenarios.runner import ...` 全部经 scenarios/runner.py
+  * 老脚本 `from flash.scenarios.core.runner import ...` 全部经 scenarios/runner.py
     壳转发到本包，零修改可跑（含下划线名 _to_wsl_path 等）。
 """

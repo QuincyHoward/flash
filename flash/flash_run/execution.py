@@ -22,8 +22,8 @@
 
 ★ 本模块**不含任何场景族信息**（2026-10-26 拆分）：
     场景族专属策略（如"某族仅超算 + 核数即网格"）归**场景层**
-    `flash.scenarios.policies`；场景专属核数默认值归
-    `flash.scenarios.device_defaults`。执行层只提供**通用机制**。
+    `flash.scenarios.core.policies`；场景专属核数默认值归
+    `flash.scenarios.core.device_defaults`。执行层只提供**通用机制**。
 """
 from __future__ import annotations
 
@@ -144,7 +144,7 @@ DEFAULT_POLICY = ExecutionPolicy()
 # ★★ 场景族策略**不在本模块**（2026-10-26 拆分）
 #   本模块只提供**通用机制**（ExecutionPolicy / NprocRule / resolve_target）。
 #   任何"某场景族只能怎么跑"的约束都属于**场景层** ⇒ 见
-#   `flash.scenarios.policies`（如 SNB 族的"仅超算 + 核数即网格"）。
+#   `flash.scenarios.core.policies`（如 SNB 族的"仅超算 + 核数即网格"）。
 #   ⇒ 执行层内不再出现任何子场景名。
 
 

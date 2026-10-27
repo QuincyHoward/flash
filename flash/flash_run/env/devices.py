@@ -84,7 +84,7 @@ HPC_PARTITION_WIDE = "v6_384"
 #: ★ 为什么在这里：这些是**站点事实**（哪个账户、哪个 venv），
 #:   任何场景都能用 ⇒ 属执行层的装置事实源；
 #:   而"某场景族该用多少核"是**网格事实** ⇒ 归场景层
-#:   `flash.scenarios.device_defaults`。
+#:   `flash.scenarios.core.device_defaults`。
 #:
 #: ★★ `account` 是 **SLURM 计费账户名**，**不是**凭据名！
 #:   凭据名（`flash_ssh`）用于选 SSH 路由；计费账户用于 `#SBATCH --account=`。

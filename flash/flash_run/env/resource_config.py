@@ -576,7 +576,7 @@ def get_resource_config() -> FlashResourceConfig:
 # ⇒ 现在拆成两半：
 #   · **装置侧**（`flash.flash_run.env.devices`）：`DEVICE_DEFAULTS`
 #     —— account / venv / device 档位，与场景无关。
-#   · **场景侧**（`flash.scenarios.device_defaults`）：`SCENE_NPROC_DEFAULTS`
+#   · **场景侧**（`flash.scenarios.core.device_defaults`）：`SCENE_NPROC_DEFAULTS`
 #     —— `nprocs` 等由场景网格决定的值（改核数即改网格 ⇒ 属场景）。
 #
 # 本模块保留的是**通用**资源算法（按维度/装置算 nproc、并行度、内存），

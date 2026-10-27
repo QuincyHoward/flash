@@ -37,9 +37,9 @@ from flash.flash_run.remote.slurm_control import (
     run_job_chain,
     sbatch_available,
 )
-# ★ 2026-10-24（B1）：原为 `from flash.scenarios.runner import ...`（经兼容壳
+# ★ 2026-10-24（B1）：原为 `from flash.scenarios.core.runner import ...`（经兼容壳
 #   回到本包，形成 modes → scenarios → modes 环）。迁入执行层后改为**同包**导入，
-#   环消失；`flash.scenarios.insitu_runner` 现仅为指向本模块的转发壳。
+#   环消失；`flash.scenarios.core.insitu_runner` 现仅为指向本模块的转发壳。
 from .runner import allocate_run_id, detect_native_linux, run_id_name
 
 # ── 超算登录节点探测与 python 解析 ───────────────────────

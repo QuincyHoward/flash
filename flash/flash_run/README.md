@@ -90,14 +90,14 @@ scenarios/  →  flash_run/  →  flash/_core/        （禁止反向依赖）
 
 ```bash
 # 平台自适应（推荐）：--mode 缺省 auto
-python -m flash.scenarios.cli list
-python -m flash.scenarios.cli run <场景>                    # auto
-python -m flash.scenarios.cli run <场景> --mode wsl --tmax 2e-10
-python -m flash.scenarios.cli explain <场景>                 # 只打印目标判定轨迹
+python -m flash.scenarios.core.cli list
+python -m flash.scenarios.core.cli run <场景>                    # auto
+python -m flash.scenarios.core.cli run <场景> --mode wsl --tmax 2e-10
+python -m flash.scenarios.core.cli explain <场景>                 # 只打印目标判定轨迹
 
 # 提交超算（作业内 stage → 编译 → 运行 → 归档）
-python -m flash.scenarios.cli submit <场景> [--run-id 000002] [--ntasks 16]
-python -m flash.scenarios.cli submit <场景> --dry-run         # 只渲染作业脚本
+python -m flash.scenarios.core.cli submit <场景> [--run-id 000002] [--ntasks 16]
+python -m flash.scenarios.core.cli submit <场景> --dry-run         # 只渲染作业脚本
 ```
 
 ### 5.2 超算技能 CLI
@@ -134,7 +134,7 @@ VENV      = device_default("insitu_venv") # → .venv-hpc-nce
 CRED      = credential_name()             # → flash_ssh（★ SSH 凭据名，选路由用）
 
 # 场景专属默认值（**场景层**）：核数等由网格决定的量
-from flash.scenarios.device_defaults import get_scene_nprocs
+from flash.scenarios.core.device_defaults import get_scene_nprocs
 NPROCS  = get_scene_nprocs("SNBOneCH_ml")  # → 131
 ```
 
@@ -148,9 +148,9 @@ account/partition combination specified"）——
 
 | 场景层内容 | 归属模块 |
 |---|---|
-| 场景族执行策略（仅超算 / 核数即网格） | `flash.scenarios.policies` |
-| 场景专属核数默认值 | `flash.scenarios.device_defaults` |
-| 场景超算提交声明（输入目录 / 单元名 / setup 参数） | `flash.scenarios.hpc_job` |
+| 场景族执行策略（仅超算 / 核数即网格） | `flash.scenarios.core.policies` |
+| 场景专属核数默认值 | `flash.scenarios.core.device_defaults` |
+| 场景超算提交声明（输入目录 / 单元名 / setup 参数） | `flash.scenarios.core.hpc_job` |
 | 通用超算提交实现（渲染 → 落盘 → sbatch） | `flash.flash_run.remote.job_submit` |
 
 护栏 `R-LAYER-03` 机械校验：执行层出现场景名即 CI 失败。
@@ -262,7 +262,7 @@ chk 滤掉——basenm 必须从 .par 解析（如 `lasslab_`）；
 python -m flash.flash_run.hpc route-test                 # 路由实测择优
 python -m flash.flash_run.remote.route_tester            # 同上（模块直跑）
 python -m flash.flash_run.env.resource_config            # 查看资源配置
-python -m flash.scenarios.cli list                       # 场景清单（统一入口）
+python -m flash.scenarios.core.cli list                       # 场景清单（统一入口）
 ```
 
 ## 11. 已知边界（挂账）

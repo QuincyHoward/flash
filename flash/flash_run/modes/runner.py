@@ -555,7 +555,7 @@ class Remote:
     （与 remote_deploy / remote_ssh_helper / SNB._HpcRemote 重复）。现降级为
     薄适配层，**保留全部 8 个方法**（connect/close/run/upload/download/
     exists/listdir/__enter__/__exit__）：5 个工具脚本从
-    `flash.scenarios.runner` 导入它且不在 CI 内，删类会静默失联。
+    `flash.scenarios.core.runner` 导入它且不在 CI 内，删类会静默失联。
     """
 
     def __init__(self, credential: str = "flash_ssh",
@@ -1008,7 +1008,7 @@ def _check_env(strict: bool = False) -> int:
 
     try:
         import flash.scenarios as _scen
-        from flash.scenarios.registry import list_scenarios
+        from flash.scenarios.core.registry import list_scenarios
 
         _scenes = list_scenarios()
         _n_ok = sum(1 for _, d in _scenes if d != "(加载失败)")

@@ -145,7 +145,7 @@ RULES: tuple[Rule, ...] = (
          r"\bregister\s*\(\s*[\"']",
          "2026-10-27 去注册化：场景层**禁止**调用 registry.register()"
          "（import 副作用链已废除）；场景声明一律写本目录 scene.json，"
-         "由 flash.scenarios.discovery 扫描发现（引擎 API "
+         "由 flash.scenarios.core.discovery 扫描发现（引擎 API "
          "register() 仅保留为运行时扩展点）",
          allow=r"^\s*#"),
     Rule("R-LAYER-01", "deploy",
@@ -161,9 +161,9 @@ RULES: tuple[Rule, ...] = (
          r"\b(SNBOneCH|SNBVTi|SNB_POLICY|ch_center|chcenter"
          r"|thin_layer_sandwich|grad_dens_sandwich|laserslab1d_local_custom)\w*",
          "执行层（flash_run）**不得包含子场景信息**："
-         "场景族策略 → flash.scenarios.policies；"
-         "场景核数默认值 → flash.scenarios.device_defaults；"
-         "场景超算提交声明 → flash.scenarios.hpc_job；"
+         "场景族策略 → flash.scenarios.core.policies；"
+         "场景核数默认值 → flash.scenarios.core.device_defaults；"
+         "场景超算提交声明 → flash.scenarios.core.hpc_job；"
          "通用提交实现 → flash.flash_run.remote.job_submit"),
 )
 

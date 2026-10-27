@@ -26,8 +26,8 @@ _PARENT = _FLASH_ROOT.parent                     # .../sim (含 flash 包)
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))
 
-from flash.scenarios.registry import get_scenario
-from flash.scenarios.simulator import FlashSimulatorEngine
+from flash.scenarios.core.registry import get_scenario
+from flash.scenarios.core.simulator import FlashSimulatorEngine
 
 # 默认对比密度 (g/cm³)
 DEFAULT_DENSITIES = [0.5, 2.0]
