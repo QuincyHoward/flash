@@ -78,6 +78,8 @@ def build_env_block(profile: str, flash_home: str) -> str:
                             只补 FLASH 树 Makefile.h 指定的 HDF5 运行库。
     """
     if profile == "nce_qc_flash_sim":
+        # ★ 装置事实只从 devices 取（函数内延迟 import，R-LAYER-02a）
+        from flash.flash_run.env.devices import INTEL2018_MPI_BIN, runtime_lib_dirs
         return "\n".join([
             "# 运行期环境（禁 mpich 模块：它带 Intel 2018 MPI，会与 oneAPI",
             "# 2022.1 编译产物版本不匹配 ⇒ MPI_Init SIGSEGV）",
