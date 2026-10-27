@@ -213,7 +213,9 @@ def iter_scene_manifests(bases: Tuple[Path, ...] = ()) -> Iterator[SceneMeta]:
                 continue
             # ★ 场景目录深度不一（ch_center 在 2 级、sandwich 3 级、
             #   SNB 4 级）⇒ 必须递归扫，不能只看一层。
-            for mf in sorted(part_dir.rglob(MANIFEST_NAME)):
+            # ★ 一目录多场景（2026-10-27）：triplet 族（VTi/TiTi/CHTi…）
+            #   同目录含 3 个变体 ⇒ 支持 ``scene.<名>.json`` 命名。
+            for mf in sorted(part_dir.rglob("scene*.json")):
                 meta = load_manifest(mf)
                 # name/alias 全局唯一
                 for key in (meta.name, *meta.aliases):

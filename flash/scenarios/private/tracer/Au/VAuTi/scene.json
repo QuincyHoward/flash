@@ -1,0 +1,8 @@
+{
+  "name": "VAuTi",
+  "kind": "main",
+  "description": "V/Au/Ti 多层示踪 (5e14 W/cm²)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/Au.VAuTi.VAuTi",
+  "script": ""
+}

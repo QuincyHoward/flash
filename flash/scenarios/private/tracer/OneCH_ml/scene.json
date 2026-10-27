@@ -1,0 +1,8 @@
+{
+  "name": "OneCH_ml",
+  "kind": "main",
+  "description": "纯 CH 多薄层 (ML 群组; 内置 1e-11 极短验证); FLASH_RUN_MODE=hpc 走超算",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/OneCH_ml.OneCH_ml",
+  "script": ""
+}

@@ -1,0 +1,8 @@
+{
+  "name": "VCH_ml",
+  "kind": "main",
+  "description": "V/CH 多薄层 (ML 群组)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/VCH_ml.VCH_ml",
+  "script": ""
+}

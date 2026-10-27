@@ -1,0 +1,8 @@
+{
+  "name": "OneC_ml",
+  "kind": "main",
+  "description": "纯 C 多薄层 (ML 群组)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/OneC_ml.OneC_ml",
+  "script": ""
+}

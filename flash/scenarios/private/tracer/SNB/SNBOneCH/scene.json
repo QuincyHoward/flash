@@ -1,0 +1,8 @@
+{
+  "name": "SNBOneCH",
+  "kind": "script",
+  "description": "SNB 非局域 + OneCH 几何 (131 核; --stage 分阶段); 仅超算",
+  "policy": "snb",
+  "module": "",
+  "script": "flash/scenarios/private/tracer/SNB/SNBOneCH/SNBOneCH.py"
+}

@@ -160,13 +160,11 @@ class TestIterManifests:
 class TestRealRepo:
     """真仓冒烟：当前 5 个可执行场景都应被纯文件扫描发现（零 import）。"""
 
-    def test_real_repo_discovers_five(self):
+    def test_real_repo_discovers_scenes(self):
         metas = list(iter_scene_manifests())
-        # 真仓 2026-10-27：5 个基础场景 + 6 个 SNBVTi（hpc 自声明）全部
-        # 应被纯文件扫描发现（零 import）；或为 0（尚未迁移的旧检出）
+        # 真仓 2026-10-27：基础 5 + SNBVTi 6 + 私有 ml/triplet 族 23 ≈ 34；
+        # 至少应发现基础 5 个（防止发现器回归到"扫不到"）
         names = {m.name for m in metas}
-        expected = {"ch_center", "grad_dens_sandwich", "thin_layer_sandwich_si",
-                    "SNBOneCH_m", "SNBOneCH_ml",
-                    "SNBVTi1um", "SNBVTi2um", "SNBVTi3um",
-                    "SNBVTi1umx", "SNBVTi2umx", "SNBVTi3umx"}
-        assert names == expected or names == set()
+        base5 = {"ch_center", "grad_dens_sandwich",
+                 "thin_layer_sandwich_si", "SNBOneCH_m", "SNBOneCH_ml"}
+        assert base5 <= names, f"基础场景缺失: {base5 - names}"

@@ -1,0 +1,8 @@
+{
+  "name": "OneC_ml_F",
+  "kind": "main",
+  "description": "纯 C 多薄层 (F 变体)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/OneC_ml_F.OneC_ml_F",
+  "script": ""
+}
