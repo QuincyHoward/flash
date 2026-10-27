@@ -67,7 +67,7 @@ SNBOneCH/
 ## 4. 用法
 
 ```bash
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 cd flash/scenarios/private/tracer/SNB/SNBOneCH
 
 $PY SNBOneCH.py --stage generate    # 只生成输入（含承重键 + 键集自检）

@@ -676,5 +676,5 @@ L13: 0.77094687E+01 0.78044479E+01 0.78642049E+01 0.79024432E+01
 ### 附：本素材涉及的采样命令与产物
 
 - 抽取产物（本目录 `.workbuddy/tmp/`）：`sesame_dump.txt`、`atomic_dump.txt`、`fds_gui.txt`、`src_sesame_ledcop.md`（本文件）；复用 `docext/Atomic(LEDCOP)说明.txt`、`docext/Restart.txt`。
-- 解释器：`C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe`（docx/正则/定宽解析）。
+- 解释器：`%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe`（docx/正则/定宽解析）。
 - **所有源文件均未修改。**

@@ -955,7 +955,7 @@ Hyades ASCII EOS 与 IONMIX `.cn4`/`.cnr` 的头部解码、`ntrad` 反解、计
 ### 4.1 解释器（必须用托管 venv）
 
 ```
-C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 ```
 
 ### 4.2 数据根（所有探针的相对基准）

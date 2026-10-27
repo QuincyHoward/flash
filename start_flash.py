@@ -31,7 +31,7 @@ start_flash.py — flash 包「环境自检自愈 + 从零安装 + 全局测试�
   - 使用项目专属虚拟环境 <项目根目录>/.venv（IDE 默认识别的标准命名），
     确保脚本安装的环境 = IDE/用户实际执行脚本的解释器，避免"装了却 import 不到"。
     与其他项目完全隔离，绝不触碰共享环境
-    （如 C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default）
+    （如 %USERPROFILE%\\.workbuddy\\binaries\\python\\envs\\default）
 
 用法：
   python start_flash.py
@@ -96,7 +96,7 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 # 项目专属虚拟环境：位于项目根目录下，与其他项目完全隔离。
 # 使用 .venv（IDE 默认识别的标准命名），确保 start_flash.py 安装的环境
 # 与 IDE/用户实际执行脚本所用的解释器一致，避免"装了却 import 不到"。
-# 绝不使用/删除共享环境（如 C:\Users\Administrator\.workbuddy\binaries\python\envs\default）。
+# 绝不使用/删除共享环境（如 %USERPROFILE%\.workbuddy\binaries\python\envs\default）。
 DEFAULT_VENV_DIR = os.path.join(PROJECT_DIR, ".venv")
 # base 解释器探测顺序: FLASH_BASE_PY 环境变量 → 当前解释器(非 venv) → 下方硬编码兜底。
 # 不在此硬编码本机用户路径（start_flash.py 会随 sdist 发布，避免隐私泄漏）。

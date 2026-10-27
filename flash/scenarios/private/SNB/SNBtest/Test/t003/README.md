@@ -59,7 +59,7 @@
 
 ```bash
 cd <此目录>
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 
 # 输入（含补丁自检 + 受控性自检）
 $PY scripts/generate/gen_t003_inputs.py

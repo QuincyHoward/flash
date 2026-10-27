@@ -85,5 +85,5 @@ for k, rows in sorted(res.items()):
     print(f"      dt==dt_hydro 的比例 = {(np.isclose(dts:=np.array([r['dt'] for r in rows]), dh, rtol=1e-3)).mean()*100:.1f}%  "
           f"(=> CFL/hydro 限速主导)")
 
-json.dump(summary, open(r"C:\Users\Administrator\_perf_summary.json", "w"), indent=1)
-print("\n-> C:\\Users\\Administrator\\_perf_summary.json")
+json.dump(summary, open(str(Path.home() / "_perf_summary.json"), "w"), indent=1)
+print("\n-> %USERPROFILE%\\_perf_summary.json")

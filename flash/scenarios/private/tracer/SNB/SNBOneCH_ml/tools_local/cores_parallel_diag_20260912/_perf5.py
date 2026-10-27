@@ -99,5 +99,5 @@ for k, rows in sorted(res.items()):
     cfl = np.unique([r["cfl"] for r in rows])
     dd = np.array([r["dtDiff"] for r in rows]); dx = np.array([r["dtHeatXc"] for r in rows])
     print(f"n{n}: cfl={cfl}  dtDiff[{dd.min():.3e},{dd.max():.3e}]  dtHeatXc[{dx.min():.3e},{dx.max():.3e}]")
-json.dump(summ, open(r"C:\Users\Administrator\_perf_summary.json", "w"), indent=1)
-print("\n-> C:\\Users\\Administrator\\_perf_summary.json")
+json.dump(summ, open(str(Path.home() / "_perf_summary.json"), "w"), indent=1)
+print("\n-> %USERPROFILE%\\_perf_summary.json")

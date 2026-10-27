@@ -251,7 +251,7 @@ SNB 多群解对钳位敏感，而 SH 单标量解基本不敏感。**不能因 
 ### 5.3 复现命令
 
 ```bash
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 cd flash/scenarios/private/SNB/SNBtest/Test/t006/flnone_test
 
 $PY run_flnone_test.py --stage prep            # 生成 par + 键级差分自检

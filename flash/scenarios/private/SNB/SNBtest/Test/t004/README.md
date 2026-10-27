@@ -72,7 +72,7 @@
 
 ```bash
 cd <此目录>
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 
 # 生成四腿输入（含变体同步 + 受控性自检）
 $PY scripts/generate/gen_t004_inputs.py

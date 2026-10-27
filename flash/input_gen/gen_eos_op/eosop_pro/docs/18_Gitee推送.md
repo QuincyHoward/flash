@@ -24,7 +24,7 @@
 $ python scripts/07_gitee_publish.py --check
 
 [1/4] 读取凭据（只读）...
-  ✓ 凭据来源 : file:C:\Users\Administrator\.physimx\flash\credentials.enc
+  ✓ 凭据来源 : file:C:\Users\<用户名>\.physimx\flash\credentials.enc
   ✓ token    : 34997126…（已打码）
   ✓ login    : quincyhoward
 

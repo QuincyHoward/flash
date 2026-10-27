@@ -76,5 +76,6 @@ for r in rows:
     hrs = left * r["s_per_step"] / 3600
     print(f"  n{r['cores']:>3}: 剩余 {left:>10.0f} 步  预计 {hrs:>8.1f} h  ({hrs/24:.1f} 天)")
 
-json.dump(rows, open(r"C:\Users\Administrator\_scaling_verdict.json", "w"), indent=1)
-print("\n-> C:\\Users\\Administrator\\_scaling_verdict.json")
+from pathlib import Path
+json.dump(rows, open(str(Path.home() / "_scaling_verdict.json"), "w"), indent=1)
+print("\n-> %USERPROFILE%\\_scaling_verdict.json")

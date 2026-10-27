@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """生成 src/multi_src/README.md 与 EXCLUDED.md（文件清单由实际目录扫描得出）。"""
 import os
+from pathlib import Path
 
 ROOT = r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\input_gen\gen_eos_op'
 DST = os.path.join(ROOT, 'src', 'multi_src')
@@ -120,7 +121,7 @@ A('')
 A('### 4.1 解释器（必须用托管 venv）')
 A('')
 A('```')
-A('C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe')
+A(str(Path.home() / '.workbuddy/binaries/python/envs/default/Scripts/python.exe'))
 A('```')
 A('')
 A('### 4.2 数据根（所有探针的相对基准）')

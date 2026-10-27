@@ -54,7 +54,7 @@ def repo_root() -> Path:
 # ── Windows 本地环境 ────────────────────────────────────────
 
 def win_home() -> Path:
-    """当前用户 Windows 家目录（%USERPROFILE%），替代 ``C:\\Users\\Administrator``。"""
+    """当前用户 Windows 家目录（%USERPROFILE%），替代写死的 ``C:\\Users\\<用户名>``。"""
     return Path.home()
 
 

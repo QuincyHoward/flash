@@ -552,7 +552,7 @@ ntrad = rem / (2·ntemp·ndens)
 
 ```bash
 # 1) 复核 cn4 解析（18 块计数闭合 + 逐场单位）
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 cd <repo>/eosop_pro
 $PY -c "
 import sys; sys.path.insert(0,'.')

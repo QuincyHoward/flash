@@ -263,8 +263,9 @@ def test_bats_have_single_backslash_venv_path():
     两者都能"看起来像路径"，所以用值断言而不是目视。
     """
     bs = chr(92)
-    want = bs.join(["C:", "Users", "Administrator", ".workbuddy",
-                    "binaries", "python", "envs", "default"])
+    # %USERPROFILE% = 当前用户家目录（cmd 运行期展开；2026-10-27 去硬编码用户名）
+    want = "%USERPROFILE%" + bs + bs.join([".workbuddy", "binaries", "python",
+                                           "envs", "default"])
     bad = []
     for p in _bats():
         lines = [ln for ln in p.read_bytes().decode("ascii").splitlines()

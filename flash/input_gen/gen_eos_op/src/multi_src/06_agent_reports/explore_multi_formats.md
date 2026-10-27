@@ -4,7 +4,7 @@
 - 清查范围: `doc\`（含 Conservation / FEOS / References / gnuplot_files_for_plot / multi1d7.6 / solution of unsymmetry 子目录）+ `matter++\` 根及全部子目录
 - 目的: 为撰写一份 8 万字以上的中文技术文档「Multi EOS/不透明度数据格式」清点所有可用的格式说明类文档与数据文件格式特征
 - 方法: 纯只读；目录枚举 + 纯文本文档全读 + Office(docx/xlsx) 用 python zipfile 解包抽取 + 旧版 .doc(OLE2) 原始 UTF-16 流扫描 + 代表性数据文件头采样
-- 注意: 本机 shell 无 coreutils，全部通过 `C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe` 与 Read/Glob/Grep 完成
+- 注意: 本机 shell 无 coreutils，全部通过 `%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe` 与 Read/Glob/Grep 完成
 
 ---
 

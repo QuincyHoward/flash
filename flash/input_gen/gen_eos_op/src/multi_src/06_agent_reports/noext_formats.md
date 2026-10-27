@@ -2,7 +2,7 @@
 
 > 采集/逆向：probe-noext（2026-09-18）
 > 工作目录：`E:/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/input_gen/gen_eos_op`
-> 解释器：`C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe`
+> 解释器：`%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe`
 > 样本根：`src/Multi1D++Portable20241128/matter++/`
 >
 > **判定标签约定**（每个结论必须带其一）：

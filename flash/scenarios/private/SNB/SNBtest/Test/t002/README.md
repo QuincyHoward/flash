@@ -38,7 +38,7 @@
 
 ```bash
 cd <此目录>
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 
 # 生成两腿输入（含 par 一致性自检）
 $PY scripts/generate/gen_t002_inputs.py --model both --nxb 64 --iprocs 8

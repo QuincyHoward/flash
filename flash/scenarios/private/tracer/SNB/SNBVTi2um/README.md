@@ -31,7 +31,7 @@
 
 ```bash
 cd <flash 包根目录>
-PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 
 # ① 只生成输入文件（含辐射三开关 + radON 驱动静态断言）
 $PY flash/scenarios/private/tracer/SNB/SNBVTi2um/SNBVTi2um.py --generate-only

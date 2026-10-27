@@ -70,7 +70,7 @@ cd /mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash
 ```
 
 `wsl-hpc` 的凭据处理：WSL 内 `HOME` 默认 `/root`，其中没有 `~/.physimx`；
-驱动会把 `HOME` 指向 `/mnt/c/Users/Administrator`（**只读引用**，不复制、
+驱动会把 `HOME` 指向 `/mnt/c/Users/<Windows用户名>`（**只读引用**，不复制、
 不修改凭据），并用 `FLASH_SSH_BACKEND=paramiko` 直连。
 
 ### 3.4 超算就地（`hpc-insitu`）
@@ -144,7 +144,7 @@ eV（÷11604.518）；中心分析区 |x| ≤ 5 µm（与场景 `analysis_half_w
 | `FLASH_FETCH_LIMIT` | `0` | 回传全部帧（交互模式默认只取 10） |
 | `FLASH_LS_LIMIT` | `2000` | 远端 `ls \| head` 上限（默认 50 会截断批量矩阵） |
 | `FLASH_SSH_BACKEND` | `paramiko`（wsl-hpc） | WSL 内 paramiko 直连 |
-| `HOME` | `/mnt/c/Users/Administrator`（wsl-hpc） | 凭据来源（只读） |
+| `HOME` | `/mnt/c/Users/<Windows用户名>`（wsl-hpc） | 凭据来源（只读） |
 | `FLASH_WSL_WORK_ROOT` | `/root/flash_modes_work` | WSL 工作根目录（可改；禁 `/mnt/*`） |
 
 > 注：**不设** `FLASH_NO_MODULE_PURGE` —— ch_center 二进制已预置，超算作业走

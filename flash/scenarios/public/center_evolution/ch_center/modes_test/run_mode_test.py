@@ -83,8 +83,28 @@ MODE_KEYS: Dict[str, Dict[str, str]] = {
                    "desc": "HPC python -> HPC (insitu sbatch)"},
 }
 
-#: WSL 内可见的 Windows 用户主目录（凭据 ~/.physimx 的来源；只读使用）
-WIN_HOME = Path("/mnt/c/Users/Administrator")
+#: WSL 内可见的 Windows 用户主目录（凭据 ~/.physimx 的来源；只读使用）。
+#: 运行期解析（env FLASH_WIN_HOME → cmd.exe 探测当前 Windows 用户），
+#: 绝不硬编码用户名（2026-10-27 全库去硬编码）。
+def _detect_win_home() -> Path:
+    env = os.environ.get("FLASH_WIN_HOME")
+    if env:
+        return Path(env)
+    if os.name != "nt":  # WSL / linux
+        import subprocess
+        try:
+            out = subprocess.run(["cmd.exe", "/c", "echo %USERNAME%"],
+                                 capture_output=True, text=True, timeout=15)
+            lines = (out.stdout or "").strip().splitlines()
+            user = lines[-1].strip() if lines else ""
+        except Exception:
+            user = ""
+        if user and user != "%USERNAME%" and Path(f"/mnt/c/Users/{user}").is_dir():
+            return Path(f"/mnt/c/Users/{user}")
+    return Path.home()
+
+
+WIN_HOME = _detect_win_home()
 #: WSL 内的 Linux venv（含 paramiko/h5py/yt/matplotlib）
 WSL_PY_REL = ".venv-linux/bin/python"
 #: WSL 运行的本地工作目录根（**必须是 WSL 原生 ext4，禁用 /mnt/*）——

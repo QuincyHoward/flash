@@ -5,7 +5,7 @@
     `start_flash.py`（win/wsl 安装，全文 0 处 sbatch/ssh 感知）
     `deploy/hpc_deploy/run_all.py`（超算 11 步链）
   用户必须记住两套命令，且 `run_all.py` 第 42 行写死了本机
-  `C:\\Users\\Administrator\\...python.exe`（换机即失效）。
+  `%USERPROFILE%\\...python.exe`（换机即失效）。
 
 本模块把「在哪部署」收敛成一个名字，`start_flash.py --target` 消费它：
 

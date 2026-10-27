@@ -197,5 +197,5 @@ mat_Be-1.0/opbe   550,932 B
       src/multi_src/04_probe/02_multigroup_planck/q_zeff.py        （ZEFF 结构）
       src/multi_src/04_probe/02_multigroup_planck/q_opbe.py        （opbe 溯源）
 结果：src/multi_src/04_probe/02_multigroup_planck/census_mg2.txt   （404 文件逐条）
-解释器：C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+解释器：%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
 ```

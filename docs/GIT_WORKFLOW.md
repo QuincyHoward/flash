@@ -305,7 +305,7 @@ git merge feat/new-feature
 
 ```bash
 # 默认路径 (WSL)
-/c/Users/Administrator/.workbuddy/binaries/python/versions/3.13.12/python.exe
+/c/Users/<用户名>/.workbuddy/binaries/python/versions/3.13.12/python.exe
 
 # 自定义 Python 路径
 export PYTHON=/usr/bin/python3

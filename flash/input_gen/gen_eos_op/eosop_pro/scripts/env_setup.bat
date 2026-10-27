@@ -2,8 +2,8 @@
 REM Create the managed venv and install deps. Double-clickable. ASCII only.
 REM Line endings are CRLF on purpose (cmd.exe multi-line blocks).
 setlocal
-set VENV=C:\Users\Administrator\.workbuddy\binaries\python\envs\default
-set PY=C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe
+set VENV=%USERPROFILE%\.workbuddy\binaries\python\envs\default
+set PY=%USERPROFILE%\.workbuddy\binaries\python\versions\3.13.12\python.exe
 if not exist "%VENV%\Scripts\python.exe" (
   echo [1/3] creating venv ...
   "%PY%" -m venv "%VENV%"

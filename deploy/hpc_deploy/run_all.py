@@ -40,7 +40,7 @@ ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
 TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
 REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
-#: ★ 2026-10-24：原 MANAGED_PY 写死本机 `C:\Users\Administrator\...python.exe`
+#: ★ 2026-10-24：原 MANAGED_PY 写死本机 `%USERPROFILE%\...python.exe`
 #:   （换机即失效，且该解释器无 cryptography/paramiko）。已删除 —— 解释器
 #:   选择统一走 `pick_py()` → flash.flash_run.env.venv_paths。
 
@@ -73,7 +73,7 @@ def pick_py() -> str:
          01a 用新 venv、02/05/06/07 用旧 venv（缺包时症状是"解密失败"，
          完全指不到 venv）。
       2. 旧实现**不读 `FLASH_VENV_DIR`** ⇒ 部署链里注入的 venv 被忽略。
-      3. 旧实现兜底到写死的 `C:\\Users\\Administrator\\...python.exe`
+      3. 旧实现兜底到写死的 `%USERPROFILE%\\...python.exe`
          （换机/换用户即失效，且该解释器没有 cryptography/paramiko）。
     """
     env_dir = os.environ.get("FLASH_VENV_DIR", "").strip()

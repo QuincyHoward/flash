@@ -4,7 +4,7 @@ REM -> convert+h5 -> plots -> zero-prior inference -> prune reports -> tests.
 REM ASCII-only launcher (Windows cmd GBK safe). CRLF on purpose.
 setlocal
 set ROOT=%~dp0..
-set VENV=C:\Users\Administrator\.workbuddy\binaries\python\envs\default
+set VENV=%USERPROFILE%\.workbuddy\binaries\python\envs\default
 set PYEXE=%VENV%\Scripts\python.exe
 if not exist "%PYEXE%" (
   echo venv missing, run env_setup.bat first

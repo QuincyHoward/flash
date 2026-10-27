@@ -56,5 +56,5 @@ for k, rows in res.items():
         print(f"  n{k}: {n} 步 / {W} s = {W/n:.4f} s/step   (JobID {jid})")
     else:
         print(f"  n{k}: {n} 步 (墙钟未记录)")
-json.dump({k: v[-50:] for k, v in res.items()}, open(Path(r"C:\Users\Administrator\_perf_tail.json"), "w"), indent=1)
-print("-> C:\\Users\\Administrator\\_perf_tail.json")
+json.dump({k: v[-50:] for k, v in res.items()}, open(Path.home() / "_perf_tail.json", "w"), indent=1)
+print("-> %USERPROFILE%\\_perf_tail.json")

@@ -46,7 +46,7 @@
 
 用法
 ----
-    PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+    PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
     cd flash/scenarios/private/SNB/SNBtest/Test/t006
 
     $PY run_t006.py                      # 全流程 (generate → run → check → plot)

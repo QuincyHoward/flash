@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""盘点两处 tmp 目录：C:\\Users\\Administrator\\.workbuddy\\tmp 与工作区 .workbuddy/tmp"""
+"""盘点两处 tmp 目录：%USERPROFILE%\\.workbuddy\\tmp 与工作区 .workbuddy/tmp"""
 import os
+from pathlib import Path
 
 CANDS = [
-    r'C:\Users\Administrator\.workbuddy\tmp',
-    r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\input_gen\gen_eos_op\.workbuddy\tmp',
+    str(Path.home() / '.workbuddy' / 'tmp'),
+    str(Path(__file__).resolve().parents[3] / '.workbuddy' / 'tmp'),
 ]
 
 for d in CANDS:

@@ -369,7 +369,7 @@ L7  |-2.00000000e+00-1.70005421e+00-1.40010842e+00-1.10016263e+00|   (4 个数, 
 运行方式：
 
 ```bash
-C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe \
+%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe \
   .workbuddy/tmp/run_capture.py .workbuddy/tmp/xval_s14.py .workbuddy/tmp/out.log
 ```
 

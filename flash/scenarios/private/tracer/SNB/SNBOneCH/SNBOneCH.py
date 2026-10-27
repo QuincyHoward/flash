@@ -42,7 +42,7 @@ SNB 设置（本场景默认）
 
 用法
 ----
-    PY=C:/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+    PY=%USERPROFILE%/.workbuddy/binaries/python/envs/default/Scripts/python.exe
     cd flash/scenarios/private/tracer/SNB/SNBOneCH
 
     $PY SNBOneCH.py --stage generate      # 生成场景输入（不编译）

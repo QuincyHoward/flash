@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""对 C:\\Users\\Administrator\\.workbuddy\\tmp 做相关性分类盘点。"""
+"""对 %USERPROFILE%\\.workbuddy\\tmp 做相关性分类盘点。"""
 import os, json, re
+from pathlib import Path
 
-D = r'C:\Users\Administrator\.workbuddy\tmp'
-OUT = r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\input_gen\gen_eos_op\.workbuddy\tmp\inv_classified.txt'
+D = str(Path.home() / '.workbuddy' / 'tmp')
+OUT = str(Path(__file__).resolve().parents[3] / '.workbuddy' / 'tmp' / 'inv_classified.txt')
 
 # 与 MultiEOSOP格式说明.md 直接相关的关键词
 KW = [
