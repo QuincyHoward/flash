@@ -146,12 +146,26 @@ class JobLayout:
 
         ★ 必须在 `scratch_probe_script()` **之后**调用 ——
           FL_SCRATCH_ROOT 此时才是真正的节点本地快盘路径。
+
+        ★★ 多节点作业的 RUN_DIR 必须落**共享盘**：scratch 是节点本地的，
+          第 1 个节点上 `cp flash4 → FL_RUN_DIR` 之后，节点 2/3 根本看不到
+          该文件 ⇒ mpiexec/srun 在远端节点 `execvp error: ./flash4
+          (No such file or directory)`（2026-10-27 作业 4926829/37/38
+          实测：SNB 125 任务 × 3 节点全数因此失败；单节点 QC 场景
+          从未暴露）。BUILD_DIR 不受影响——编译只发生在启动节点。
         """
         return "\n".join([
             f'export {prefix}_SCRATCH_ROOT="${{{prefix}_SCRATCH_BASE}}/'
             f'${{{prefix}_SCRATCH_PREFIX}}"',
             f'export {prefix}_BUILD_DIR="{self.scratch_build}"',
-            f'export {prefix}_RUN_DIR="{self.scratch_run}"',
+            f'if [ "${{SLURM_JOB_NUM_NODES:-1}}" -gt 1 ]; then',
+            f'  export {prefix}_RUN_DIR="${{{prefix}_SHARED_ROOT}}/'
+            f'scratch_run_${{SLURM_JOB_ID:-$$}}"',
+            f'  echo "[layout] 多节点作业 ⇒ RUN_DIR 落共享盘 '
+            f'(${{{prefix}_RUN_DIR}})"',
+            f'else',
+            f'  export {prefix}_RUN_DIR="{self.scratch_run}"',
+            f'fi',
         ])
 
     def prepare_dirs(self, prefix: str = "FL") -> str:

@@ -63,7 +63,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_sub.add_argument("--run-id", default="000001")
     p_sub.add_argument("--ntasks", type=int, default=None,
                        help="MPI rank 数（默认取场景声明；必须 ≤ nblockx）")
-    p_sub.add_argument("--nodes", type=int, default=1)
+    p_sub.add_argument("--nodes", type=int, default=None,
+                       help="节点数（默认取场景声明；★ 缺省不传, 防止把"
+                            "多节点场景压回单节点超订运行）")
+    p_sub.add_argument("--tmax", default=None,
+                       help="终止时间（秒, 如 2.4e-9）；local_upload 档传给"
+                            "场景生成脚本覆写 par 的 tmax")
     p_sub.add_argument("--cpus-per-task", type=int, default=1)
     p_sub.add_argument("--time-limit", default=None)
     p_sub.add_argument("--mem-per-node", default="")
@@ -96,8 +101,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         #   场景声明在 flash.scenarios.hpc_job，执行在 flash.flash_run。
         from flash.scenarios.submit_cli import main as submit_main
 
-        argv = ["--run-id", ns.run_id, "--nodes", str(ns.nodes),
-                "--cpus-per-task", str(ns.cpus_per_task)]
+        argv = ["--run-id", ns.run_id, "--cpus-per-task", str(ns.cpus_per_task)]
+        if ns.nodes is not None:
+            argv += ["--nodes", str(ns.nodes)]
+        if ns.tmax:
+            argv += ["--tmax", ns.tmax]
         if ns.ntasks is not None:
             argv += ["--ntasks", str(ns.ntasks)]
         if ns.time_limit:

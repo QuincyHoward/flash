@@ -76,6 +76,10 @@ class JobRequest:
     bin_name: str = "flash4"
     marker: str = "FLASH_JOB_DONE"
     timeout: int = 7200
+    #: make -j 前先单独烘的竞态目标（机制字段, 场景列表由声明层传入）。
+    pre_build_targets: Sequence[str] = ()
+    #: make 并行度上限（0 = 不限）。
+    make_jobs_max: int = 0
 
     def build_spec(self) -> BuildSpec:
         """编译步骤规格（由请求派生）。"""
@@ -86,6 +90,8 @@ class JobRequest:
             par_file=self.par_file,
             bin_name=self.bin_name,
             source_dir=self.source_dir,
+            pre_build_targets=tuple(self.pre_build_targets),
+            make_jobs_max=self.make_jobs_max,
         )
 
     def run_spec(self) -> RunSpec:

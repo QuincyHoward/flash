@@ -62,6 +62,13 @@ class BuildSpec:
     par_file: str = ""
     bin_name: str = "flash4"
     source_dir: str = ""
+    #: make -j 之前先单独烘的目标（竞态修复）。★ 纯机制：目标列表由
+    #: 场景声明给出，本模块不含任何场景信息。2026-09 实测：SNB 覆盖的
+    #: hy_slopeLimiters 与 Conductivity 全量并行编译存在竞态。
+    pre_build_targets: Sequence[str] = ()
+    #: make 并行度上限（0 = 不限）。★ 多节点作业按 SLURM 环境算出的
+    #: -j 可能远超单节点内存可承载的并发编译数。
+    make_jobs_max: int = 0
 
     def setup_cmd(self, objdir_var: str = "$FL_BUILD_DIR",
                   stdin_answer: str = "") -> str:
@@ -176,6 +183,12 @@ def render_job_body(
                 f'echo "[layout] 源文件就绪: '
                 f'$(find "{sim_main}" -maxdepth 1 -type f | wc -l) 个"')
         parts.append(compile_parallel_jobs())
+        if build.make_jobs_max > 0:
+            parts.append(
+                f'[ "${{FL_MAKE_JOBS:-1}}" -gt {build.make_jobs_max} ] && '
+                f'FL_MAKE_JOBS={build.make_jobs_max}\n'
+                f'echo "[layout] make 并行度钳制 → -j$FL_MAKE_JOBS '
+                f'(上限 {build.make_jobs_max})"')
         parts.append(f'cd "{build.flash_home}"')
         # ★★ setup 必须**非交互**：它在 objdir 里遇到"实体 .F90"（非符号
         #   链接）时会 input() 提问 "will be deleted by setup. Continue? [Y/n]"
@@ -185,7 +198,22 @@ def render_job_body(
         #   （等价于"同意删除并重建符号链接"），残留实体文件也不阻塞。
         parts.append(build.setup_cmd(f'"${{FL_BUILD_DIR}}"', stdin_answer="Y"))
         parts.append(f'cd "${{FL_BUILD_DIR}}"')
-        parts.append('make -j"$FL_MAKE_JOBS"')
+        # ★ pre-build 竞态目标必须在 **setup 之后**（objdir 的 Makefile 由
+        #   setup 生成；setup 之前 objdir 为空 ⇒ "No rule to make target"，
+        #   2026-10-27 作业 4926819 实测）。且 `|| true`：个别目标可能
+        #   无对应规则（非竞态目标集时），不能因此中止整个作业。
+        if build.pre_build_targets:
+            targets = " ".join(build.pre_build_targets)
+            parts.append(
+                f'# ── pre-build：先单独烘竞态目标（setup 之后）──\n'
+                f'make -j"$FL_MAKE_JOBS" {targets} '
+                f'2>&1 | tail -2 || true')
+        # ★ 闸门（§V 教训：make 失败绝不能静默流入运行步）
+        parts.append(
+            f'make -j"$FL_MAKE_JOBS" || {{ echo MAKE_FAIL; exit 3; }}')
+        parts.append(
+            f'[ -x "${{{prefix}_BUILD_DIR}}/{build.bin_name}" ] || '
+            f'{{ echo BUILD_FAIL_NO_{build.bin_name.upper()}; exit 3; }}')
         parts.append(f'cp -f "${{{prefix}_BUILD_DIR}}/{build.bin_name}" '
                      f'"${{{prefix}_RUN_DIR}}/"')
 
@@ -206,6 +234,12 @@ def render_job_body(
 
     # ── 4. archive：scratch → shared ──
     parts.append(layout.archive_outputs(archive_patterns, prefix=prefix))
+    # ★ 闸门（§V）：有运行步 ⇒ 成功 = 产物数 > 0；零产物显式失败，
+    #   防止"作业 COMPLETED 但实际什么都没跑出来"的假成功。
+    if run is not None:
+        parts.append(
+            f'[ "$(ls -1 "${{{prefix}_OUTPUT_DIR}}" 2>/dev/null | wc -l)" -gt 0 ] || '
+            f'{{ echo ARCHIVE_EMPTY_FAIL; exit 4; }}')
 
     return "\n".join(parts)
 
