@@ -68,7 +68,7 @@ def build_par_text(model: str, nxb: int, iprocs: int,
     仅 model 专属键不同 (basenm / log_file / diff_eleFlMode / plot_var 白名单)。
     """
     from flash.input_gen.gen_par import ParGeneratorExtended
-    from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+    from flash.scenarios.scripts._par_layers import CH_FLASH_PAR
 
     leg = C.LEGS[model]
     P = C.PARAMS
