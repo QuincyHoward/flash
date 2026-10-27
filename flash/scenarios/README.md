@@ -693,7 +693,7 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 
 ## 超算（NC-E）实测记录（2026-10-26）
 
-三个公开场景在超算 **NC-E（scfa2696，分区 v5_192）全部跑通**：
+三个公开场景在超算 **NC-E（分区 v5_192）全部跑通**：
 
 | 场景 | 作业号 | 状态 | 耗时 | chk | 提交方式 |
 |---|---|---|---|---|---|

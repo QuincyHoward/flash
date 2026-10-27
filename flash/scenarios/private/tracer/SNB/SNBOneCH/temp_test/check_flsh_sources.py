@@ -27,6 +27,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import List, Tuple
@@ -49,7 +50,7 @@ from flash.output_processors.hdf5processor import DataCalculator    # noqa: E402
 # ── 路径 ──────────────────────────────────────────────────────
 CHK_DIR = _ROOT / "flash" / "scenarios" / "private" / "tracer" / "OneCH_ml" \
     / "flash_output" / "outputfiles" / "run_000001"
-H5_PATH = Path(r"E:\ProgramsPATH\VMware\SharedFiles\Ubuntu24\FLASHWorkspace"
+H5_PATH = Path(os.environ["FLASH_OLD_VM_WS"]  # 例: <旧 VM 工作区>\FLASHWorkspace；
                r"\python3\pycharm\PhysicsResearchTools\src\project\Report"
                r"\Report_ICMRE\Paper_My\SimComp\CASES_Comp\data\OneCH.h5")
 

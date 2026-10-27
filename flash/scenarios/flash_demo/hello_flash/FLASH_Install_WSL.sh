@@ -34,8 +34,8 @@ cd ~/tmp
 
 # 复制压缩包到临时目录（从Windows文件系统）
 echo "复制压缩包到临时目录..."
-cp /mnt/d/WSL/WorkSpace/mainPATH/FLASH/FLASH_need/*.tar.gz .
-cp /mnt/d/WSL/WorkSpace/mainPATH/FLASH/FLASH_need/*.tar .
+cp ${FLASH_LOCAL_ROOT:?请先 export FLASH_LOCAL_ROOT=<本机 FLASH 安装材料根目录>}/FLASH_need/*.tar.gz .
+cp ${FLASH_LOCAL_ROOT:?请先 export FLASH_LOCAL_ROOT=<本机 FLASH 安装材料根目录>}/FLASH_need/*.tar .
 
 # 解压所有压缩包
 echo "解压压缩包..."
@@ -220,17 +220,17 @@ echo "清理编译文件: rm -rf ~/tmp"
 #############
 nano ~/.bashrc
 #mpich
-export MPI_HOME=/mnt/d/WSL/WorkSpace/mainPATH/FLASH/FLASH_local/mpich
+export MPI_HOME=${FLASH_LOCAL_ROOT:?请先 export FLASH_LOCAL_ROOT=<本机 FLASH 安装材料根目录>}/FLASH_local/mpich
 export PATH=$MPI_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$MPI_HOME/lib:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=$MPI_HOME/include:$C_INCLUDE_PATH
 #hdf5
-export HDF5_HOME=/mnt/d/WSL/WorkSpace/mainPATH/FLASH/FLASH_local/hdf5
+export HDF5_HOME=${FLASH_LOCAL_ROOT:?请先 export FLASH_LOCAL_ROOT=<本机 FLASH 安装材料根目录>}/FLASH_local/hdf5
 export PATH=$HDF5_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$HDF5_HOME/lib:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=$HDF5_HOME/include:$C_INCLUDE_PATH
 #hypre
-export HYPRE_HOME=/mnt/d/WSL/WorkSpace/mainPATH/FLASH/FLASH_local/hypre
+export HYPRE_HOME=${FLASH_LOCAL_ROOT:?请先 export FLASH_LOCAL_ROOT=<本机 FLASH 安装材料根目录>}/FLASH_local/hypre
 export LD_LIBRARY_PATH=$HYPRE_HOME/lib:$LD_LIBRARY_PATH
 export C_INCLUDE_PATH=$HYPRE_HOME/include:$C_INCLUDE_PATH
 

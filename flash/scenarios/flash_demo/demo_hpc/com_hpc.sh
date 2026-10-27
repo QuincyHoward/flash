@@ -18,7 +18,7 @@ sacct -u sch0348 -S 2025-08-25 -E 2025-09-10 \
 
 #
 # 查看运行时间状态等 宁夏
-sacct -u scfa2696 -S 2026-07-02 -E 2026-07-28 \
+sacct -u $USER -S 2026-07-02 -E 2026-07-28 \
   --format=jobid,jobname,partition,alloccpus,start,end,elapsed,state,nodelist -X
 
 

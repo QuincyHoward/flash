@@ -6,11 +6,12 @@
   B. sftp.open + prefetch      (显式 prefetch + 32KB 读)
   C. sftp.open(prefetch) + 大包 max_packet_size + 1MB 读块
 """
+from pathlib import Path
 import os
 import sys
 import time
 
-REPO = r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash"
+REPO = str(Path(__file__).resolve().parents[1])
 sys.path.insert(0, REPO)
 
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import (  # noqa: E402
@@ -21,8 +22,7 @@ import paramiko  # noqa: E402
 route = _resolve_route_and_credential("flash_ssh")
 HOST, PORT, USER, PWD = route["host"], int(route["port"]), route["username"], route["password"]
 
-REMOTE = ("/publicfs01/fs1-e/home/scfa2696/QC/FLASH/FLASHSNB/FLASH4.8"
-          "/SNBVTi1um_ug_obj/snbvti1umug_hdf5_chk_0100")
+REMOTE = os.environ["FLASH_HPC_FLASHSNB"] + os.environ.get("FLASH_HPC_FLASHSNB_SUB", "")  # 例: <家目录>/QC/FLASH/FLASHSNB/FLASH4.8
 TMP = os.path.join(REPO, "_bench_sftp.bin")
 
 cli = paramiko.SSHClient()

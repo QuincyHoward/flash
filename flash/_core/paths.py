@@ -47,7 +47,7 @@ __all__ = [
 
 def repo_root() -> Path:
     """仓库根目录。由本文件位置推导（flash/_core/paths.py → parents[2]），
-    与克隆位置/盘符/机器无关，替代一切 ``E:\\PhySimX\\...`` 字面量。"""
+    与克隆位置/盘符/机器无关，替代一切写死的仓库绝对路径字面量。"""
     return Path(__file__).resolve().parents[2]
 
 

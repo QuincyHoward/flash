@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import re
+import os
 from pathlib import Path
 
 import h5py
@@ -26,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
-OLD_ROOT = Path("E:/ProgramsPATH/VMware/SharedFiles/Ubuntu24/FLASHWorkspace/"
+OLD_ROOT = Path(os.environ["FLASH_OLD_VM_WS"])  # 旧 VM 工作区（显式注入，如 <旧VM工作区>/FLASHWorkspace）
                 "FLASHProjectData/data/input")
 OLD_TS = {"1": "20260331_205557", "2": "20260331_215819", "3": "20260331_231147"}
 SPECIES = ("cham", "samp", "shld", "targ")

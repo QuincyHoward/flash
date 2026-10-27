@@ -50,7 +50,7 @@ ROOT = SCRIPT_DIR.parents[4]
 # ── 直接复用核心模块的既有函数与常量 (禁止重写) ─────────────
 import SNBOneCH_ml as M  # noqa: E402
 
-ACCOUNT = "flash_ssh"          # NC-E scfa2696
+ACCOUNT = "flash_ssh"          # NC-E
 TMAX_DEFAULT = "2.0e-10"       # 短时; 与上一轮 131 核基线同 tmax, 便于时间戳配对比对
 CORES_DEFAULT = "131,192,256"
 PARTITION_FALLBACK = "v5_192"

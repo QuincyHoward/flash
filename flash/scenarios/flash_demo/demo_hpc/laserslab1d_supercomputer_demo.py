@@ -17,7 +17,7 @@ FLASH LaserSlab1D 超算运行 Demo v4.0（超算端绘图版 · 一键完成）
   - 真正一键完成全流程
 
 运行方式:
-  cd E:/ProgramsPATH/AI/WorkBuddy/WorkBuddyFiles/AItest/Plan_for_py/PhySimX
+  cd <仓库根>
   python physimx_sim/src/physimx_sim/flash/flash_demo/laserslab1d_supercomputer_demo.py
 """
 

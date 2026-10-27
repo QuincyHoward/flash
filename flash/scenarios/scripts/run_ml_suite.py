@@ -16,8 +16,8 @@ run_ml_suite — 一键顺序执行 tracer/ 全部 ml 系列场景
   时自动重新生成输入文件, 不会静默沿用旧值)。
 
 夜间执行示例 (Windows, 项目 venv):
-  E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\.venv\\Scripts\\python.exe ^
-      E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\scenarios\\private\\tracer\\run_ml_suite.py
+  <仓库根>\\.venv\\Scripts\\python.exe ^
+      <仓库根>\\flash\\scenarios\\private\\tracer\\run_ml_suite.py
   # 全部 9 场景 @1e-11 约 15-20 min; 只跑新场景:
   #   ... run_ml_suite.py --only CHTi1,CHTi2,CHTi3,VCH_ml_F,CHTi1_F,CHTi2_F,CHTi3_F
 

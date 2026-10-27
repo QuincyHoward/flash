@@ -11,7 +11,7 @@ remote_ssh_helper.RemoteSession) 的流程: 凭据动态路由 + RemoteSession +
 sbatch + sacct 轮询 + SCP 下载。
 
 账号/分区/工具链 (每账号独立, 脚本自动探测):
-  flash_ssh   (scfa2696@NC-E)   分区 v5_192,   常规树 FCOMP=oneAPI mpiifort
+  flash_ssh   (NC-E)   分区 v5_192,   常规树 FCOMP=oneAPI mpiifort
   flash_ssh_2 (sch0348@BSCC-T6) 分区 v6_384,   常规树 FCOMP=${MPI_PATH}/bin/mpif90
 
 用法:
@@ -469,7 +469,7 @@ def collect_outputs(remote: Remote, snb_home: str, account: str,
 def main() -> int:
     ap = argparse.ArgumentParser(description="SNB 场景 HPC 一键执行")
     ap.add_argument("--account", default="flash_ssh", choices=["flash_ssh", "flash_ssh_2"],
-                    help="凭据账号名 (默认 flash_ssh=scfa2696)")
+                    help="凭据账号名 (默认 flash_ssh=NC-E)")
     ap.add_argument("--tmax", default="1.0e-11", help="覆写 tmax (默认 1.0e-11)")
     ap.add_argument("--nproc", type=int, default=4, help="MPI 进程数 (默认 4)")
     ap.add_argument("--partition", default="", help="SLURM 分区 (默认按账号自动探测)")

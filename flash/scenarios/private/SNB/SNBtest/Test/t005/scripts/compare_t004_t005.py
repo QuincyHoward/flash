@@ -1,14 +1,15 @@
 """对比 t004 (成功基线) 与 t005 (修复后) 的 SNB 腿逐帧量。"""
 import sys
 from pathlib import Path
+_FLASH_PKG = Path(__file__).resolve().parents[8] / 'flash'  # 仓库根/flash 包目录
 import h5py
 import numpy as np
 
 RUNS = {
-    't004/snb/radon': Path(r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash'
+    't004/snb/radon': Path(str(_FLASH_PKG) +
                            r'\scenarios\private\SNB\SNBtest\Test\t004\sim_snb'
                            r'\flash_output\radon'),
-    't005/snb/radon': Path(r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash'
+    't005/snb/radon': Path(str(_FLASH_PKG) +
                            r'\scenarios\private\SNB\SNBtest\Test\t005\scene'
                            r'\flash_output\sim_snb\radon'),
 }

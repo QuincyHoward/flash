@@ -2,7 +2,8 @@
 # probe2_snb_tree.sh - 二轮探测：影子机制与缺失单元细节
 set -u
 SNB="$HOME/QC/FLASH/FLASHSNB/FLASH4.8"
-STAGE="/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB"
+REPO="$(cd "$(dirname "$0")/../../../../../.." && pwd)"   # t001/scripts → 仓库根（7 级向上）
+STAGE="$REPO/flash/scenarios/private/SNB/SNBtest/src/SNB"
 PHY="$STAGE/physics/physics"
 
 echo "=== [A] setup script exists ==="

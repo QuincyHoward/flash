@@ -26,7 +26,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "..", ".."))
 PY = sys.executable
 
-ACCOUNT = "flash_ssh"        # NC-E scfa2696
+ACCOUNT = "flash_ssh"        # NC-E
 NPROC = 131                  # +ug: nproc = iProcs = 块数 → dx=0.0298 µm
 TMAX_SMOKE = "1.0e-11"       # 全流程冒烟
 TMAX_FINAL = "1.6e-9"        # CH 示踪规范结束时间

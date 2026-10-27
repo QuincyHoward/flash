@@ -1,0 +1,19 @@
+=== try: https://fti.neep.wisc.edu/fti.neep.wisc.edu/pdf/fdm750.pdf
+   status: 200 ctype: application/pdf clen: 1855335
+   FAIL: IncompleteRead IncompleteRead(31923 bytes read, 1823412 more expected)
+=== try: https://fti.neep.wisc.edu/pdf/fdm750.pdf
+   FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>
+=== try: http://fti.neep.wisc.edu/fti.neep.wisc.edu/pdf/fdm750.pdf
+   FAIL: HTTPError HTTP Error 502: Bad Gateway
+
+=== GitHub reachability probe ===
+--- https://api.github.com/orgs/prism-codes/repos?per_page=100
+    FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>
+--- https://api.github.com/orgs/uwplasma/repos?per_page=100
+    FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>
+--- https://api.github.com/search/repositories?q=ionmix&per_page=50
+    FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>
+--- https://api.github.com/search/code?q=ionmix+extension:cn4
+    FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>
+--- https://api.github.com/search/repositories?q=opacplot2&per_page=20
+    FAIL: URLError <urlopen error Tunnel connection failed: 502 Bad Gateway>

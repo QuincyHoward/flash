@@ -20,7 +20,7 @@
     }
   },
   "hpc": {
-    "scfa2696": {
+    "nc_e": {
       "node_mem_total_gb": 64,
       "1d": {
         "nprocs": 16,
@@ -41,7 +41,7 @@
         "partition": "big"
       }
     },
-    "sch0348": {
+    "bscc_t6": {
       "node_mem_total_gb": 128,
       "1d": {
         "nprocs": 32,

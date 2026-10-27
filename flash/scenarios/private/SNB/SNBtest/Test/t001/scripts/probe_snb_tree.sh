@@ -4,7 +4,8 @@
 set -u
 SNB="$HOME/QC/FLASH/FLASHSNB/FLASH4.8"
 SRC="$SNB/source/physics"
-STAGE="/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB"
+REPO="$(cd "$(dirname "$0")/../../../../../.." && pwd)"   # t001/scripts → 仓库根（7 级向上）
+STAGE="$REPO/flash/scenarios/private/SNB/SNBtest/src/SNB"
 
 echo "=== [0] tree root ==="
 ls "$SNB" 2>&1 | head -20

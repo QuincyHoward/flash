@@ -15,8 +15,8 @@ run_titi_suite — 一键顺序执行 TiTi 家族三场景 (TiTi1/2/3)
   旧值)。
 
 夜间执行示例 (Windows, 项目 venv):
-  E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\.venv\\Scripts\\python.exe ^
-      E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\scenarios\\private\\tracer\\run_titi_suite.py
+  <仓库根>\\.venv\\Scripts\\python.exe ^
+      <仓库根>\\flash\\scenarios\\private\\tracer\\run_titi_suite.py
   # 全部 3 场景 @1.6e-9 约 5-7 h (参考 OneCH_ml 正式跑 113 min/场景);
   # 极短验证: ... run_titi_suite.py --tmax 1.0e-11
   # 只跑部分: ... run_titi_suite.py --only TiTi1,TiTi3

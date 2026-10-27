@@ -11,7 +11,7 @@
 >
 > 单位制：**CGS**（密度 g/cm³、温度 K、长度 cm、时间 s）。
 >
-> 参考文件（绝对路径前缀 `E:\PhySimX\PhySimX\simulation\flash\flash_src\FLASH4.8\FLASH4.8\`）：
+> 参考文件（绝对路径前缀 `<FLASH4.8 源码解压根>`）：
 > - `source/physics/utilities/PlasmaState/PlasmaStateMain/PlasmaState_tau.F90`        —— **标准**碰撞时间 τ（ee/ei/ii），ELE_ION 分支 = 单次碰撞时间（本文采用）
 > - `source/physics/materialProperties/Viscosity/ViscosityMain/Spitzer/visc_logLambda.F90` —— Atzeni 形式库仑对数（**不含 m_ion**，b_max/b_min 与本文公式逐字符一致）——**本文库仑对数源码**
 > - `source/physics/utilities/PlasmaState/PlasmaStateMain/PlasmaState_logLambda.F90`  —— 库仑对数替代实现（Spitzer / LeeMore 两形式，ELE_ION 用约化质量 μ；重离子极限下退化为 visc_logLambda）

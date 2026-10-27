@@ -1,6 +1,6 @@
 # 超算仿真交付清单（2026-10-18，ms_shld 修正后重算）
 
-远程账号 `flash_ssh` = scfa2696@NC-E（分区 `v5_192`，7 核/作业）
+远程账号 `flash_ssh` = NC-E（分区 `v5_192`，7 核/作业）
 统一参数：`tmax = 1.6e-9 s`，1D Cartesian AMR，激光 5e14 W/cm²
 
 ---
@@ -24,7 +24,7 @@
 
 ## 2. 本地存放位置（Windows）
 
-工作根：`E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private\tracer\`
+工作根：`<仓库根>\flash\scenarios\private\tracer\`
 
 ### 2.1 输出（HDF5 帧 + 运行日志）
 

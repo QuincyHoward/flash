@@ -3,8 +3,8 @@
 # 用法: wsl -d Ubuntu-22.04 bash <此脚本路径>
 set -u
 
-W=/root/QC/FLASH/FLASHSNB/FLASH4.8/source/Simulation/SimulationMain/SNB_1D_laser
-R=/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB/SNB_1D_laser/SNB_1D_laser
+W="${FLASHSNB_SRC:?请设置 FLASHSNB_SRC=<WSL 内 FLASHSNB 工作副本>/source/Simulation/SimulationMain/SNB_1D_laser}"
+R="$(cd "$(dirname "$0")/../../../../../.." && pwd)/flash/scenarios/private/SNB/SNBtest/src/SNB/SNB_1D_laser/SNB_1D_laser"   # 8 级向上到仓库根
 
 echo "仓库副本 = $R"
 echo "工作副本 = $W"

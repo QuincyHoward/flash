@@ -130,7 +130,7 @@ ff.close()
 
 ```bash
 # 本地运行 Demo
-cd E:/ProgramsPATH/AI/WorkBuddy/WorkBuddyFiles/AItest/Plan_for_py/PhySimX
+cd <仓库根>
 python -m physimx_sim.flash.scenarios.flash_demo.demo_local.laserslab1d_local_demo
 
 # 超算运行 Demo
@@ -175,7 +175,7 @@ demo_task/laserslab1d_local_demo/
 **一键执行方式**:
 ```bash
 # 方式 1: 使用 Python Demo 脚本（推荐）
-cd E:/ProgramsPATH/AI/WorkBuddy/WorkBuddyFiles/AItest/Plan_for_py/PhySimX
+cd <仓库根>
 python -m physimx_sim.flash.scenarios.flash_demo.demo_local.laserslab1d_local_demo
 
 # 方式 2: 直接运行独立文件夹中的脚本

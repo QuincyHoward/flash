@@ -39,7 +39,7 @@ ch_center/modes_test/
 ### 3.1 Windows → WSL（`win-wsl`）
 
 ```bat
-cd /d E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash
+cd /d <仓库根>
 .venv\Scripts\python.exe flash\scenarios\public\center_evolution\ch_center\modes_test\run_mode_test.py --mode-key win-wsl --tmax 2e-10
 ```
 
@@ -65,7 +65,7 @@ Windows 上直接调用会自动转投 WSL 执行（驱动进程必须真的在 
 等价地，在 WSL 内手动执行：
 
 ```bash
-cd /mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash
+cd <仓库根>（WSL: /mnt/e/…）
 .venv-linux/bin/python flash/scenarios/public/center_evolution/ch_center/modes_test/run_mode_test.py --mode-key wsl-wsl --tmax 2e-10
 ```
 
@@ -81,7 +81,7 @@ cd /mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash
 ```bash
 # 同步（任选其一：git 同步链，或直接 scp 本目录）
 scp -r flash/scenarios/public/center_evolution/ch_center/modes_test \
-    scfa2696@<hpc>:~/PhySimX/PhySimX/simulation/flash/flash_sim/flash/scenarios/public/center_evolution/ch_center/
+    <账号>@<hpc>:~/PhySimX/PhySimX/simulation/flash/flash_sim/flash/scenarios/public/center_evolution/ch_center/
 
 # 超算登录节点执行（建议 nohup + 轮询日志，防网络断连）
 cd ~/PhySimX/PhySimX/simulation/flash/flash_sim

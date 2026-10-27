@@ -5,7 +5,8 @@
 set -euo pipefail
 
 SNB="$HOME/QC/FLASH/FLASHSNB/FLASH4.8"
-STAGE="/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB"
+REPO="$(cd "$(dirname "$0")/../../../../../.." && pwd)"   # t001/scripts → 仓库根（7 级向上）
+STAGE="$REPO/flash/scenarios/private/SNB/SNBtest/src/SNB"
 PHY="$STAGE/physics/physics"
 APP_SRC="$STAGE/SNB_1D_laser/SNB_1D_laser"
 

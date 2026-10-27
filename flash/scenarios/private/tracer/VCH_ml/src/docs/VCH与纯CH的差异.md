@@ -4,7 +4,7 @@
 
 | 侧 | 位置 | 说明 |
 |----|------|------|
-| 纯 CH (REF) | `E:\ProgramsPATH\VMware\SharedFiles\Ubuntu24\FLASHWorkspace\FLASHProjectData\data\input\CH_CH_**um8.00e-02` 系列（以 CH_CH_02um8.00e-02 为基准，各厚度变体的 F90 一致） | 旧 VM 工作区的纯 CH 基准运行（ LaserSlab 修改版，shld/samp/targ 均为 CH） |
+| 纯 CH (REF) | `<旧 VM 工作区>\FLASHProjectData\data\input\CH_CH_**um8.00e-02` 系列（以 CH_CH_02um8.00e-02 为基准，各厚度变体的 F90 一致） | 旧 VM 工作区的纯 CH 基准运行（ LaserSlab 修改版，shld/samp/targ 均为 CH） |
 | VCH (OURS) | `flash\scenarios\private\tracer\layer_tracer_CH_ml`（快照 `flash_input/run_000001`） | PhySimX 8 物种 V 屏蔽 + CH 示踪层场景 |
 
 对比方法：`tr -d '\r'` 归一化换行后逐文件 `diff`；par 用数值感知的逐参数语义对比

@@ -1,10 +1,11 @@
 """穷尽比对 t004 与 t005 的 SNB 侧 flash_input 全部文件 (含非 F90)。"""
 import hashlib
 from pathlib import Path
+_FLASH_PKG = Path(__file__).resolve().parents[8] / 'flash'  # 仓库根/flash 包目录
 
-T004 = Path(r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash'
+T004 = Path(str(_FLASH_PKG) +
             r'\scenarios\private\SNB\SNBtest\Test\t004\sim_snb\flash_input')
-T005 = Path(r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash'
+T005 = Path(str(_FLASH_PKG) +
             r'\scenarios\private\SNB\SNBtest\Test\t005\scene\sim_snb\flash_input')
 
 

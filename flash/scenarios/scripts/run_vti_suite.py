@@ -18,8 +18,8 @@ build_vti_family.py 从 TiTi/TiTi1.py 换块生成, 正文逐字节相同。
   旧值)。
 
 夜间执行示例 (Windows, 项目 venv):
-  E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\.venv\\Scripts\\python.exe ^
-      E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\flash\\scenarios\\private\\tracer\\run_vti_suite.py
+  <仓库根>\\.venv\\Scripts\\python.exe ^
+      <仓库根>\\flash\\scenarios\\private\\tracer\\run_vti_suite.py
   # 全部 3 场景 @1.6e-9 约 6 h (实测 TiTi 118-123 min/场景, 本家族同规模);
   # 极短验证: ... run_vti_suite.py --tmax 1.0e-13
   # 只跑部分: ... run_vti_suite.py --only VTi1,VTi3

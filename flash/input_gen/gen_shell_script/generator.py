@@ -77,11 +77,11 @@ ed_maxPulseSections=300 \
         resource_config.json 结构:
           {
             "local": { "wsl_ubuntu22": { "1d": {...}, "2d": {...}, ... } },
-            "hpc":   { "scfa2696": {...}, "sch0348": {...} }
+            "hpc":   { "nc_e": {...}, "bscc_t6": {...} }
           }
 
         platform 格式:
-          - "hpc/scfa2696"  → group="hpc", env="scfa2696" → 精确匹配
+          - "hpc/nc_e"  → group="hpc", env="nc_e" → 精确匹配
           - "local"         → group="local", 取第一个 env
           - "hpc"           → group="hpc",   取第一个 env
 
@@ -122,7 +122,7 @@ ed_maxPulseSections=300 \
 
         Args:
             dimension: 仿真维度 1/2/3
-            platform: 平台标识 "local" / "hpc" / "hpc/scfa2696" / "local/wsl_ubuntu22"
+            platform: 平台标识 "local" / "hpc" / "hpc/nc_e" / "local/wsl_ubuntu22"
 
         Returns:
             该维度的资源配置字典 (含 max_cpu_percent, max_parallel 等)
@@ -213,7 +213,7 @@ ed_maxPulseSections=300 \
             "dimension": 1,
             "platform": "local",
             # SLURM
-            "slurm_partition": "v5_192",  # scfa2696账号“v5_192队列: 单节点48核192G内存”;sch0348账号“v6_384队列：单节点96核384G内存”
+            "slurm_partition": "v5_192",  # nc_e“v5_192队列: 单节点48核192G内存”; bscc_t6“v6_384队列：单节点96核384G内存”
             "slurm_nodes": 1,
             "slurm_ntasks_per_node": 32,
             "slurm_ntasks": 4,  # 实际 MPI 任务数, 由 resource_config 的 ntasks_per_job 覆盖

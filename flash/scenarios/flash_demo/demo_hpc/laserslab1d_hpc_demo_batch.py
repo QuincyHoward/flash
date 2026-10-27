@@ -81,7 +81,7 @@ MODULES_LOAD = (
 POWER_FACTORS = [0.5, 1.0, 1.5, 2.0]  # 基准功率的倍数
 
 # ── SLURM 队列配置 ──
-# 注意: 用户 scfa2696 只有 v5_192 分区的提交权限。
+# 注意: 当前账号只有 v5_192 分区的提交权限。
 #       "queue" 和 "all" 分区均不可用。
 #       如需多分区分发, 先用 test/remote_connect/test_sbatch.py 测试可用分区。
 SLURM_PARTITIONS = [
@@ -167,7 +167,7 @@ def create_power_variants() -> Dict[float, Path]:
         copy_eos_files=True,
         setup_cmd=setup_cmd,
         sim_user_dir=SIM_USER_DIR,
-        platform="hpc/scfa2696",
+        platform="hpc/nc_e",
     )
 
     par_base_path = base_result.get("par")

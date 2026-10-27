@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import argparse
 import re
+import os
 from pathlib import Path
 
-OLD_ROOT = Path("E:/ProgramsPATH/VMware/SharedFiles/Ubuntu24/"
-                "FLASHWorkspace/FLASHProjectData/data/input")
+OLD_ROOT = Path(os.environ["FLASH_OLD_VM_WS"])  # 旧 VM 参考数据根（.../FLASHWorkspace/FLASHProjectData/data/input，显式注入）
 CUR_ROOT = Path(__file__).resolve().parent
 
 OLD_MAP = {

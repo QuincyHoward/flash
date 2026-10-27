@@ -2,7 +2,8 @@
 # probe3: setup 机制核查
 set -u
 SNB="$HOME/QC/FLASH/FLASHSNB/FLASH4.8"
-STAGE="/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB"
+REPO="$(cd "$(dirname "$0")/../../../../../.." && pwd)"   # t001/scripts → 仓库根（7 级向上）
+STAGE="$REPO/flash/scenarios/private/SNB/SNBtest/src/SNB"
 PHY="$STAGE/physics/physics"
 
 echo "=== [A] bin/setup 内容与 sim 搜索路径 ==="

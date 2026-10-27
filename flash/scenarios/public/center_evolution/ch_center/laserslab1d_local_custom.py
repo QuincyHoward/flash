@@ -425,7 +425,7 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     )
     script_config = {
         "sim_user_dir": SIM_USER_DIR, "dimension": 1,
-        "platform": "hpc/scfa2696", "setup_cmd": setup_cmd,
+        "platform": "hpc/nc_e", "setup_cmd": setup_cmd,
         "nprocs": cfg["nprocs"], "sim_path": sim_path, "object_dir": objdir,
         # FLASH_HOME 用 $HOME/<user> 形式（生成器输出为
         # FLASH_HOME="$HOME/hello/FLASH/FLASH4.8"，双引号内 $HOME 可展开；
@@ -980,7 +980,7 @@ def download_analysis_results(session: RemoteSession, remote_dir: str) -> int:
 def _to_wsl_path(win_path: Path) -> str:
     """归一为 WSL 路径（/mnt/<drive>/...），**幂等**。
 
-    例: E:\\PhySimX\\...\\flash_input → /mnt/e/PhySimX/.../flash_input
+    例: <Win仓库根>\\flash_input → /mnt/<drive>/.../flash_input
 
     ★ 09-10 修复：**已在 WSL 内运行时**（离线机常直接把仓库放在 /mnt/e 下，
       用 Linux 解释器执行本脚本），传入的已是 `/mnt/e/...` 形式 ——

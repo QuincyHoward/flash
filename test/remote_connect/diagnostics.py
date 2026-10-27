@@ -243,7 +243,7 @@ def check_routes(report: DiagReport, cred: Optional[Dict] = None):
     rk = (cred or {}).get("route_key", "")
     if rk == "scfa2696":
         routes = ROUTES_SCFA2696
-        label = "scfa2696@NC-E"
+        label = "NC-E"
     else:
         routes = ROUTES_SCH0348
         label = "sch0348@BSCC-T6"

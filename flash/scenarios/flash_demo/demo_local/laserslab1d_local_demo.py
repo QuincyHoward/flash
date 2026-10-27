@@ -14,7 +14,7 @@ FLASH 文件部署说明:
   -par_file=laserslab1d_demo.par → 默认 .par 文件在 SimulationMain 中
 
 运行方式:
-  cd E:/ProgramsPATH/AI/WorkBuddy/WorkBuddyFiles/AItest/Plan_for_py/PhySimX
+  cd <仓库根>
   python -m flash.scenarios.flash_demo.demo_local.laserslab1d_local_demo
 
 输出:

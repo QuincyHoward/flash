@@ -1,6 +1,6 @@
 # 18 · Gitee 推送
 
-> **本地 git 仓库已完成**（`E:\PhySimX\PhySimX\simulation\Multi\MultixD`，
+> **本地 git 仓库已完成**（`<盘>:\...\Multi\MultixD（本机相关，勿写死）`，
 > `151 files / 27142 insertions`，分支 `main`，提交 `b3f1df6`）。
 > **远端推送被凭据作用域挡住** —— 本文记录实测证据与三条可行路径。
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |---|---|
-| 仓库根 | `E:\PhySimX\PhySimX\simulation\Multi\MultixD` |
+| 仓库根 | `<盘>:\...\Multi\MultixD（本机相关，勿写死）` |
 | 分支 | `main` |
 | 目标 | `<owner>/MultixD`（**private**） |
 | 推送脚本 | `eosop_pro/scripts/07_gitee_publish.py`（+ `git_publish.bat`） |
@@ -142,9 +142,9 @@ scripts\git_publish.bat --enterprise physimx --owner physimx
 ## 6. 推送后如何验证
 
 ```bash
-git -C E:/PhySimX/PhySimX/simulation/Multi/MultixD log --oneline -1
-git -C E:/PhySimX/PhySimX/simulation/Multi/MultixD remote -v      # 应为**干净** URL（无 token）
-git -C E:/PhySimX/PhySimX/simulation/Multi/MultixD status -sb
+git -C <MultixD 仓库路径> log --oneline -1
+git -C <MultixD 仓库路径> remote -v      # 应为**干净** URL（无 token）
+git -C <MultixD 仓库路径> status -sb
 ```
 
 `remote -v` 必须**不含** `user:token@` —— 这是脚本在 `finally` 里复位并断言的。

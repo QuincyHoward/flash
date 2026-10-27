@@ -66,8 +66,8 @@ def create_input_files(
         platform: 目标平台标识
                   "local"              — 本地, 取第一个 local 环境 (如 wsl_ubuntu22)
                   "local/wsl_ubuntu22" — 指定本地环境
-                  "hpc"                — 超算, 取第一个 hpc 环境 (如 scfa2696)
-                  "hpc/scfa2696"       — 指定超算账号环境
+                  "hpc"                — 超算, 取第一个 hpc 环境 (如 nc_e)
+                  "hpc/nc_e"           — 指定超算账号环境（中性路由标识）
         flash_home: FLASH 引擎树路径 (如 ``~/QC/FLASH/FLASH4.8``), 写入
                   生成的 run_flash.sh / run_flash.bat / submit_flash.sh。
                   ★ **必须显式传入**, 否则回落到生成器默认 ``$HOME/FLASH/FLASH4.8``

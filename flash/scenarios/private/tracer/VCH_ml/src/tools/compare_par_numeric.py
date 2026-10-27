@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """数值感知 par 对比: flash.par (ref CH_CH_02um8.00e-02) vs laserslab_chml.par"""
+from pathlib import Path
 import re
 
-REF = r"E:\ProgramsPATH\VMware\SharedFiles\Ubuntu24\FLASHWorkspace\FLASHProjectData\data\input\CH_CH_02um8.00e-02\CH_CH_02um8.00e-022026\hdf5files_20260517_081325\runfiles\flash.par"
-OUR = r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private\tracer\layer_tracer_CH_ml\flash_input\run_000001\laserslab_chml.par"
+import os
+REF = os.environ["FLASH_OLD_VM_RUNFILES"] + r"\\flash.par"  # 旧 VM 参考算例 runfiles 目录（显式注入）
+OUR = str(Path(__file__).resolve().parents[7] / "flash" /
+          "scenarios/private/tracer/layer_tracer_CH_ml/flash_input/run_000001/laserslab_chml.par")
 
 
 def parse(p):

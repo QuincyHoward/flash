@@ -15,10 +15,11 @@ for _ in range(14):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+_FLASH_PKG = Path(__file__).resolve().parents[7] / 'flash'  # 仓库根/flash
 import numpy as np
 from flash.output_processors.loader import FlashDataLoader
 
-CHK = (r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private"
+CHK = (str(_FLASH_PKG) + r"\scenarios\private"
        r"\tracer\layer_tracer_CH_ml\flash_output\outputfiles\run_000001\lasslab_hdf5_chk_0000")
 
 # 设计位置 (um): (层内区间, 物种)

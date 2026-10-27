@@ -31,6 +31,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -55,7 +56,7 @@ N_C_0351UM = 9.05e21        # 临界电子密度 [cm^-3]（0.351 µm）
 SNB_CHK = _HERE.parent / "scene" / "flash_output" / "sim_snb" / "full"
 FLSH_CHK = _ROOT / "flash" / "scenarios" / "private" / "tracer" / "OneCH_ml" \
     / "flash_output" / "outputfiles" / "run_000001"
-FLSH_H5 = Path(r"E:\ProgramsPATH\VMware\SharedFiles\Ubuntu24\FLASHWorkspace"
+FLSH_H5 = Path(os.environ["FLASH_OLD_VM_WS"]  # 例: <旧 VM 工作区>\FLASHWorkspace；
                r"\python3\pycharm\PhysicsResearchTools\src\project\Report"
                r"\Report_ICMRE\Paper_My\SimComp\CASES_Comp\data\OneCH.h5")
 T_PROBE = (0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6)

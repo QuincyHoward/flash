@@ -10,7 +10,7 @@
 ----------------
 ::
 
-    W  = E:\\PhySimX\\PhySimX\\simulation\\Multi\\MultixD      ← git 仓库根
+    W  = <盘>:\\...\\Multi\\MultixD      <- MultixD 工作区根（本机相关，经环境变量/配置注入，勿写死）
     W\\MultixD\\src\\Multi1D++Portable20241128\\matter++      ← 源数据（2211 文件 / 1567 MB）
     W\\MultixD\\eosop_pro                                   ← 本项目目录
     W\\MultixD\\eosop_pro\\eosop_pro\\config.py            ← 本文件

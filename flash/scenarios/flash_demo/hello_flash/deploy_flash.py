@@ -101,7 +101,7 @@ MACHINES = {
     },
     "2": {
         "name": "ssh1",
-        "label": "SSH1 - ParaCloud NC-E (scfa2696@NC-E)",
+        "label": "SSH1 - ParaCloud NC-E",
         "description": "Install FLASH on ParaCloud NC-E supercomputer",
         "ssh_credential": "flash_ssh",
         "install_dir": "~/FLASH",

@@ -162,7 +162,7 @@ def _trash_windows(path: Path) -> bool:
       ① `text=True` 用系统 locale 解码 → 中文 Windows 下 PowerShell 以 GBK
          写 stderr → UnicodeDecodeError 抛在读取线程 → returncode 丢失；
       ② **绝不能把 `Path` 对象直接插进 PowerShell 字符串**：str(Path) 给的是
-         `E:/PhySimX/...` 正斜杠形式，VB 的 DeleteDirectory 解析不了 → rc≠0。
+         <仓库根>/ 正斜杠形式，VB 的 DeleteDirectory 解析不了 → rc≠0。
          必须用 `os.fspath()` 并在 Windows 上转成反斜杠。
     """
     p = os.path.abspath(os.fspath(path))

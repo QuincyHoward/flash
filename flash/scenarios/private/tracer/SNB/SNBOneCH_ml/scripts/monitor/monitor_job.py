@@ -3,7 +3,7 @@
 用法:
   python monitor_job.py --account flash_ssh --job 4858800 [--interval 1800] [--max-polls 20]
 
-账号: flash_ssh=NC-E (scfa2696), flash_ssh_2=BSCC (sch0348)。
+账号: flash_ssh=NC-E, flash_ssh_2=BSCC。
 网络抖动自动重试 (不退出); 到 max-polls 仍未终态则打印 STILL_RUNNING。
 """
 import argparse
@@ -44,7 +44,7 @@ def resolve_deploy(credential_name: str) -> str:
 
 
 DEPLOY = {
-    "flash_ssh": "",   # 运行期由 resolve_deploy() 填充 (NC-E: scfa2696)
+    "flash_ssh": "",   # 运行期由 resolve_deploy() 填充 (NC-E)
     "flash_ssh_2": "",  # 运行期由 resolve_deploy() 填充 (BSCC: sch0348)
 }
 

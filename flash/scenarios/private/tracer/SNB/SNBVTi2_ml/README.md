@@ -117,7 +117,7 @@ python flash/scenarios/private/tracer/SNB/SNBVTi/SNBVTi.py \
 `hy_uhd_getRiemannState.F90` / `hy_uhd_ragelike.F90`），
 部署时从远端 `SNB_1D_laser` 参考单元原样复制（**License §3：不入库**）。
 
-**默认超算 = NC-E**（`--account flash_ssh`，用户 `scfa2696`）。
+**默认超算 = NC-E**（`--account flash_ssh`）。
 
 ## 8. 文档
 

@@ -37,7 +37,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
-OLD_ROOT = Path("E:/ProgramsPATH/VMware/SharedFiles/Ubuntu24/FLASHWorkspace/"
+OLD_ROOT = Path(os.environ["FLASH_OLD_VM_WS"])  # 旧 VM 工作区（显式注入，如 <旧VM工作区>/FLASHWorkspace）
                 "FLASHProjectData/data/input")
 OUT = HERE / "plots"
 DEPTHS = (1, 2, 3)

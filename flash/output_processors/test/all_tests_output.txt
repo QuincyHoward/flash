@@ -3,10 +3,10 @@
 # 运行所有测试
 ############################################################
 
-工作目录: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash
+工作目录: <旧机器仓库路径>
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\unit_conversion\test_unit_conversion.py
+运行测试: <旧机器仓库路径>\output_processors\test\unit_conversion\test_unit_conversion.py
 ============================================================
 
 ############################################################
@@ -58,7 +58,7 @@
   ✓ 测试通过
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\loader\test_loader_validation.py
+运行测试: <旧机器仓库路径>\output_processors\test\loader\test_loader_validation.py
 ============================================================
 
 ############################################################
@@ -116,7 +116,7 @@
   ✓ 测试通过
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\derived_variables\test_derived_variables.py
+运行测试: <旧机器仓库路径>\output_processors\test\derived_variables\test_derived_variables.py
 ============================================================
 
 ############################################################
@@ -162,7 +162,7 @@
   ✓ 测试通过
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py
+运行测试: <旧机器仓库路径>\output_processors\test\shock_position\test_shock_position.py
 ============================================================
 
 ############################################################
@@ -179,10 +179,10 @@
 STDERR:
 ============================================================
 Traceback (most recent call last):
-  File "E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py", line 119, in <module>
+  File "<旧机器仓库路径>\output_processors\test\shock_position\test_shock_position.py", line 119, in <module>
     results.append(("1D 激波位置计算", test_shock_position_1d()))
                                        ~~~~~~~~~~~~~~~~~~~~~~^^
-  File "E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\shock_position\test_shock_position.py", line 60, in test_shock_position_1d
+  File "<旧机器仓库路径>\output_processors\test\shock_position\test_shock_position.py", line 60, in test_shock_position_1d
     print(f"  激光方向: {shock_info['laser_direction']}")
                          ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
 KeyError: 'laser_direction'
@@ -190,7 +190,7 @@ KeyError: 'laser_direction'
   ⚠ 测试失败 (returncode=1)
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\batch_loading\test_batch_loading.py
+运行测试: <旧机器仓库路径>\output_processors\test\batch_loading\test_batch_loading.py
 ============================================================
 
 ############################################################
@@ -201,7 +201,7 @@ KeyError: 'laser_direction'
 测试 1: load_folder() 方法（单个文件夹）
 ============================================================
 
-加载文件夹: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\batch_loading\../../inputfiles/hdf5files_1d
+加载文件夹: <旧机器仓库路径>\output_processors\test\batch_loading\../../inputfiles/hdf5files_1d
   [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
   [OK] lasslab_hdf5_chk_0001  t=5.7275e-14s
   [OK] lasslab_hdf5_chk_0002  t=4.4259e-13s
@@ -297,7 +297,7 @@ KeyError: 'laser_direction'
   ✓ 测试通过
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\lazy_loading\test_lazy_loading.py
+运行测试: <旧机器仓库路径>\output_processors\test\lazy_loading\test_lazy_loading.py
 ============================================================
 
 ############################################################
@@ -328,7 +328,7 @@ KeyError: 'laser_direction'
 测试 2: 批量懒加载
 ============================================================
 
-批量懒加载文件夹: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\lazy_loading\../../inputfiles/hdf5files_1d
+批量懒加载文件夹: <旧机器仓库路径>\output_processors\test\lazy_loading\../../inputfiles/hdf5files_1d
   共创建 41 个懒加载容器 (元数据已加载)
   创建了 41 个懒加载容器
   元数据加载总时间: 0.0767s
@@ -432,7 +432,7 @@ KeyError: 'laser_direction'
   ✓ 测试通过
 
 ============================================================
-运行测试: E:\ProgramsPATH\AI\WorkBuddy\WorkBuddyFiles\AItest\Plan_for_py\PhySimX\physimx_sim\src\physimx_sim\flash\output_processors\test\dimension_test\test_dimension_loading.py
+运行测试: <旧机器仓库路径>\output_processors\test\dimension_test\test_dimension_loading.py
 ============================================================
 
 ############################################################

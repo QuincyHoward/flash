@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -u
-STAGE="/mnt/e/PhySimX/PhySimX/simulation/flash_test/layer3/flash/flash/scenarios/private/SNB/SNBtest/src/SNB"
+REPO="$(cd "$(dirname "$0")/../../../../../.." && pwd)"   # t001/scripts → 仓库根（7 级向上）
+STAGE="$REPO/flash/scenarios/private/SNB/SNBtest/src/SNB"
 PHY="$STAGE/physics/physics"
 C="$PHY/materialProperties/Conductivity"
 

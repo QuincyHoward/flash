@@ -19,7 +19,7 @@ run_sic_suite — 一键顺序执行单一纯材料 (Si/C) 示踪烧蚀场景家
   覆盖 (par 中 tmax 不符时自动重新生成输入文件, 不会静默沿用旧值)。
 
 验证测试 (当前阶段, Windows, 项目 venv):
-  E:\\PhySimX\\PhySimX\\simulation\\flash_test\\layer3\\flash\\.venv\\Scripts\\python.exe ^
+  <仓库根>\\.venv\\Scripts\\python.exe ^
       flash\\scenarios\\private\\tracer\\run_sic_suite.py
   # 4 场景 @1e-11 约 5-6 min
 

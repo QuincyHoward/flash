@@ -1200,7 +1200,7 @@ SNB 模型自 2000 年提出以来，已成为 ICF 辐射流体力学代码（HY
 <a name="12"></a>
 ## 参考文献
 
-> **本地文献库路径约定**：以下标注"📁 本地"的文献可在本地文献库中查阅，根目录为 `E:\PhySimX\PhySimX\literature\database\data\database\`，列出的相对路径可直接拼接查阅 PDF 文件。未标注的文献为外部经典文献（不在本地库中）。
+> **本地文献库路径约定**：以下标注"📁 本地"的文献可在本地文献库中查阅，根目录为 `<本地文献库根目录>，列出的相对路径可直接拼接查阅 PDF 文件。未标注的文献为外部经典文献（不在本地库中）。
 
 [1] G. P. Schurtz, P. D. Nicolaï, and M. Busquet, "A nonlocal electron conduction model for multidimensional radiation hydrodynamics codes," *Physics of Plasmas*, vol. 7, no. 10, pp. 4238–4249, 2000. [ 📁 本地：ⓘ 参考（无本地PDF，有链接）
 

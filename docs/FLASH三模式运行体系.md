@@ -22,7 +22,7 @@
 ## 2. 目录契约
 
 ```
-Windows 本机                                超算 NC-E (scfa2696)
+Windows 本机                                超算 NC-E
 <repo>/                 代码+venv            ~/PhySimX/PhySimX/simulation/flash/flash_sim/   代码+venv (git 干净)
   ├─ .venv-win / .venv-linux                 ├─ .venv-hpc-nce/     ★ 命名环境 (py3.10.8)
   └─ (FLASH 树在 WSL $HOME)                  ├─ (FLASH 树在 ~/QC/FLASH{,SNB}/FLASH4.8)

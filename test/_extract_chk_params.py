@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """从 _dl_test/chk0000_test.h5 提取运行时参数 + 变量清单 + 头部标量"""
+from pathlib import Path
 import h5py
 
-CHK = r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\_dl_test\chk0000_test.h5"
+CHK = str(Path(__file__).resolve().parents[1] / "_dl_test" / "chk0000_test.h5")
 
 with h5py.File(CHK, "r") as f:
     keys = list(f.keys())

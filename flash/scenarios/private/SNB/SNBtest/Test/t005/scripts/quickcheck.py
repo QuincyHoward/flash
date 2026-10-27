@@ -6,11 +6,12 @@ chk 直读布局 (本 +ug 场景):
 """
 import sys
 from pathlib import Path
+_FLASH_PKG = Path(__file__).resolve().parents[8] / 'flash'  # 仓库根/flash 包目录
 import h5py
 import numpy as np
 
 BASE = Path(sys.argv[1] if len(sys.argv) > 1 else
-            r'E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash'
+            str(_FLASH_PKG) +
             r'\scenarios\private\SNB\SNBtest\Test\t005\scene\flash_output')
 
 

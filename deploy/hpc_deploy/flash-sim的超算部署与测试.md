@@ -1,6 +1,6 @@
 # flash-sim 的超算部署与测试
 
-> 日期: 2026-10-22 ｜ 目标超算: 中卫 NC-E（ParaCloud），账号 scfa2696（凭据名 `flash_ssh`）
+> 日期: 2026-10-22 ｜ 目标超算: 中卫 NC-E（ParaCloud），（凭据名 `flash_ssh`）
 > 部署目录: `~/PhySimX/PhySimX/simulation/flash/flash_sim/`（后期作 Gitee 同步目录）
 > 驱动机: Windows（本仓库根），SSH/SFTP 经 `RemoteSession`（paramiko，凭据 Fernet 加密于 `~/.physimx/flash/credentials.enc`）
 
@@ -9,7 +9,7 @@
 ## 1. 部署架构与环境命名
 
 ```
-Windows 本机 (联网)                      超算 NC-E (scfa2696, 离线)
+Windows 本机 (联网)                      超算 NC-E (离线)
 ─────────────────────                   ─────────────────────────────────────────
 .venv-win        (Win/py3.13, 在线)      ~/PhySimX/PhySimX/simulation/flash/
 .venv-linux      (WSL/py3.10.12, 离线)     flash_sim/         ← git clone (bundle, HEAD=7b13054)
@@ -300,7 +300,7 @@ flash/flash_run/remote/test/
 - `grad_dens_sandwich`：12 个 chk/plt
 - `thin_layer_sandwich_si`：4 个 chk/plt
 
-远端环境：NC-E `scfa2696`，venv `.venv-hpc-nce`（Python 3.10.8，离线 `--no-index`），
+远端环境：NC-E，venv `.venv-hpc-nce`（Python 3.10.8，离线 `--no-index`），
 部署目录 `~/PhySimX/PhySimX/simulation/flash/flash_sim`（HEAD 随 bundle 走），
 工作区 `~/PhySimX/PhySimX/simulation/flash/flash_sim_public_runs`。
 
