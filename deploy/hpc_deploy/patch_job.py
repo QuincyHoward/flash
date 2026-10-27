@@ -21,7 +21,7 @@
 
 用法（远端）：
   python patch_job.py --in submit_flash.sh --out job.sh \
-      --work /publicfs01/.../flash_sim_public_runs --tag ch_center \
+      --work $HOME/.../flash_sim_public_runs --tag ch_center \
       --partition v5_192 --time 01:00:00
 """
 from __future__ import annotations

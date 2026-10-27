@@ -210,6 +210,42 @@ def test_good_scene_has_zero_violations(tmp_path):
     assert _codes(repo) == set()
 
 
+def test_identity01_hardcoded_username_and_hpc_account(tmp_path):
+    """R-ID-01（2026-10-27 去硬编码）：Windows 用户名/超算账号/仓库绝对路径。"""
+    repo = _make_repo(tmp_path, {
+        "deploy/bad_identity.py": """
+            REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
+            PY = r"C:\\\\Users\\\\Administrator\\\\.workbuddy\\\\python.exe"
+            ROOT = r"E:\\\\PhySimX\\\\PhySimX\\\\simulation\\\\flash_test"
+        """,
+    })
+    assert "R-ID-01" in _codes(repo)
+
+
+def test_identity01_allows_dynamic_resolution(tmp_path):
+    """正向样本：运行期解析（Path.home()/中央模块）必须 0 违规。"""
+    repo = _make_repo(tmp_path, {
+        "deploy/ok_identity.py": """
+            import os
+            from pathlib import Path
+            REMOTE_HOME = os.environ["FLASH_HPC_HOME"]
+            PY = Path.home() / ".workbuddy" / "python.exe"
+            ROOT = Path(__file__).resolve().parents[1]
+        """,
+    })
+    assert "R-ID-01" not in _codes(repo)
+
+
+def test_identity01_whitelists_legacy_compat_files(tmp_path):
+    """功能兼容映射（旧账号别名→中性路由键）在白名单文件中不判失败。"""
+    repo = _make_repo(tmp_path, {
+        "flash/_core/credentials/hpc_config.py": (
+            '_LEGACY_ROUTE_KEY = {"scfa2696": "nc_e", "sch0348": "bscc_t6"}\n'
+        ),
+    })
+    assert "R-ID-01" not in _codes(repo)
+
+
 # ── 基线机制：冻结后不再判失败，但**必须仍被记录** ────────────────
 
 def test_baseline_suppresses_known_debt(tmp_path):
@@ -244,5 +280,5 @@ def test_rules_table_shape():
     codes = [r.code for r in RULES]
     assert len(codes) == len(set(codes))
     for r in RULES:
-        assert r.scope in ("scenes", "deploy", "flash_run")
+        assert r.scope in ("scenes", "deploy", "flash_run", "identity")
         assert r.hint.strip()

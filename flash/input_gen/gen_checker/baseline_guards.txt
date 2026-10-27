@@ -1,7 +1,7 @@
 # 规则基线（自动生成，勿手改）——`python -m flash.input_gen.gen_checker.check_scene_sources --freeze`
 # 语义：本清单内 = 已知历史债（只报告）；清单外 = 新增违规（RC=1）。
 # ★ 只降不升：修复后重跑 --freeze 会自动收缩；不要手工追加条目。
-# 生成时间基线条目数: 98
+# 生成时间基线条目数: 90
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/_backup_t004_20260911_205949/scripts/run/run_t004.py
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/t001/run_snb.py
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/t002/common/t002_common.py
@@ -68,14 +68,6 @@ R-SCENE-05	flash/scenarios/private/tracer/VTi/VTi3.py
 R-SCENE-05	flash/scenarios/private/tracer/VTi_oldstyle/build_vti_oldstyle.py
 R-SCENE-05	flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
 R-SCENE-06	flash/scenarios/flash_demo/hello_flash/deploy_flash.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_perf2.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_perf4.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_perf5.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_sacct2.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_sacct3.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_sacct4.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_timing.py
-R-SCENE-06	flash/scenarios/private/tracer/SNB/SNBOneCH_ml/tools_local/cores_parallel_diag_20260912/_timing_final.py
 R-SCENE-07	flash/scenarios/flash_demo/demo_local/laserslab1d_local_demo.py
 R-SCENE-07	flash/scenarios/private/tracer/Au/VAuTi/VAuTi.py
 R-SCENE-07	flash/scenarios/private/tracer/CHTi/CHTi1.py

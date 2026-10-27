@@ -264,8 +264,8 @@ KeyError: 'laser_direction'
 ============================================================
 
 加载多个文件夹:
-  C:\Users\ADMINI~1\AppData\Local\Temp\tmpr9o08wj8\sim1
-  C:\Users\ADMINI~1\AppData\Local\Temp\tmpr9o08wj8\sim2
+  <Temp>\tmpr9o08wj8\sim1
+  <Temp>\tmpr9o08wj8\sim2
   [OK] lasslab_hdf5_chk_0000  t=0.0000e+00s
   [OK] lasslab_hdf5_chk_0001  t=5.7275e-14s
   共加载 2 个文件

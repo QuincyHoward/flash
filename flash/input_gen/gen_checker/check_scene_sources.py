@@ -165,6 +165,15 @@ RULES: tuple[Rule, ...] = (
          "场景核数默认值 → flash.scenarios.core.device_defaults；"
          "场景超算提交声明 → flash.scenarios.core.hpc_job；"
          "通用提交实现 → flash.flash_run.remote.job_submit"),
+    Rule("R-ID-01", "identity",
+         r"Administrator|scfa2696"
+         r"|[A-Za-z]:[\\\\/]+Users|[A-Za-z]:[\\\\/]+PhySimX"
+         r"|/mnt/e/PhySimX|ProgramsPATH|/mnt/d/WSL",
+         "身份/位置硬编码泄漏（2026-10-27 全库去硬编码）：Windows 用户名、"
+         "超算账号、家目录/仓库绝对路径一律运行期解析 —— 统一入口 "
+         "flash/_core/paths.py（repo_root/managed_python/hpc_home）；"
+         "历史一次性脚本只能进 docs/_legacy_diags/（豁免区）。"
+         "本规则全仓扫描 .py/.sh/.bat/.cmd/.md/.json/.txt"),
 )
 
 #: 规则基线（`--freeze` 生成，只降不升）。格式：`CODE<TAB>相对路径`
@@ -194,6 +203,59 @@ def _load_baseline(path: Path) -> set[tuple[str, str]]:
     return out
 
 
+_IDENTITY_EXTS = {".py", ".sh", ".bat", ".cmd", ".md", ".json", ".txt"}
+
+#: identity scope 的目录豁免（相对 posix 前缀）。
+#: docs/_legacy_diags 是**指定归档区**（见其 README）：历史一次性脚本原地
+#: 保留旧机器路径，不维护不运行；其余为上游第三方源码/产物/本地环境。
+_IDENTITY_SKIP_DIRS = (
+    "docs/_legacy_diags",
+    "flash/flash_src/FLASH4.8",
+    "test/reports",
+    "flash/flash_run/remote/test",   # 部署日志产物目录（gitignore，非源码）
+)
+
+#: identity scope 的**路径部件**豁免（任意层级命中即跳过）：
+#: git 环境目录 / 产物区 / 本地 agent 工作区（.workbuddy 记忆与 tmp）/ venv。
+_IDENTITY_SKIP_PARTS = frozenset({
+    ".git", "__pycache__", "artifacts", "temp_delete",
+    ".venv-linux", ".venv-win", ".venv", ".workbuddy", ".physimx",
+})
+
+#: identity scope 的**文件级**白名单：功能性兼容代码/守卫自身。
+_IDENTITY_WHITELIST_FILES = frozenset({
+    # 旧账号别名 → 中性路由键 的归一化映射与比较（唯一合法存放点）
+    "flash/_core/credentials/hpc_config.py",
+    "flash/flash_run/remote/route_tester.py",
+    "flash/flash_run/remote/remote_deploy.py",
+    "test/remote_connect/diagnostics.py",
+    # 守卫的守卫：负向断言本身包含禁用字面量
+    "flash/input_gen/gen_eos_op/eosop_pro/test/hygiene/test_config_single_source.py",
+    # 本守卫的基线文件
+    "flash/input_gen/gen_checker/baseline_guards.txt",
+    # 守卫自身（规则模式串包含禁用字面量）
+    "flash/input_gen/gen_checker/check_scene_sources.py",
+    # 守卫的负向样本测试（样例代码包含禁用字面量）
+    "test/test_arch_guards.py",
+    # 审计报告（描述泄漏本身，未跟踪亦可存在）
+    "硬编码位置及修改计划.md",
+})
+
+
+def _git_tracked_files(repo: Path) -> list[Path] | None:
+    """仓库全部 git 跟踪文件；git 不可用/非 git 目录时返回 None。"""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"],
+                             capture_output=True, timeout=60)
+        if out.returncode != 0:
+            return None
+        names = out.stdout.decode("utf-8", "replace").split("\0")
+        return [repo / n for n in names if n]
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
 def _iter_scope(repo: Path, scope: str):
     """产出 (文件, 相对路径)。"""
     if scope == "scenes":
@@ -207,6 +269,31 @@ def _iter_scope(repo: Path, scope: str):
         #   ★ 场景特定探针脚本已于 2026-10-26 迁至 deploy/hpc_deploy/probes/
         #   （它们 import flash.scenarios ⇒ 不该留在执行层）。
         skip = ("__pycache__", "test")
+    elif scope == "identity":
+        # ★ 与年度审计同口径：只扫 git **跟踪**文件（= 未被 .gitignore 排除的全库）。
+        #   本地未跟踪产物（副本目录/outputs/logs 等）不属仓库内容，不扫。
+        #   git 不可用（如 tmp 假仓库测试）→ 回退全盘 rglob。
+        cands = _git_tracked_files(repo)
+        if cands is None:
+            cands = [p for p in sorted(repo.rglob("*"))
+                     if p.is_file() and p.suffix.lower() in _IDENTITY_EXTS]
+        for p in cands:
+            try:
+                if not p.is_file():
+                    continue
+            except OSError:
+                continue  # WSL symlink 等在 Windows 下不可 stat，直接跳过
+            if p.suffix.lower() not in _IDENTITY_EXTS:
+                continue
+            rel = p.relative_to(repo).as_posix()
+            if rel in _IDENTITY_WHITELIST_FILES:
+                continue
+            if any(part in _IDENTITY_SKIP_PARTS for part in p.relative_to(repo).parts):
+                continue
+            if any(rel == d or rel.startswith(d + "/") for d in _IDENTITY_SKIP_DIRS):
+                continue
+            yield p, rel
+        return
     else:
         return
     for py in sorted(base.rglob("*.py")):

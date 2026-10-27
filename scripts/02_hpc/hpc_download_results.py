@@ -7,7 +7,7 @@ import paramiko
 
 from flash._core.credentials._core import load_ssh_credentials
 
-OUT_DIR = Path(r"D:\PhySimX\PhySimX\sim\flash\scenarios\flash_demo\hello_flash\outputfiles\hdf5filesfrom_ssh1\laserslab1d")
+OUT_DIR = Path(__file__).resolve().parents[2] / "flash" / "scenarios" / "flash_demo" / "hello_flash" / "outputfiles" / "hdf5filesfrom_ssh1" / "laserslab1d"
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
     # 下载
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     sftp = client.open_sftp()
-    local_tar = Path(r"D:\PhySimX\PhySimX\sim\flash\scenarios\flash_demo\hello_flash\wsl_tmp\laserslab_hpc.tar.gz")
+    local_tar = Path(__file__).resolve().parents[2] / "flash" / "scenarios" / "flash_demo" / "hello_flash" / "wsl_tmp" / "laserslab_hpc.tar.gz"
     local_tar.parent.mkdir(parents=True, exist_ok=True)
     sftp.get("/tmp/laserslab_hpc.tar.gz", str(local_tar))
     sftp.close()
