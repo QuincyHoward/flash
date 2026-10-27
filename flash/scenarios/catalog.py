@@ -157,61 +157,37 @@ class CatalogEntry:
         }.get(self.runner_kind, self._runner_main)
 
 
-#: ── 目录（新增可执行算例 = 这里加一条，不要改引擎注册表） ──
+#: ── 目录（manifest 驱动，2026-10-27 去注册化）──
 #
+#: ★ 新增可执行算例 = 场景目录里落一份 ``scene.json``，
+#:   **不要**改这里、不要改引擎注册表（见 ``discovery.py``）。
 #: ★ 策略常量（PUBLIC_SCENE_POLICY / SNB_POLICY）在
 #:   `flash.scenarios.policies` —— **场景层**；
 #:   执行层 `flash.flash_run` 只提供通用机制，不含场景信息。
 
-CATALOG: Tuple[CatalogEntry, ...] = (
-    CatalogEntry(
-        name="ch_center",
-        rel_module="flash.scenarios.public.center_evolution.ch_center."
-                   "laserslab1d_local_custom",
-        runner_kind="main",
-        policy=DEFAULT_POLICY,
-        aliases=("laserslab1d", "laserslab", "center_evolution"),
-        description="1D LaserSlab（CH 中心层，官方一键场景；auto/wsl/hpc-remote/hpc-insitu）",
-        sim_name="laserslab1d",
-        basenm="lasslab_",
-    ),
-    CatalogEntry(
-        name="grad_dens_sandwich",
-        runner_kind="engine",
-        policy=PUBLIC_SCENE_POLICY,
-        aliases=("grad_dens",),
-        description="HE-CH-Si-CH-HE 渐变密度 CH 靶（超高斯脉冲；auto = 平台自适应）",
-        sim_name="grad_dens_sandwich",
-        basenm="lasslab_",
-    ),
-    CatalogEntry(
-        name="thin_layer_sandwich_si",
-        runner_kind="engine",
-        policy=PUBLIC_SCENE_POLICY,
-        aliases=("thin_layer_sandwich", "thin_layer"),
-        description="Si/CH/He 三层靶激光烧蚀（新 EOS 表；auto = 平台自适应）",
-        sim_name="grid_rede_si",
-        basenm="lasslab_",
-    ),
-    CatalogEntry(
-        name="SNBOneCH_m",
-        script="flash/scenarios/private/tracer/SNB/SNBOneCH_m/SNBOneCH_m.py",
-        runner_kind="script",
-        policy=SNB_POLICY,
-        aliases=("snb_m",),
-        description="SNB 非局域热传导（CH，单温；**仅超算**，131 进程=网格定义）",
-        default_args=("all",),
-    ),
-    CatalogEntry(
-        name="SNBOneCH_ml",
-        script="flash/scenarios/private/tracer/SNB/SNBOneCH_ml/SNBOneCH_ml.py",
-        runner_kind="script",
-        policy=SNB_POLICY,
-        aliases=("snb_ml",),
-        description="SNB 非局域热传导（CH，多群；**仅超算**）",
-        default_args=("all",),
-    ),
-)
+
+def _build_catalog() -> Tuple[CatalogEntry, ...]:
+    """扫 ``scene.json`` 构建目录（纯文件扫描，零 import 场景包）。"""
+    from flash.scenarios.discovery import iter_scene_manifests
+
+    entries = []
+    for meta in iter_scene_manifests():
+        entries.append(CatalogEntry(
+            name=meta.name,
+            rel_module=meta.module,
+            script=meta.script,
+            runner_kind=meta.kind,
+            policy=meta.policy_object(),
+            aliases=meta.aliases,
+            description=meta.description,
+            default_args=meta.default_args,
+            sim_name=meta.sim_name,
+            basenm=meta.basenm,
+        ))
+    return tuple(entries)
+
+
+CATALOG: Tuple[CatalogEntry, ...] = _build_catalog()
 
 
 def list_scenes() -> List[Tuple[str, str, Tuple[str, ...]]]:

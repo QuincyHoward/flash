@@ -107,6 +107,32 @@ def test_scene07_mode_literal_comparison(tmp_path):
     assert "R-SCENE-07" in _codes(repo)
 
 
+def test_scene08_register_call_in_scenarios(tmp_path):
+    """去注册化（2026-10-27）：场景层不得再调 registry.register(...)。"""
+    repo = _make_repo(tmp_path, {
+        "flash/scenarios/public/bad_scene/__init__.py": (
+            'from flash.scenarios.registry import register\n'
+            'register("bad_scene", "flash.scenarios.public.bad_scene", "scenario")\n'
+        ),
+    })
+    assert "R-SCENE-08" in _codes(repo)
+
+
+def test_scene08_allows_registry_definition_and_comments(tmp_path):
+    """registry.py 自身的 def register(...) 与注释不得误报。"""
+    repo = _make_repo(tmp_path, {
+        "flash/scenarios/registry.py": (
+            "def register(name, module_path, attr='scenario'):\n"
+            "    pass\n"
+        ),
+        "flash/scenarios/public/ok_scene/__init__.py": (
+            "# 2026-10-27 去注册化：不再调用 register(\"scene\")\n"
+            "scenario = object()\n"
+        ),
+    })
+    assert "R-SCENE-08" not in _codes(repo)
+
+
 def test_layer01_deploy_imports_scenarios_indented(tmp_path):
     """★ 关键：**缩进**的 import 必须被抓到（行首锚定会漏）。"""
     repo = _make_repo(tmp_path, {

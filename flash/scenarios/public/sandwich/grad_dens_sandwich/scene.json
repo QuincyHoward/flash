@@ -1,0 +1,11 @@
+{
+  "name": "grad_dens_sandwich",
+  "kind": "engine",
+  "aliases": ["grad_dens"],
+  "description": "HE-CH-Si-CH-HE 渐变密度 CH 靶（超高斯脉冲；auto = 平台自适应）",
+  "policy": "public_scene",
+  "module": "flash.scenarios.public.sandwich.grad_dens_sandwich",
+  "attr": "scenario_grad",
+  "sim_name": "grad_dens_sandwich",
+  "basenm": "lasslab_"
+}

@@ -20,8 +20,6 @@ scenarios/
 
 from __future__ import annotations
 
-import warnings
-
 _SHIPPED_PACKAGES = ("public", "flash_demo")   # 随发布包分发：缺失即打包缺陷
 _OPTIONAL_PACKAGES = ("private",)              # 私有分区：克隆/发布环境可缺
 
@@ -31,11 +29,16 @@ _registered_packages: tuple = ()
 
 
 def warm_registry() -> tuple:
-    """导入并注册所有场景包（幂等、可重入安全）。
+    """扫描 ``scene.json`` 发现场景（幂等、可重入安全，2026-10-27 去注册化）。
 
-    ★ 重入保护是必需的：`warm_registry()` 里 import 的子包可能反过来
-      `from flash.scenarios.registry import get_scenario`，而
-      `get_scenario()` 又会调用本函数 —— 没有 `_LOADING` 会无限递归。
+    ★ 旧实现在此 ``__import__`` 三个子包（import 副作用链 → 各场景
+      ``__init__`` 底部 ``register(...)``）。现在场景发现改为**纯文件
+      扫描**（``discovery.iter_scene_manifests``）—— 新增场景 = 落一份
+      ``scene.json``，零注册代码、零 import 副作用。
+      ``registry._ensure_loaded()`` 直接调用发现器，本函数仅保留为
+      兼容 API（返回已发现的分区名）。
+
+    ★ 重入保护保留（历史调用方仍可能在 import 期间触达本函数）。
     """
     global _LOADED, _LOADING, _registered_packages
     if _LOADED or _LOADING:
@@ -44,24 +47,17 @@ def warm_registry() -> tuple:
     _LOADING = True
     loaded = []
     try:
+        from flash.scenarios.discovery import scenario_base, iter_scene_manifests
+
+        base = scenario_base()
+        iter_scene_manifests()   # 非法 manifest 在此显式暴露（不吞）
         for _pkg in (*_SHIPPED_PACKAGES, *_OPTIONAL_PACKAGES):
-            try:
-                __import__(f"flash.scenarios.{_pkg}")
+            if (base / _pkg).is_dir():
                 loaded.append(_pkg)
-            except ImportError as _e:
-                _missing = (getattr(_e, "name", "") or "")
-                if _pkg in _SHIPPED_PACKAGES and _missing.startswith("flash."):
-                    raise ImportError(
-                        f"场景包 flash.scenarios.{_pkg} 缺失或不完整：{_e}\n"
-                        f"  这通常表示发布物打包不完整（wheel/sdist 缺文件），"
-                        f"请重装或更新 flash-sim。"
-                    ) from _e
-                warnings.warn(
-                    f"场景包 {_pkg} 加载失败（可选依赖或私有分区缺失，已跳过）: {_e}",
-                    stacklevel=2,
-                )
-    finally:
+            # 随发布包分区缺失：发现器不 import，交给 CLI --check-env 报告
+    except Exception:
         _LOADING = False
+        raise
     _registered_packages = tuple(loaded)
     _LOADED = True
     return _registered_packages

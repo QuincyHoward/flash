@@ -277,6 +277,9 @@ exclude = [
 include = [
     "**/*.py",
     "**/*.md",
+    # ★ 去注册化（2026-10-27）：场景声明 manifest 必须随 sdist 分发，
+    #   否则安装后 CLI list/registry 为空（discovery 靠文件扫描发现场景）。
+    "flash/scenarios/**/scene.json",
     "flash/_core/credentials/hpc_accounts.example.json",
     "flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/**/Z*.cn4",
     "README.md",

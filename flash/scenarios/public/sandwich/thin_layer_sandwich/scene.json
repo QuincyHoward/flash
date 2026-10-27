@@ -1,0 +1,11 @@
+{
+  "name": "thin_layer_sandwich_si",
+  "kind": "engine",
+  "aliases": ["thin_layer_sandwich", "thin_layer"],
+  "description": "Si/CH/He 三层靶激光烧蚀（新 EOS 表；auto = 平台自适应）",
+  "policy": "public_scene",
+  "module": "flash.scenarios.public.sandwich.thin_layer_sandwich",
+  "attr": "scenario_si",
+  "sim_name": "grid_rede_si",
+  "basenm": "lasslab_"
+}

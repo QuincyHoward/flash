@@ -33,8 +33,35 @@ __all__ = ["SCENE_NPROC_DEFAULTS", "get_scene_nprocs"]
 #:   ⇒ 改核数即改网格（FLASH SystemExit）⇒ 必须由场景层声明。
 SCENE_NPROC_DEFAULTS: Dict[str, int] = {
     "SNBOneCH": 131,   # nxb=128, iprocs=131 ⇒ dx=0.0298 µm ≤ 0.03 µm
-    "SNBVTi": 125,     # iprocs=125
+    "SNBVTi": 125,     # iprocs=125 (500 µm 域, 25000 格)
+    # ★ 域扩展变体必须写在 "SNBVTi" 之前命中（最长前缀优先）
+    "SNBVTi1umx": 175,  # 700 µm 域, 175×200=35000 格 ⇒ dx=0.02 µm 精确
+    "SNBVTi2umx": 175,
+    "SNBVTi3umx": 175,
 }
+
+
+_merged = False
+
+
+def _merge_manifest_nproc() -> None:
+    """把 ``scene.json`` 的 ``nproc_default`` 节并入默认表（2026-10-27）。
+
+    ★ 新增场景 = ``scene.json`` 写 ``"nproc_default": 4``，**不改本模块**。
+      键为**场景全名**（精确匹配级，与前缀族表并存；内置表优先）。
+    """
+    global _merged
+    if _merged:
+        return
+    _merged = True
+    try:
+        from flash.scenarios.discovery import iter_scene_manifests
+    except Exception:
+        return
+    for meta in iter_scene_manifests():
+        n = meta.extra.get("nproc_default")
+        if isinstance(n, int) and n > 0 and meta.name not in SCENE_NPROC_DEFAULTS:
+            SCENE_NPROC_DEFAULTS[meta.name] = n
 
 
 def get_scene_nprocs(scene_name: str, default: Optional[int] = None) -> Optional[int]:
@@ -47,7 +74,12 @@ def get_scene_nprocs(scene_name: str, default: Optional[int] = None) -> Optional
     Returns:
         匹配到的核数，或 ``default``。
     """
+    _merge_manifest_nproc()   # 幂等：manifest 声明并入（去注册化）
     name = (scene_name or "").strip()
+    # 1) 全名精确命中（含 manifest 注入的条目）
+    if name in SCENE_NPROC_DEFAULTS:
+        return SCENE_NPROC_DEFAULTS[name]
+    # 2) 最长前缀族匹配（内置表）
     best = ""
     for prefix in SCENE_NPROC_DEFAULTS:
         if name.startswith(prefix) and len(prefix) > len(best):

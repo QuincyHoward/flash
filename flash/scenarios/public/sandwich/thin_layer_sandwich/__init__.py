@@ -44,7 +44,6 @@ from interpolator import (
 
 from flash.scenarios.base import SimulationScenario
 from flash.scenarios.public.time_control import fit_time_controls
-from flash.scenarios.registry import register
 
 # ── 新子包导入 ──────────────────────────────────────────
 try:
@@ -267,5 +266,4 @@ scenario_si = _make_auto_gen_cls('si')(
     interpolate=_make_interpolate(),
 )
 
-register("thin_layer_sandwich_si",
-         "flash.scenarios.public.sandwich.thin_layer_sandwich", "scenario_si")
+# 2026-10-27 去注册化：场景声明移至本目录 scene.json（discovery 扫描发现）

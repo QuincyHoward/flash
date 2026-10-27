@@ -55,6 +55,7 @@ pip install flash-sim
 - [开发指南](#开发指南)
 - [文档索引](#文档索引)
 - [版本更新日志](PhySimX_flash_CHANGELOG.md)
+- [重要依赖材料清单](#重要依赖材料清单gitignore-忽略的私有材料)
 - [许可](#许可)
 
 ---
@@ -293,7 +294,13 @@ plotter.plot("dens", save_path="dens.png")
 | `build_grid` | `(params) → (t_grid, x_grid)` | 定义输出规整网格 |
 | `interpolate` | `(flash_files, t_grid, x_grid, var_names) → {field: array}` | 把 AMR chk 插值到规整网格 |
 
-新增场景只需：在 `sim_input_dir` 备好 `.F90` / `Config` / `.cn4` → 定义 `scenario = SimulationScenario(...)` → `register("name", __name__)` → 引擎即可 `get_scenario("name").run()`。
+新增场景（2026-10-27 去注册化三件套，**零注册代码**）：建场景目录 →
+备好 `.F90` / `Config` / `cn4` → 定义 `scenario = SimulationScenario(...)` →
+落一份 `scene.json`（name/kind/module/attr/policy 等，模板抄任一现有场景）→
+（可选）复制一份通用 `run.py` 到目录内即可 `python run.py --dry-run` 直跑。
+`flash.scenarios.discovery` 会自动扫描发现，**不改** `registry`/`catalog`/
+父包 `__init__`。超算提交需在 `scene.json` 追加 `"hpc": {...}` 节
+（见 `flash/scenarios/hpc_job.py` 字段白名单）；核数默认值写 `"nproc_default"`。
 
 ### 目录地图（实际结构）
 
@@ -864,6 +871,100 @@ python -m build
 | `literature-citation-graph-harvest` | 文献施引/引用检索与 PDF 批量下载 |
 | `gitee-cred-git-scaffold` · `gitee-enterprise-repo` | Gitee 凭据脚手架 / 企业仓库创建 |
 | `code-refactor-safe` | 安全重构工作流 |
+
+---
+
+## 重要依赖材料清单（.gitignore 忽略的私有材料）
+
+> 以下材料因许可限制（FLASH License / 第三方软件）或体积原因被 `.gitignore` 排除，
+> **不随仓库分发**。此处仅列出文件名与所在位置，便于自行准备
+> 哪些材料、放置在何处。获取方式见各条目说明。
+
+### 1. FLASH 安装依赖压缩包 — `flash/flash_src/`
+
+FLASH 4.8 引擎源码及其编译依赖（hdf5 / hypre / mpich）压缩包与一键安装脚本：
+
+```
+flash/flash_src/
+├── FLASH4.8.tar.gz              # FLASH 4.8 官方源码包（许可限制，须自行从 flash.rochester.edu 获取）
+├── FLASH4.8/                    # 解压后的源码树（本地生成）
+├── hdf5-1.8.12.tar.gz           # HDF5 1.8.12（FLASH 输出格式依赖）
+├── hypre-2.9.0b.tar.gz          # Hypre 2.9.0b（扩散求解器依赖）
+├── mpich-3.2.tar.gz             # MPICH 3.2（MPI 并行依赖）
+└── FLASH_one_click_install.sh   # 一键编译安装脚本（随仓库分发）
+```
+
+### 2. IONMIX 相关源码 — `flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/`
+
+IONMIX 物性生成程序源码、示例输入/输出与参考文献（许可限制，不随仓库分发）：
+
+```
+.../ionmix/ionmix/src/Ionmix/
+├── abjt_03.f                    # IONMIX 主源码（Fortran）
+├── abjt_03                      # 编译产物（可执行）
+├── CH-QC-1-001.cn4              # CH 材料 EOS/不透明度数据表
+├── eos_Gen.cn4                  # EOS 生成用数据表
+├── cnrdeos                      # EOS 相关辅助程序
+├── ionmxinp / ionmxout / ionmxbug  # 示例输入 / 输出 / 调试文件
+├── implot01 ... implot06        # 绘图辅助脚本（implot01–06）
+├── macfarlane1989.pdf / .md     # MacFarlane 1989 参考文献及笔记
+├── README.txt                   # 本目录原始说明
+└── _init_.py                    # Python 包标记
+```
+
+> 同级还有 `Ionmix_run/`（运行工作目录），同样被忽略。
+
+### 3. Multi1D++ 软件 — `flash/input_gen/gen_eos_op/src/`
+
+Multi1D++ 便携版（Windows 可执行程序集）及相关文档、源码整理：
+
+```
+flash/input_gen/gen_eos_op/src/
+├── Multi1D++***.rar    # 原始便携压缩包
+├── Multi1D++***/       # 解压后程序集
+│   ├── Multi1D++.exe / Multi1D.exe / multi7.exe
+│   ├── GUI4Multi1D.exe
+│   ├── FEOS.exe / Ioniz.exe / Snop++.exe / snop.exe / ShowEOS.exe / mpqeos.exe
+│   ├── MULTIfs.exe
+│   ├── FEOS_Material-DB.dat / FEOS_TF-Table_1197.dat   # 材料数据库 / TF 表
+│   ├── Flux0.dat / Flux3ns.dat      # 激光通量数据
+│   ├── cases_simple / cases_1988CPC / cases_Experiments / cases_HotElectrons
+│   ├── cases_M1_78 / cases_RadiativeShock / cases_ZhangLu
+│   ├── cases_multi-ife / cases_multifs   # 各算例集
+│   ├── doc / templates / tools / matlab / matter++ / tabelle
+│   ├── gnuplot.exe / wgnuplot.exe / ZedGraph.dll / gsl.dll / gslcblas.dll
+│   └── default.ini / settings.ini / Changes.log
+├── multi_docs/                      # 文档
+└── multi_src/                       # 源码整理（01_inventory … 09_source_verify 编号目录、MANIFEST.tsv、README.md）
+```
+
+### 4. SNB 场景建立相关 F90 源码 — `flash/scenarios/private/SNB/SNB/`
+
+SNB（Scherbet–Nugent–Bulanov 非局域热传导）场景的核心 Fortran 源码与变体
+（私有场景，整目录被忽略）：
+
+```
+flash/scenarios/private/SNB/SNB/
+├── source/snb_package/             # SNB 主包（编译集成用核心 F90）
+│   ├── Conductivity.F90            # 电导率/热传导系数
+│   ├── diff_advanceTherm.F90       # 热扩散推进（SNB 修改版）
+│   ├── Driver_evolveFlash.F90      # 驱动演化（含辐射开关逻辑）
+│   ├── Grid_advanceDiffusion.F90   # 网格级扩散求解接口
+│   ├── mgd_qesh.F90                # MGD 群能量源项
+│   ├── Simulation_data.F90 / Simulation_init.F90 / Simulation_initBlock.F90
+│   ├── hy_uhd_dataReconstOneStep.F90
+│   ├── hy_uhd_DataReconstructNormalDir_PPM.F90
+│   ├── hy_uhd_getRiemannState.F90
+│   └── hy_uhd_ragelike.F90
+├── source/stock_sh/                # FL-SH（限流 Spitzer–Härm）对照版
+│   └── diff_advanceTherm.F90
+├── variants/                       # 变体源码
+│   ├── diff_advanceTherm_limiterON.F90   # 限流器开启变体
+│   └── Driver_evolveFlash_radON.F90      # 辐射开启变体
+├── tools_local/make_variants.py    # 变体生成工具
+├── scripts/                        # snb_params.py / check_share_safety.py
+└── docs/                           # 设置方法 / 端到端流程 / 编译依赖 / 坑位清单等（01–10）
+```
 
 ---
 

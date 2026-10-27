@@ -1,0 +1,9 @@
+{
+  "name": "SNBOneCH_ml",
+  "kind": "script",
+  "aliases": ["snb_ml"],
+  "description": "SNB 非局域热传导（CH，多群；**仅超算**）",
+  "policy": "snb",
+  "script": "flash/scenarios/private/tracer/SNB/SNBOneCH_ml/SNBOneCH_ml.py",
+  "default_args": ["all"]
+}

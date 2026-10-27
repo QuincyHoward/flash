@@ -22,15 +22,26 @@ _SCENARIO_REGISTRY: Dict[str, tuple] = {}
 
 
 def _ensure_loaded() -> None:
-    """首次访问时预热场景包（2026-10-24：`scenarios/__init__` 改为惰性）。
+    """首次访问时扫 ``scene.json`` 填表（2026-10-27 去注册化）。
 
-    ★ 若 import 期间发生异常，`warm_registry()` 会抛；这里**不吞**，
+    ★ 场景发现改为**纯文件扫描**（``discovery.iter_scene_manifests``），
+      不再依赖 import 副作用链（warm_registry → 父包 → 场景 __init__
+      → register）。``register()`` 保留为运行时扩展点（测试注入假
+      场景、第三方插件），场景代码**不再调用它**。
+
+    ★ manifest 非法时 ``iter_scene_manifests`` 会抛 —— 这里**不吞**，
       因为"注册表空着"会导致 get_scenario 报"未知场景"——
       正是 G8 要消灭的那种误导性错误。
     """
-    from flash.scenarios import warm_registry
+    from flash.scenarios.discovery import iter_scene_manifests
 
-    warm_registry()
+    for meta in iter_scene_manifests():
+        if meta.kind == "script":
+            continue   # script 型无可声明式场景对象，只属于 catalog
+        if not (meta.module and meta.attr):
+            continue   # main 型未声明场景对象（只有 main()）
+        _SCENARIO_REGISTRY.setdefault(
+            meta.name, (meta.attr_module or meta.module, meta.attr))
 
 
 def _lazy_import(module_path: str, attr: str):

@@ -141,6 +141,13 @@ RULES: tuple[Rule, ...] = (
          "hpc→hpc-remote 归一后恒真，曾使两个 demo 入口永远 return False）；"
          "须用 mode_is_local()/mode_is_remote()/mode_allows()",
          allow=r"^\s*#"),
+    Rule("R-SCENE-08", "scenes",
+         r"\bregister\s*\(\s*[\"']",
+         "2026-10-27 去注册化：场景层**禁止**调用 registry.register()"
+         "（import 副作用链已废除）；场景声明一律写本目录 scene.json，"
+         "由 flash.scenarios.discovery 扫描发现（引擎 API "
+         "register() 仅保留为运行时扩展点）",
+         allow=r"^\s*#"),
     Rule("R-LAYER-01", "deploy",
          r"^\s*(?:from|import)\s+flash\.scenarios",
          "部署层不得依赖**场景层**（依赖方向：deploy → flash_run → _core）；"

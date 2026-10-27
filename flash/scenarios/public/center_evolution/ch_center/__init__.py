@@ -32,7 +32,6 @@ from flash.scenarios.interpolator import (
     interpolate_flash_to_grid as _interpolate,
 )
 from flash.scenarios.public.time_control import fit_time_controls
-from flash.scenarios.registry import register
 
 
 # ── .par 构建 ──────────────────────────────────────────
@@ -602,4 +601,4 @@ scenario = ChCenterScenario(
     interpolate=_interpolate_fn,
 )
 
-register("ch_center", "flash.scenarios.public.center_evolution.ch_center", "scenario")
+# 2026-10-27 去注册化：场景声明移至本目录 scene.json（discovery 扫描发现）

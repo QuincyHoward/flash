@@ -1,0 +1,16 @@
+{
+  "name": "ch_center",
+  "kind": "main",
+  "aliases": [
+    "laserslab1d",
+    "laserslab",
+    "center_evolution"
+  ],
+  "description": "1D LaserSlab（CH 中心层，官方一键场景；auto/wsl/hpc-remote/hpc-insitu）",
+  "policy": "default",
+  "module": "flash.scenarios.public.center_evolution.ch_center.laserslab1d_local_custom",
+  "sim_name": "laserslab1d",
+  "basenm": "lasslab_",
+  "attr": "scenario",
+  "attr_module": "flash.scenarios.public.center_evolution.ch_center"
+}

@@ -47,7 +47,6 @@ _build_par, BeamConfig = _pb.build_par, _pb.BeamConfig
 
 from flash.scenarios.base import SimulationScenario
 from flash.scenarios.public.time_control import fit_time_controls
-from flash.scenarios.registry import register
 
 
 # ── 超高斯脉冲生成器 ──────────────────────────────────────
@@ -324,5 +323,4 @@ scenario_grad = _AutoGenScenario(
     interpolate=_make_interpolate(),
 )
 
-register("grad_dens_sandwich",
-         "flash.scenarios.public.sandwich.grad_dens_sandwich", "scenario_grad")
+# 2026-10-27 去注册化：场景声明移至本目录 scene.json（discovery 扫描发现）
