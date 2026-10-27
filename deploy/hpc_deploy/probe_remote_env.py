@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""probe_remote_env.py — Step 02: 超算远端只读环境探测（scfa2696 / NC-E）。
+"""probe_remote_env.py — Step 02: 超算远端只读环境探测（NC-E）。
 
 只读操作，不改远端任何文件。所有命令走**单条** RemoteSession 串行执行
 （超算 SSH 限并发，绝不并行开连接）。
@@ -26,9 +26,10 @@ TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/re
 REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 
-REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
-TARGET_DIR = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim"
-PKG_DIR = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim_pkg"
+import sys as _sys
+_sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_target_dirs as _hpc_dirs
+REMOTE_HOME, TARGET_DIR, PKG_DIR = _hpc_dirs()  # 运行期解析，绝不硬编码账号/家目录
 
 CHECKS = [
     ("module_python310",

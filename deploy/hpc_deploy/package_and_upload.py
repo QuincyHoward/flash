@@ -33,9 +33,10 @@ REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 PKG_DIR = TEST_DIR / "packages"
 
-REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
-PKG_DIR_REMOTE = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim_pkg"
-TARGET_DIR = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim"
+import sys as _sys
+_sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_target_dirs as _hpc_dirs
+REMOTE_HOME, TARGET_DIR, PKG_DIR_REMOTE = _hpc_dirs()  # 运行期解析，绝不硬编码账号/家目录
 GITEE_URL = "https://gitee.com/physimx/flash.git"
 
 BUNDLE = PKG_DIR / "flash_sim_all.bundle"

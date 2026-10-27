@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """_timing.py — 读取 _t_start/_t_end 获得纯积分墙钟"""
 import sys
+from pathlib import Path
 from datetime import datetime
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private\tracer\SNB\SNBOneCH_ml")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # SNBOneCH_ml
+sys.path.insert(0, str(Path(__file__).resolve().parents[8]))   # 仓库根
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 import SNBOneCH_ml as M
 
 ACCOUNT = "flash_ssh"
-DEPLOY = "/publicfs01/fs1-e/home/scfa2696/QC/SNBOneCH_ml_deploy"
+DEPLOY = f"{_hpc_home_req()}/QC/SNBOneCH_ml_deploy"
 NSTEP = {"131": 1997, "192": 1200, "256": 980}
 
 with M._HpcRemote(ACCOUNT) as remote:

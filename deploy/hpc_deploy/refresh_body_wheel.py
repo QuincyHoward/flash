@@ -42,7 +42,7 @@ import _wh_common as wh  # noqa: E402
 TARGET_PLATFORM = "linux"
 TARGET_PYTHON_TAG = "3.10"
 TARGET_PY_VERSION = "3.10.8"
-TARGET_DESC = "NC-E scfa2696 python/3.10.8"
+TARGET_DESC = "NC-E python/3.10.8"
 MANUAL_LINUX_EXTRAS = ["jeepney", "secretstorage",
                        "typing-extensions", "tomli", "exceptiongroup",
                        "importlib-metadata", "zipp", "backports.tarfile",

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 """_sacct3.py — 获取三作业精确 Elapsed + 各腿结束时刻"""
 import sys, re
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private\tracer\SNB\SNBOneCH_ml")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # SNBOneCH_ml
+sys.path.insert(0, str(Path(__file__).resolve().parents[8]))   # 仓库根
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 import SNBOneCH_ml as M
 
 ACCOUNT = "flash_ssh"
-DEPLOY = "/publicfs01/fs1-e/home/scfa2696/QC/SNBOneCH_ml_deploy"
+DEPLOY = f"{_hpc_home_req()}/QC/SNBOneCH_ml_deploy"
 with M._HpcRemote(ACCOUNT) as remote:
     for jid in ("4864482", "4864483", "4864484"):
         out, _, _ = remote.run(

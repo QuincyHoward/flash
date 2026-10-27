@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """_probe_pair.py — Intel MPI lib/ 与 lib/release/ 配对检查 + 小程序作业验证。"""
 import sys
+from pathlib import Path
 import time
 
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
 MPI = "/public1/soft/oneAPI/2022.1/mpi/latest"
@@ -18,10 +22,10 @@ with RemoteSession("flash_ssh") as s:
     print((out or "").strip()[:800])
 
     # 决定性：flash4 用 release 优先的 LD 顺序直接跑一次（登录节点即可触发符号解析）
-    FLASH4 = ("/publicfs01/fs1-e/home/scfa2696/QC/FLASH/FLASH4.8/hello/"
+    FLASH4 = (f"{_RH}/QC/FLASH/FLASH4.8/hello/"
               "LaserSlab_ChCenter/flash4")
     out, _, _ = s.run(
-        f"cd /publicfs01/fs1-e/home/scfa2696/QC/FLASH/FLASH4.8/hello/LaserSlab_ChCenter && "
+        f"cd {_RH}/QC/FLASH/FLASH4.8/hello/LaserSlab_ChCenter && "
         f"LD_LIBRARY_PATH={MPI}/lib/release:{MPI}/lib:/public1/soft/hdf5/1.8.18/lib:"
         f"$LD_LIBRARY_PATH ./flash4 2>&1 | head -3; echo RC=$?",
         timeout=120)

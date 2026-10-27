@@ -2,11 +2,15 @@
 # -*- coding: utf-8 -*-
 """diag_health.py — 复现 start_flash 健康探针 + 直接跑三套测试（绕过 wipe 循环）。"""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-TARGET = "/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim"
+TARGET = f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim"
 VPY = f"{TARGET}/.venv-hpc-nce/bin/python"
 
 PROBE = (

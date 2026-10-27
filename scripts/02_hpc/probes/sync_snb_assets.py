@@ -20,14 +20,17 @@ HERE = Path(__file__).resolve().parent
 TEST_DIR = HERE.parent
 REPO_ROOT = TEST_DIR.parents[3]
 sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession  # noqa: E402
 
 LOCAL_INPUT = REPO_ROOT / "flash" / "scenarios" / "private" / "tracer" / "SNB" \
     / "SNBOneCH_m" / "flash_input"
-REMOTE_INPUT = ("/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation"
+REMOTE_INPUT = (f"{_RH}/PhySimX/PhySimX/simulation"
                 "/flash/flash_sim/flash/scenarios/private/tracer/SNB/"
                 "SNBOneCH_m/flash_input")
-PKG = ("/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash"
+PKG = (f"{_RH}/PhySimX/PhySimX/simulation/flash"
        "/flash_sim_pkg")
 
 

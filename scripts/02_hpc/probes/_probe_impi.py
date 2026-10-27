@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """_probe_impi.py — Intel MPI 运行期符号错误诊断。"""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-FLASH4 = ("/publicfs01/fs1-e/home/scfa2696/QC/FLASH/FLASH4.8/hello/"
+FLASH4 = (f"{_RH}/QC/FLASH/FLASH4.8/hello/"
           "LaserSlab_ChCenter/flash4")
 
 with RemoteSession("flash_ssh") as s:

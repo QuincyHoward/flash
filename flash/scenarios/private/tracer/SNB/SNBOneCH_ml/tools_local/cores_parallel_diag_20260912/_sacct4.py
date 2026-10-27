@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 """_sacct4.py — 定位"真正开始积分"的时刻: 用 chk 文件/plt 的 mtime 与 log 首行步表时刻"""
 import sys
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash\flash\scenarios\private\tracer\SNB\SNBOneCH_ml")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # SNBOneCH_ml
+sys.path.insert(0, str(Path(__file__).resolve().parents[8]))   # 仓库根
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 import SNBOneCH_ml as M
 
 ACCOUNT = "flash_ssh"
-DEPLOY = "/publicfs01/fs1-e/home/scfa2696/QC/SNBOneCH_ml_deploy"
+DEPLOY = f"{_hpc_home_req()}/QC/SNBOneCH_ml_deploy"
 
 with M._HpcRemote(ACCOUNT) as remote:
     for n, jid in (("131", "4864482"), ("192", "4864483"), ("256", "4864484")):

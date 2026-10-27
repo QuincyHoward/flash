@@ -7,13 +7,16 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TEST_DIR = HERE.parent
-REPO_ROOT = TEST_DIR.parents[3]
+REPO_ROOT = TEST_DIR.parents[1]  # 02_hpc → scripts → 仓库根
 CAND = TEST_DIR / "packages" / "yt_candidates"
 sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-TARGET = "/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim"
-PKG = "/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim_pkg"
+TARGET = f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim"
+PKG = f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim_pkg"
 WH = f"{PKG}/wheelhouse-linux"
 VPY = f"{TARGET}/.venv-hpc-nce/bin/python"
 PIP = f"{TARGET}/.venv-hpc-nce/bin/pip"

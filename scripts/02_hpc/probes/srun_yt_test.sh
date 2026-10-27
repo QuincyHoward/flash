@@ -1,7 +1,7 @@
 #!/bin/bash
 # srun_yt_test.sh — 计算节点 yt import 测试（结果落盘并行盘）
-TARGET=/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim
-PKG=/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim_pkg
+TARGET=$HOME/PhySimX/PhySimX/simulation/flash/flash_sim
+PKG=$HOME/PhySimX/PhySimX/simulation/flash/flash_sim_pkg
 VPY="$TARGET/.venv-hpc-nce/bin/python"
 {
   echo "kernel: $(uname -r)"

@@ -6,10 +6,13 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, r"E:\PhySimX\PhySimX\simulation\flash_test\layer3\flash")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from flash._core.paths import hpc_home_required as _hpc_home_req
+_RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
+
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-TARGET = "/publicfs01/fs1-e/home/scfa2696/PhySimX/PhySimX/simulation/flash/flash_sim"
+TARGET = f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim"
 VPY = f"{TARGET}/.venv-hpc-nce/bin/python"
 LOG = HERE.parent / "logs" / f"diag_yt_{datetime.now():%Y%m%d_%H%M%S}.log"
 lf = open(LOG, "w", encoding="utf-8", errors="replace")

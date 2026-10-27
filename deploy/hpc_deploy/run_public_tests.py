@@ -53,10 +53,11 @@ REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
 RESULTS_DIR = TEST_DIR / "results"
 
-REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
+import sys as _sys
+_sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_target_dirs as _hpc_dirs
+REMOTE_HOME, TARGET_DIR, PKG_DIR_REMOTE = _hpc_dirs()  # 运行期解析，绝不硬编码账号/家目录
 BASE = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash"
-TARGET_DIR = f"{BASE}/flash_sim"
-PKG_DIR_REMOTE = f"{BASE}/flash_sim_pkg"
 VENV_NAME = ".venv-hpc-nce"
 WORK_DIR = f"{BASE}/flash_sim_public_runs"        # 阶段 B 工作区（并行盘）
 

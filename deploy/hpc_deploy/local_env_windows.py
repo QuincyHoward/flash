@@ -21,12 +21,20 @@ ARTIFACTS = HERE.parents[1] / "artifacts"      # 根目录统一产物区
 TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"    # 兼容旧名: logs/packages/results 统一落 artifacts
 REPO_ROOT = HERE.parents[1]
 LOG_DIR = TEST_DIR / "logs"
-MANAGED_PY = Path(r"C:\Users\Administrator\.workbuddy\binaries\python\versions\3.13.12\python.exe")
+
+
+def _managed_python() -> Path:
+    """WorkBuddy 托管 Python（用户名无关，统一入口 flash/_core/paths.py）。"""
+    import sys as _sys
+    sys.path.insert(0, str(REPO_ROOT))
+    from flash._core.paths import managed_python
+    return managed_python()
 
 
 def pick_base_python() -> str:
-    if MANAGED_PY.is_file():
-        return str(MANAGED_PY)
+    py = _managed_python()
+    if py.is_file():
+        return str(py)
     return sys.executable
 
 

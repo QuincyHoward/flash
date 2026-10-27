@@ -38,9 +38,10 @@ TEST_DIR = ARTIFACTS / "logs" / "hpc_deploy"
 PKG_DIR = TEST_DIR / "packages"
 LOG_DIR = TEST_DIR / "logs"
 
-REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
-PKG_DIR_REMOTE = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim_pkg"
-TARGET_DIR = f"{REMOTE_HOME}/PhySimX/PhySimX/simulation/flash/flash_sim"
+import sys as _sys
+_sys.path.insert(0, str(REPO_ROOT))
+from flash._core.paths import hpc_target_dirs as _hpc_dirs
+REMOTE_HOME, TARGET_DIR, PKG_DIR_REMOTE = _hpc_dirs()  # 运行期解析，绝不硬编码账号/家目录
 
 BUNDLE = PKG_DIR / "flash_sim_all.bundle"
 HEAD_FILE = PKG_DIR / "bundle_head.txt"

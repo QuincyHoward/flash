@@ -257,7 +257,7 @@ def main() -> int:
                                "--platform manylinux2014_x86_64 --python-version 3.10 "
                                "（目标: NC-E python/3.10.8）"),
         "pip_flags": ["--no-index"],
-        "target": "NC-E scfa2696 python/3.10.8",
+        "target": "NC-E python/3.10.8",
     }
     mp = house.write_manifest(meta)
     man = house.read_manifest()
