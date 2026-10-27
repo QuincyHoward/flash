@@ -162,8 +162,11 @@ class TestRealRepo:
 
     def test_real_repo_discovers_five(self):
         metas = list(iter_scene_manifests())
-        # 真仓此时可能已有 scene.json；断言核心 5 个（若已迁移）或 0 个（未迁移）
+        # 真仓 2026-10-27：5 个基础场景 + 6 个 SNBVTi（hpc 自声明）全部
+        # 应被纯文件扫描发现（零 import）；或为 0（尚未迁移的旧检出）
         names = {m.name for m in metas}
-        expected = {"ch_center", "grad_dens_sandwich",
-                    "thin_layer_sandwich_si", "SNBOneCH_m", "SNBOneCH_ml"}
+        expected = {"ch_center", "grad_dens_sandwich", "thin_layer_sandwich_si",
+                    "SNBOneCH_m", "SNBOneCH_ml",
+                    "SNBVTi1um", "SNBVTi2um", "SNBVTi3um",
+                    "SNBVTi1umx", "SNBVTi2umx", "SNBVTi3umx"}
         assert names == expected or names == set()

@@ -1,0 +1,52 @@
+{
+  "name": "SNBVTi3umx",
+  "kind": "script",
+  "aliases": [
+    "snbvti3umx"
+  ],
+  "description": "SNB 非局域热传导 VTi 示踪（3 µm(域扩展) Ti 层；仅超算，175 进程=网格定义；本地生成+SFTP 上传）",
+  "policy": "snb",
+  "script": "flash/scenarios/private/tracer/SNB/SNBVTi3umx/SNBVTi3umx.py",
+  "sim_name": "SNBVTi3umx",
+  "nproc_default": 175,
+  "hpc": {
+    "input_rel_dir": "flash/scenarios/private/tracer/SNB/SNBVTi3umx/flash_input",
+    "gen_script": "flash/scenarios/private/tracer/SNB/SNBVTi3umx/SNBVTi3umx.py",
+    "flash_unit": "SNBVTi3umx",
+    "par_file": "snbvti3umx.par",
+    "setup_extra": [],
+    "ntasks": 175,
+    "time_limit": "01:00:00",
+    "setup_common": [
+      "-1d",
+      "+cartesian",
+      "+ug",
+      "-nxb=200",
+      "+hdf5typeio",
+      "species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6",
+      "+mtmmmt",
+      "+laser",
+      "+uhd3t",
+      "+mgd",
+      "mgd_meshgroups=10",
+      "ed_maxPulseSections=300"
+    ],
+    "flash_home_default": "$HOME/QC/FLASH/FLASHSNB/FLASH4.8",
+    "launcher": "mpiexec",
+    "nodes": 4,
+    "archive_patterns": [
+      "snbvti3umxug_*"
+    ],
+    "gen_mode": "local_upload",
+    "gen_args": [
+      "--generate-only"
+    ],
+    "pre_build_targets": [
+      "hy_slopeLimiters.o",
+      "Conductivity_interface.o",
+      "Conductivity_fullState.o"
+    ],
+    "make_jobs_max": 16,
+    "env_profile": "flash_home_hdf5"
+  }
+}

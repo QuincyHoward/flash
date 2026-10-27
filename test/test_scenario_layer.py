@@ -60,7 +60,10 @@ def test_scene_nprocs_in_scenarios_layer():
 
     from flash.scenarios.device_defaults import get_scene_nprocs
     assert get_scene_nprocs("SNBOneCH_ml") == 131
-    assert get_scene_nprocs("SNBVTi") == 125
+    # 2026-10-27 去注册化：SNBVTi 核数默认值在各自 scene.json 的
+    # nproc_default 节（精确名匹配），内置表只剩前缀族 SNBOneCH
+    assert get_scene_nprocs("SNBVTi2um") == 125
+    assert get_scene_nprocs("SNBVTi2umx") == 175
     assert get_scene_nprocs("unrelated_scene") is None
     assert get_scene_nprocs("unrelated_scene", default=4) == 4
 

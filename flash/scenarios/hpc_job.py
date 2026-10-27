@@ -118,88 +118,13 @@ class SceneHpcJob:
         return (*common, *self.setup_extra)
 
 
-#: SNB 族（FLASHSNB +ug 精确网格）的 setup 参数整组自声明：
-#: ★ 与 SETUP_COMMON 完全不兼容（-nxb=200 vs 16、8 物种 vs 3 物种、+ug）。
-#:   iProcs×nxb = 125×200 = 25000 ⇒ dx = 0.02 µm 精确（0.1 µm 薄层 = 5 整格），
-#:   ntasks 必须恒等于 125（核数即网格，改核数 = 改网格）。
-SNB_UG_SETUP_COMMON: Tuple[str, ...] = (
-    "-1d", "+cartesian", "+ug", "-nxb=200", "+hdf5typeio",
-    "species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6",
-    "+mtmmmt", "+laser", "+uhd3t", "+mgd", "mgd_meshgroups=10",
-    "ed_maxPulseSections=300",
-)
-
-
-def _snbvti_um(name: str) -> SceneHpcJob:
-    """构造 SNBVTi{1,2,3}um 的提交声明（三姊妹场景仅 Ti 层深度不同）。
-
-    ★ gen_mode="local_upload"：SNB 覆盖 F90（License §3）不入库 ⇒ 远端
-      flash_sim 树缺 ``SNB/SNB/source/snb_package`` 镜像，只有本地
-      （仓内镜像 + radON 变体断言）能完整生成 flash_input ⇒ 本地生成
-      （含静态核验）后 SFTP 上传。radON Driver 哈希校验在生成期强制。
-    ★ launcher="mpiexec"：FLASHSNB/NC-E 铁律（SNBOneCH_ml 实测路径，
-      srun PMI 路径未在 SNB 二进制上验证过，不引入新变量）。
-    ★ env_profile="flash_home_hdf5"：禁 module purge/load（t001 实测铁律），
-      只补 Makefile.h 里的 HDF5 运行库。
-    """
-    low = name.lower()
-    return SceneHpcJob(
-        name=name,
-        input_rel_dir=f"flash/scenarios/private/tracer/SNB/{name}/flash_input",
-        gen_script=f"flash/scenarios/private/tracer/SNB/{name}/{name}.py",
-        flash_unit=name,
-        par_file=f"{low}.par",
-        setup_extra=(),
-        ntasks=125,                       # +ug 铁律: nproc == iProcs == 125
-        time_limit="01:00:00",            # 极短验证 (tmax=1e-11) 足够
-        setup_common=SNB_UG_SETUP_COMMON,
-        flash_home_default="$HOME/QC/FLASH/FLASHSNB/FLASH4.8",
-        launcher="mpiexec",
-        nodes=3,                          # NC-E 48 核/节点 → 125 任务需 3 节点
-        archive_patterns=(f"{low}ug_*",),   # chk 无 .h5 后缀, 按基名归档
-        gen_mode="local_upload",
-        gen_args=("--generate-only",),    # 极短验证 tmax=1e-11 (场景内置默认)
-        pre_build_targets=("hy_slopeLimiters.o",
-                           "Conductivity_interface.o",
-                           "Conductivity_fullState.o"),
-        make_jobs_max=16,                 # 与 SNB 实测 -j8~16 稳妥档对齐
-        env_profile="flash_home_hdf5",
-    )
-
-
-def _snbvti_umx(name: str) -> SceneHpcJob:
-    """构造 SNBVTi{1,2,3}umx 的提交声明（域扩展变体, 2026-10-27）。
-
-    与 `_snbvti_um` 的唯一差别（物理/材料/激光/SNB 全同）:
-      域 -600..100 µm (700 µm) ⇒ iProcs×nxb = 175×200 = 35000 格
-      ⇒ dx 仍精确 0.02 µm；175 任务 = NC-E 4 节点。
-    """
-    low = name.lower()
-    return SceneHpcJob(
-        name=name,
-        input_rel_dir=f"flash/scenarios/private/tracer/SNB/{name}/flash_input",
-        gen_script=f"flash/scenarios/private/tracer/SNB/{name}/{name}.py",
-        flash_unit=name,
-        par_file=f"{low}.par",
-        setup_extra=(),
-        ntasks=175,                       # +ug 铁律: nproc == iProcs == 175
-        time_limit="01:00:00",            # 极短验证 (tmax=1e-11); 2.4ns 用 --time-limit 覆写
-        setup_common=SNB_UG_SETUP_COMMON,
-        flash_home_default="$HOME/QC/FLASH/FLASHSNB/FLASH4.8",
-        launcher="mpiexec",
-        nodes=4,                          # NC-E 48 核/节点 → 175 任务需 4 节点
-        archive_patterns=(f"{low}ug_*",),
-        gen_mode="local_upload",
-        gen_args=("--generate-only",),
-        pre_build_targets=("hy_slopeLimiters.o",
-                           "Conductivity_interface.o",
-                           "Conductivity_fullState.o"),
-        make_jobs_max=16,
-        env_profile="flash_home_hdf5",
-    )
-
-
 #: 公开场景的超算提交声明表。
+#:
+#: ★ 2026-10-27 去注册化：SNBVTi{1,2,3}um / SNBVTi{1,2,3}umx 的提交声明
+#:   已迁至各自场景目录 ``scene.json`` 的 ``hpc`` 节（含 SNB_UG_SETUP_COMMON
+#:   全量 setup 参数、ntasks=125/175、nodes=3/4、gen_mode=local_upload 等），
+#:   由 ``_merge_manifest_hpc_jobs()`` 并入本表 —— **本模块不再保留副本**，
+#:   新增超算场景 = 写 scene.json，不改这里。
 SCENE_HPC_JOBS: Dict[str, SceneHpcJob] = {
     "grad_dens_sandwich": SceneHpcJob(
         name="grad_dens_sandwich",
@@ -219,14 +144,6 @@ SCENE_HPC_JOBS: Dict[str, SceneHpcJob] = {
         setup_extra=(),
         ntasks=4,
     ),
-    # ── SNB 族（FLASHSNB +ug 精确网格, Ti 示踪层深度 1/2/3 µm）──
-    "SNBVTi1um": _snbvti_um("SNBVTi1um"),
-    "SNBVTi2um": _snbvti_um("SNBVTi2um"),
-    "SNBVTi3um": _snbvti_um("SNBVTi3um"),
-    # ── SNB 族域扩展变体（-600..100 µm, 175×200=35000 格, dx 仍 0.02 µm）──
-    "SNBVTi1umx": _snbvti_umx("SNBVTi1umx"),
-    "SNBVTi2umx": _snbvti_umx("SNBVTi2umx"),
-    "SNBVTi3umx": _snbvti_umx("SNBVTi3umx"),
 }
 
 

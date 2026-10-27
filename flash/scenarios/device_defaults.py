@@ -31,13 +31,10 @@ __all__ = ["SCENE_NPROC_DEFAULTS", "get_scene_nprocs"]
 #:
 #: ★ `nprocs` 是**网格定义**而非设备属性：`iProcs × nxb = const`
 #:   ⇒ 改核数即改网格（FLASH SystemExit）⇒ 必须由场景层声明。
+#: ★ 2026-10-27 去注册化：SNBVTi{1,2,3}um(x) 的核数默认值已迁至各自
+#:   ``scene.json`` 的 ``nproc_default`` 节（精确名匹配），此处不再保留。
 SCENE_NPROC_DEFAULTS: Dict[str, int] = {
     "SNBOneCH": 131,   # nxb=128, iprocs=131 ⇒ dx=0.0298 µm ≤ 0.03 µm
-    "SNBVTi": 125,     # iprocs=125 (500 µm 域, 25000 格)
-    # ★ 域扩展变体必须写在 "SNBVTi" 之前命中（最长前缀优先）
-    "SNBVTi1umx": 175,  # 700 µm 域, 175×200=35000 格 ⇒ dx=0.02 µm 精确
-    "SNBVTi2umx": 175,
-    "SNBVTi3umx": 175,
 }
 
 

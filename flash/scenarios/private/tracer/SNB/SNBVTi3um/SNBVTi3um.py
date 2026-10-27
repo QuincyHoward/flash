@@ -139,6 +139,15 @@ dx=域宽/(iProcs*nxb), 且 nproc 必须严格等于 iProcs。
       --dir flash/scenarios/private/tracer/SNB/SNBVTi3um/flash_output/hpc_flash_ssh \
       --expect-cells 5
 
+## ★ 新超算入口 (2026-10-27, flash_run 统一提交链)
+
+    python -m flash.scenarios.cli submit SNBVTi3um [--run-id NNNNNN]
+    (声明在 flash/scenarios/hpc_job.py::SCENE_HPC_JOBS["SNBVTi3um"];
+     gen_mode=local_upload: 本地生成 + SFTP 上传; launcher=mpiexec;
+     ntasks=125 nodes=3; setup_common=SNB_UG_SETUP_COMMON (+ug 精确网格);
+     tmax 取场景内置极短验证值 1e-11)
+    旧 --account/--nproc 直跑路径 (run_hpc 委托 SNBOneCH_ml) 仍保留。
+
 参见: SNBVTi2/docs/01_场景说明与拓扑.md, SNBVTi2/docs/02_超算验证流程.md
 (几何/流程同 SNBVTi2; 辐射差异见本文档头部与 SNB/docs/04_辐射开关.md)
 """
