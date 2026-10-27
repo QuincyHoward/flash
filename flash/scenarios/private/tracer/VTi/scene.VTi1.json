@@ -1,0 +1,8 @@
+{
+  "name": "VTi1",
+  "kind": "main",
+  "description": "V 屏蔽 + Ti 示踪层 (变体 VTi1)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/VTi.VTi1",
+  "script": ""
+}

@@ -1,0 +1,8 @@
+{
+  "name": "CHTi3",
+  "kind": "main",
+  "description": "CH 屏蔽 + Ti 示踪层 (变体 CHTi3)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/CHTi.CHTi3",
+  "script": ""
+}

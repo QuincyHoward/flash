@@ -1,0 +1,8 @@
+{
+  "name": "TiTi2",
+  "kind": "main",
+  "description": "Ti/Ti 双示踪层 (变体 TiTi2)",
+  "policy": "default",
+  "module": "flash/scenarios/private/tracer/TiTi.TiTi2",
+  "script": ""
+}

@@ -91,7 +91,7 @@ wsl_run.log
 *.html
 *.json
 # ★ 去注册化（2026-10-27）：场景声明 manifest 必须入库（源码，非产物）
-!flash/scenarios/**/scene.json
+!flash/scenarios/**/scene*.json
 *.txt
 
 
