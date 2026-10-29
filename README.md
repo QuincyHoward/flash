@@ -17,24 +17,17 @@
 ## 仓库地址 (Repository)
 
 本项目在 Gitee 与 GitHub **双平台同步维护**；国内用户建议使用 Gitee，海外用户可使用 GitHub 镜像。
-```
-Gitee  : https://gitee.com/physimx/flash
-GitHub : https://github.com/QuincyHoward/flash
-```
-
-```
-PyPI 版本可能滞后
-pip install flash-sim
-```
-
 | 操作 | 命令 |
 |------|------|
-| **HTTPS 克隆 (Gitee)** | `git clone https://gitee.com/physimx/flash.git` |
-| **HTTPS 克隆 (GitHub)** | `git clone https://github.com/QuincyHoward/flash.git` |
-| **在线浏览 (Gitee)** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **在线浏览 (GitHub)** | https://github.com/QuincyHoward/flash (Code/Issues/Releases 页签) |
-| **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新, 见上方维护策略) |
-| **问题反馈** | 通过 Gitee 或 GitHub Issues 提交 (登录后新建 Issue) |
+| **在线浏览（Gitee）** | https://gitee.com/physimx/flash （Code / Issues / Releases 页签） |
+| **在线浏览（GitHub）** | https://github.com/QuincyHoward/flash （Code / Issues / Releases 页签） |
+| **HTTPS 克隆（Gitee）** | `git clone https://gitee.com/physimx/flash.git`<br>`git clone --depth 1 https://gitee.com/physimx/flash.git` |
+| **HTTPS 克隆（GitHub）** | `git clone https://github.com/QuincyHoward/flash.git`<br>`git clone --depth 1 https://github.com/QuincyHoward/flash.git` |
+| **PyPI 版本（可能滞后）** | `pip install flash-sim` |
+| **版本标签** | 以 `git tag -l` 查看全部（PyPI 按阶段更新，见上方维护策略） |
+| **问题反馈** | 通过 Gitee 或 GitHub Issues 提交（登录后新建 Issue） |
+
+**说明**：`--depth 1` 为浅克隆，只拉取最新一次提交，不包含完整历史，可显著减小下载体积与磁盘占用；代价是无法查看、切换历史提交。需要完整历史时，在浅克隆仓库内执行 `git fetch --unshallow` 即可恢复。
 
 > 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45) ；
 > 版权合规检查详见 [许可](#许可) 与 [NOTICE](NOTICE)；
