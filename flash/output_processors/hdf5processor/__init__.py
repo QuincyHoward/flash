@@ -18,6 +18,11 @@ from .flash_hdf5 import (
     DATA_CONFIG,
     VAR_ALIASES,
     NA,
+    E2,
+    KB,
+    HBAR2_2ME,
+    ion_coupling_parameter,
+    electron_degeneracy_parameter,
 )
 from ..extraction_modes import (
     EXTRACTION_MODES,

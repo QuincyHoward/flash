@@ -234,12 +234,31 @@ DATA_CONFIG = {
         "category": "derived", "depends": ["tele"],
         "formula": "tele / |grad(tele)|",
     },
+    "zbar": {
+        "unit": "1", "unit_si": "1", "to_si": 1.0,
+        "description": "Mean ionization Zbar = ye / sumy (= nele / nion)",
+        "category": "derived", "depends": ["ye", "sumy"],
+        "formula": "ye / sumy",
+    },
+    "Gamma_i": {
+        "unit": "1", "unit_si": "1", "to_si": 1.0,
+        "description": "Ion coupling parameter Gamma_i = Zbar^2 e^2 / (a_i k_B T_i), "
+                       "a_i = (3 / 4pi nion)^(1/3) Wigner-Seitz radius",
+        "category": "derived", "depends": ["nion", "tion", "zbar"],
+        "formula": "ion_coupling_parameter(nion, tion, zbar)  [flash_hdf5]",
+    },
+    "Theta_e": {
+        "unit": "1", "unit_si": "1", "to_si": 1.0,
+        "description": "Electron degeneracy parameter Theta_e = k_B T_e / E_F, "
+                       "E_F = hbar^2/(2 m_e) (3 pi^2 nele)^(2/3)",
+        "category": "derived", "depends": ["nele", "tele"],
+        "formula": "electron_degeneracy_parameter(nele, tele)  [flash_hdf5]",
+    },
 }
 
 # 别名映射：原始 FLASH 中可能的其他变量名
 VAR_ALIASES = {
     "targ": ["target"],
-    "cham": ["ch", "ablator"],
     "shld": ["shield", "shielding"],
     "samp": ["sample"],
     "sumy": ["sum_ye", "total_ye"],
@@ -302,13 +321,30 @@ class DataCalculator:
         return eval(formula, {"__builtins__": {}}, local_vars)
 
     def compute_all(self) -> dict:
-        """计算所有可计算的派生变量，返回 {变量名: ndarray}"""
+        """计算所有可计算的派生变量，返回 {变量名: ndarray}
+
+        支持链式派生: 先算出的派生变量 (如 nele/nion) 会写入 self._data,
+        使依赖它们的变量 (如 zbar → gam_i/the_e) 随后可计算。
+        """
         result = {}
-        for vname in self.get_available_derived():
-            try:
-                result[vname] = self.compute(vname)
-            except Exception as e:
-                print(f"  [警告] 计算 '{vname}' 失败: {e}")
+        failed = set()
+        progress = True
+        while progress:
+            progress = False
+            for vname, cfg in DATA_CONFIG.items():
+                if cfg.get("category") != "derived":
+                    continue
+                if vname in result or vname in failed:
+                    continue
+                if all(d in self._data for d in cfg.get("depends", [])):
+                    try:
+                        val = self.compute(vname)
+                        result[vname] = val
+                        self._data[vname] = val  # 供后续链式派生使用
+                    except Exception as e:
+                        print(f"  [警告] 计算 '{vname}' 失败: {e}")
+                        failed.add(vname)
+                    progress = True
         return result
 
     def register(self, varname: str, formula: str, description: str,
@@ -446,6 +482,77 @@ def _gradient_scale_1d_blocks(var: np.ndarray, grid_info: dict) -> np.ndarray:
 # 注册梯度标长计算函数
 _CALC_FUNCS["ls_nele"] = _calc_ls_nele
 _CALC_FUNCS["ls_tele"] = _calc_ls_tele
+
+
+# ═══════════════════════════════════════════════════════════════
+#  等离子体无量纲状态量 (2026-10-30 由独立模块并入本文件)
+#  基于已有派生量 nele / nion / zbar 计算:
+#    Γ_i = Z̄² e² / (a_i k_B T_i),  a_i = (3 / 4π n_ion)^(1/3)
+#    Θ_e = k_B T_e / E_F,  E_F = ħ²/(2 m_e) (3π² n_e)^(2/3)
+#  判据: Γ_i << 1 弱耦合 / Γ_i ≳ 1 强耦合;
+#        Θ_e >> 1 经典 / Θ_e ≲ 1 (部分)简并。CGS-Gaussian 单位制。
+# ═══════════════════════════════════════════════════════════════
+
+E2 = 2.30707755e-19          # e² (erg·cm), e = 4.80320471e-10 esu
+KB = 1.380649e-16            # Boltzmann (erg/K)
+HBAR2_2ME = 6.10426431e-28   # ħ²/(2 m_e) (erg·cm²), m_e = 9.1093837e-28 g
+
+
+def ion_coupling_parameter(nion, tion, zbar):
+    """离子耦合参数 Γ_i = Z̄² e² / (a_i k_B T_i)。
+
+    参数
+    ----
+    nion : 离子数密度 (1/cm³) — 即派生量 nion
+    tion : 离子温度 (K)
+    zbar : 平均电离度 — 即派生量 zbar = nele / nion
+
+    返回
+    ----
+    Γ_i (无量纲); T_i→0 或 n_ion→0 处为 inf/nan, 调用方自行截断。
+    """
+    nion = np.asarray(nion, dtype=float)
+    tion = np.asarray(tion, dtype=float)
+    zbar = np.asarray(zbar, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        a_ws = (3.0 / (4.0 * np.pi * np.maximum(nion, 1e-300))) ** (1.0 / 3.0)
+        gam = zbar**2 * E2 / (a_ws * KB * np.maximum(tion, 1e-300))
+    return gam
+
+
+def electron_degeneracy_parameter(nele, tele):
+    """电子简并参数 Θ_e = k_B T_e / E_F (E_F 为零温费米能)。
+
+    参数
+    ----
+    nele : 电子数密度 (1/cm³) — 即派生量 nele
+    tele : 电子温度 (K)
+
+    返回
+    ----
+    Θ_e (无量纲); n_e→0 处 Θ_e→inf (经典极限), 调用方自行截断。
+    """
+    nele = np.asarray(nele, dtype=float)
+    tele = np.asarray(tele, dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        e_f = HBAR2_2ME * (3.0 * np.pi**2 * np.maximum(nele, 1e-300)) ** (2.0 / 3.0)
+        theta = KB * tele / np.maximum(e_f, 1e-300)
+    return theta
+
+
+def _calc_Gamma_i(data: dict) -> np.ndarray:
+    """计算离子耦合参数 Gamma_i = Zbar² e² / (a_i k_B T_i) — 基于派生量 nion/zbar。"""
+    return ion_coupling_parameter(data["nion"], data["tion"], data["zbar"])
+
+
+def _calc_Theta_e(data: dict) -> np.ndarray:
+    """计算电子简并参数 Theta_e = k_B T_e / E_F — 基于派生量 nele。"""
+    return electron_degeneracy_parameter(data["nele"], data["tele"])
+
+
+# 注册等离子体无量纲状态量 (与 nele/nion/zbar 同体系, 链式派生)
+_CALC_FUNCS["Gamma_i"] = _calc_Gamma_i
+_CALC_FUNCS["Theta_e"] = _calc_Theta_e
 
 
 # ═══════════════════════════════════════════════════════════════

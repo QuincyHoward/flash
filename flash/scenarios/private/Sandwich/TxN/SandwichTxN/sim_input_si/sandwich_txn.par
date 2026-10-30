@@ -1,0 +1,408 @@
+run_comment = "sandwich_txn 1D Simulation - Auto-generated"
+log_file    = "lasslab.log"
+basenm      = "lasslab_"
+
+    # res_min=0.0137um (lref=10)
+    # res_max=7.0312um (lref=1)
+
+##############################
+#  I/O PARAMETERS
+##############################
+
+checkpointFileIntervalTime     = 1000
+checkpointFileIntervalStep     = 100
+plotFileIntervalStep           = 1000
+plotFileNumber                 = 0
+restart                        = .false.
+checkpointFileNumber           = 0
+plot_var_1                     = dens
+plot_var_2                     = depo
+plot_var_3                     = tele
+plot_var_4                     = tion
+plot_var_5                     = trad
+plot_var_6                     = ye  
+plot_var_7                     = sumy
+plot_var_8                     = cham
+plot_var_9                     = targ
+plot_var_10                    = poly
+
+##############################
+#  RADIATION/OPACITY PARAMETERS
+##############################
+
+op_chamAbsorb                  = op_tabpa
+op_chamEmiss                   = op_tabpe
+op_chamFileName                = Z02_1.00-20260708_0851.cn4
+op_chamFileType                = ionmix4
+op_chamTrans                   = op_tabro
+op_targAbsorb                  = op_tabpa
+op_targEmiss                   = op_tabpe
+op_targFileName                = Z14_1.00-20260708_0850.cn4
+op_targFileType                = ionmix4
+op_targTrans                   = op_tabro
+rt_dtFactor                    = 0.02
+rt_mgdBounds_1                 = 0.1
+rt_mgdBounds_2                 = 1
+rt_mgdBounds_3                 = 10
+rt_mgdBounds_4                 = 100
+rt_mgdBounds_5                 = 1000
+rt_mgdBounds_6                 = 10000
+rt_mgdBounds_7                 = 100000
+rt_mgdFlCoef                   = 1
+rt_mgdFlMode                   = fl_harmonic
+rt_mgdNumGroups                = 6
+rt_mgdXlBoundaryType           = vacuum
+rt_mgdXrBoundaryType           = vacuum
+rt_useMGD                      = .true.
+op_polyAbsorb                  = op_tabpa
+op_polyEmiss                   = op_tabpe
+op_polyTrans                   = op_tabro
+op_polyFileType                = ionmix4
+op_polyFileName                = Z06_0.50-Z01_0.50-20260708_0850.cn4
+
+##############################
+#  LASER PARAMETERS / Energy Deposition
+##############################
+
+ed_crossSectionFunctionType_1  = uniform
+ed_gradOrder                   = 2
+ed_gridType_1                  = regular1D
+ed_gridnRadialTics_1           = 512
+ed_laserIOMaxNumberOfPositions = 10000
+ed_laserIOMaxNumberOfRays      = 128
+ed_maxRayCount                 = 10000
+ed_numberOfBeams               = 2
+ed_numberOfPulses              = 1
+ed_numberOfRays_1              = 1
+ed_numberOfSections_1          = 100
+ed_useLaserIO                  = .false.
+ed_time_1_1                    = 0
+ed_power_1_1                   = 4791259765.625
+ed_time_1_2                    = 1.81818181818182e-11
+ed_power_1_2                   = 10502703136.5464
+ed_time_1_3                    = 3.63636363636364e-11
+ed_power_1_3                   = 22066486335.0037
+ed_time_1_4                    = 5.45454545454545e-11
+ed_power_1_4                   = 44506336176.0802
+ed_time_1_5                    = 7.27272727272727e-11
+ed_power_1_5                   = 86303870497.7193
+ed_time_1_6                    = 9.09090909090909e-11
+ed_power_1_6                   = 161142110723.591
+ed_time_1_7                    = 1.09090909090909e-10
+ed_power_1_7                   = 290132320293.637
+ed_time_1_8                    = 1.27272727272727e-10
+ed_power_1_8                   = 504448428018.242
+ed_time_1_9                    = 1.45454545454545e-10
+ed_power_1_9                   = 848171569345.065
+ed_time_1_10                   = 1.63636363636364e-10
+ed_power_1_10                  = 1381010465651.72
+ed_time_1_11                   = 1.81818181818182e-10
+ed_power_1_11                  = 2180439105386.2
+ed_time_1_12                   = 2e-10
+ed_power_1_12                  = 3342715910401.37
+ed_time_1_13                   = 2.18181818181818e-10
+ed_power_1_13                  = 4982251375025.84
+ed_time_1_14                   = 2.36363636363636e-10
+ed_power_1_14                  = 7228896035796.39
+ed_time_1_15                   = 2.54545454545455e-10
+ed_power_1_15                  = 10222929844756
+ed_time_1_16                   = 2.72727272727273e-10
+ed_power_1_16                  = 14107825858518.9
+ed_time_1_17                   = 2.90909090909091e-10
+ed_power_1_17                  = 19021191839503.4
+ed_time_1_18                   = 3.09090909090909e-10
+ed_power_1_18                  = 25084605279977.2
+ed_time_1_19                   = 3.27272727272727e-10
+ed_power_1_19                  = 32393291573228.8
+ed_time_1_20                   = 3.45454545454545e-10
+ed_power_1_20                  = 41006704740084.4
+ed_time_1_21                   = 3.63636363636364e-10
+ed_power_1_21                  = 50941031181300.5
+ed_time_1_22                   = 3.81818181818182e-10
+ed_power_1_22                  = 62164453096412.4
+ed_time_1_23                   = 4e-10
+ed_power_1_23                  = 74595709511056.6
+ed_time_1_24                   = 4.18181818181818e-10
+ed_power_1_24                  = 88106128298969.3
+ed_time_1_25                   = 4.36363636363636e-10
+ed_power_1_25                  = 102524929362389
+ed_time_1_26                   = 4.54545454545455e-10
+ed_power_1_26                  = 117647271206861
+ed_time_1_27                   = 4.72727272727273e-10
+ed_power_1_27                  = 133244271880987
+ed_time_1_28                   = 4.90909090909091e-10
+ed_power_1_28                  = 149074103834056
+ed_time_1_29                   = 5.09090909090909e-10
+ed_power_1_29                  = 164893244414180
+ed_time_1_30                   = 5.27272727272727e-10
+ed_power_1_30                  = 180467046306489
+ed_time_1_31                   = 5.45454545454545e-10
+ed_power_1_31                  = 195578950159364
+ed_time_1_32                   = 5.63636363636364e-10
+ed_power_1_32                  = 210037864165921
+ed_time_1_33                   = 5.81818181818182e-10
+ed_power_1_33                  = 223683451641227
+ed_time_1_34                   = 6e-10
+ed_power_1_34                  = 236389271281223
+ed_time_1_35                   = 6.18181818181818e-10
+ed_power_1_35                  = 248063886553854
+ed_time_1_36                   = 6.36363636363636e-10
+ed_power_1_36                  = 258650189368610
+ed_time_1_37                   = 6.54545454545455e-10
+ed_power_1_37                  = 268123265173498
+ed_time_1_38                   = 6.72727272727273e-10
+ed_power_1_38                  = 276487164421491
+ed_time_1_39                   = 6.90909090909091e-10
+ed_power_1_39                  = 283770945613426
+ed_time_1_40                   = 7.09090909090909e-10
+ed_power_1_40                  = 290024326803414
+ed_time_1_41                   = 7.27272727272727e-10
+ed_power_1_41                  = 295313235077237
+ed_time_1_42                   = 7.45454545454545e-10
+ed_power_1_42                  = 299715485954193
+ed_time_1_43                   = 7.63636363636364e-10
+ed_power_1_43                  = 303316764341037
+ed_time_1_44                   = 7.81818181818182e-10
+ed_power_1_44                  = 306207021190287
+ed_time_1_45                   = 8e-10
+ed_power_1_45                  = 308477349139020
+ed_time_1_46                   = 8.18181818181818e-10
+ed_power_1_46                  = 310217358217857
+ed_time_1_47                   = 8.36363636363636e-10
+ed_power_1_47                  = 311513039959760
+ed_time_1_48                   = 8.54545454545455e-10
+ed_power_1_48                  = 312445084645832
+ed_time_1_49                   = 8.72727272727273e-10
+ed_power_1_49                  = 313087601090465
+ed_time_1_50                   = 8.90909090909091e-10
+ed_power_1_50                  = 313507180025693
+ed_time_1_51                   = 9.09090909090909e-10
+ed_power_1_51                  = 313762239406871
+ed_time_1_52                   = 9.27272727272727e-10
+ed_power_1_52                  = 313902591483917
+ed_time_1_53                   = 9.45454545454545e-10
+ed_power_1_53                  = 313969176068174
+ed_time_1_54                   = 9.63636363636364e-10
+ed_power_1_54                  = 313993911082278
+ed_time_1_55                   = 9.81818181818182e-10
+ed_power_1_55                  = 313999619439183
+ed_time_1_56                   = 1e-09
+ed_power_1_56                  = 314000000000000
+ed_time_1_57                   = 1.01818181818182e-09
+ed_power_1_57                  = 313999619439183
+ed_time_1_58                   = 1.03636363636364e-09
+ed_power_1_58                  = 313993911082278
+ed_time_1_59                   = 1.05454545454545e-09
+ed_power_1_59                  = 313969176068174
+ed_time_1_60                   = 1.07272727272727e-09
+ed_power_1_60                  = 313902591483917
+ed_time_1_61                   = 1.09090909090909e-09
+ed_power_1_61                  = 313762239406871
+ed_time_1_62                   = 1.10909090909091e-09
+ed_power_1_62                  = 313507180025693
+ed_time_1_63                   = 1.12727272727273e-09
+ed_power_1_63                  = 313087601090465
+ed_time_1_64                   = 1.14545454545455e-09
+ed_power_1_64                  = 312445084645832
+ed_time_1_65                   = 1.16363636363636e-09
+ed_power_1_65                  = 311513039959760
+ed_time_1_66                   = 1.18181818181818e-09
+ed_power_1_66                  = 310217358217857
+ed_time_1_67                   = 1.2e-09
+ed_power_1_67                  = 308477349139020
+ed_time_1_68                   = 1.21818181818182e-09
+ed_power_1_68                  = 306207021190287
+ed_time_1_69                   = 1.23636363636364e-09
+ed_power_1_69                  = 303316764341037
+ed_time_1_70                   = 1.25454545454545e-09
+ed_power_1_70                  = 299715485954193
+ed_time_1_71                   = 1.27272727272727e-09
+ed_power_1_71                  = 295313235077237
+ed_time_1_72                   = 1.29090909090909e-09
+ed_power_1_72                  = 290024326803414
+ed_time_1_73                   = 1.30909090909091e-09
+ed_power_1_73                  = 283770945613426
+ed_time_1_74                   = 1.32727272727273e-09
+ed_power_1_74                  = 276487164421491
+ed_time_1_75                   = 1.34545454545455e-09
+ed_power_1_75                  = 268123265173498
+ed_time_1_76                   = 1.36363636363636e-09
+ed_power_1_76                  = 258650189368610
+ed_time_1_77                   = 1.38181818181818e-09
+ed_power_1_77                  = 248063886553854
+ed_time_1_78                   = 1.4e-09
+ed_power_1_78                  = 236389271281223
+ed_time_1_79                   = 1.41818181818182e-09
+ed_power_1_79                  = 223683451641228
+ed_time_1_80                   = 1.43636363636364e-09
+ed_power_1_80                  = 210037864165921
+ed_time_1_81                   = 1.45454545454545e-09
+ed_power_1_81                  = 195578950159364
+ed_time_1_82                   = 1.47272727272727e-09
+ed_power_1_82                  = 180467046306489
+ed_time_1_83                   = 1.49090909090909e-09
+ed_power_1_83                  = 164893244414180
+ed_time_1_84                   = 1.50909090909091e-09
+ed_power_1_84                  = 149074103834056
+ed_time_1_85                   = 1.52727272727273e-09
+ed_power_1_85                  = 133244271880987
+ed_time_1_86                   = 1.54545454545455e-09
+ed_power_1_86                  = 117647271206861
+ed_time_1_87                   = 1.56363636363636e-09
+ed_power_1_87                  = 102524929362390
+ed_time_1_88                   = 1.58181818181818e-09
+ed_power_1_88                  = 88106128298969.6
+ed_time_1_89                   = 1.6e-09
+ed_power_1_89                  = 74595709511056.8
+ed_time_1_90                   = 1.61818181818182e-09
+ed_power_1_90                  = 62164453096412.6
+ed_time_1_91                   = 1.63636363636364e-09
+ed_power_1_91                  = 50941031181300.6
+ed_time_1_92                   = 1.65454545454545e-09
+ed_power_1_92                  = 41006704740084.5
+ed_time_1_93                   = 1.67272727272727e-09
+ed_power_1_93                  = 32393291573228.9
+ed_time_1_94                   = 1.69090909090909e-09
+ed_power_1_94                  = 25084605279977.2
+ed_time_1_95                   = 1.70909090909091e-09
+ed_power_1_95                  = 19021191839503.5
+ed_time_1_96                   = 1.72727272727273e-09
+ed_power_1_96                  = 14107825858518.9
+ed_time_1_97                   = 1.74545454545455e-09
+ed_power_1_97                  = 10222929844756
+ed_time_1_98                   = 1.76363636363636e-09
+ed_power_1_98                  = 7228896035796.42
+ed_time_1_99                   = 1.78181818181818e-09
+ed_power_1_99                  = 4982251375025.86
+ed_time_1_100                  = 1.8e-09
+ed_power_1_100                 = 3342715910401.38
+ed_lensX_1                     = -0.1
+ed_targetX_1                   = 0
+ed_pulseNumber_1               = 1
+ed_wavelength_1                = 0.351
+ed_lensX_2                     = 0.1
+ed_targetX_2                   = 0
+ed_pulseNumber_2               = 1
+ed_wavelength_2                = 0.351
+ed_crossSectionFunctionType_2  = uniform
+ed_numberOfRays_2              = 1
+ed_gridType_2                  = regular1D
+ed_gridnRadialTics_2           = 512
+
+##############################
+#  CONDUCTION PARAMETERS
+##############################
+
+diff_eleFlCoef                 = 0.06
+diff_eleFlMode                 = fl_larsen
+diff_eleXlBoundaryType         = neumann
+diff_eleXrBoundaryType         = neumann
+diff_thetaImplct               = 1
+diff_useEleCond                = .true.
+
+##############################
+#  HEAT EXCHANGE PARAMETERS
+##############################
+
+useHeatexchange                = .true.
+hx_dtFactor                    = 1e+100
+
+##############################
+#  EOS PARAMETERS
+##############################
+
+eosModeInit                    = dens_temp_gather
+eos_chamEosType                = eos_gam
+eos_chamSubType                = ionmix4
+eos_chamTableFile              = Z02_1.00-20260708_0851.cn4
+eos_targEosType                = eos_tab
+eos_targSubType                = ionmix4
+eos_targTableFile              = Z14_1.00-20260708_0850.cn4
+eos_useLogTables               = .false.
+smallt                         = 1
+smallx                         = 1e-99
+eos_polyEosType                = eos_tab
+eos_polySubType                = ionmix4
+eos_polyTableFile              = Z06_0.50-Z01_0.50-20260708_0850.cn4
+
+##############################
+#  HYDRO PARAMETERS
+##############################
+
+useHydro                       = .true.
+order                          = 3
+slopeLimiter                   = minmod
+LimitedSlopeBeta               = 1
+charLimiting                   = .true.
+use_avisc                      = .true.
+cvisc                          = 0.1
+use_flattening                 = .false.
+use_steepening                 = .false.
+use_upwindTVD                  = .false.
+RiemannSolver                  = hllc
+entropy                        = .false.
+shockDetect                    = .true.
+use_hybridOrder                = .true.
+xl_boundary_type               = outflow
+xr_boundary_type               = outflow
+
+##############################
+#  INITIAL CONDITIONS
+##############################
+
+ms_chamA                       = 4.002602
+ms_chamZ                       = 2
+ms_targA                       = 28.0855
+ms_targZ                       = 14
+ms_targZMin                    = 0.02
+sim_teleCham                   = 290.11375
+sim_teleTarg                   = 290.11375
+sim_tionCham                   = 290.11375
+sim_tionTarg                   = 290.11375
+sim_tradCham                   = 290.11375
+sim_tradTarg                   = 290.11375
+sim_telePoly                   = 290.11375
+sim_tionPoly                   = 290.11375
+sim_tradPoly                   = 290.11375
+sim_rhoTarg                    = 2.33
+sim_rhoPoly                    = 0.3
+sim_rhoCham                    = 1e-06
+sim_targHeight                 = 5e-05
+sim_polyHeight                 = 0.01005
+ms_polyA                       = 6.5
+ms_polyZ                       = 3.5
+
+##############################
+#  TIME PARAMETERS
+##############################
+
+tstep_change_factor            = 1.1
+cfl                            = 0.2
+dt_diff_factor                 = 1e+100
+tmax                           = 1.8e-09
+dtmin                          = 1e-16
+dtinit                         = 1e-16
+dtmax                          = 1e-09
+nend                           = 10000000
+
+##############################
+#  MESH PARAMETERS
+##############################
+
+geometry                       = cartesian
+xmin                           = -0.045
+xmax                           = 0.045
+nblockx                        = 8
+lrefine_max                    = 10
+lrefine_min                    = 1
+refine_var_1                   = dens
+refine_var_2                   = tele
+
+##############################
+#  ADDITIONAL PARAMETERS
+##############################
+
+useConductivity                = .true.
+useDiffuse                     = .true.
+useEnergyDeposition            = .true.
+useOpacity                     = .true.

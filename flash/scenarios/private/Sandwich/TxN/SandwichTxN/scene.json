@@ -1,0 +1,37 @@
+{
+  "name": "sandwich_txn",
+  "kind": "engine",
+  "aliases": [
+    "sandwich_txn_si",
+    "SandwichTxN"
+  ],
+  "description": "CH(50µm)/Si(10µm)/CH(50µm) 三明治靶 + 极低密度 He 填充（常温常压固态密度；auto = 平台自适应）",
+  "policy": "public_scene",
+  "module": "flash.scenarios.private.Sandwich.TxN.SandwichTxN",
+  "attr": "scenario_txn",
+  "sim_name": "sandwich_txn",
+  "basenm": "lasslab_",
+  "hpc": {
+    "input_rel_dir": "flash/scenarios/private/Sandwich/TxN/SandwichTxN/sim_input_si",
+    "gen_script": "flash/scenarios/private/Sandwich/TxN/SandwichTxN/__init__.py",
+    "flash_unit": "QC/grid_rede",
+    "par_file": "sandwich_txn.par",
+    "setup_extra": [
+      "ed_maxPulseSections=240"
+    ],
+    "ntasks": 4,
+    "time_limit": "02:00:00",
+    "flash_home_default": "$HOME/QC/FLASH/FLASH4.8",
+    "launcher": "srun",
+    "nodes": 1,
+    "archive_patterns": [
+      "*chk*"
+    ],
+    "gen_mode": "local_upload",
+    "gen_args": [
+      "gen",
+      "--force"
+    ],
+    "env_profile": "nce_qc_flash_sim"
+  }
+}
