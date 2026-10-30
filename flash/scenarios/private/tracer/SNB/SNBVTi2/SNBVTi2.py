@@ -1444,7 +1444,7 @@ def _plot(local_out: Path, plots_dir: Path) -> None:
         "xtick.labelsize": 20, "ytick.labelsize": 20, "legend.fontsize": 18,
         "axes.linewidth": 2.0, "font.family": "DejaVu Sans",
     })
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
 
     cand = sorted(local_out.glob("*plt_cnt*"))
     cand = [p for p in cand if "forced" not in p.name]

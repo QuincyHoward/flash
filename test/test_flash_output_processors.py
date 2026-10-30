@@ -2,7 +2,7 @@
 FLASH 输出处理器测试 — test_flash_output_processors.py (修正版)
 ══════════════════════════════════════════════
 
-测试 flash/output_processors/ 下模块。
+测试 flash/output_pro/ 下模块。
 使用 synthetic 3D HDF5 文件进行单元测试。
 """
 
@@ -13,7 +13,7 @@ import h5py
 import numpy as np
 import pytest
 
-from flash.output_processors.hdf5processor import (
+from flash.output_pro.hdf5pro import (
     FlashHDF5File,
     DataCalculator,
 )

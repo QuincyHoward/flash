@@ -13,7 +13,7 @@
 |------|----------|------|------|------|------|
 | Flash 框架测试 | `test/` | 132 | 0 | 0 | ✅ **通过** |
 | InputGen 测试 | `input_gen/test/` | 78 | 0 | 0 | ✅ **通过** |
-| OutputProcessors 测试 | `output_processors/test/` | 23 | 3 | 0 | ✅ **通过** |
+| OutputProcessors 测试 | `output_pro/test/` | 23 | 3 | 0 | ✅ **通过** |
 | **合计** | — | **233** | **3** | **0** | ✅ **全部通过** |
 
 - **总计**: 233 passed, 3 skipped, 0 failed (含 1 个 benign UserWarning)
@@ -90,9 +90,9 @@ export LD_LIBRARY_PATH=$MPI_HOME/lib:$HDF5_HOME/lib:$HYPRE_HOME/lib:${LD_LIBRARY
 ### 4. 测试数据文件就位
 
 OutputProcessors 测试需要真实 FLASH HDF5 输出 (被 `.gitignore` 排除, 发布包不含):
-- `output_processors/inputfiles/hdf5files_1d/`: 41 个 chk (WSL LaserSlab 1D 实跑生成)
-- `output_processors/inputfiles/hdf5files_2d/`: 55 个文件 (旧版复用)
-- `output_processors/inputfiles/hdf5files_3d/`: 43 个文件 (旧版复用)
+- `output_pro/inputfiles/hdf5files_1d/`: 41 个 chk (WSL LaserSlab 1D 实跑生成)
+- `output_pro/inputfiles/hdf5files_2d/`: 55 个文件 (旧版复用)
+- `output_pro/inputfiles/hdf5files_3d/`: 43 个文件 (旧版复用)
 
 ---
 
@@ -111,7 +111,7 @@ OutputProcessors 测试需要真实 FLASH HDF5 输出 (被 `.gitignore` 排除, 
 | `test_flash_env_manager.py` | 15 | 环境管理 |
 | `test_flash_input_gen.py` | 6 | InputGen 集成 |
 | `test_flash_math_test.py` | 25 | 数学验证 |
-| `test_flash_output_processors.py` | 13 | 输出处理集成 |
+| `test_flash_output_pro.py` | 13 | 输出处理集成 |
 | `test_flash_remote_deploy.py` | 8 | SSH 远程部署 (paramiko) |
 | `test_flash_simulator.py` | 24 | 仿真引擎 |
 | `test_gitee.py` | 4 | Gitee 凭据管理 |
@@ -127,7 +127,7 @@ OutputProcessors 测试需要真实 FLASH HDF5 输出 (被 `.gitignore` 排除, 
 | `test_gen_sim_data.py` / `test_gen_sim_init.py` / `test_gen_sim_initblock.py` | ~18 |
 | `test_demo_scripts_compat.py` | 兼容性 |
 
-### 3.3 OutputProcessors 测试 (`output_processors/test/`, 23 passed + 3 skipped)
+### 3.3 OutputProcessors 测试 (`output_pro/test/`, 23 passed + 3 skipped)
 
 | 模块 | 测试数 | 说明 |
 |------|--------|------|

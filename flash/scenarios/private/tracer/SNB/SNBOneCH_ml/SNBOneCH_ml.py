@@ -1621,7 +1621,7 @@ def analyze_quick(outdir: Path) -> int:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
 
     plt.rcParams.update({
         "font.size": 20, "axes.titlesize": 24, "axes.labelsize": 22,

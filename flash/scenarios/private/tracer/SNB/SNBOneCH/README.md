@@ -124,7 +124,7 @@ $PY -m flash.scenarios.private.tracer.OneCH_ml.OneCH_ml --tmax 1.6e-9
 
 ## 7. 对比口径（`plot_compare_onech.py`）
 
-★ **数据提取统一走项目自带的 `flash.output_processors`**（2026-09-12 起）：
+★ **数据提取统一走项目自带的 `flash.output_pro`**（2026-09-12 起）：
 
 ```python
 FlashDataLoader(path).load(compute_derived=False, extraction_mode="h5py")

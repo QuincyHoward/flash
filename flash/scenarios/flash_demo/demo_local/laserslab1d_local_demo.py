@@ -374,8 +374,8 @@ def main():
         log("本地输出目录为空，可能复制过程有误", "WARN")
         log(f"  输出路径: {DEMO_OUTPUT_DIR}")
 
-    # ── 步骤 5: 使用 output_processors 分析 ──
-    print("\n[步骤 5] 使用 output_processors 分析输出")
+    # ── 步骤 5: 使用 output_pro 分析 ──
+    print("\n[步骤 5] 使用 output_pro 分析输出")
     print("-" * 50)
 
     if not h5_local:
@@ -385,8 +385,8 @@ def main():
             log("无输出文件可分析 —— 检查 par 是否配置了 chk/plt 文件输出", "ERROR")
     else:
         try:
-            from flash.output_processors.loader import FlashDataLoader
-            from flash.output_processors.plotter import FlashPlotter
+            from flash.output_pro.loader import FlashDataLoader
+            from flash.output_pro.plotter import FlashPlotter
 
             h5_file = [f for f in h5_local if "chk" in f.name]
             if not h5_file:
@@ -417,7 +417,7 @@ def main():
                 log(f"多时间步图: {min(5, len(h5_local))} 张 ✓")
 
         except ImportError as e:
-            log(f"output_processors 导入失败: {e}", "WARN")
+            log(f"output_pro 导入失败: {e}", "WARN")
         except Exception as e:
             log(f"分析失败: {e}", "WARN")
 

@@ -114,8 +114,8 @@ make test-all
 **测试范围**: 
 1. `test/` - 主项目测试
 2. `input_gen/test/` - 输入生成模块测试
-3. `output_processors/test/` - 输出处理模块测试
-4. `output_processors/inputfiles/test/` - 输出处理器输入文件测试
+3. `output_pro/test/` - 输出处理模块测试
+4. `output_pro/inputfiles/test/` - 输出处理器输入文件测试
 
 **耗时**: 几十分钟
 

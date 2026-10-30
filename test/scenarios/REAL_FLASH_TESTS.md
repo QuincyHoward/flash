@@ -78,7 +78,7 @@ python test_si_05ns_run.py
 - 时空插值：`ProcessPoolExecutor` (上限 7 workers)
 - 自动降级：小数据 (<4 文件或 <16 时间步) 自动串行
 
-详见 `flash/output_processors/parallel.py`。
+详见 `flash/output_pro/parallel.py`。
 
 ## Latest Test Results
 

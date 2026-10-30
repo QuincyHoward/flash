@@ -77,7 +77,7 @@ with RemoteSession("flash_ssh") as s:
 
         for name, rel in [("framework", "test"),
                           ("input_gen", "flash/input_gen/test"),
-                          ("output_processors", "flash/output_processors/test")]:
+                          ("output_processors", "flash/output_pro/test")]:
             out, err, rc = s.run(
                 f"cd {TARGET} && {VPY} -m pytest {rel} -q --tb=line 2>&1 | tail -6",
                 timeout=1800)

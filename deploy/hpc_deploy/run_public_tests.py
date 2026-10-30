@@ -8,7 +8,7 @@
 两阶段（都在远端完成，哨兵文件判定完成 → 跨登录节点安全）
 ────────────────────────────────────────────────────────────
 阶段 A（登录节点，快速，不需 FLASH 二进制）
-  A1 三套全局 pytest：test/ 、flash/input_gen/test/ 、flash/output_processors/test/
+  A1 三套全局 pytest：test/ 、flash/input_gen/test/ 、flash/output_pro/test/
   A2 public 场景输入生成 + 依赖/关联自检（gen_checker）：
        center_evolution/ch_center        （LaserSlab1D，CH 靶 + He 侧）
        sandwich/grad_dens_sandwich        （HE-CH-Si-CH-HE 渐变密度）
@@ -212,7 +212,7 @@ def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "",
     a("PYTEST_RC=0")
     for name, rel in (("framework", "test"),
                       ("input_gen", "flash/input_gen/test"),
-                      ("output_processors", "flash/output_processors/test")):
+                      ("output_pro", "flash/output_pro/test")):
         a('echo ""')
         a(f'echo "=== A1 pytest {name} ({rel}) ==="')
         a(f'$VPY -m pytest {rel} -q --tb=short > "$WORK/logs/pytest_{name}.log" 2>&1')

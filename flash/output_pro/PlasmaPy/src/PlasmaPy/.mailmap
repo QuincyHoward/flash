@@ -1,0 +1,34 @@
+# Use .mailmap to prevent commands like `git shortlog` from showing duplicate names
+#
+# The syntax is:
+#
+#    Preferred Name <preferred email> Other Name <Other Email>
+#
+# You can skip "Other Name" if it is the same as the one that should be used, and is unique.
+#
+# This file is up-to-date if the command `git log --format="%aN <%aE>" | sort -u` yields no duplicates.
+
+Brigitta Sipőcz <bsipocz@gmail.com>
+Brigitta Sipőcz <bsipocz@gmail.com> <b.sipocz@gmail.com>
+Bzero <B_0@posteo.net> <lolo-b@posteo.net>
+Diego Diaz <diego7319@users.noreply.github.com>
+Dominik Stańczak-Marikin <stanczakdominik@gmail.com>
+Elliot Johnson <ejohn@udel.edu>
+Elliot Johnson <ejohn@udel.edu> <77989826+ejohnson-96@users.noreply.github.com>
+Elliot Johnson <ejohn@udel.edu> <77989826+etjohnson@users.noreply.github.com>
+Erik Everson <eteverson@gmail.com>
+Jasper Beckers <j.p.beckers@student.tue.nl>
+Jayden Roberts <109694185+JaydenR2305@users.noreply.github.com>
+Joseph Smith <11745431+josephrhsmith@users.noreply.github.com>
+Julien Hillairet <julien.hillaire@cea.fr> <julien.hillairet@gmail.com>
+Leah <leaheinhorn@yahoo.com> <leaheinhorn@Leahs-MacBook-Air.local>
+Nick Murphy <namurphy@plasmapy.org> <namurphy@cfa.harvard.edu>
+Nick Murphy <namurphy@plasmapy.org> <namurphy@users.noreply.github.com>
+Nick Murphy <namurphy@plasmapy.org> <8931994+namurphy@users.noreply.github.com>
+Pawel Kozlowski <pawel@pmkozlowski.com>
+Poh Zi How <poh.zihow@gmail.com>
+Rajagopalan Gangadharan <g.raju2000@gmail.com>
+Ritiek Malhotra <ritiekmalhotra123@gmail.com>
+Tien Vo <tvo.work@proton.me> <tvo.email@proton.me>
+Tiger Du <56400881+Tiger-Du@users.noreply.github.com>
+Wu Tingfeng <wutingfeng@outlook.com> <wu.tingfeng@u.nus.edu>

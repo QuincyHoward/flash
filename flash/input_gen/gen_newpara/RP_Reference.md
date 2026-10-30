@@ -614,7 +614,7 @@ print(c.summary())
 ## 9. chk 实测对照（2026-09-20，SNBOneCH_ml +ug 短测）
 
 运行时参数写入 chk 后存放于 4 个根数据集（`real/integer/logical/string runtime parameters`）。
-读取要点（详见《FLASH物理量说明.md》§1.7，`flash/output_processors/`）：
+读取要点（详见《FLASH物理量说明.md》§1.7，`flash/output_pro/`）：
 
 1. **chk 内参数名一律小写**：par 中的 `ed_lensX_1` 在 chk 中为 `ed_lensx_1`（大小写不保留）；
 2. **logical 存 0/1**；**string 定长空格填充**（比较前 `strip()`）；

@@ -199,7 +199,7 @@ if "flash" in _sys.modules:
         "flash._core.credentials",
         "flash.flash_run",
         "flash.input_gen",
-        "flash.output_processors",
+        "flash.output_pro",
     ]
     for _mod in _common_submodules:
         try:

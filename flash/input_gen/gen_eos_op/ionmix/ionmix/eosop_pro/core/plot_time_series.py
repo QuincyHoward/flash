@@ -10,7 +10,7 @@ IONMIX 自身输出是 (T, n_i) 静态表格, 不包含时间维度。
 本模块提供两类接口:
   1. 通用绘图函数 plot_time_series(): 输入已提取的 (t, 空间剖面) 直接绘图
   2. FLASH HDF5 提取器 flash_extract(): 从 FLASH 输出文件提取
-     某一物理量在 x 剖面上的时间演化 (依赖 output_processors.data_loader)
+     某一物理量在 x 剖面上的时间演化 (依赖 output_pro.data_loader)
 
 时间演化图的两种形式:
   A. 时间-空间彩图 (t, x) -> 物理量: 展示波前传播/加热演化
@@ -120,7 +120,7 @@ def plot_center_series(
 
 
 # ---------------------------------------------------------------
-# FLASH HDF5 提取器 (未来对接 output_processors.data_loader)
+# FLASH HDF5 提取器 (未来对接 output_pro.data_loader)
 # ---------------------------------------------------------------
 
 def flash_extract(

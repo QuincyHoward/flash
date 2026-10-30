@@ -11,7 +11,7 @@
 | 物种 | 8 标记 | 2 标记（cham/targ） |
 | 数据源 | `plt`（float32） | `chk`（float64） |
 
-物理量口径（两腿**同式**，且**统一走项目 `flash.output_processors`**）
+物理量口径（两腿**同式**，且**统一走项目 `flash.output_pro`**）
 ------------------------------------------------------------------------------
 * 加载：`FlashDataLoader(...).load(compute_derived=False,
   extraction_mode="h5py")` —— 走 `extract_var`，**只取叶子块**。
@@ -78,15 +78,15 @@ SNB = _find_snb_core()
 sys.path.insert(0, str(SNB / "scripts" / "analysis"))
 import compare_4way as C4                              # noqa: E402
 
-# ★★ 数据提取统一走项目自带的 `flash.output_processors`（用户要求 2026-09-12）：
+# ★★ 数据提取统一走项目自带的 `flash.output_pro`（用户要求 2026-09-12）：
 #    · FlashDataLoader + extraction_mode="h5py" → **只取叶子块**
 #      （AMR 场景必需；默认 load() 会把父块陈旧数据混入并搞错坐标）
 #    · DataCalculator → 派生量按 `DATA_CONFIG` 的**权威公式**计算，不自实现
 #      （`nele = ye*dens*NA`、`nion = sumy*dens*NA`；NA 取项目常数）
-from flash.output_processors.loader import FlashDataLoader            # noqa: E402
-from flash.output_processors.hdf5processor import DataCalculator      # noqa: E402
+from flash.output_pro.loader import FlashDataLoader            # noqa: E402
+from flash.output_pro.hdf5pro import DataCalculator      # noqa: E402
 try:
-    from flash.output_processors.hdf5processor import NA as NA_PROJ
+    from flash.output_pro.hdf5pro import NA as NA_PROJ
 except ImportError:                                     # pragma: no cover
     NA_PROJ = 6.02214076e23
 _loader = FlashDataLoader
@@ -125,7 +125,7 @@ def log(msg: str, level: str = "INFO") -> None:
 
 
 # ══════════════════════════════════════════════════════════════
-# 读取 —— 统一经 `flash.output_processors`（两腿同一条链）
+# 读取 —— 统一经 `flash.output_pro`（两腿同一条链）
 # ══════════════════════════════════════════════════════════════
 def list_frames(d: Path) -> List[Path]:
     """列出目录内的输出帧（**chk 优先**，其次 plt；排除 forced）。"""
@@ -438,10 +438,10 @@ def main() -> int:
     d_snb = scene / "flash_output" / "sim_snb" / args.snb_tag
     data["SNBOneCH (nonlocal)"] = load_frames(d_snb) if d_snb.is_dir() else []
     log(f"SNBOneCH (nonlocal): {len(data['SNBOneCH (nonlocal)'])} 帧"
-        f"  (经 flash.output_processors)")
+        f"  (经 flash.output_pro)")
     data["OneCH_ml (local)"] = load_frames(onech) if onech.is_dir() else []
     log(f"OneCH_ml (local)   : {len(data['OneCH_ml (local)'])} 帧"
-        f"  (经 flash.output_processors)")
+        f"  (经 flash.output_pro)")
 
     if not any(data.values()):
         log("无任何数据 —— 检查路径", "ERROR")

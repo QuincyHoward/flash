@@ -7,7 +7,7 @@
 | `flash-workflow-orchestrator` | — | 全部 |
 | `input-gen-generator` | `input_gen/README.md`, `docs/par_format_guide.md` | `input_gen/` (全部子模块) |
 | `flash-newpara` | `input_gen/gen_newpara/README.md`, `input_gen/gen_newpara/RP_Reference.md` | `input_gen/gen_newpara/` |
-| `flash-output-process` | — | `output_processors/` |
+| `flash-output-process` | — | `output_pro/` |
 | `flash-run-deploy` | — | `flash_run/env/`, `flash_run/remote/` |
 | `flash-f90-development` | `input_gen/gen_otherf90s/ref_f90s/*/README.md` (5 个) | `input_gen/gen_otherf90s/ref_f90s/`, `input_gen/gen_sim_initblock/` |
 | `flash-examples` | — | 全部 |

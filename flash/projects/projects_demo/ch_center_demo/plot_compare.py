@@ -8,7 +8,7 @@ and produces:
   3. side-by-side x-t density heatmaps
 
 All text is English-only and uses fonts >= 18pt via
-`output_processors.plotter.plot_style` (PPT-ready output).
+`output_pro.plotter.plot_style` (PPT-ready output).
 
 Usage:
   python plot_compare.py                          # default run dir
@@ -29,13 +29,13 @@ _PROJ_PKG = _HERE.parent
 _PROJECTS = _PROJ_PKG.parent
 _FLASH_ROOT = _PROJECTS.parent
 _PARENT = _FLASH_ROOT.parent
-# flash 根目录在 sys.path 中即可 `import flash.*` 与 `import output_processors.*`
+# flash 根目录在 sys.path 中即可 `import flash.*` 与 `import output_pro.*`
 for _p in (_FLASH_ROOT, _PARENT):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
 # ── PPT-friendly plot style (fonts >= 18, English only) ──
-from output_processors.plotter.plot_style import (  # noqa: E402
+from flash.output_pro.plotter.plot_style import (  # noqa: E402
     apply_plot_style,
     english,
     save_figure,

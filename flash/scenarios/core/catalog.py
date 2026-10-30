@@ -93,7 +93,27 @@ class CatalogEntry:
             kwargs["mode"] = target or None
         if "tmax" in params and opts.tmax:
             kwargs["tmax"] = opts.tmax
-        ok = mod.main(**kwargs)
+        if kwargs:
+            ok = mod.main(**kwargs)
+        else:
+            # ★ 2026-10-30: main() 无显式参数 ⇒ 场景内部自带 argparse。
+            #   必须重写最小 argv —— 否则统一 CLI 的参数 ("run", "<scene>",
+            #   "--mode", "--json") 会泄漏给场景解析器直接报
+            #   "unrecognized arguments" (全场景批量验证实测, 21 场景全灭)。
+            #   场景 argparse 支持 --tmax 时透传极短验证时间。
+            old_argv = sys.argv
+            new_argv = [old_argv[0]]
+            try:
+                src = inspect.getsource(mod.main)
+                if opts.tmax and '"--tmax"' in src:
+                    new_argv += ["--tmax", str(opts.tmax)]
+            except (TypeError, OSError):
+                pass
+            sys.argv = new_argv
+            try:
+                ok = mod.main()
+            finally:
+                sys.argv = old_argv
         return {"ok": bool(ok), "reason": "" if ok else "场景 main() 返回 False"}
 
     def _runner_script(self, opts: ExecOptions) -> Dict[str, Any]:

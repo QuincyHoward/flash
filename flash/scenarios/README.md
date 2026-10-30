@@ -560,7 +560,7 @@ layer_tracer_CH_ml 的分层几何参数（.par INITIAL CONDITIONS 段）：
    分析**禁止使用默认 `load()`**，应显式指定提取模式：
 
    ```python
-   from flash.output_processors.loader import FlashDataLoader
+   from flash.output_pro.loader import FlashDataLoader
    c = FlashDataLoader(path).load(compute_derived=False, extraction_mode="yt")
    # extraction_mode="yt"  → FlashHDF5File.extract_var_with_yt (只取 node_type==1)
    # extraction_mode="h5py" → extract_var_yt_style (同样只取叶子, 无 yt 依赖, 超算推荐)
@@ -568,7 +568,7 @@ layer_tracer_CH_ml 的分层几何参数（.par INITIAL CONDITIONS 段）：
 
    两种模式均已实现叶子块过滤并经三方交叉验证一致（yt vs h5py-leaf：
    max rel diff ≈ 2e-6，来自间断处插值）。可全局切换默认模式：
-   `flash.output_processors.extraction_modes.set_extraction_mode("yt")`
+   `flash.output_pro.extraction_modes.set_extraction_mode("yt")`
    或环境变量 `FLASH_EXTRACTION_MODE=yt`。
 
 ---
@@ -715,7 +715,7 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 > 护栏 `R-LAYER-03` 机械校验：执行层出现场景名即 CI 失败。
 
 超算侧测试套件（离线重装后）：framework 221 passed / input_gen 86 passed /
-output_processors 45 passed —— 全绿。
+output_pro 45 passed —— 全绿。
 
 ### 环境要点（全部由实跑对照实验确定，勿凭直觉改）
 

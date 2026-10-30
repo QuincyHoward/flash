@@ -98,7 +98,7 @@ MAJOR.MINOR.PATCH-{alpha|beta|rc}.N
 #    编辑 pyproject.toml, 将 version 改为目标版本
 
 # 2. 运行完整测试套件
-python -m pytest test/ input_gen/test/ output_processors/test/
+python -m pytest test/ input_gen/test/ output_pro/test/
 
 # 3. 使用发布脚本打标签（自动运行全部测试）
 bash scripts/03_git_publish/tag-release.sh vX.Y.Z

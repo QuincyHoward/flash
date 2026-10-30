@@ -63,7 +63,7 @@ RUN_MODE = "auto"
 #   "yt":   基于 yt 库 (extract_var_with_yt, 需本地安装 yt)
 #   "h5py": 纯 h5py yt 风格 (extract_var_yt_style, 无 yt 依赖)
 # 一键切换即修改此行; 也可用环境变量 FLASH_EXTRACTION_MODE 覆盖
-# (模式字典/优先级统一见 flash.output_processors.extraction_modes)
+# (模式字典/优先级统一见 flash.output_pro.extraction_modes)
 EXTRACTION_MODE = "yt"
 
 
@@ -1071,7 +1071,7 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
 
     步骤 2（部署）: 无需上传，run_flash.sh 与输入文件已在本地 flash_input/。
     步骤 3（运行）: wsl bash run_flash.sh（完整流水线: setup→编译→运行→收集）。
-    步骤 4/5（分析）: 本地 output_processors 分析 flash_input/outputfiles/ 的 HDF5。
+    步骤 4/5（分析）: 本地 output_pro 分析 flash_input/outputfiles/ 的 HDF5。
     """
     # ── 步骤 2: WSL 本地部署 ─────────────────────
     print("\n[步骤 2/5] 本地 WSL 部署（无需上传）")
@@ -1226,12 +1226,12 @@ def main_wsl(cfg: Dict[str, Any]) -> bool:
     log(f"找到 {len(h5s)} 个 HDF5 输出: {outdir}")
 
     # ── 步骤 4/5: 本地分析输出 ──────────────────
-    print("\n[步骤 4/5] 本地分析输出 (output_processors)")
+    print("\n[步骤 4/5] 本地分析输出 (output_pro)")
     print("-" * 50)
     PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     try:
-        from flash.output_processors.loader import FlashDataLoader
-        from flash.output_processors.plotter import FlashPlotter
+        from flash.output_pro.loader import FlashDataLoader
+        from flash.output_pro.plotter import FlashPlotter
 
         container = FlashDataLoader(str(h5s[0])).load(
             compute_derived=True, extraction_mode=EXTRACTION_MODE,
@@ -1526,7 +1526,7 @@ def main(credential_name: Optional[str] = None,
 def download_hdf5_to_local(session: RemoteSession, remote_dir: str,
                            actual_output_dir: str = "",
                            with_plt: bool = False):
-    """下载 HDF5 文件到本地供 output_processors 分析。
+    """下载 HDF5 文件到本地供 output_pro 分析。
 
     ★ with_plt=False (默认, 2026-09-16 chk-only 全场景定案, 策略源
     flash/flash_run/remote/fetch_policy.py): 只回传 chk; 本地分析
@@ -1607,8 +1607,8 @@ def download_hdf5_to_local(session: RemoteSession, remote_dir: str,
 
     if n > 0:
         try:
-            from flash.output_processors.loader import FlashDataLoader
-            from flash.output_processors.plotter import FlashPlotter
+            from flash.output_pro.loader import FlashDataLoader
+            from flash.output_pro.plotter import FlashPlotter
             h5_files = sorted(_dest.glob("*chk*")) or sorted(_dest.glob("*plt*"))
             if h5_files:
                 container = FlashDataLoader(str(h5_files[0])).load(

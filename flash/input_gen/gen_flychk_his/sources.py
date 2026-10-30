@@ -375,7 +375,7 @@ def _series_from_flash_files(paths: Sequence[Union[str, Path]],
                              extraction_mode: str = "h5py",
                              verbose: bool = True) -> SnapshotSeries:
     """从 FLASH HDF5 文件列表构造序列 (叶子块, 扁平坐标)。"""
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
 
     snaps: List[Snapshot] = []
     for p in paths:

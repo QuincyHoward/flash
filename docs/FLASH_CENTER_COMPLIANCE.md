@@ -28,7 +28,7 @@ FLASH License Agreement §3 明确规定：
 | **FLASH 协议原文** | `license_agreement_FLASH.txt` | 旧版协议副本; 官方协议文本保留于 `docs/license_agreement.txt` |
 | **HDF5 输出** | `*.h5`, `*.hdf5`, `*_hdf5_chk_*`, `*_hdf5_plt_cnt_*` | FLASH checkpoint/plot 文件 |
 | **运行产物** | `**/demo_task/`, `**/runs/`, `**/outputfiles/`, `**/output/`, `**/inputfiles/`, `**/temp/`, `runs_*/`, `test/scenarios/runs_*/`, `**/run_tools/runs_*/`, `test/grid_rede*/`, `test/newpara/{flash_input,flash_profile,output}/` | FLASH 编译输出 + HDF5 + 中间产物 |
-| **旧副本/内部** | `output_processors_copy/`, `input_gen/gen_eos_op_copy/`, `scenarios - 副本/`, `.workbuddy/`, `.codebuddy/`, `*.bak` | 未迁移旧目录与内部工作区 |
+| **旧副本/内部** | `output_pro_copy/`, `input_gen/gen_eos_op_copy/`, `scenarios - 副本/`, `.workbuddy/`, `.codebuddy/`, `*.bak` | 未迁移旧目录与内部工作区 |
 
 **自研 EOS 表例外**（`Z*.cn4` = ionmix 自生成，发布包必需）：
 ```
@@ -53,7 +53,7 @@ FLASH License Agreement §3 明确规定：
 | `input_gen/gen_shell_script/` | 运行脚本生成器（原创） |
 | `input_gen/gen_Grid_markRefineDerefine/` | 网格细化生成器（原创，不含 `refs/` 参考源码） |
 | `input_gen/gen_checker/` | 诊断检查器（原创） |
-| `output_processors/` (.py) | HDF5 输出分析器（原创） |
+| `output_pro/` (.py) | HDF5 输出分析器（原创） |
 | `flash_run/` (.py) | 运行管理器（原创） |
 | `scenarios/` (.py + 场景 .F90/.cn4) | 场景系统（原创，场景 .F90 为 FLASH 示例修改版，见 LICENSE §4） |
 | `_core/` (.py) | 核心抽象层（原创） |

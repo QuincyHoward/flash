@@ -388,7 +388,7 @@ z.validate()  # → [] 如果无错误, 否则返回错误列表
 
 > **chk 侧对照**：参数写入 chk 后名一律小写、激光脉冲参数默认 −1.0（哨兵）、`+ug` 无 AMR 参数——
 > 实测值与读取要点见 [RP_Reference.md §9](./RP_Reference.md) 与
-> `flash/output_processors/FLASH物理量说明.md` §1.7。
+> `flash/output_pro/FLASH物理量说明.md` §1.7。
 
 ---
 

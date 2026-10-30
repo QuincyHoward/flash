@@ -8,7 +8,7 @@
 
 因此这里对同一台仿真（OneCH_ml, run_000001, 383 文件 md5 已证同源）的**两种形态**逐时刻对拍：
 
-  A. **原始 chk**  —— 经 `flash.output_processors` 提取（`extraction_mode="h5py"`，
+  A. **原始 chk**  —— 经 `flash.output_pro` 提取（`extraction_mode="h5py"`，
      只取叶子块），再用项目 `DataCalculator` 算 `nele`。即本项目当前使用的方式。
   B. **预抽统一网格 H5** —— 论文管线产物 `CASES_Comp/data/OneCH.h5`
      （`cases/OneCH/fields/*`，space 30000 点 / time 500 点）。即对方彩图的数据源。
@@ -44,8 +44,8 @@ for _ in range(15):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from flash.output_processors.loader import FlashDataLoader          # noqa: E402
-from flash.output_processors.hdf5processor import DataCalculator    # noqa: E402
+from flash.output_pro.loader import FlashDataLoader          # noqa: E402
+from flash.output_pro.hdf5pro import DataCalculator    # noqa: E402
 
 # ── 路径 ──────────────────────────────────────────────────────
 CHK_DIR = _ROOT / "flash" / "scenarios" / "private" / "tracer" / "OneCH_ml" \

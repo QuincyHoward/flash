@@ -57,7 +57,7 @@ def wall_seconds(outdir: Path, source: str) -> float:
 
 def load_state(f: Path):
     """载入终态 plt: (x, {var: arr}, time)。非叶子块过滤 (load 规范)。"""
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
     c = FlashDataLoader(str(f)).load(compute_derived=False, extraction_mode="yt")
     x = np.asarray(c.x, dtype=float).ravel()
     data = {}

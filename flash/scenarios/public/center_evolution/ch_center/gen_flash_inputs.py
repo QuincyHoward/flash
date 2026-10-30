@@ -11,7 +11,7 @@ gen_sim_init / gen_sim_initblock / gen_eos_op / gen_shell_script）生成
     .par / Config / Makefile / Simulation_data.F90 / Simulation_init.F90 /
     Simulation_initBlock.F90 / run_flash.sh / submit_flash.sh / *.cn4 (EOS 表)
 
-设计原则（与 output_processors 的 inputfiles/ 同一模式）：
+设计原则（与 output_pro 的 inputfiles/ 同一模式）：
   - 仓库**不发布** par/Makefile/Config/F90/cn4 等生成文件
     （``flash_input/`` 被 .gitignore 排除），本脚本是这些文件的唯一生成入口，
     任何克隆环境均可一键生成，保证开箱即用。

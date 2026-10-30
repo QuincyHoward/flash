@@ -33,7 +33,7 @@ import matplotlib                       # noqa: E402
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt         # noqa: E402
 
-from flash.output_processors.loader import FlashDataLoader  # noqa: E402
+from flash.output_pro.loader import FlashDataLoader  # noqa: E402
 
 # ── 绘图规范 (用户要求: 英文 / >=18pt / 高 DPI / 粗线) ──────────
 plt.rcParams.update({

@@ -132,13 +132,13 @@ def profiles(t: float, nx: int = NX):
 
 
 # ══════════════════════════════════════════════════════════
-# FLASH 格式 HDF5 (与 output_processors.FlashHDF5File 读取逻辑兼容)
+# FLASH 格式 HDF5 (与 output_pro.FlashHDF5File 读取逻辑兼容)
 # ══════════════════════════════════════════════════════════
 def write_flash_hdf5(path: Path, vars_data: dict, x: np.ndarray,
                      time: float, nstep: int) -> None:
     """写入一个合成 1D FLASH HDF5 chk 文件。
 
-    结构对照 `flash/output_processors/test/gen_test_data.py` (同一读取契约):
+    结构对照 `flash/output_pro/test/gen_test_data.py` (同一读取契约):
     变量为 (nblocks=1, 1, 1, nx); `unknown names` 用 (n,1) |S4 固定 4 字节布局。
     """
     import h5py

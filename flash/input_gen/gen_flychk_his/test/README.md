@@ -37,7 +37,7 @@ python flash/input_gen/gen_flychk_his/test/make_test_data.py --clean
 
 | 产物 | 内容 | 单位 |
 |------|------|------|
-| `flash_hdf5/xchk_hdf5_chk_0001..0008` | 合成 **FLASH 格式** 1D HDF5（变量 `dens/tele/tion/trad/ye/sumy/trac/pres/velx`，`unknown names` 为 `(n,1)`\|S4 布局，与 `flash.output_processors.FlashHDF5File` 读取契约一致） | FLASH 原生 (K, g/cm³) |
+| `flash_hdf5/xchk_hdf5_chk_0001..0008` | 合成 **FLASH 格式** 1D HDF5（变量 `dens/tele/tion/trad/ye/sumy/trac/pres/velx`，`unknown names` 为 `(n,1)`\|S4 布局，与 `flash.output_pro.FlashHDF5File` 读取契约一致） | FLASH 原生 (K, g/cm³) |
 | `hist_series.npz` | `time`/`x` + 9 个 `(nt, nx)` 场 | K, g/cm³ |
 | `hist_long.csv` | 长表 `time,x,te,ti,tr,rho,trac` | K, g/cm³ |
 | `hist_series.json` | `{times, x, fields}` 结构 | K, g/cm³ |

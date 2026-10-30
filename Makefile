@@ -8,8 +8,7 @@ test:
 test-all:
 	pytest test -v
 	pytest input_gen/test -v
-	pytest output_processors/test -v
-	pytest output_processors/inputfiles/test -v
+	pytest flash/output_pro/test -v
 
 # 代码格式检查
 lint:

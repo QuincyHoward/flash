@@ -95,10 +95,10 @@ if [ $? -ne 0 ]; then
 fi
 
 # 运行其他模块测试（如果存在）
-if [ -d "flash/output_processors/test/" ]; then
+if [ -d "flash/output_pro/test/" ]; then
     echo ""
-    echo "  - Running output_processors tests (flash/output_processors/test/)..."
-    "$PYTHON" -m pytest flash/output_processors/test/ -v --tb=short 2>/dev/null
+    echo "  - Running output_processors tests (flash/output_pro/test/)..."
+    "$PYTHON" -m pytest flash/output_pro/test/ -v --tb=short 2>/dev/null
     if [ $? -ne 0 ]; then
         echo ""
         echo "⚠️  Warning: output_processors tests failed (non-critical)."

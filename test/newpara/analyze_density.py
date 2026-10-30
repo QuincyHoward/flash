@@ -42,9 +42,9 @@ print(" FLASH NewPara — 密度网格分析")
 print("=" * 65)
 
 try:
-    from flash.output_processors.loader import FlashDataLoader
-    from flash.output_processors.plotter import FlashPlotter
-    from flash.output_processors.calculator import FlashCalculator
+    from flash.output_pro.loader import FlashDataLoader
+    from flash.output_pro.plotter import FlashPlotter
+    from flash.output_pro.calculator import FlashCalculator
 
     # ── 1. 初始密度分布 (plt_cnt_0000) ──
     if plt_initial:

@@ -18,7 +18,7 @@ PhySimX 的 FLASH 模块提供完整的仿真工作流：一键安装 → 参数
 | `input_gen/gen_eos_op/` | .cn4 EOS 表文件复制/生成 (EOSOpacityGenerator) |
 | `input_gen/gen_shell_script/` | 平台运行脚本 (ShellScriptGenerator) |
 | `input_gen/gen_checker/` | 依赖检查 + 脉冲/密度/射线绘图 |
-| `output_processors/` | HDF5 输出分析 (自适应 1D/2D/3D) |
+| `output_pro/` | HDF5 输出分析 (自适应 1D/2D/3D) |
 | `scenarios/flash_demo/` | 一键执行 Demo |
 
 > 旧模块 (`par_calculator`, `par_editor`, `flash_setup`, `first_run`) 已不再随包提供，其功能由 `input_gen/gen_*` 子包取代（见下方「迁移说明」）；多环境管理 (`FlashEnvManager`) 现位于 `flash.flash_run.env`。
@@ -101,7 +101,7 @@ cmd = env.build_run_command(par_file="flash.par", nproc=32)
 ### 6. 输出分析
 
 ```python
-from flash.output_processors.hdf5processor import FlashHDF5File
+from flash.output_pro.hdf5pro import FlashHDF5File
 
 ff = FlashHDF5File("flash_hdf5_plt_cnt_0000")
 print(ff.varnames)          # 可用变量名列表
@@ -509,8 +509,8 @@ flash/
 │   ├── gen_otherf90s/       # 其他 Fortran 参考 (说明文档)
 │   ├── gen_f90/             # (预留)
 │   └── test/                # 测试套件
-├── output_processors/       # 输出分析 (自适应 1D/2D/3D)
-│   ├── hdf5processor/       # 核心 HDF5 I/O (FlashHDF5File, DataCalculator)
+├── output_pro/       # 输出分析 (自适应 1D/2D/3D)
+│   ├── hdf5pro/       # 核心 HDF5 I/O (FlashHDF5File, DataCalculator)
 │   │   └── flash_hdf5.py
 │   ├── loader/              # 数据加载层 (FlashDataLoader → FlashDataContainer)
 │   ├── plotter/             # 自适应可视化 (1D线图/2D伪彩色/3D切片)
@@ -548,7 +548,7 @@ flash/
 | `OldVersion/PAR/ParEditor.py` | `input_gen/gen_par/` (`ParGeneratorExtended`) | Section 感知 .par 生成 |
 | `OldVersion/BASEINFO/FLASH_GenShell.py` | `input_gen/gen_shell_script/` (`ShellScriptGenerator`) | 编译/SLURM 脚本生成 |
 | `OldVersion/FirstRun/FLASH_one_click_install.sh` | `flash_src/FLASH_one_click_install.sh` + `scenarios/flash_demo/hello_flash/` | 一键安装 (适配最新 Ubuntu) |
-| `OldVersion/FirstRun/analyze_density.py` | `output_processors/` | HDF5 密度分析 |
+| `OldVersion/FirstRun/analyze_density.py` | `output_pro/` | HDF5 密度分析 |
 
 ---
 
@@ -748,7 +748,7 @@ python
 analyze_density.py / path / to / output / hdf5files /
 
 # 或使用内置分析器
-from flash.output_processors.loader import FlashDataLoader   # 旧 output_analysis 已移除
+from flash.output_pro.loader import FlashDataLoader   # 旧 output_analysis 已移除
 
 reader = FlashOutputReader("lasslab_new_hdf5_chk_0001")
 print(reader.list_variables())
@@ -967,7 +967,7 @@ python run_and_analyze.py --hdf5-dir output/laserslab1d_3beams/hdf5files \
 - **[flash_operation_standard.md](flash_operation_standard.md)** — FLASH 仿真完整操作规范
   - 绘图语言规范: 所有图表标题、轴标签、图例、颜色条必须使用英文
   - 仿真运行规范: 8个必要文件、WSL/超算运行流程、Docker 命令
-  - 结果处理规范: HDF5 结构、output_processors 使用、绘图检查清单
+  - 结果处理规范: HDF5 结构、output_pro 使用、绘图检查清单
   - 仿真验证标准: 完成标志、输出文件检查、AMR 验证
   - 代码编写规范: 路径管理、导入路径、容器属性名
 

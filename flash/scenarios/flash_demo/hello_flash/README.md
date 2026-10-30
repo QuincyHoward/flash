@@ -440,7 +440,7 @@ flash/scenarios/             ← 即插即用场景系统
 
 input_gen/             ← 参数文件生成 (gen_par / gen_config / gen_sim_initblock / …)
 flash_run/             ← 编译和运行管理
-output_processors/     ← HDF5 输出分析和自适应可视化
+output_pro/     ← HDF5 输出分析和自适应可视化
 ```
 
 详见 `docs/README.md`。

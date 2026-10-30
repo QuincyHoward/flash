@@ -430,9 +430,9 @@ def generate_input_files(cfg: Dict[str, Any]) -> Dict[str, str]:
     return result
 
 
-# ── 分析: 数据提取助手 (经 flash/output_processors, 默认 yt 模式) ──
+# ── 分析: 数据提取助手 (经 flash/output_pro, 默认 yt 模式) ──
 def _load_leaf_profile(plt_path: Path, var: str = "dens"):
-    """经 flash.output_processors 提取单变量剖面 (叶子块, 默认 yt 模式)。
+    """经 flash.output_pro 提取单变量剖面 (叶子块, 默认 yt 模式)。
 
     使用 FlashDataLoader.load(extraction_mode="yt") — 只取 node_type==1 的
     叶子块, 避免粗网格父块混合值伪影。
@@ -441,7 +441,7 @@ def _load_leaf_profile(plt_path: Path, var: str = "dens"):
         (time_s, x_cm, values)；读取失败返回 (0.0, None, None)。
     """
     import numpy as np
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
     try:
         c = FlashDataLoader(str(plt_path)).load(
             compute_derived=False, extraction_mode="yt")
@@ -561,7 +561,7 @@ def plot_species_zoom(outdir: Path, save_path: Path,
               "targ": "tab:purple"}
     styles = {"cham": "-", "shld": "--", "samp": "-.", "targ": ":"}
 
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
     save_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(13, 6.5), constrained_layout=True)
     n_read = 0

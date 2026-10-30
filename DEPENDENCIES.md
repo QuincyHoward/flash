@@ -37,3 +37,31 @@ pip install --no-index --find-links=<wheelhouse> -r deps_lock/requirements-<plat
 # 或直接走总入口
 python start_flash.py --offline [--wheelhouse D] [--profile full|runtime|lite]
 ```
+
+## 带外可选依赖（不入 BASELINE/lock/wheelhouse）
+
+| 包名 | 版本 | 平台状态 | 安装方式 |
+|------|------|---------|---------|
+| plasmapy（可选） | 2026.2.0 | win ✅ / wsl 条件 ✅（venv 需 py≥3.12）/ hpc ✅（已并入正式 venv） | win/wsl: `python flash/output_pro/PlasmaPy/install_editable.py`; hpc: `flash/output_pro/test/hpc_plasmapy_merge.py` |
+
+- 源码托管（2026-10-30 起 vendor 快照）: PlasmaPy 2026.2.0 源码（tag v2026.2.0）作为普通目录
+  vendored 于 `flash/output_pro/PlasmaPy/src/PlasmaPy`，**随 flash 仓库分发**（Gitee 推送与
+  HPC bundle 同步均携带；~495 文件 / ~13MB，内层 .git 已移除并归档于
+  `artifacts/PlasmaPy-clone-git-backup-20261030.tar.gz`）。版本号由
+  `SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PLASMAPY=2026.2.0` 提供（install_editable.py 自动注入）。
+  冲突治理: .gitignore 末尾"PlasmaPy vendor 冲突精确排除"章节（运行时原子数据 json/h5 反选、
+  env 系泄漏恢复等）；black/ruff/wheel/sdist 均排除 vendor 目录。升级流程: 下载新 release →
+  替换 vendor 目录 → commit → 重跑 install_editable.py → 跑 test_plasmapy_bridge.py。
+  pyproject extras 无法跨平台引用仓库内路径，故不入 lock/wheelhouse。
+- **HPC（2026-10-30 已并入正式环境）**: `.venv-hpc-nce` 基座已从 module python/3.10.8 整体切换到
+  miniforge/24.11（py3.12.8, `--system-site-packages` 继承 base 科学栈），plasmapy 2026.2.0 + yt 4.4.0
+  + pytest 9.1.1 经离线 wheel bundle（32 whl, `--no-index --no-deps`）装入；output_pro 源码已部署至
+  `flash_sim/flash/output_pro`，全套件 52 passed。旧 py3.10 venv 保留为 `.venv-hpc-nce-py310.bak` 可回滚；
+  离线 wheel 留存 `flash_sim/plasmapy_bundle/`（重装源）。编排: `flash/output_pro/test/hpc_plasmapy_merge.py`。
+- ⚠ HPC mpmath 必须 pin **1.3.0**: mpmath 1.4.1 新增 `import gmp` 回退，会被 $HOME 下的
+  `~/gmp/` 源码编译目录（命名空间包）误捕 → `AttributeError: module 'gmp' has no attribute 'mpz'`。
+  1.3.0 后端无此回退，在任意 cwd 下均安全。
+- 缺失行为: `flash/output_pro/plasmapy_bridge.py` 的 `HAS_PLASMAPY=False`，物理量函数抛
+  RuntimeError（带安装指引），其余功能/测试不受影响。
+- 详见 `flash/output_pro/docs/PlasmaPy在output_pro中的使用指南.md` §1/§6。
+- 维护规则: 升级 PlasmaPy 需同步更新克隆 tag + 重跑桥接测试（test/test_plasmapy_bridge.py）。

@@ -17,7 +17,7 @@ if str(_ROOT) not in sys.path:
 
 _FLASH_PKG = Path(__file__).resolve().parents[7] / 'flash'  # 仓库根/flash
 import numpy as np
-from flash.output_processors.loader import FlashDataLoader
+from flash.output_pro.loader import FlashDataLoader
 
 CHK = (str(_FLASH_PKG) + r"\scenarios\private"
        r"\tracer\layer_tracer_CH_ml\flash_output\outputfiles\run_000001\lasslab_hdf5_chk_0000")

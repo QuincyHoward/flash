@@ -51,7 +51,8 @@ if str(_PARENT) not in sys.path:
 SUITES = {
     "framework": ("Flash 框架测试",   "test/",                   True),
     "input":     ("InputGen 测试",    "flash/input_gen/test/",   True),
-    "output":    ("OutputProcessors 测试", "flash/output_processors/test/", False),
+    # 2026-10-30: output_processors → output_pro (PlasmaPy 方案 A 迁移)
+    "output":    ("OutputPro 测试",   "flash/output_pro/test/",  False),
 }
 
 SUITE_ORDER = ["framework", "input", "output"]
@@ -272,7 +273,7 @@ def main():
   (无参数)         全局测试 (framework + input + output)
   --framework      仅 Flash 框架测试 (test/)
   --input          仅 InputGen 测试 (input_gen/test/)
-  --output         仅 OutputProcessors 测试 (output_processors/test/)
+  --output         仅 OutputPro 测试 (output_pro/test/)
   --module PATH    运行指定测试文件或目录
 
 示例:

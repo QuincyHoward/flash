@@ -177,12 +177,17 @@ def load_manifest(path: Path) -> SceneMeta:
     if unknown:
         raise ManifestError(f"{path}: 未知字段: {', '.join(sorted(unknown))}")
 
+    # ★ 2026-10-30: 容错手写 manifest 的斜杠路径 ("flash/scenarios/x.Y")
+    #   —— importlib 只认点分路径, 斜杠会 ModuleNotFoundError (批量验证实测)。
+    module = str(raw.get("module") or "").replace("/", ".")
+    attr_module = str(raw.get("attr_module") or "").replace("/", ".")
+
     return SceneMeta(
         name=name, kind=kind,
         description=str(raw.get("description") or ""),
         aliases=aliases, policy=policy,
-        module=str(raw.get("module") or ""), attr=str(raw.get("attr") or ""),
-        attr_module=str(raw.get("attr_module") or ""),
+        module=module, attr=str(raw.get("attr") or ""),
+        attr_module=attr_module,
         script=str(raw.get("script") or ""),
         sim_name=str(raw.get("sim_name") or ""),
         basenm=str(raw.get("basenm") or ""),

@@ -63,7 +63,7 @@ T_PROBE = (0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6)
 
 
 def dt_uniformity(d: Path, label: str) -> None:
-    from flash.output_processors.loader import FlashDataLoader
+    from flash.output_pro.loader import FlashDataLoader
     ts = []
     for p in M.list_frames(d):
         c = FlashDataLoader(str(p)).load(compute_derived=False,

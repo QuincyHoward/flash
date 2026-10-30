@@ -187,7 +187,7 @@ checkpointFileIntervalStep = 400 # chk 与 plot 独立控制
 的判定逻辑）：
 
 ```python
-from flash.output_processors.loader import FlashDataLoader
+from flash.output_pro.loader import FlashDataLoader
 c = FlashDataLoader("flash_output/snbonech_hdf5_plt_cnt_0010").load(
     compute_derived=False, extraction_mode="yt")
 arr = c.data.get("qenl")          # 数据集名 = 变量名小写

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "flash-sim"
-version = "0.1.11"
+version = "0.1.15"
 description = "FLASH plasma simulation Python interface - third-party wrapper and workflow toolkit for FLASH 4.8 radiation-hydrodynamics code. NOT affiliated with the Flash Center for Computational Science. FLASH must be obtained separately from flash.rochester.edu."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -135,6 +135,11 @@ exclude = [
     "**/flash_input_old/**",
     "flash/input_gen/test/**",
     "flash/output_processors/test/**",
+    "flash/output_pro/test/**",
+    # === PlasmaPy 源码克隆 (34MB 含 .git, editable 安装源, 严禁打进 wheel) ===
+    "flash/output_pro/PlasmaPy/**",
+    "flash/output_processors/PlasmaPy/**",
+    "flash/temp_delete/**",
     # === ★ 五执行模式测试框架的产物（2026-10-26 实测踩坑）===
     # flash/scenarios/public/center_evolution/ch_center/modes_test/results/
     #   = win-wsl / wsl-wsl / wsl-hpc 等每轮实跑产出的 chk/log/报告
@@ -404,6 +409,11 @@ exclude = [
     "flash/**/docs_diag/_*/**",
     # === Other exclusions ===
     "flash/output_processors/inputfiles/**",
+    "flash/temp_delete/**",
+    "flash/output_processors/PlasmaPy/**",
+    "flash/output_pro/inputfiles/**",
+    "flash/output_pro/test/**",
+    "flash/output_pro/PlasmaPy/**",
     "test/outputfiles/**",
     "test/temp_delete/**",
     "**/__pycache__/**",
@@ -474,7 +484,14 @@ norecursedirs = ["scenarios - 副本", "__pycache__", ".pytest_cache"]
 [tool.black]
 line-length = 120
 target-version = ['py310']
+# PlasmaPy vendor 快照 (2026-10-30): 上游代码非本仓风格, 不参与 black 检查
+# (black 的 exclude/extend-exclude 为正则, re.search 语义)
+extend-exclude = 'output_pro/PlasmaPy'
 
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# PlasmaPy vendor 快照: 不参与 lint (gitignore 风格模式, 与 black 成对维护)
+# force-exclude: 显式命令行路径也强制排除 (ruff 默认对显式路径绕过 exclude)
+exclude = ["PlasmaPy"]
+force-exclude = true

@@ -17,7 +17,7 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[3]  # 仓库根（scripts→scenarios→flash→根）
 sys.path.insert(0, str(REPO))
-from flash.output_processors.loader import FlashDataLoader  # noqa: E402
+from flash.output_pro.loader import FlashDataLoader  # noqa: E402
 
 TRACER = REPO / "flash" / "scenarios" / "private" / "tracer"
 # 设计标记层位置 (um): (lo, hi)

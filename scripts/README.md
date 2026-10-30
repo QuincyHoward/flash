@@ -158,10 +158,10 @@ python scripts/05_test/run_global_tests.py --module test/test_gitee.py
 ```
 
 > output_processors 套件的测试数据 (`inputfiles/`, .gitignore 排除, **不发布 hdf5 源文件**)
-> 由 `flash/output_processors/test/gen_test_data.py` **并行生成 → 测试 → 通过即自动删除**:
+> 由 `flash/output_pro/test/gen_test_data.py` **并行生成 → 测试 → 通过即自动删除**:
 > - 测试全部通过 → 自动删除生成的 HDF5 文件;
 > - 有测试失败 → 打印失败信息并**保留**数据文件供调试
->   (调试完成后 `python flash/output_processors/test/gen_test_data.py --cleanup` 手动清理)。
+>   (调试完成后 `python flash/output_pro/test/gen_test_data.py --cleanup` 手动清理)。
 
 ### 6. Git 钩子与发布 — `03_git_publish/`
 
@@ -275,7 +275,7 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 | Git 钩子不触发 | 运行 `bash scripts/03_git_publish/install-git-hooks.sh` 重新安装 |
 | 双重模式导入失败 | 运行 `python scripts/01_env_diagnose/test_dual_mode.py` 诊断 |
 | usb_backup 路径不存在 | 检查 U 盘盘符是否正确 |
-| output_processors 测试失败 | 数据文件会自动**保留**供调试；调试完成后运行 `python flash/output_processors/test/gen_test_data.py --cleanup` 清理，重跑测试自动重新生成 |
+| output_processors 测试失败 | 数据文件会自动**保留**供调试；调试完成后运行 `python flash/output_pro/test/gen_test_data.py --cleanup` 清理，重跑测试自动重新生成 |
 
 ---
 

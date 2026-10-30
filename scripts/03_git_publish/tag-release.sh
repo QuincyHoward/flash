@@ -37,7 +37,7 @@ echo "  - Input generation tests..."
 pytest flash/input_gen/test -q || (echo "Input generation tests failed!" && exit 1)
 
 echo "  - Output processors tests..."
-pytest flash/output_processors/test -q || (echo "Output processors tests failed!" && exit 1)
+pytest flash/output_pro/test -q || (echo "Output processors tests failed!" && exit 1)
 
 echo "All global tests passed!"
 

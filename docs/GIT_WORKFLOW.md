@@ -118,7 +118,7 @@ bash scripts/03_git_publish/tag-release.sh v0.2.0
 **执行步骤：**
 1. Black 代码格式检查
 2. Ruff linting 检查
-3. 全局测试（flash/test + input_gen/test + output_processors/test）
+3. 全局测试（flash/test + input_gen/test + output_pro/test）
 4. 构建检查（pip install build + python -m build）
 5. 创建 git 标签
 
@@ -151,7 +151,7 @@ bash scripts/03_git_publish/tag-release.sh v0.2.0
 
 - **Flash 框架测试：** `flash/test/`
 - **Input gen 测试：** `flash/input_gen/test/`
-- **Output processors 测试：** `flash/output_processors/test/`
+- **Output processors 测试：** `flash/output_pro/test/`
 - **其他模块测试：** 对应模块的 `test/` 目录
 
 ### 测试编写规范

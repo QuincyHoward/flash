@@ -453,7 +453,7 @@ python deploy/hpc_deploy/run_public_tests.py --scenes ch_center
 | 阶段 | 内容 | 执行位置 |
 |---|---|---|
 | **A2**（先跑） | 三个 public 场景 `gen_flash_inputs.py --force` + `DependencyChecker` + ch_center 的 `RelationChecker` | 登录节点 |
-| **A1**（后跑） | 三套全局 pytest：`test/`、`flash/input_gen/test/`、`flash/output_processors/test/` | 登录节点 |
+| **A1**（后跑） | 三套全局 pytest：`test/`、`flash/input_gen/test/`、`flash/output_pro/test/` | 登录节点 |
 | **B** | 三个 public 场景**真实 FLASH 仿真**（`sbatch` 提交，串行） | **计算节点** |
 
 ★ **A2 必须先于 A1**：生成目录（`flash_input/`、`sim_input*/`）被 `.gitignore` 排除，

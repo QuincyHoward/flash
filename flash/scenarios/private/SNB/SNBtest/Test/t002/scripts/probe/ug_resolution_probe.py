@@ -63,7 +63,7 @@ def measure_ncell(outdir: Path) -> Optional[int]:
     if not files:
         return None
     try:
-        from flash.output_processors.loader import FlashDataLoader
+        from flash.output_pro.loader import FlashDataLoader
         import numpy as np
         c = FlashDataLoader(str(files[-1])).load(compute_derived=False)
         return int(np.asarray(c.x).ravel().size)

@@ -630,7 +630,7 @@ gen.set("refine_var_2", "tele")
 ## chk 实测对照（2026-09-20）
 
 生成的 `.par` 参数写入 chk 后，存放于 4 个根数据集（`real/integer/logical/string runtime parameters`）。
-读取要点与完整实测值见 `flash/output_processors/FLASH物理量说明.md` §1.7 与
+读取要点与完整实测值见 `flash/output_pro/FLASH物理量说明.md` §1.7 与
 `gen_newpara/RP_Reference.md` §9。对本包生成器的三条直接影响：
 
 1. **chk 内参数名一律小写**：`ed_lensX_1`/`sim_rhoTarg` 在 chk 中为 `ed_lensx_1`/`sim_rhotarg`。

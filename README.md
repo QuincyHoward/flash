@@ -29,9 +29,10 @@
 
 **说明**：`--depth 1` 为浅克隆，只拉取最新一次提交，不包含完整历史，可显著减小下载体积与磁盘占用；代价是无法查看、切换历史提交。需要完整历史时，在浅克隆仓库内执行 `git fetch --unshallow` 即可恢复。
 
-> 发布包已通过全局测试 (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45) ；
+> 发布包已通过全局测试 (**436 passed / 2 skipped**: framework 293 / input_gen 86 / output_pro 57) ；
 > 版权合规检查详见 [许可](#许可) 与 [NOTICE](NOTICE)；
-> 离线部署自检另计 **183 项** (`deploy/test_offline_install.py`)。
+> 离线部署自检另计 **183 项** (`deploy/test_offline_install.py`)；
+> 35 个注册场景已通过本地 WSL 极短端到端验证（`tmax=1e-11`，详见 `test/reports/scene_verify_20261030.md`）。
 
 ---
 
@@ -68,7 +69,7 @@ FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网
                                     ↓
                自适应可视化 (1D/2D/3D) + 物理量分析
 ```
-`flash-sim`使用Agent生成、使用、维护，适用于这种流程辅助，在第一次全流程构造、或使用`output_processor`进行数据分析等专业决策时，请仔细核对。
+`flash-sim`使用Agent生成、使用、维护，适用于这种流程辅助，在第一次全流程构造、或使用`output_pro`进行数据分析等专业决策时，请仔细核对。
 
 可作为独立 Python 包使用，便于用户直接调用API。
 
@@ -82,6 +83,8 @@ FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网
 |------|------|
 | `scenarios/base.py` | `SimulationScenario` 数据类 — 场景声明式配置 |
 | `scenarios/registry.py` | 场景注册表 — `get_scenario()`, `list_scenarios()` |
+| `scenarios/core/discovery.py` | **约定式场景发现器** — `scene.json` 零注册接入（新增场景 = 建目录 + 落 manifest，不改框架） |
+| `scenarios/core/cli.py` | **统一 CLI** — `python -m flash.scenarios list/run/submit`（平台自适应 `--mode auto`，支持 `--tmax` 极短验证） |
 | `simulator.py` | `FlashSimulatorEngine` 统一引擎 — 集成 WSL 执行 + chk 收集 + 插值 + 输出 |
 
 **即插即用**:
@@ -96,7 +99,7 @@ output = engine.run()  # 自动编译→运行→插值→输出
 
 **输入文件生成机制（重要）**: 场景的 FLASH 源文件目录 `flash_input/`
 （`.par` / `Config` / `Makefile` / `*.F90` / EOS `.cn4`）**不随仓库分发**
-（.gitignore 排除，同 output_processors 的 inputfiles/ 模式）。引擎
+（.gitignore 排除，同 output_pro 的 inputfiles/ 模式）。引擎
 `FlashSimulatorEngine.run()` 运行前调用场景 `ensure_sim_input()` 自动补齐
 （ch_center 由 `gen_flash_inputs.py` 经 input_gen 包生成），干净克隆/发布环境
 开箱即用；也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`
@@ -146,14 +149,15 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 
 > 模块总览、目标判定表、用户名规范与工程铁律见 [`flash/flash_run/README.md`](flash/flash_run/README.md)（2026-10-24 合并重写，唯一入口文档）。
 
-### 输出处理 (`output_processors/`)
+### 输出处理 (`output_pro/`)
 
 | 模块 | 功能 |
 |------|------|
-| `hdf5processor/` | 纯 h5py 底层 HDF5 读取，自动检测 1D/2D/3D，AMR 块结构解析；内含 `DataCalculator` 派生变量计算与 `extract_var_yt_style` 坐标重建 |
+| `hdf5pro/` | 纯 h5py 底层 HDF5 读取，自动检测 1D/2D/3D，AMR 块结构解析；内含 `DataCalculator` 派生变量计算与 `extract_var_yt_style` 坐标重建 |
 | `loader/` | `FlashDataLoader` + `FlashDataContainer` 结构化数据加载（自动维度检测、派生变量、全局坐标） |
 | `plotter/` | `FlashPlotter` 自适应维度可视化（1D 线图 / 2D 伪彩 / 3D 切片），AMR 网格绘图 |
 | `parallel.py` | 多文件 / 多变量 / 多文件夹并行加载与插值加速 |
+| `plasmapy_bridge.py` | **[PlasmaPy](https://github.com/PlasmaPy/PlasmaPy) 物理量适配层（2026.10 新增）**：把 FLASH 网格量转 astropy `Quantity`，提供库仑对数 lnΛ、Debye 长度 λ_D、Spitzer/Braginskii 电子热导率 κ_e、电子平均自由程与 Knudsen 数 K_n=λ_mfp/L_Te、量子简并参数 Θ_e、离子耦合参数 Γ、Saha 电离度 Z̄、临界密度面 n_c(0.351μm) 等带单位诊断量；`HAS_PLASMAPY=False` 时优雅降级（其余功能不受影响）。源码以 **vendor 快照**随仓库分发（`output_pro/PlasmaPy/src/PlasmaPy`，BSD-3），editable 安装见 `output_pro/PlasmaPy/install_editable.py`（win/wsl），HPC 走离线 wheel（见 `DEPENDENCIES.md`） |
 
 ### 仿真驱动 (`interface.py`)
 
@@ -189,8 +193,8 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 │ 仿真执行层   scenarios/ (base · registry · simulator · 物理场景)           │
 │               flash_run/ (env 环境管理 · remote 远程部署) · config/         │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ 输出处理层   output_processors/   hdf5processor → loader → plotter         │
-│               (+ parallel 并行加速)                                        │
+│ 输出处理层   output_pro/   hdf5pro → loader → plotter         │
+│               (+ parallel 并行加速 + plasmapy_bridge 物理量)  │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 核心抽象层   _core/   interface/BaseSimulator · schema 数据契约 ·          │
 │               registry · credentials(加密凭据)                             │
@@ -206,7 +210,7 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 | 核心抽象 | `_core/interface.py::BaseSimulator`, `_core/schema.py` | 定义 `capability()` / `simulate()` 契约与 `SimulationRequest` / `SimulationResult` 数据结构；凭据经 `credentials.py` (Fernet) 加密 |
 | 输入生成 | `input_gen/*/generator.py` | 把结构化参数翻译成 FLASH 需要的 `.par`、Fortran 源、`Config`、`Makefile`、`.cn4` 表、运行脚本 |
 | 仿真执行 | `scenarios/simulator.py::FlashSimulatorEngine`, `flash_run/env`, `flash_run/remote` | 编排"编译 → 运行 → 采集 → 插值 → 保存"；管理本地 WSL 与超算 SSH/SLURM 环境 |
-| 输出处理 | `output_processors/{hdf5processor,loader,plotter,parallel}` | 纯 h5py 解析 FLASH AMR HDF5，结构化加载，自适应 1D/2D/3D 绘图 |
+| 输出处理 | `output_pro/{hdf5pro,loader,plotter,parallel}` + `plasmapy_bridge` | 纯 h5py 解析 FLASH AMR HDF5，结构化加载，自适应 1D/2D/3D 绘图；PlasmaPy 适配层提供带单位等离子体诊断量（lnΛ/λ_D/κ_e/K_n 等） |
 
 ### 自包含运行机制
 
@@ -262,11 +266,11 @@ from ._core.schema import SimulationRequest     # 无 pydantic 依赖
 **输出数据的两种消费方式**：
 
 1. **引擎内置（端到端）**：`result.h5` 是统一规整网格 `(t, x)` 的压缩 HDF5，便于后续优化与跨算例对比。
-2. **output_processors 独立消费（原始 AMR 文件）**：直接解析 FLASH 产出的 checkpoint/plot 文件：
+2. **output_pro 独立消费（原始 AMR 文件）**：直接解析 FLASH 产出的 checkpoint/plot 文件：
 
 ```python
-from flash.output_processors.loader import FlashDataLoader
-from flash.output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 loader = FlashDataLoader("lasslab_hdf5_chk_0001")
 container = loader.load(compute_derived=True)        # 自动计算派生变量
@@ -275,7 +279,7 @@ plotter = FlashPlotter(container)
 plotter.plot("dens", save_path="dens.png")
 ```
 
-   其链路为：`FlashHDF5File`（解析 AMR 块结构 + `extract_var_yt_style` 坐标重建，纯 h5py 无需 yt）→ `FlashDataLoader` / `FlashDataContainer`（结构化容器）→ `FlashPlotter`（自适应 1D 线图 / 2D 伪彩 / 3D 切片）。派生变量（电子密度梯度、压强等）由 `hdf5processor.DataCalculator` 在加载时自动计算。
+   其链路为：`FlashHDF5File`（解析 AMR 块结构 + `extract_var_yt_style` 坐标重建，纯 h5py 无需 yt）→ `FlashDataLoader` / `FlashDataContainer`（结构化容器）→ `FlashPlotter`（自适应 1D 线图 / 2D 伪彩 / 3D 切片）。派生变量（电子密度梯度、压强等）由 `hdf5pro.DataCalculator` 在加载时自动计算。
 
 ### 场景驱动机制（即插即用入口）
 
@@ -316,8 +320,8 @@ flash/
 │  ├─ hpc.py               #   超算技能 CLI（status/submit/cancel/wait/download/…）
 │  ├─ env/                 #   FlashEnvManager / resource_config / venv_paths(venv 唯一事实源)
 │  └─ remote/              #   SSH/SFTP + slurm 控制 + fetch_policy（chk-only 唯一策略）
-├─ output_processors/      # 输出处理
-│  ├─ hdf5processor/       #   FlashHDF5File / DataCalculator / DATA_CONFIG
+├─ output_pro/      # 输出处理
+│  ├─ hdf5pro/       #   FlashHDF5File / DataCalculator / DATA_CONFIG
 │  ├─ loader/              #   FlashDataLoader / FlashDataContainer
 │  ├─ plotter/             #   FlashPlotter（自适应维度）
 │  └─ parallel.py          #   多文件 / 多变量并行加速
@@ -426,7 +430,7 @@ python start_flash.py --no-tests# 只装环境
 | `--no-tests` | 装好环境后跳过三套测试（快速安装） |
 
 - **自愈机制（重要）**：venv 环境健康检查不通过（关键依赖缺失 / pytest 无法启动）或三套件全部「0 用例启动失败」时，脚本**自动清零重建并重测**——无需手动设置 `FLASH_FORCE_CLEAN=1`、不依赖重启机器。
-- 报告内容：安装验证、环境版本快照（关键依赖真实版本统一记录）、三套件统计（framework / input_gen / output_processors）、失败明细
+- 报告内容：安装验证、环境版本快照（关键依赖真实版本统一记录）、三套件统计（framework / input_gen / output_pro）、失败明细
 - 高级变量：`FLASH_VENV_DIR` 指定 venv 路径；`FLASH_FORCE_CLEAN=1` 强制重建；`FLASH_NO_AUTO_REBUILD=1` 禁用自动重建（仅诊断用）；`FLASH_SIM_USER_DIR` 指定 FLASH 安装用户名
 
 > ★ **venv 目录按平台区分**（09-10）：`Windows → .venv-win`、`Linux/WSL → .venv-linux`。
@@ -475,7 +479,7 @@ export FLASH_RUN_MODE=hpc-insitu    # bash
   ★ 干净克隆 / 离线机**没有** `credentials.enc`，第2 步读不到 ⇒ 会误指向
   `~/hello/...` 而报 `FLASH_HOME not found`；第 3 步的自动扫描正是为此准备的。
   需要强制指定时：`export FLASH_SIM_USER_DIR=QC`。
-- **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_processors 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
+- **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_pro 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
 - EOS 表：cn4 源文件存放于 `flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/`（`ch_mix` / `helium_hires` 等自研 ionmix 表随仓库分发），由 `EOSOpacityGenerator` 复制到 `flash_input/`
 - 输出：`flash/scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地 WSL）
 
@@ -525,8 +529,8 @@ with open("laserslab.par", "w") as f:
 ### 3. HDF5 输出分析
 
 ```python
-from flash.output_processors.loader import FlashDataLoader
-from flash.output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 # 加载 checkpoint 文件
 loader = FlashDataLoader("laserslab_hdf5_chk_0001")
@@ -600,10 +604,10 @@ print(result.output_data)
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
 | `ConfigGenerator` | `flash.input_gen.gen_config.generator` | `Config` 文件生成器 |
 | `BlockGenerator` | `flash.input_gen.gen_sim_initblock.generator` | `Simulation_initBlock.F90` 生成器 |
-| `FlashHDF5File` | `flash.output_processors.hdf5processor.flash_hdf5` | 底层 HDF5 文件读取器 |
-| `FlashDataLoader` | `flash.output_processors.loader.data_loader` | 结构化数据加载器 |
-| `FlashDataContainer` | `flash.output_processors.loader.data_loader` | 数据容器（含 data / derived / grid） |
-| `FlashPlotter` | `flash.output_processors.plotter.plot_generator` | 自适应维度绘图器 |
+| `FlashHDF5File` | `flash.output_pro.hdf5pro.flash_hdf5` | 底层 HDF5 文件读取器 |
+| `FlashDataLoader` | `flash.output_pro.loader.data_loader` | 结构化数据加载器 |
+| `FlashDataContainer` | `flash.output_pro.loader.data_loader` | 数据容器（含 data / derived / grid） |
+| `FlashPlotter` | `flash.output_pro.plotter.plot_generator` | 自适应维度绘图器 |
 | `FlashEnvManager` | `flash.flash_run.env.env_manager` | 多环境管理器 |
 | `FlashRemoteDeploy` | `flash.flash_run.remote.remote_deploy` | 远程部署管理器 |
 
@@ -690,7 +694,7 @@ Config 编译配置  →  setup + make →  FLASH 二进制
                                                  ↓
                                              HDF5 输出
                                                  ↓
-                                        output_processors/
+                                        output_pro/
                                         自适应绘图 + 分析
 ```
 
@@ -780,12 +784,12 @@ make format
   pytest test/scenarios/test_scenario_par_build.py -v
   ```
 
-**output_processors 测试数据说明**:
-- 测试所需 HDF5 数据（`flash/output_processors/inputfiles/`, .gitignore 排除,
-  **不随包/仓库发布**）由 `flash/output_processors/test/gen_test_data.py`
+**output_pro 测试数据说明**:
+- 测试所需 HDF5 数据（`flash/output_pro/inputfiles/`, .gitignore 排除,
+  **不随包/仓库发布**）由 `flash/output_pro/test/gen_test_data.py`
   **并行快速生成 → 测试 → 全部通过即自动删除**;
   测试有失败则**保留数据文件**供调试
-  （调试完成后 `python flash/output_processors/test/gen_test_data.py --cleanup` 手动清理）。
+  （调试完成后 `python flash/output_pro/test/gen_test_data.py --cleanup` 手动清理）。
 
 ### Git 工作流
 
@@ -837,7 +841,7 @@ python -m build
 
 | 文档 | 位置 |
 |------|------|
-| Output Processors 使用说明 | `output_processors/docs/output_processors_usage.md` |
+| Output Processors 使用说明 | `output_pro/docs/output_pro_usage.md` |
 | Hello FLASH 快速上手 | `scenarios/flash_demo/hello_flash/README.md` |
 | 网格细化实施指南 | `input_gen/gen_Grid_markRefineDerefine/README.md` |
 | 新参数生成指南 | `input_gen/gen_newpara/README.md` |
@@ -1012,9 +1016,11 @@ generation → FLASH compile & run → HDF5 output processing → adaptive visua
 (1D/2D/3D) and physical analysis.
 
 > **Status**: the release package passes the global test suite
-> (**260 passed / 1 skipped**: framework 132 / input_gen 83 / output_processors 45)
-> and the FLASH license-compliance check. The offline-deployment self-check
-> adds **183 further checks** (`deploy/test_offline_install.py`).
+> (**436 passed / 2 skipped**: framework 293 / input_gen 86 / output_pro 57)
+> and the FLASH license-compliance check; all **35 registered scenarios** pass
+> local WSL short-run end-to-end verification (`tmax=1e-11`). The
+> offline-deployment self-check adds **183 further checks**
+> (`deploy/test_offline_install.py`).
 > **Scope note**: this package does **not** redistribute any FLASH source,
 > binaries, distributed EOS/opacity tables or IONMIX/MultiEOS data (FLASH License §3).
 
@@ -1040,6 +1046,10 @@ git clone https://github.com/QuincyHoward/flash.git
   a registry (`get_scenario()` / `list_scenarios()`), and a unified
   `FlashSimulatorEngine` that integrates WSL/remote execution, checkpoint
   collection, interpolation and result output.
+  **35 registered scenarios** (public demos + private research families) are
+  discoverable via zero-registration `scene.json` manifests and driven through
+  one CLI: `python -m flash.scenarios list | run <scene> --mode auto|local|wsl|hpc-remote`
+  (platform-adaptive targeting, `--tmax` short-run verification, HPC `submit`).
   Built-in (distributed) scenarios: `ch_center`, `grad_dens_sandwich`,
   `thin_layer_sandwich_si`, `thin_layer_sandwich_al`.
 - **Research scenario families** (private, not distributed): the **SNB
@@ -1069,7 +1079,7 @@ git clone https://github.com/QuincyHoward/flash.git
   (`gen_eos_op` hosts the self-generated `*.cn4` tables), multi-zone density
   profiles (`gen_newpara`), FLYCHK-history input generation
   (`gen_flychk_his`), and a dependency checker (`gen_checker`).
-- **Output Processing** (`output_processors/`): HDF5 loading (1D/2D/3D) that is
+- **Output Processing** (`output_pro/`): HDF5 loading (1D/2D/3D) that is
   byte-compatible with real FLASH files (incl. WSL `(n,1)` `unknown names`
   layout), derived variables (`nele = ye·dens·N_A`, `nion`, `zbar`, gradient
   scale lengths …), unit conversion, batch/lazy/parallel loading, AMR
@@ -1079,6 +1089,18 @@ git clone https://github.com/QuincyHoward/flash.git
   — FLASH checkpoints are written every *N steps*, so their Δt is often highly
   non-uniform (measured 52.7× on an AMR run) and `imshow` would distort the
   time axis.
+- **PlasmaPy Bridge** (`output_pro/plasmapy_bridge.py`, new in 0.1.15):
+  converts FLASH grid quantities into astropy-units-aware `Quantity` arrays and
+  exposes unit-safe plasma diagnostics via
+  [PlasmaPy](https://github.com/PlasmaPy/PlasmaPy) — Coulomb logarithm lnΛ,
+  Debye length λ_D, Spitzer/Braginskii electron thermal conductivity κ_e,
+  electron mean free path and Knudsen number K_n = λ_mfp/L_Te, quantum
+  degeneracy parameter Θ_e, ion coupling Γ, Saha ionization Z̄, and the
+  0.351 μm critical-density surface n_c. Gracefully degrades when PlasmaPy is
+  absent (`HAS_PLASMAPY=False`). PlasmaPy 2026.2.0 is **vendored** as a source
+  snapshot (`output_pro/PlasmaPy/src/PlasmaPy`, BSD-3); editable install on
+  win/wsl via `output_pro/PlasmaPy/install_editable.py`, offline wheel bundle
+  on HPC (see `DEPENDENCIES.md`).
 - **Share-safety gate** (`scenarios/private/SNB/SNB/scripts/check_share_safety.py`):
   a mandatory pre-publish check with three gates — file type, protected
   directories, and content (source/binary **blacklist** scan over the *staged ∪

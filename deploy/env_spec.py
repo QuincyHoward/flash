@@ -19,6 +19,14 @@ from __future__ import annotations
 
 #: 基线锁定（三平台共同目标版本）。key = PyPI 包名。
 #: 维护规则: 升级基线时同步 pyproject.toml 下限、DEPENDENCIES.md、重新生成 lock。
+# ─────────────────────────────────────────────────────────────────────
+# 带外可选依赖（2026-10-30）: plasmapy 不入 BASELINE/lock/wheelhouse。
+#   原因: 源码托管 editable 安装自 flash/flash/output_pro/PlasmaPy/src/PlasmaPy
+#   (pyproject extras 无法跨平台引用仓库内路径); 安装: win/wsl 用
+#   python flash/output_pro/PlasmaPy/install_editable.py (py>=3.12 闸门);
+#   hpc 已并入 .venv-hpc-nce (miniforge py3.12.8 基座, 2026-10-30 实测 52 passed,
+#   mpmath pin 1.3.0)。详见 flash/output_pro/docs/PlasmaPy在output_pro中的使用指南.md
+# ─────────────────────────────────────────────────────────────────────
 BASELINE: dict[str, str] = {
     # ── 运行时核心（pyproject dependencies）──
     "numpy": "1.26.4",

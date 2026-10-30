@@ -13,7 +13,7 @@ start_flash.py — flash 包「环境自检自愈 + 从零安装 + 全局测试�
   2. 修复 base 内置的损坏 setuptools
   3. pip 从零安装 flash 包:  pip install -e ".[full,dev]" scipy paramiko
   4. 安装后环境复检（仍不健康 → 再自动重建一轮）
-  5. 运行全局三套测试:  framework / input_gen / output_processors
+  5. 运行全局三套测试:  framework / input_gen / output_pro
      - 若三套件全部「0 用例启动失败」（pytest 崩溃特征）→ 判定为环境问题
        → 自动清零重建 → 重新测试
   6. 生成纯文本测试报告 test/reports/INSTALL_TEST_REPORT.txt
@@ -108,10 +108,12 @@ REPORT_DIR = os.path.join(PROJECT_DIR, "test", "reports")
 REPORT_FILE = os.path.join(REPORT_DIR, "INSTALL_TEST_REPORT.txt")
 
 # 三套测试: (套件名, 相对测试目录)  — 标准布局: 包代码在 flash/ 下
+# 2026-10-30: output_processors → output_pro (PlasmaPy 方案 A 改造迁移);
+#   原 output_processors 目录待改造验证完成后手动移入回收站。
 TEST_SUITES = [
     ("framework",          "test"),
     ("input_gen",          os.path.join("flash", "input_gen", "test")),
-    ("output_processors",  os.path.join("flash", "output_processors", "test")),
+    ("output_pro",         os.path.join("flash", "output_pro", "test")),
 ]
 
 # 环境健康检查的关键模块（对应 pyproject 依赖 + start_flash 补装项 + 传递依赖）：
@@ -1506,7 +1508,7 @@ def main() -> int:
                 f"skipped={res['skipped']}  errors={res['errors']}  rc={res['rc']}")
     log("")
 
-    # 判定: 三套件均须全过 (output_processors 测试数据由 gen_test_data.py 自动生成)
+    # 判定: 三套件均须全过 (output_pro 测试数据由 gen_test_data.py 自动生成)
     def verdict(name: str, res: dict) -> str:
         if res is None:
             return "未运行"
@@ -1518,7 +1520,7 @@ def main() -> int:
 
     core_ok = True
     for name, res in results.items():
-        # ★ 三套件都要判：output_processors 曾被排除在外，导致它 3 个 FAIL 时
+        # ★ 三套件都要判：output_pro 曾被排除在外，导致它 3 个 FAIL 时
         #   报告仍写"安装验证通过"（报喜不报忧）。数据缺失属可自愈类问题，
         #   已在 conftest 导入期预生成修复 ⇒ 这里恢复全量判定。
         if res is not None:
@@ -1615,11 +1617,14 @@ def main() -> int:
     lines.append("- 自愈机制: .venv 环境健康检查不通过（关键依赖缺失 / pytest 无法启动）"
                  "或三套件全部 0 用例启动失败时，本脚本自动清零重建并重测，"
                  "无需手动 FLASH_FORCE_CLEAN=1，也不依赖重启机器。")
-    lines.append("- output_processors 套件测试数据（inputfiles/，.gitignore 排除）"
-                 "由 flash/output_processors/test/gen_test_data.py 在测试会话中自动生成，"
+    lines.append("- output_pro 套件测试数据（inputfiles/，.gitignore 排除）"
+                 "由 flash/output_pro/test/gen_test_data.py 在测试会话中自动生成，"
                  "克隆/发布环境无需手动准备。")
+    lines.append("- PlasmaPy（output_pro 方案 A 可选依赖）缺失仅降级: bridge 物理量函数"
+                 "不可用, 其余测试不受影响; 安装: python flash/output_pro/PlasmaPy/"
+                 "install_editable.py（win/wsl, py>=3.12; hpc 不支持）。")
     lines.append("- 完整测试日志见 test\\reports\\ 下的 pytest_framework.log / "
-                 "pytest_input_gen.log / pytest_output_processors.log。")
+                 "pytest_input_gen.log / pytest_output_pro.log。")
     lines.append("- 虚拟环境为项目专属 .venv（项目根目录），与共享环境 envs/default 完全隔离。")
     if OFFLINE:
         lines.append(f"- 本次为**离线安装**：pip 全程带 --no-index，从 wheelhouse 本地取包，"

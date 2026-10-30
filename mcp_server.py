@@ -96,7 +96,7 @@ OVERVIEW_TEXT = f"""\
 | 接口/适配层 | interface.py (FlashSimulator: mock/real), __init__.py | 对外统一入口; mock 模式用 Planck/Saha 闭式公式, real 模式调 FLASH 二进制 |
 | 输入生成层 | input_gen/ (gen_par, gen_config, gen_makefile, gen_sim_data, gen_sim_init, gen_sim_initblock, gen_eos_op, gen_shell_script, gen_Grid_markRefineDerefine ...) | 结构化参数 → .par / Fortran 源 / Config / Makefile / .cn4 表 / 运行脚本 |
 | 仿真执行层 | scenarios/ (base, registry, simulator), flash_run/ (env, remote) | FlashSimulatorEngine 编排 "编译→运行→采集→插值→保存"; 本地 WSL 与超算 SSH/SLURM |
-| 输出处理层 | output_processors/ (hdf5processor → loader → plotter, parallel) | 纯 h5py 解析 FLASH AMR HDF5, 结构化加载, 自适应 1D/2D/3D 绘图 |
+| 输出处理层 | output_pro/ (hdf5pro → loader → plotter, parallel) | 纯 h5py 解析 FLASH AMR HDF5, 结构化加载, 自适应 1D/2D/3D 绘图 |
 | 核心抽象层 | _core/ (BaseSimulator, schema, registry, credentials) | capability()/simulate() 契约, SimulationRequest/Result 数据结构, 加密凭据 |
 
 ## 5 分钟上手步骤
@@ -160,10 +160,10 @@ MODULE_MAP_TEXT = """\
 | 仿真执行 | 场景: plasma_preparation | `flash/scenarios/plasma_preparation/` |
 | 仿真执行 | 环境管理 FlashEnvManager | `flash/flash_run/env/env_manager.py` |
 | 仿真执行 | 远程部署 FlashRemoteDeploy (SSH/SFTP/SBATCH) | `flash/flash_run/remote/remote_deploy.py` |
-| 输出处理 | FlashHDF5File / DataCalculator (AMR 块解析) | `flash/output_processors/hdf5processor/flash_hdf5.py` |
-| 输出处理 | FlashDataLoader / FlashDataContainer | `flash/output_processors/loader/data_loader.py` |
-| 输出处理 | FlashPlotter (1D 线图/2D 伪彩/3D 切片, x-t 图) | `flash/output_processors/plotter/plot_generator.py` |
-| 输出处理 | parallel 并行加载/插值 | `flash/output_processors/parallel.py` |
+| 输出处理 | FlashHDF5File / DataCalculator (AMR 块解析) | `flash/output_pro/hdf5pro/flash_hdf5.py` |
+| 输出处理 | FlashDataLoader / FlashDataContainer | `flash/output_pro/loader/data_loader.py` |
+| 输出处理 | FlashPlotter (1D 线图/2D 伪彩/3D 切片, x-t 图) | `flash/output_pro/plotter/plot_generator.py` |
+| 输出处理 | parallel 并行加载/插值 | `flash/output_pro/parallel.py` |
 | 示例/支撑 | Demo 套件 (hello_flash 一键入门包等) | `flash/scenarios/flash_demo/` |
 | 示例/支撑 | 文档 / 脚本 / 测试 | `docs/`, `scripts/`, `test/` |
 
@@ -187,10 +187,10 @@ API_REFERENCE_TEXT = """\
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
 | `ConfigGenerator` | `flash.input_gen.gen_config.generator` | `Config` 文件生成器 |
 | `BlockGenerator` | `flash.input_gen.gen_sim_initblock.generator` | `Simulation_initBlock.F90` 生成器 |
-| `FlashHDF5File` | `flash.output_processors.hdf5processor.flash_hdf5` | 底层 HDF5 文件读取器 (varnames / simulation_time) |
-| `FlashDataLoader` | `flash.output_processors.loader.data_loader` | 结构化数据加载器 |
-| `FlashDataContainer` | `flash.output_processors.loader.data_loader` | 数据容器 (data / derived / grid) |
-| `FlashPlotter` | `flash.output_processors.plotter.plot_generator` | 自适应维度绘图器 (含 plot_xt_map) |
+| `FlashHDF5File` | `flash.output_pro.hdf5pro.flash_hdf5` | 底层 HDF5 文件读取器 (varnames / simulation_time) |
+| `FlashDataLoader` | `flash.output_pro.loader.data_loader` | 结构化数据加载器 |
+| `FlashDataContainer` | `flash.output_pro.loader.data_loader` | 数据容器 (data / derived / grid) |
+| `FlashPlotter` | `flash.output_pro.plotter.plot_generator` | 自适应维度绘图器 (含 plot_xt_map) |
 | `FlashEnvManager` | `flash.flash_run.env.env_manager` | 多环境管理器 (get_env_manager) |
 | `FlashRemoteDeploy` | `flash.flash_run.remote.remote_deploy` | 远程部署管理器 (SSH/SFTP + SBATCH) |
 
@@ -199,8 +199,8 @@ CLI 命令: `flash-cred` (凭据管理交互菜单), `flash-setup` (初始化配
 ## loader / plotter 典型用法
 
 ```python
-from flash.output_processors.loader import FlashDataLoader
-from flash.output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 # 加载 checkpoint 文件 (自动维度检测 + AMR 块结构解析)
 loader = FlashDataLoader("lasslab_hdf5_chk_0001")
@@ -252,7 +252,7 @@ WORKFLOW_GUIDES: Dict[str, str] = {
 # 完整仿真工作流 (full_simulation)
 
 流程: Config 编译配置 → setup + make → FLASH 二进制 → 生成 .par → mpirun →
-HDF5 输出 → output_processors 自适应绘图 + 分析。
+HDF5 输出 → output_pro 自适应绘图 + 分析。
 
 推荐路径 (场景驱动, 一条命令串全程):
 1. 场景: `FlashSimulatorEngine(get_scenario("ch_center")).run()`
@@ -322,11 +322,11 @@ gen.save_config("Config")   # DATAFILES 自动包含新材料 cn4
 
 FLASH 输出: `*hdf5_chk_*` (checkpoint, 全变量) 与 `*hdf5_plt_cnt_*` (plot)。
 AMR 块结构: chk 数据集形状为 **(nblocks, 1, 1, ncell)** (1D), 叶块坐标需经
-extract_var_yt_style 重建 (hdf5processor 内置, 纯 h5py 无需 yt)。
+extract_var_yt_style 重建 (hdf5pro 内置, 纯 h5py 无需 yt)。
 
 底层读取:
 ```python
-from flash.output_processors.hdf5processor import FlashHDF5File
+from flash.output_pro.hdf5pro import FlashHDF5File
 ff = FlashHDF5File("flash_hdf5_plt_cnt_0000")
 print(ff.varnames)          # 可用变量名
 print(ff.simulation_time)   # 仿真时间
@@ -335,8 +335,8 @@ ff.close()
 
 结构化加载 + 绘图:
 ```python
-from flash.output_processors.loader import FlashDataLoader
-from flash.output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 loader = FlashDataLoader("lasslab_hdf5_chk_0001")
 container = loader.load(compute_derived=True)   # nele=ye·dens·N_A, nion, zbar, 梯度标长...
@@ -347,13 +347,13 @@ plotter.plot_xt_map("tele")   # 时空图: pcolormesh 用真实逐帧时间
 ```
 
 要点:
-- 派生变量由 DataCalculator 在加载时自动计算 (hdf5processor)。
+- 派生变量由 DataCalculator 在加载时自动计算 (hdf5pro)。
 - **温度单位是 K** (chk 中 tele/tion/trad); eV 换算: eV = K / 11604.518。
 - **chk 是 (nblocks,1,1,ncell) 块结构**: 不要直接当规则网格 reshape; 用 loader
   或 extract_var_yt_style 重建全局坐标。
 - x-t 图必须用 pcolormesh + 真实逐帧时间: chk 每隔 N 步写出, Δt 高度非均匀
   (实测 52.7x), imshow 会扭曲时间轴。time_uniformity() 可先检查均匀性。
-- 批量/并行: flash/output_processors/parallel.py (多文件/多变量/多文件夹)。
+- 批量/并行: flash/output_pro/parallel.py (多文件/多变量/多文件夹)。
 - 大文件读取性能与索引对齐: 见 skill `physimx-h5py-batch-read`; 批量提取防挂起
   见 skill `flaky-io-watchdog-extraction`。
 """,
@@ -452,7 +452,7 @@ macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux
 
 3. **chk 是 (nblocks, 1, 1, ncell) 块结构**: 1D FLASH AMR checkpoint 的数据集
    形状是块结构而非规则网格; 直接 reshape 会得到错误坐标。必须经
-   hdf5processor 的 extract_var_yt_style / FlashDataLoader 重建全局坐标。
+   hdf5pro 的 extract_var_yt_style / FlashDataLoader 重建全局坐标。
 
 4. **chk 温度单位是 K**: tele/tion/trad 存开尔文; 换算 eV: eV = K / 11604.518
    (1 eV ≈ 11604.518 K)。分析脚本里别把 K 当 eV 用。
@@ -467,7 +467,7 @@ macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux
    想加密只能加 iProcs 或 nxb。
 
 7. **fresh clone 须验证"生成目录类" bug**: 干净克隆没有 flash_input/ 等生成
-   目录 (被 .gitignore 排除, 同 output_processors 的 inputfiles/ 模式), 也没有
+   目录 (被 .gitignore 排除, 同 output_pro 的 inputfiles/ 模式), 也没有
    credentials.enc (FLASH_HOME 解析会误回落 ~/hello 报 FLASH_HOME not found)。
    引擎 ensure_sim_input() 会自动补齐输入文件; 也可单独跑
    `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`
@@ -497,7 +497,7 @@ macOS→.venv-mac; 物理上不能共用 (已编译扩展 win_amd64 vs manylinux
   控制台日志、代码注释、文档可中文。
 - **字号 ≥ 18pt (PPT 友好)**: title 22 / 轴标签 20 / 刻度·图例·colorbar·注释 18;
   禁止手工 fontsize=8/10/12/13/14。
-- 统一入口 `output_processors/plotter/plot_style.py`:
+- 统一入口 `output_pro/plotter/plot_style.py`:
   `apply_plot_style()` 一键全局样式 (≥18pt, 全英文, dpi=200);
   `english(text)` 清洗 Unicode (μm→um, g/cm³→g/cm^3);
   `save_figure(fig, path)` 保存 (dpi=200 + tight)。

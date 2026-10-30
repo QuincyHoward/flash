@@ -14,8 +14,8 @@
 - 文档/README (可中英混用)
 
 **执行方法**:
-- `output_processors/hdf5processor/flash_hdf5.py` 中 `DATA_CONFIG` 的 `description` 字段全部使用英文
-- `output_processors/plotter/plot_generator.py` 中所有 `set_xlabel/set_ylabel/set_title` 使用英文
+- `output_pro/hdf5pro/flash_hdf5.py` 中 `DATA_CONFIG` 的 `description` 字段全部使用英文
+- `output_pro/plotter/plot_generator.py` 中所有 `set_xlabel/set_ylabel/set_title` 使用英文
 - 用户调用 `plotter.plot()` 时传入英文 title
 
 ### 1.1 字体大小规范 (PPT 友好, 强制)
@@ -34,16 +34,16 @@
 **强制要求**:
 1. 包内**所有** matplotlib 绘图脚本必须在 `import matplotlib.pyplot` 之后、任何绘图之前调用:
    ```python
-   from output_processors.plotter.plot_style import apply_plot_style
+   from flash.output_pro.plotter.plot_style import apply_plot_style
    apply_plot_style()          # 全局 rcParams: 字体≥18, 全英文, dpi=200
    ```
 2. 禁止在脚本中手工指定 `fontsize=8/10/12/13/14` 等小于 18 的字号;
    必须依赖 `plot_style` 的全局设置 (或显式 `fontsize>=18`)。
 3. 图片中任何文本 (标题/轴标签/图例/colorbar/注释) 禁止出现中文;
-   推荐用 `english()` 清洗: `from output_processors.plotter.plot_style import english`。
+   推荐用 `english()` 清洗: `from flash.output_pro.plotter.plot_style import english`。
 4. 保存图片建议用 `save_figure(fig, path)` (dpi=200 + tight bbox)。
 
-**统一模块**: `output_processors/plotter/plot_style.py`
+**统一模块**: `output_pro/plotter/plot_style.py`
 - `apply_plot_style()`: 一键应用全局样式
 - `english(text)`: CJK/Unicode 符号 → ASCII 英文 (如 μm→um, g/cm³→g/cm^3)
 - `new_figure(figsize)`: 创建 PPT 友好画布
@@ -108,7 +108,7 @@ flash/
 │           ├── run/power_0.5~2.0/   # 各功率独立运行文件夹
 │           ├── output/power_0.5~2.0/ # 下载的 HDF5 输出
 │           └── plots/               # 对比分析图像
-├── output_processors/       # 输出处理包 (全英文绘图)
+├── output_pro/       # 输出处理包 (全英文绘图)
 └── docs/
     └── flash_operation_standard.md  # 本文档
 ```
@@ -265,11 +265,11 @@ wsl -d Ubuntu-22.04 -u root -- bash -c "cd /tmp/run_dir && export PATH=/usr/loca
 - 形状: `(nblocks, Nz, Ny, Nx)` C 顺序
 - 边界框: `(nblocks, 3, 2)` min/max for x/y/z
 
-### 3.2 使用 output_processors 绘图
+### 3.2 使用 output_pro 绘图
 
 ```python
-from output_processors.loader import FlashDataLoader
-from output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 loader = FlashDataLoader("path/to/hdf5_chk_0000")
 container = loader.load(compute_derived=True)
@@ -321,8 +321,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 ```python
 # 从 PhySimX/physimx_sim/src/ 可以导入:
 from flash.input_gen.gen_par import ParGenerator
-from flash.output_processors.loader import FlashDataLoader
-from flash.output_processors.plotter import FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 from flash.flash_run.env.env_manager import FlashEnvManager
 ```
 

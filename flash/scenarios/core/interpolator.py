@@ -13,8 +13,8 @@ FLASH 的 AMR 输出在时间上是不均匀的（步长由 CFL 决定），在�
 (时间 × 空间) 二维数组，因此需要把一组 checkpoint 重采样到统一网格上。
 
 实现完全建立在本包已有且经过测试的设施之上，不引入新的数值方法：
-  - `output_processors.parallel._load_single_chk`：纯 h5py 提取叶节点 1D 剖面
-  - `output_processors.parallel.parallel_interpolate`：分块并行的双线性重采样
+  - `output_pro.parallel._load_single_chk`：纯 h5py 提取叶节点 1D 剖面
+  - `output_pro.parallel.parallel_interpolate`：分块并行的双线性重采样
 
 历史说明
 ────────
@@ -95,7 +95,7 @@ def load_flash_slices(
         [{"time": float, "x": ndarray, var: ndarray, ...}, ...]，按 time 升序。
         无法读取的文件会被跳过（不抛异常），以便个别损坏文件不影响整批处理。
     """
-    from ..output_processors.parallel import _load_single_chk
+    from flash.output_pro.parallel import _load_single_chk
 
     slices: List[Dict] = []
     for f in flash_files:
@@ -140,7 +140,7 @@ def interpolate_flash_to_grid(
         当没有任何可用的输入文件时，返回全零数组（形状仍然正确），
         以保证下游保存与绘图逻辑不会因空输入而崩溃。
     """
-    from ..output_processors.parallel import parallel_interpolate
+    from flash.output_pro.parallel import parallel_interpolate
 
     t_grid = np.asarray(t_grid, dtype=np.float64)
     x_grid = np.asarray(x_grid, dtype=np.float64)

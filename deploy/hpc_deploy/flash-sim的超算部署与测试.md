@@ -106,7 +106,7 @@ pip download --only-binary=:all: \
    .so SHA256 与 wheel 一致、GLIBC 符号 ≤2.14、ELF 特征与 numpy 无异，根因未完全定位）。
    版本矩阵实测：4.1.4/4.3.0 = numpy1 构建与 numpy2 ABI 冲突（干净报错）；
    **4.4.0（numpy2 构建，requires-python≥3.10.3）实测全绿** ⇒ 锁定。
-   连带修复：output_processors 45 用例从段错误恢复为全过。
+   连带修复：output_pro 45 用例从段错误恢复为全过。
 9. **`test_engine_dryrun` fresh-clone 失败**：`_primary_scenario()` 无条件优先私有场景
    thin_layer_sandwich_si，但其 sim_input_si/ 的 F90/cn4 因 FLASH License §3 被
    .gitignore 排除 ⇒ 部署树缺 .F90。修复：私有场景仅在 sim_input 实际完整（含 .F90）
@@ -162,7 +162,7 @@ pip download --only-binary=:all: \
 套件              passed  failed  skipped  error  结论
 framework           132      0       1       0     PASS
 input_gen            83      0       0       0     PASS
-output_processors    45      0       0       0     PASS
+output_pro    45      0       0       0     PASS
 整体结论: 安装验证通过
 环境版本快照: numpy 2.2.6 / scipy 1.15.3 / h5py 3.14.0 / matplotlib 3.10.9 /
               yt 4.4.0 / pandas 2.3.2 / paramiko 5.1.0 / pytest 9.1.1
@@ -217,7 +217,7 @@ flash/flash_run/remote/test/
 | 阶段 | 内容 | 位置 | 判据 |
 |---|---|---|---|
 | **A2**（先） | 三个 public 场景 `gen_flash_inputs.py --force` + `DependencyChecker`（+ ch_center 的 `RelationChecker`） | 登录节点 | `A2_RC=0` |
-| **A1**（后） | 三套全局 pytest：`test/`、`flash/input_gen/test/`、`flash/output_processors/test/` | 登录节点 | `A1_PYTEST_RC=0` |
+| **A1**（后） | 三套全局 pytest：`test/`、`flash/input_gen/test/`、`flash/output_pro/test/` | 登录节点 | `A1_PYTEST_RC=0` |
 | **B** | 三个 public 场景真实 FLASH 仿真，**sbatch 串行提交** | 计算节点 | `B_RC=0` |
 
 ★ **A2 必须先于 A1**（根因见 §4 第 13 条）：生成目录被 .gitignore 排除，
@@ -286,7 +286,7 @@ flash/flash_run/remote/test/
 |---|---|---|
 | A1 | `test/`（framework） | rc=0 |
 | A1 | `flash/input_gen/test/` | rc=0 |
-| A1 | `flash/output_processors/test/` | rc=0 |
+| A1 | `flash/output_pro/test/` | rc=0 |
 | A2 | `ch_center`（gen + gencheck + relation） | OK |
 | A2 | `grad_dens_sandwich`（gen + gencheck） | OK |
 | A2 | `thin_layer_sandwich_si`（gen + gencheck） | OK |

@@ -90,7 +90,7 @@ def scan_file(path: Path) -> list[str]:
         return violations
 
     has_plot_style_import = (
-        "from output_processors.plotter.plot_style" in text
+        "from flash.output_pro.plotter.plot_style" in text
         or "import plot_style" in text
     )
     has_apply = "apply_plot_style(" in text
@@ -98,7 +98,7 @@ def scan_file(path: Path) -> list[str]:
     # Rule 1: must call apply_plot_style
     if not has_apply:
         violations.append("  [MISS] apply_plot_style() not called "
-                          "(add: from output_processors.plotter.plot_style "
+                          "(add: from flash.output_pro.plotter.plot_style "
                           "import apply_plot_style; apply_plot_style())")
 
     # Rule 2: no small fonts

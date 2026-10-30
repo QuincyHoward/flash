@@ -168,7 +168,7 @@ account/partition combination specified"）——
    repo/.venv-hpc-nce → module python → 系统 python3）
 ⑦ 回传：chk-only（fetch_policy，plt 默认不回传；批量对比用
    FLASH_FETCH_LIMIT=0 + FLASH_LS_LIMIT 放大远端 ls 上限）
-⑧ 本地 output_processors 分析出图
+⑧ 本地 output_pro 分析出图
 ```
 
 断点续跑：`hpc_task.json` 记录 job_id/remote_dir/output，网络中断后可按

@@ -197,8 +197,8 @@ def step_plot_density(h5_files: list):
     log(f"分析密度网格: {target}", "STEP")
 
     try:
-        from flash.output_processors.loader import FlashDataLoader
-        from flash.output_processors.plotter import FlashPlotter
+        from flash.output_pro.loader import FlashDataLoader
+        from flash.output_pro.plotter import FlashPlotter
 
         PLOTS_DIR.mkdir(parents=True, exist_ok=True)
         container = FlashDataLoader(h5_path).load()

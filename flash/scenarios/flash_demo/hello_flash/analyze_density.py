@@ -31,8 +31,11 @@ from pathlib import Path
 # ── PPT 友好绘图规范 (字体≥18, 全英文) ──
 sys.path.insert(0, os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "..", "..")))
+# 仓库根 (flash 包的上一级): 供 flash.output_pro 包内绝对导入 (2026-10-30 迁移)
+sys.path.insert(0, os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "..")))
 try:
-    from output_processors.plotter.plot_style import apply_plot_style, english
+    from flash.output_pro.plotter.plot_style import apply_plot_style, english
     apply_plot_style()   # 全局: 字体≥18, 全英文, dpi=200
 except ImportError:
     pass  # plot_style 不可用时保持原行为

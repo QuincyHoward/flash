@@ -36,7 +36,7 @@ with RemoteSession("flash_ssh") as s:
     # 3. 直接跑三套测试（-q，串行）
     for name, rel in [("framework", "test"),
                       ("input_gen", "flash/input_gen/test"),
-                      ("output_processors", "flash/output_processors/test")]:
+                      ("output_processors", "flash/output_pro/test")]:
         out, err, rc = s.run(
             f"cd {TARGET} && {VPY} -m pytest {rel} -q --tb=line 2>&1 | tail -4",
             timeout=1800)

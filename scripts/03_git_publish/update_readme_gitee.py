@@ -76,7 +76,7 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
   `thin_layer_sandwich_si`, `thin_layer_sandwich_al`.
 - **Input Generation** (`input_gen/`): parameter-file editor/calculator, EOS &
   opacity table tooling, Makefile generation, shell-script generation.
-- **Output Processing** (`output_processors/`): HDF5 loading (1D/2D/3D), derived
+- **Output Processing** (`output_pro/`): HDF5 loading (1D/2D/3D), derived
   variables, unit conversion, batch/lazy loading, AMR visualization.
 - **Multi-Environment Execution**: local WSL (Ubuntu) and HPC clusters over SSH
   (ParaCloud), with SLURM/SBATCH support.

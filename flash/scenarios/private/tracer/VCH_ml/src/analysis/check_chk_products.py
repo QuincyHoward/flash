@@ -8,7 +8,7 @@
 用法:
   python check_chk_products.py <chk_dir> [--out out_dir]
 
-读取走 flash.output_processors.FlashDataLoader (extraction_mode="yt",
+读取走 flash.output_pro.FlashDataLoader (extraction_mode="yt",
 只取叶子块), chk 与 plt 同为 FLASH HDF5 结构, 含全部 unknown 变量。
 """
 
@@ -32,7 +32,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from flash.output_processors.loader import FlashDataLoader
+from flash.output_pro.loader import FlashDataLoader
 
 SPECIES = ["cham", "shld", "samp", "tar1", "tar2", "tar3", "tar4", "tar6"]
 COLORS = {"cham": "tab:blue", "shld": "tab:green", "samp": "tab:red",

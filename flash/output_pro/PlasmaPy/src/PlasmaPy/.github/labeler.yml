@@ -1,0 +1,227 @@
+# This file defines which GitHub labels get applied when files
+# matching certain minimatch glob patterns are changed.
+#
+# Documentation: https://github.com/actions/labeler#pull-request-labeler
+#
+# If a label includes a space or a pattern begins with an asterisk or
+# special character, enclose it in quotes.
+
+'breaking change':
+  - changed-files:
+    - any-glob-to-any-file: 'changelog/*breaking*.rst'
+
+bugfix:
+  - changed-files:
+    - any-glob-to-any-file: 'changelog/*bugfix*.rst'
+
+CI:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.github/workflows/check*.yml',
+      '.github/workflows/ci*.yml',
+      '.github/workflows/linkcheck.yml',
+      '.pre-commit-config.yaml',
+      '.readthedocs.yml',
+      'codecov.yaml',
+      'mypy.ini',
+    ]
+
+'contributor guide':
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.github/contributing.md',
+      'changelog/README.rst',
+      'CONTRIBUTING.md',
+      'docs/contributing/**',
+    ]
+
+requirements:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/*req*.txt',
+      '**/pylock.toml',
+      '**/uv.lock',
+    ]
+
+'deprecation or planned removal':
+  - changed-files:
+    - any-glob-to-any-file: 'changelog/*removal*.rst'
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file: [
+      'docs/**/*.bib',
+      'docs/**/*.ico',
+      'docs/**/*.ipynb',
+      'docs/**/*.md',
+      'docs/**/*.png',
+      'docs/**/*.rst',
+      'docs/**/*.svg',
+    ]
+
+'documentation infrastructure':
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.github/workflows/changelog.yml',
+      '.github/workflows/check-author-included.yml',
+      '.github/workflows/linkcheck.yml',
+      '.readthedocs.yml',
+      'docs/**/*.css',
+      'docs/**/*.html',
+      'docs/**/*.py',
+      'docs/**/make.bat',
+      'docs/**/Makefile',
+      'docs/**/plasmapy_sphinx/**',
+      'docs/**/robots.txt',
+    ]
+
+feature:
+  - changed-files:
+    - any-glob-to-any-file: 'changelog/*feature*.rst'
+
+'GitHub Actions':
+  - changed-files:
+    - any-glob-to-any-file: '.github/**'
+
+linters:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.editorconfig',
+      '.pre-commit*.yaml',
+      '.sourcery.yaml',
+      '_typos.toml',
+    ]
+
+maintenance:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.git-blame-ignore-revs',
+      '.gitattributes',
+      '.gitignore',
+      '.mailmap',
+      'changelog/*.internal*.rst',
+      'CODEOWNERS',
+      'licenses/**',
+    ]
+
+security:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/*security*',
+      '**/*SECURITY*',
+      '**/*zizmor*',
+    ]
+
+notebooks:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/*.ipynb',
+      '**/binder/**',
+      '.jupyter/**',
+      'docs/notebooks/**',
+    ]
+
+nox:
+  - changed-files:
+    - any-glob-to-any-file: '**/noxfile.py'
+
+packaging:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/scm_version.py',
+      '*setup*',
+      '.github/workflows/*publish*',
+      '.github/workflows/*pypi*',
+      '.github/workflows/*release*',
+      'MANIFEST.in',
+      'pyproject.toml',
+    ]
+
+'physical data':
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/particles/data/**',
+      '**/tools/export_ionization_energy.py',
+    ]
+
+plasmapy.analysis:
+  - changed-files:
+    - any-glob-to-any-file: '**/analysis/**'
+
+plasmapy.diagnostics:
+  - changed-files:
+    - any-glob-to-any-file: '**/diagnostics/**'
+
+plasmapy.dispersion:
+  - changed-files:
+    - any-glob-to-any-file: '**/dispersion/**'
+
+plasmapy.formulary:
+  - changed-files:
+    - any-glob-to-any-file: '**/formulary/**'
+
+plasmapy.formulary.quantum:
+  - changed-files:
+    - any-glob-to-any-file: '**/quantum*'
+
+plasmapy.particles:
+  - changed-files:
+    - any-glob-to-any-file: '**/particles/**'
+
+plasmapy.plasma:
+  - changed-files:
+    - any-glob-to-any-file: '**/plasma/**'
+
+plasmapy.simulation:
+  - changed-files:
+    - any-glob-to-any-file: '**/simulation/**'
+
+plasmapy.utils:
+  - changed-files:
+    - any-glob-to-any-file: '**/utils/**'
+
+python:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.py'
+
+release:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.github/content/*release*',
+      '.github/workflows/*publish*',
+      '.github/workflows/*pypi*',
+      '.github/workflows/*release*',
+    ]
+
+'run comprehensive tests':
+  - changed-files:
+    - any-glob-to-any-file: [
+      '.github/workflows/ci-comprehensive.yml',
+      'pyproject.toml',
+      'uv.lock',
+      'noxfile.py',
+    ]
+
+'static type checking':
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/*mypy*',
+      '**/py.typed',
+      '**/type_stubs/**',
+    ]
+
+testing:
+  - changed-files:
+    - any-glob-to-any-file: [
+      '**/*coverage*',
+      '**/*pytest*.*',
+      '**/conftest.py',
+      '**/test*.py',
+      '**/tests/**',
+      '*codecov.y*ml',
+      '.github/workflows/ci.yml',
+    ]
+
+tools:
+  - changed-files:
+    - any-glob-to-any-file: '**/tools/**'

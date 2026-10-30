@@ -1,6 +1,6 @@
 """时空插值引擎 — 将 FLASH AMR 块数据插值到变分辨率固定时空网格
 
-使用 output_processors 的 FlashHDF5File 读取 FLASH HDF5，
+使用 output_pro 的 FlashHDF5File 读取 FLASH HDF5，
 通过 slice_1d() 获取排序后的块展平数据，再用 numpy.interp 插值到目标网格。
 
 数据流:
@@ -26,10 +26,10 @@ from typing import Dict, List, Optional, Tuple
 
 # FlashHDF5File: 读取 FLASH HDF5 (chk/plt) 的核心类
 try:
-    from output_processors.hdf5processor import FlashHDF5File
+    from flash.output_pro.hdf5pro import FlashHDF5File
 except ImportError:
     # 包内相对路径兜底
-    from flash.output_processors.hdf5processor import FlashHDF5File
+    from flash.output_pro.hdf5pro import FlashHDF5File
 
 # Bootstrap: workspace root = sandwich/scenarios/flash/<root> (fixed depth, robust)
 _ROOT = Path(__file__).resolve().parents[4]
@@ -112,7 +112,7 @@ def build_variable_grid(
 
 
 # ============================================================
-# FLASH HDF5 读取 (使用 output_processors)
+# FLASH HDF5 读取 (使用 output_pro)
 # ============================================================
 
 def read_flash_slice(filepath: str, var_names: List[str]) -> Dict:
@@ -195,7 +195,7 @@ def interpolate_flash_to_grid(
     flash_slices = []
 
     if use_parallel and len(flash_files) >= 4:
-        from output_processors.parallel import parallel_load_folder
+        from flash.output_pro.parallel import parallel_load_folder
         from pathlib import Path
 
         folder = Path(flash_files[0]).parent
@@ -246,7 +246,7 @@ def interpolate_flash_to_grid(
     Nt, Nx = len(t_grid), len(x_grid)
 
     if use_parallel and Nt >= 16 and len(flash_slices) >= 2:
-        from output_processors.parallel import parallel_interpolate
+        from flash.output_pro.parallel import parallel_interpolate
         result = parallel_interpolate(
             flash_slices, t_grid, x_grid, var_names,
             max_workers=max_workers, verbose=True,

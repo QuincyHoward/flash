@@ -2,7 +2,7 @@
 极简版 FLASH 1D HDF5 数据提取与绘图工具
 ═══════════════════════════════════════════
 
-仅依赖 h5py + numpy + matplotlib，不依赖 output_processors 或 yt。
+仅依赖 h5py + numpy + matplotlib，不依赖 output_pro 或 yt。
 
 用法:
     from flash.scenarios.flash_demo.demo_hpc._plot_utils import extract_1d_profile, save_density_plot
@@ -113,7 +113,7 @@ def save_density_plot(x: np.ndarray, y: np.ndarray, save_path: str, *,
     import matplotlib.pyplot as plt
 # ── PPT-friendly plot style (fonts >= 18, English only) ──
 try:
-    from output_processors.plotter.plot_style import apply_plot_style
+    from flash.output_pro.plotter.plot_style import apply_plot_style
     apply_plot_style()
 except ImportError:
     pass

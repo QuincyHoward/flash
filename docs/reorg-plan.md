@@ -5,7 +5,7 @@
 | 痛点 | 原因 |
 |------|------|
 | WorkBuddy 不知道用 `input_gen/` 生成 .par | `flash-create-simulation` skill 太自包含，没有指向现有模块 |
-| WorkBuddy 不知道用 `output_processors/` 分析 | `flash-output-processor` skill 也一样自包含 |
+| WorkBuddy 不知道用 `output_pro/` 分析 | `flash-output-processor` skill 也一样自包含 |
 | WorkBuddy 不知道有 `test/grid_redex/`、`test/newpara/` 等模板 | 没有任何 skill 提及这些模板 |
 | 9 个 PhySimX 级 cascade skill 过于通用 | 仅包含原则性指导，不包含 FLASH 具体操作路径 |
 | 10 个 memory 日志 + MEMORY.md 没有被有效利用 | 没有记录哪些代码已被验证 |
@@ -22,7 +22,7 @@
 上层 (简单轮廓)：        ~/.workbuddy/skills/flash/README.md
 中层 (模块技能)：        ~/.workbuddy/skills/flash/xxx/SKILL.md
 下层 (API 引用)：        ~/.workbuddy/skills/flash/xxx/references/api-ref-xxx.md
-项目层 (代码引用)：      input_gen/  output_processors/  flash_run/
+项目层 (代码引用)：      input_gen/  output_pro/  flash_run/
 ```
 
 **每层只指向下一层，不越级。** WorkBuddy 通过"意图识别→模块技能→API 引用→Python 模块"的链条快速定位到现有代码。
@@ -54,7 +54,7 @@
 
 "生成 .par 文件" → flash-input-gen → input_gen/gen_par/ → ParGeneratorExtended
 "运行仿真"      → flash-run-deploy → flash_run/env/ → FlashEnvManager
-"分析 HDF5"     → flash-output-process → output_processors/ → FlashDataLoader
+"分析 HDF5"     → flash-output-process → output_pro/ → FlashDataLoader
 "开发 F90"      → flash-f90-dev → gen_otherf90s/ → BlockGenerator
 "创建测试"      → flash-test-templates → test/grid_redex/ → step1_generate_par.py
 ```
@@ -79,9 +79,9 @@
 **Step 2.3 — `flash-output-process/SKILL.md`**（替代旧的 flash-output-processor）
 
 - 大纲：HDF5 读取 → 数据加载 → 可视化
-- 引用 `output_processors/hdf5processor/FlashHDF5File`
-- 引用 `output_processors/loader/FlashDataLoader`
-- 引用 `output_processors/plotter/FlashPlotter`
+- 引用 `output_pro/hdf5pro/FlashHDF5File`
+- 引用 `output_pro/loader/FlashDataLoader`
+- 引用 `output_pro/plotter/FlashPlotter`
 - references: 各 API 签名 + 使用示例
 
 **Step 2.4 — `flash-run-deploy/SKILL.md`** ★ 新增
