@@ -32,6 +32,7 @@ plasmapy_bridge.py — PlasmaPy 适配层（方案 A，松耦合）
     # 裸数组桥接（任意 DATA_CONFIG 注册变量）
     Te_si = to_quantity(c, "tele")         # Quantity [K]（自动 CGS→SI）
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -41,14 +42,11 @@ import numpy as np
 # ------------------------------------------------------------------
 try:  # pragma: no cover - 环境相关
     import astropy.units as u
-    from astropy.constants import k_B as _KB_SI
-
     import plasmapy
     from plasmapy.formulary import (
         Coulomb_logarithm,
         Debye_length,
         mean_free_path,
-        thermal_speed,
     )
     from plasmapy.formulary.braginskii import ClassicalTransport
     from plasmapy.formulary.collisions.dimensionless import coupling_parameter
@@ -67,18 +65,18 @@ except ImportError:  # pragma: no cover
 __all__ = [
     "HAS_PLASMAPY",
     "PLASMAPY_VERSION",
-    "require_plasmapy",
-    "to_quantity",
     "coulomb_log_profile",
-    "debye_length_profile",
+    "coupling_profile",
     "critical_density_351",
     "critical_surface",
-    "mean_free_path_profile",
+    "debye_length_profile",
     "knudsen_number_e",
-    "spitzer_kappa_e",
-    "saha_zbar",
+    "mean_free_path_profile",
     "quantum_theta_profile",
-    "coupling_profile",
+    "require_plasmapy",
+    "saha_zbar",
+    "spitzer_kappa_e",
+    "to_quantity",
 ]
 
 _INSTALL_HINT = (
@@ -104,7 +102,7 @@ def require_plasmapy():
 # CGS → astropy 单位映射 (与 DATA_CONFIG unit 字符串一一对应)
 # ------------------------------------------------------------------
 _CGS2U = {
-    "g/cm^3": None,      # 构造时惰性填充 (u 未导入时跳过)
+    "g/cm^3": None,  # 构造时惰性填充 (u 未导入时跳过)
 }
 if HAS_PLASMAPY:
     _CGS2U = {
@@ -155,13 +153,12 @@ def _si(container, varname):
     try:
         return to_quantity(container, varname)
     except KeyError:
-        raise KeyError(
-            f"容器中缺少变量 {varname!r} — 请 load(compute_derived=True) 以生成派生量"
-        ) from None
+        raise KeyError(f"容器中缺少变量 {varname!r} — 请 load(compute_derived=True) 以生成派生量") from None
 
 
-def coulomb_log_profile(container, ion: str = DEFAULT_ION, z_mean: float = DEFAULT_Z_MEAN,
-                        method: str = "GMS-6") -> np.ndarray:
+def coulomb_log_profile(
+    container, ion: str = DEFAULT_ION, z_mean: float = DEFAULT_Z_MEAN, method: str = "GMS-6"
+) -> np.ndarray:
     """逐网格库仑对数 lnΛ(x)。FL-SH/SNB 非局域判定的核心输入。
 
     返回无量纲裸数组 (与 DATA_CONFIG 派生变量约定一致)。
@@ -205,7 +202,7 @@ def critical_surface(container, wavelength_um: float = 0.351):
         try:
             x = container.get(xname)
             return float(np.asarray(x).ravel()[idx]) if np.ndim(x) else float(x), nc
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S112 — 非物理工况静默降级为扁平索引
             continue
     return float(idx), nc  # 无坐标时返回扁平索引
 
@@ -231,8 +228,9 @@ def knudsen_number_e(container, ion: str = DEFAULT_ION):
         return lfp / np.maximum(lT, 1e-300)
 
 
-def spitzer_kappa_e(container, ion: str = "p+", z_mean: float = DEFAULT_Z_MEAN,
-                    model: str = "Braginskii", lnL_method: str = "GMS-6"):
+def spitzer_kappa_e(
+    container, ion: str = "p+", z_mean: float = DEFAULT_Z_MEAN, model: str = "Braginskii", lnL_method: str = "GMS-6"
+):
     """Spitzer/Braginskii 平行电子热导率 κ_e^SH(T_e, n_e)。返回 SI Quantity [W/(m·K)]。
 
     FL-SH (α=0.08 限流) 对照基准。
@@ -258,19 +256,20 @@ def spitzer_kappa_e(container, ion: str = "p+", z_mean: float = DEFAULT_Z_MEAN,
 
     def _one(t: float, nn: float) -> float:
         try:
-            from plasmapy.utils.exceptions import PhysicsError
-        except ImportError:  # pragma: no cover
-            PhysicsError = Exception  # type: ignore[assignment,misc]
-        try:
-            lnL = float(Coulomb_logarithm(
-                t * u.K, nn * u.m**-3, ("e-", ion), z_mean=z_mean, method=lnL_method))
+            lnL = float(Coulomb_logarithm(t * u.K, nn * u.m**-3, ("e-", ion), z_mean=z_mean, method=lnL_method))
             trans = ClassicalTransport(
-                T_e=t * u.K, n_e=nn * u.m**-3, T_i=t * u.K, n_i=nn / z_mean * u.m**-3,
-                ion=ion, Z=z_mean, model=model, field_orientation="parallel",
+                T_e=t * u.K,
+                n_e=nn * u.m**-3,
+                T_i=t * u.K,
+                n_i=nn / z_mean * u.m**-3,
+                ion=ion,
+                Z=z_mean,
+                model=model,
+                field_orientation="parallel",
                 coulomb_log_ei=lnL,
             )
             return trans.electron_thermal_conductivity.si.value
-        except Exception as exc:  # noqa: BLE001 — lnΛ<1 / Z 不在表内 → NaN (冷区/SH 表限制)
+        except Exception as exc:
             if type(exc).__name__ == "PhysicsError":
                 return np.nan
             raise
@@ -312,6 +311,8 @@ def coupling_profile(species_pair=("e-", "p+")):
     逐网格版本沿用手写派生变量 Gamma_i, 本函数用于常数工况交叉验证。
     """
     require_plasmapy()
+
     def _gamma(T_K: float, n_m3: float) -> float:
         return float(coupling_parameter(T_K * u.K, n_m3 * u.m**-3, species_pair))
+
     return _gamma

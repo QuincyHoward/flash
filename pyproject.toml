@@ -66,6 +66,18 @@ dev = [
     "scipy>=1.10",           # 测试 (插值/拟合)
 ]
 
+# PlasmaPy 开发工具链 (2026-10-30, 对齐 vendor 上游 dev 依赖要求):
+#   bridge/vendored PlasmaPy 开发所需的测试与拼写检查栈。
+#   ★ plasmapy 本体不入 extras —— 源码托管 editable 安装自
+#     flash/output_pro/PlasmaPy/src/PlasmaPy (install_editable.py),
+#     避免 pip 从 PyPI 拉取产生双安装冲突 (见 DEPENDENCIES.md)。
+plasmapy-dev = [
+    "pytest>=9.0",           # PlasmaPy 2026.2.0 上游要求 pytest>=9.0.2
+    "pytest-cov>=7.0",
+    "pytest-xdist>=3.8",     # 上游并行测试
+    "codespell>=2.3",        # 上游拼写门禁 ([tool.codespell] 已对齐根配置)
+]
+
 [project.scripts]
 # CLI tools
 flash-cred = "flash._core.credentials:interactive_menu"
@@ -495,3 +507,15 @@ target-version = "py310"
 # force-exclude: 显式命令行路径也强制排除 (ruff 默认对显式路径绕过 exclude)
 exclude = ["PlasmaPy"]
 force-exclude = true
+
+# ─────────────────────────────────────────────────────────────────────
+# codespell (2026-10-30, 对齐 PlasmaPy 上游开发要求 [tool.codespell])
+#   vendor 快照不扫 (上游自带 _typos.toml 自治); flash 侧只扫自有代码/文档。
+#   运行: codespell (依赖 extra: plasmapy-dev)
+# ─────────────────────────────────────────────────────────────────────
+[tool.codespell]
+# ★ PlasmaPy 合规门槛只扫 PlasmaPy 相关文件 (make plasmapy-check 显式传路径);
+#   全仓扫描为软工具 —— 存量拼写债 ~450 处 (docs/_legacy_diags 豁免区 + 中文文档
+#   英文 typo), 待后续专项清理。
+skip = "*.png,*.pdf,*.cn4,*.h5,*.whl,_build,.git,.venv*,.hypothesis,.idea,.nox,.tox,venv,*PlasmaPy*,*temp_delete*,*_legacy_diags*,*reports*"
+ignore-words-list = "nd,te,ba,ans,dne,ist,ot,sme,ue,pres,ded,ser,anc"

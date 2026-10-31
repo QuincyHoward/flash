@@ -26,6 +26,16 @@ where explicitly noted otherwise) is original work copyright (c) 2026
 PhySimX Contributors, and is licensed under the Apache License, Version 2.0
 (the "License").
 
+SCOPE EXCLUSION — Vendored PlasmaPy:
+
+  The vendored PlasmaPy source distribution located at
+  `flash/output_pro/PlasmaPy/` is NOT covered by the Apache License 2.0
+  of Part A. It is an unmodified snapshot of PlasmaPy v2026.2.0,
+  copyright (c) 2015-2026, PlasmaPy Developers, licensed under the
+  BSD 3-Clause License (full text retained at
+  `flash/output_pro/PlasmaPy/src/PlasmaPy/LICENSE.md`). See the
+  Third-Party Components section below and the NOTICE file.
+
 You may obtain a copy of the License at:
 
     http://www.apache.org/licenses/LICENSE-2.0
@@ -161,8 +171,8 @@ code does NOT grant any commercial-use rights to the FLASH simulation engine.
 Third-Party Components
 ======================================================================
 
-flash-sim may reference or interface with the following third-party software
-(not distributed with this package):
+flash-sim interfaces with the following third-party software (NOT
+distributed with this package; users must obtain them independently):
 
   - FLASH 4.8 (Flash Center for Computational Science)
     License: FLASH License Agreement (https://flash.rochester.edu)
@@ -182,6 +192,29 @@ flash-sim may reference or interface with the following third-party software
 
   - IONMIX EOS/Opacity tables
     Included in FLASH distribution; governed by FLASH License Agreement
+
+In addition, flash-sim DISTRIBUTES the following vendored third-party
+component as part of this package:
+
+  - PlasmaPy v2026.2.0 (vendored source snapshot, unmodified)
+    Location: flash/output_pro/PlasmaPy/
+    License: BSD 3-Clause
+    Copyright (c) 2015-2026, PlasmaPy Developers
+    Full license text retained at:
+      flash/output_pro/PlasmaPy/src/PlasmaPy/LICENSE.md
+    Citation guidance: flash/output_pro/PlasmaPy/src/PlasmaPy/CITATION.cff
+    PlasmaPy is an independent project of the PlasmaPy Developers
+    (https://www.plasmapy.org); its inclusion here neither implies
+    endorsement by, nor affiliation with, the Flash Center or PhySimX.
+    Scope note: the vendored PlasmaPy tree exists in the flash-sim
+    source repository and development environments. Built wheel and
+    sdist distributions of flash-sim (e.g. published on PyPI) EXCLUDE
+    it; users of such built distributions install PlasmaPy separately
+    under its own BSD 3-Clause license.
+
+The flash-sim integration layer with PlasmaPy
+(`flash/output_pro/plasmapy_bridge.py`) is original flash-sim code and
+remains under Apache 2.0 (Part A).
 
 See the NOTICE file for additional attribution details.
 

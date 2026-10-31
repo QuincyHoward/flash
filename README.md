@@ -56,9 +56,10 @@
 
 ## 概述
 
-FLASH 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网格 (AMR) 流体力学仿真框架，广泛应用于激光聚变 (ICF)、天体物理、实验室天体物理等领域。
 
-**重要声明：** `flash-sim` 是独立开发的第三方 Python 接口和自动化工作流工具，**并非** Flash Center for Computational Science 的官方产品，与其无关联。FLASH 仿真引擎需从 [flash.rochester.edu](https://flash.rochester.edu) 单独获取并接受其许可协议。
+**FLASH** 是芝加哥大学 Flash Center 开发的多物理、多维度自适应网格 (AMR) 流体力学仿真框架，在激光聚变 (ICF)、天体物理及实验室天体物理等领域有着广泛应用。
+
+**flash-sim** 是一款专为 FLASH 设计的 Python 接口与自动化工作流工具，旨在简化仿真配置、任务调度及后处理流程，显著提升科研迭代效率。该工具作为 FLASH 的扩展组件，需配合 FLASH 仿真引擎使用。FLASH 仿真引擎需从 flash.rochester.edu 单独获取并遵循其许可协议。
 
 `flash-sim` 封装了从仿真配置、编译运行到结果分析的完整流程：
 
@@ -758,6 +759,27 @@ flash-sim 支持三平台部署：
 - **格式化**: Black (`--line-length=120`), Ruff linting
 - **绘图**: 全英文字符，标题≥24pt，标签≥20pt，DPI≥450，即英文文献插图风格，默认字体 Times New Roman
 - **Python**: 3.10+，类型注解优先
+- **PlasmaPy vendor 边界**: `flash/output_pro/PlasmaPy/` 下的上游源码**不参与**本仓 Black/Ruff 检查（pyproject 已排除），不修改其源文本；对 PlasmaPy 的所有扩展一律经 `output_pro/plasmapy_bridge.py` 适配层实现
+
+### PlasmaPy 开发要求（vendor 快照合规）
+
+flash 包内嵌 PlasmaPy v2026.2.0 源码快照（BSD-3），开发时须遵守以下对齐要求（详见 [docs/PLASMAPY_DEVELOPMENT.md](docs/PLASMAPY_DEVELOPMENT.md)）：
+
+```bash
+# ① 开发工具链（对齐 PlasmaPy 上游 dev 依赖: pytest 9 / xdist / codespell）
+pip install -e ".[plasmapy-dev]"
+
+# ② PlasmaPy editable 安装进当前环境（source of truth = vendor 目录）
+python flash/output_pro/PlasmaPy/install_editable.py
+
+# ③ 开发自测: 桥接层 12 项物理交叉验证 + PlasmaPy 冒烟
+pytest flash/output_pro/test/test_plasmapy_bridge.py -v
+python flash/output_pro/PlasmaPy/install_editable.py --check
+
+# ④ 升级上游版本: 替换 vendor 目录 → git commit → 重跑 ②③ → 更新 NOTICE/CHANGELOG
+```
+
+关键约束：vendor 源码**未修改**（版权合规前提，见 [NOTICE](NOTICE)）；桥接扩展不改 PlasmaPy 源文本；HPC 离线环境走 wheel bundle 路线（`DEPENDENCIES.md`）。
 
 ### 运行测试
 
@@ -973,6 +995,7 @@ flash-sim 采用**双重许可结构**，并严格遵守 [FLASH License Agreemen
 |------|------|------|
 | **flash-sim Python 代码** | [Apache 2.0](LICENSE) | PhySimX Contributors 原创 wrapper / 工具 / 工作流代码 |
 | **FLASH 仿真引擎** | [FLASH License Agreement](https://flash.rochester.edu) | 由 Flash Center for Computational Science 开发维护 |
+| **PlasmaPy（vendor 快照）** | [BSD 3-Clause](flash/output_pro/PlasmaPy/src/PlasmaPy/LICENSE.md) | PlasmaPy Developers © 2015–2026；随包分发的**未修改**源码快照 v2026.2.0（`output_pro/PlasmaPy/src/PlasmaPy/`），版权与免责声明见 [NOTICE](NOTICE) |
 
 **重要说明（依据 FLASH License Agreement）：**
 
@@ -981,6 +1004,7 @@ flash-sim 采用**双重许可结构**，并严格遵守 [FLASH License Agreemen
 - 包内场景输入中的部分 `.F90` 文件（如 `Simulation_data.F90` 等）是 FLASH 示例问题的**修改版**，已按协议 §4(a) 在文件头与 [NOTICE](NOTICE) 中声明修改、保留 FLASH 头（§4(c)）并显示致谢（§4(b)）。
 - FLASH 的商业使用需获得 Flash Center 主任的事先书面批准（FLASH License §5）。
 - 使用 FLASH 的所有出版物必须致谢 Flash Center（详见 [NOTICE](NOTICE) 文件）。
+- **PlasmaPy 边界声明**：随包 vendor 的 PlasmaPy 源码（BSD-3）是 PlasmaPy Developers 的独立项目，**不受** FLASH License §3 再分发限制约束，也不属于 flash-sim Apache-2.0 覆盖范围；flash 与 PlasmaPy 的集成层 `plasmapy_bridge.py` 为 Apache-2.0。依赖 PlasmaPy 功能的出版物请同时致谢并引用 PlasmaPy（`CITATION.cff`）。
 
 ### flash-sim 包附加条款：PhySimX 团队致谢与商用说明
 
@@ -1291,6 +1315,17 @@ does **not** redistribute any FLASH source code, binaries, distributed EOS /
 opacity tables (`*.cn4` etc.), user manuals, IONMIX sources or MultiEOS data
 (per §3 of the FLASH License). Obtain FLASH independently from
 [flash.rochester.edu](https://flash.rochester.edu).
+
+**PlasmaPy (vendored snapshot, BSD 3-Clause).** This package redistributes an
+**unmodified** source snapshot of PlasmaPy v2026.2.0
+(`flash/output_pro/PlasmaPy/src/PlasmaPy/`), Copyright (c) 2015–2026,
+PlasmaPy Developers, under the BSD 3-Clause License (full text and disclaimer
+in the vendored `LICENSE.md`; attribution in [NOTICE](NOTICE)). PlasmaPy is an
+independent project (https://www.plasmapy.org) — it is not a FLASH component
+and is not covered by the FLASH License Agreement or by the Apache 2.0 license
+of flash-sim. The flash-sim integration layer (`plasmapy_bridge.py`) is
+Apache 2.0. Publications relying on PlasmaPy functionality should acknowledge
+and cite PlasmaPy (see the vendored `CITATION.cff`).
 
 **flash-sim Package — PhySimX Team Attribution (additional terms)**
 

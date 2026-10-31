@@ -44,6 +44,11 @@ python start_flash.py --offline [--wheelhouse D] [--profile full|runtime|lite]
 |------|------|---------|---------|
 | plasmapy（可选） | 2026.2.0 | win ✅ / wsl 条件 ✅（venv 需 py≥3.12）/ hpc ✅（已并入正式 venv） | win/wsl: `python flash/output_pro/PlasmaPy/install_editable.py`; hpc: `flash/output_pro/test/hpc_plasmapy_merge.py` |
 
+| plasmapy-dev（可选, 开发） | — | win/wsl/hpc(本地开发) | `pip install -e ".[plasmapy-dev]"` |
+
+- **开发要求与版权合规专篇**: `docs/PLASMAPY_DEVELOPMENT.md`（BSD-3 声明链 / 上游 dev 依赖对齐表 / 升级 SOP / 平台矩阵）。
+- plasmapy 本体刻意不入 extras（防 PyPI 双安装与 vendor editable 冲突）; 安装统一走 `flash/output_pro/PlasmaPy/install_editable.py`。
+
 - 源码托管（2026-10-30 起 vendor 快照）: PlasmaPy 2026.2.0 源码（tag v2026.2.0）作为普通目录
   vendored 于 `flash/output_pro/PlasmaPy/src/PlasmaPy`，**随 flash 仓库分发**（Gitee 推送与
   HPC bundle 同步均携带；~495 文件 / ~13MB，内层 .git 已移除并归档于

@@ -18,7 +18,7 @@ PhySimX 的 FLASH 模块提供完整的仿真工作流：一键安装 → 参数
 | `input_gen/gen_eos_op/` | .cn4 EOS 表文件复制/生成 (EOSOpacityGenerator) |
 | `input_gen/gen_shell_script/` | 平台运行脚本 (ShellScriptGenerator) |
 | `input_gen/gen_checker/` | 依赖检查 + 脉冲/密度/射线绘图 |
-| `output_pro/` | HDF5 输出分析 (自适应 1D/2D/3D) |
+| `output_pro/` | HDF5 输出分析 (自适应 1D/2D/3D)；内嵌 PlasmaPy v2026.2.0 vendor 快照 + `plasmapy_bridge.py` 物理量适配层（lnΛ/λ_D/κ_e/K_n 等，BSD-3 边界见根 [NOTICE](../NOTICE) 与 [PLASMAPY_DEVELOPMENT.md](PLASMAPY_DEVELOPMENT.md)） |
 | `scenarios/flash_demo/` | 一键执行 Demo |
 
 > 旧模块 (`par_calculator`, `par_editor`, `flash_setup`, `first_run`) 已不再随包提供，其功能由 `input_gen/gen_*` 子包取代（见下方「迁移说明」）；多环境管理 (`FlashEnvManager`) 现位于 `flash.flash_run.env`。

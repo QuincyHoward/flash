@@ -120,6 +120,44 @@ licensed under LGPL 2.1 and Apache 2.0.
 See https://github.com/hypre-space/hypre for details.
 
 
+PlasmaPy (vendored source distribution)
+---------------------------------------
+
+This package **includes a vendored, unmodified source snapshot** of
+PlasmaPy v2026.2.0, located at
+`flash/output_pro/PlasmaPy/src/PlasmaPy/` (hereafter "the vendored
+PlasmaPy"), redistributed under the terms of the **BSD 3-Clause
+License** (full text: `flash/output_pro/PlasmaPy/src/PlasmaPy/LICENSE.md`).
+
+    Copyright (c) 2015–2026, PlasmaPy Developers.
+    All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the above copyright notice,
+the license conditions and the disclaimer are retained (see the
+license file for the complete BSD 3-Clause terms and disclaimer).
+
+Scope of the vendoring:
+
+  * The vendored tree is an **unmodified** snapshot of the upstream
+    release tag v2026.2.0 (no source changes by PhySimX Contributors).
+  * flash-sim's integration layer with PlasmaPy is
+    `flash/output_pro/plasmapy_bridge.py` (Apache 2.0, PhySimX
+    Contributors) — it is **not** part of PlasmaPy.
+  * PlasmaPy is an independent project of the PlasmaPy Developers
+    (https://www.plasmapy.org); its inclusion here neither implies
+    endorsement by, nor affiliation with, the Flash Center or PhySimX.
+  * PlasmaPy is NOT governed by the FLASH License Agreement and is not
+    a FLASH component; the FLASH redistribution restrictions in this
+    notice do not apply to it.
+  * The Apache 2.0 license of flash-sim covers only the flash-sim
+    Python code (including the bridge), not the vendored PlasmaPy.
+
+If your use of flash-sim materially relies on PlasmaPy functionality
+(e.g. the `plasmapy_bridge` diagnostics), please also acknowledge the
+PlasmaPy Developers and cite PlasmaPy (see
+`flash/output_pro/PlasmaPy/src/PlasmaPy/CITATION.cff`).
+
 IONMIX EOS/Opacity Tables
 -------------------------
 
