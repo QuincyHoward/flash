@@ -1,0 +1,13 @@
+{
+  "_comment": "跨场景数据文件逻辑锚点表（值为相对 flash/scenarios/ 的 POSIX 路径）。场景间 Python 代码复用不走此表 —— 一律抽到 flash/scenarios/common/ 共享包。relocate_scene.py 移动目录后自动重写命中条目。",
+  "SNB.t001": "private/SNB/SNBtest/Test/t001",
+  "SNB.snb_package": "private/SNB/SNB/source/snb_package",
+  "SNB.variants": "private/SNB/SNB/variants",
+  "SNB.snbtest": "private/SNB/SNBtest",
+  "tracer.OneCH_ml": "private/tracer/OneCH_ml",
+  "tracer.VTi": "private/tracer/VTi",
+  "tracer.TiTi": "private/tracer/TiTi",
+  "tracer.CHTi": "private/tracer/CHTi",
+  "tracer.OneSi_ml": "private/tracer/OneSi_ml",
+  "tracer.VCH_ml": "private/tracer/VCH_ml"
+}

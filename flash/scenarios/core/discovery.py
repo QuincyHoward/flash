@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""discovery.py — 约定式场景发现器（**零注册**地基，2026-10-27）
+"""discovery.py — 约定式场景发现器（**零注册**地基，2026-10-27；2026-11-04 任意移动改造）
 ════════════════════════════════════════════════════════════════════════════
 
 ★ 设计目标（去注册化）
@@ -13,16 +13,29 @@
   walk 发现场景必须 import 场景包才能拿到 ``scenario`` 实例 ⇒ 会立刻
   触发 h5py/numpy 等重依赖，摧毁 CLI ``list`` 的惰性语义（B0/C4），
   private 分区 import 失败还会产生告警噪声。
-  纯文件扫描（``Path.glob("*/scene.json")``）零 import、天然懒加载、
+  纯文件扫描（``Path.rglob("scene*.json")``）零 import、天然懒加载、
   private 可缺、对裁剪发布包免疫。场景对象本身仍惰性 import
   （module/attr 写在 manifest 里，即原 ``register()`` 三要素）。
 
-★ manifest 放置与基准目录
+★ 2026-11-04 任意移动改造（场景收纳整理 P1）
 
-  只扫 ``flash/scenarios/{public,flash_demo,private}`` 一级场景目录；
-  基准目录取 ``Path(__file__).parent``（**不是** ``repo_root()``）——
-  wheel 安装环境下仓库根可能不存在，但 ``flash/scenarios`` 包一定在。
-  ``private`` 缺失静默跳过（克隆/发布环境允许缺）。
+  1. 扫描范围从三个固定分区（public/flash_demo/private）扩大为
+     **scenarios 全树** —— 场景目录在 ``flash/scenarios/`` 内任意层级、
+     任意归类（含新建分类目录、跨分区移动）都能被发现；
+  2. 新增**排除规则**：运行产物/缓存/备份目录内的 ``scene*.json``
+     副本不会误判为场景；
+  3. manifest 的 ``module``/``attr_module``/``script`` 与 ``hpc`` 节的
+     ``input_rel_dir``/``gen_script`` 支持**三级解析**：
+
+       a. 显式绝对（旧式 ``flash.scenarios.…`` / ``flash/…``）—— 向后
+          兼容，原样使用（但场景移动后需同步改写，audit 会标 ERROR）；
+       b. 显式相对（以 ``.`` 开头的包路径，如 ``".laserslab1d_local_custom"``；
+          以 ``./`` 开头或纯文件名的路径）—— 相对 manifest 所在目录解释，
+          **场景随目录移动自动跟随**；
+       c. 完全缺省 —— 从 manifest 物理位置自动派生（变体 .py →
+          <目录名>.py → 场景包本身）。
+
+     派生失败显式抛 ``ManifestError``，绝不静默。
 
 ★ policy 用符号引用
 
@@ -41,8 +54,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from fnmatch import fnmatch
 from pathlib import Path
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 __all__ = [
     "SceneMeta",
@@ -53,12 +67,18 @@ __all__ = [
     "SCENARIO_BASE",
 ]
 
-#: 场景分区（private 可缺）
-_PARTITIONS = ("public", "flash_demo", "private")
-_OPTIONAL_PARTITIONS = ("private",)
-
 #: manifest 固定文件名
 MANIFEST_NAME = "scene.json"
+
+#: 排除目录名（精确匹配）—— 运行产物 / 缓存 / 归档
+_EXCLUDE_PARTS = {
+    "__pycache__", ".git", "flash_output", "sim_output", "sim_output_plots",
+    "logs_archive", "database", "sim_input", "sim_input_si", "results",
+}
+#: 排除目录名（通配）—— runs_* 产物区 / 备份 / egg-info
+_EXCLUDE_GLOBS = ("runs_*", "*_output", "_backup_*", "*.egg-info", "NNNNNN")
+#: 排除子树（相对 scenarios 根）—— 框架与共享脚本区不是场景
+_EXCLUDE_SUBTREES = ("core", "scripts")
 
 #: policy 符号 → 策略常量（场景层唯一归属，延迟 import 防环）
 POLICY_ALIASES = {
@@ -91,12 +111,12 @@ class SceneMeta:
     description: str = ""
     aliases: Tuple[str, ...] = ()
     policy: str = "default"         # 符号引用（POLICY_ALIASES 的键）
-    module: str = ""                # engine/main: 场景模块路径
+    module: str = ""                # engine/main: 场景模块路径（已解析）
     attr: str = ""                  # engine: scenario 实例属性名
     attr_module: str = ""           # 场景对象所在模块（空 = 同 module）。
                                     # ★ ch_center 的 main() 在 laserslab 模块、
                                     #   scenario 实例在包 __init__ ⇒ 两处不同。
-    script: str = ""                # script: 脚本相对仓库根路径
+    script: str = ""                # script: 脚本相对仓库根路径（已解析）
     sim_name: str = ""
     basenm: str = ""
     default_args: Tuple[str, ...] = ()
@@ -117,7 +137,7 @@ class SceneMeta:
 def scenario_base() -> Path:
     """scenarios 包目录（发现基准）。
 
-    ★ 本模块住 ``scenarios/core/`` ⇒ 分区（public/…）在**上一级**。
+    ★ 本模块住 ``scenarios/core/`` ⇒ 包根在**上一级**。
     """
     return Path(__file__).resolve().parent.parent
 
@@ -126,14 +146,119 @@ def scenario_base() -> Path:
 SCENARIO_BASE = scenario_base
 
 
-def load_manifest(path: Path) -> SceneMeta:
-    """读取并校验一份 ``scene.json``。
+def _repo_root_from(base: Path) -> Optional[Path]:
+    """从扫描基准向上找仓库根（wheel 安装环境可能不存在 → None）。"""
+    for cand in (base, *base.parents):
+        if (cand / "pyproject.toml").is_file() and (cand / "start_flash.py").is_file():
+            return cand
+    return None
+
+
+def _scene_pkg(scene_dir: Path, base: Path) -> Optional[str]:
+    """场景目录 → ``flash.scenarios.<相对路径点分>``；不在 base 下则 None。"""
+    try:
+        rel = scene_dir.resolve().relative_to(base.resolve())
+    except ValueError:
+        return None
+    return ".".join(("flash.scenarios", *rel.parts))
+
+
+def _norm(explicit: str) -> str:
+    return str(explicit).replace("\\", "/").strip()
+
+
+def _resolve_module(mf: Path, base: Path, explicit: str, kind: str) -> str:
+    """module 三级解析（见模块头注释）。
+
+    Raises:
+        ManifestError: 显式相对形式不在 base 下 / 缺省派生失败。
+    """
+    e = _norm(explicit)
+    if e:
+        if e.startswith("."):
+            # 显式相对：".xxx.yyy" → 场景包子模块；"." → 场景包本身
+            pkg = _scene_pkg(mf.parent, base)
+            if pkg is None:
+                raise ManifestError(
+                    f"{mf}: module 相对形式 '.…' 需 manifest 位于扫描基准下")
+            tail = e.lstrip("./").replace("/", ".").strip(".")
+            return f"{pkg}.{tail}" if tail else pkg
+        return e.replace("/", ".")           # 旧式绝对（点分/斜杠兼容）
+    # ── 缺省派生（零 import，仅文件存在性探测）──
+    d = mf.parent
+    stem = mf.stem                            # "scene" 或 "scene.XXX"
+    variant = stem.split(".", 1)[1] if "." in stem else ""
+    if variant and (d / f"{variant}.py").is_file():
+        pkg = _scene_pkg(d, base)
+        if pkg:
+            return f"{pkg}.{variant}"
+    if (d / f"{d.name}.py").is_file():
+        pkg = _scene_pkg(d, base)
+        if pkg:
+            return f"{pkg}.{d.name}"
+    if kind == "engine":
+        pkg = _scene_pkg(d, base)
+        if pkg and (d / "__init__.py").is_file():
+            return pkg                        # attr 住包 __init__（grad_dens 模式）
+    raise ManifestError(
+        f"{mf}: kind='{kind}' 缺 module 且无法从目录派生"
+        f"（需 scene 变体 .py / <目录名>.py / 包 __init__.py，或补 module 字段）")
+
+
+def _resolve_attr_module(mf: Path, base: Path, explicit: str, module: str) -> str:
+    """attr_module 解析：缺省 = module 本身（registry 的 ``or`` 语义不变）。"""
+    e = _norm(explicit)
+    if not e:
+        return module
+    if e.startswith("."):
+        pkg = _scene_pkg(mf.parent, base)
+        if pkg is None:
+            raise ManifestError(
+                f"{mf}: attr_module 相对形式 '.…' 需 manifest 位于扫描基准下")
+        tail = e.lstrip("./").replace("/", ".").strip(".")
+        return f"{pkg}.{tail}" if tail else pkg
+    return e.replace("/", ".")
+
+
+def _resolve_repo_rel(mf: Path, base: Path, value: str, field: str) -> str:
+    """script / hpc.input_rel_dir / hpc.gen_script 的仓库根相对路径解析。
+
+    三级：``./x`` 或纯文件名 → 相对 manifest 目录；``../`` 允许指到场景外
+    （仍在仓库内）；旧式 ``flash/…`` 原样（向后兼容）。
+    """
+    e = _norm(value)
+    if not e:
+        return e
+    if e.startswith(("flash/", "flash\\", "~/")) or Path(e).is_absolute():
+        return e.replace("\\", "/")
+    if "/" not in e or e.startswith("./") or e.startswith("../"):
+        p = (mf.parent / e).resolve()
+        repo = _repo_root_from(base)
+        if repo is not None:
+            try:
+                return p.relative_to(repo).as_posix()
+            except ValueError:
+                raise ManifestError(
+                    f"{mf}: {field} 相对路径解析后逃逸仓库根: {e}")
+        # wheel 模式（无仓库根）：退化为绝对路径（catalog 的 repo_root()
+        # 在该模式下本就无法执行 script 型场景，此处仅为诊断信息可用）
+        return p.as_posix()
+    return e
+
+
+def load_manifest(path: Path, base: Optional[Path] = None) -> SceneMeta:
+    """读取并校验一份 ``scene.json``（含 module/script/hpc 路径解析）。
+
+    Args:
+        path: manifest 文件路径。
+        base: 扫描基准（缺省 ``scenario_base()``）；测试注入临时树时传入。
 
     Raises:
         ManifestError: 结构/内容非法（缺必填、kind 字段不匹配、
-            policy 符号未知等）。
+            policy 符号未知、路径派生失败等）。
     """
     path = Path(path)
+    base = Path(base) if base is not None else scenario_base()
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
@@ -151,11 +276,6 @@ def load_manifest(path: Path) -> SceneMeta:
         raise ManifestError(
             f"{path}: kind='{kind}' 非法；允许: {', '.join(_KIND_REQUIRED)}")
 
-    # kind 与字段匹配
-    for req in _KIND_REQUIRED[kind]:
-        if not str(raw.get(req) or "").strip():
-            raise ManifestError(f"{path}: kind='{kind}' 需要字段 '{req}'")
-
     # policy 符号合法
     policy = str(raw.get("policy") or "default").strip()
     if policy not in POLICY_ALIASES:
@@ -166,21 +286,40 @@ def load_manifest(path: Path) -> SceneMeta:
     default_args = tuple(str(a) for a in raw.get("default_args") or ())
 
     known_extra = {"hpc", "nproc_default"}
-    extra = {k: v for k, v in raw.items()
-             if k not in {"name", "kind", "description", "aliases", "policy",
-                          "module", "attr", "attr_module", "script", "sim_name",
-                          "basenm", "default_args"} and k in known_extra}
     unknown = {k for k in raw if k not in known_extra and k not in
                {"name", "kind", "description", "aliases", "policy", "module",
                 "attr", "attr_module", "script", "sim_name", "basenm",
                 "default_args"}}
     if unknown:
         raise ManifestError(f"{path}: 未知字段: {', '.join(sorted(unknown))}")
+    extra = {k: v for k, v in raw.items()
+             if k not in unknown and k in known_extra}
 
-    # ★ 2026-10-30: 容错手写 manifest 的斜杠路径 ("flash/scenarios/x.Y")
-    #   —— importlib 只认点分路径, 斜杠会 ModuleNotFoundError (批量验证实测)。
-    module = str(raw.get("module") or "").replace("/", ".")
-    attr_module = str(raw.get("attr_module") or "").replace("/", ".")
+    # ★ 2026-11-04: module/attr_module/script/hpc 三级解析（显式绝对兼容 /
+    #   显式相对随场景移动 / 缺省派生）。派生失败显式报错。
+    #   script 型不需要 module，跳过解析。
+    module = (_resolve_module(path, base, str(raw.get("module") or ""), kind)
+              if kind in ("main", "engine") else "")
+    attr_module = (_resolve_attr_module(
+        path, base, str(raw.get("attr_module") or ""), module)
+        if module else "")
+    script = _resolve_repo_rel(path, base, str(raw.get("script") or ""), "script")
+
+    # kind 与字段匹配（解析后的最终值必须非空）
+    for req in _KIND_REQUIRED[kind]:
+        final = {"module": module, "attr": str(raw.get("attr") or ""),
+                 "script": script}[req]
+        if not final.strip():
+            raise ManifestError(f"{path}: kind='{kind}' 需要字段 '{req}'")
+
+    # hpc 节的路径字段同样解析（input_rel_dir / gen_script）
+    hpc = extra.get("hpc")
+    if isinstance(hpc, dict):
+        hpc = dict(hpc)
+        for hf in ("input_rel_dir", "gen_script"):
+            if hf in hpc:
+                hpc[hf] = _resolve_repo_rel(path, base, str(hpc[hf]), f"hpc.{hf}")
+        extra["hpc"] = hpc
 
     return SceneMeta(
         name=name, kind=kind,
@@ -188,7 +327,7 @@ def load_manifest(path: Path) -> SceneMeta:
         aliases=aliases, policy=policy,
         module=module, attr=str(raw.get("attr") or ""),
         attr_module=attr_module,
-        script=str(raw.get("script") or ""),
+        script=script,
         sim_name=str(raw.get("sim_name") or ""),
         basenm=str(raw.get("basenm") or ""),
         default_args=default_args,
@@ -196,8 +335,24 @@ def load_manifest(path: Path) -> SceneMeta:
     )
 
 
+def _is_excluded(rel_parts: Tuple[str, ...]) -> bool:
+    """manifest 相对路径是否落在排除目录内（产物/缓存/框架子树）。"""
+    for part in rel_parts:
+        if part in _EXCLUDE_SUBTREES:
+            return True
+        if part in _EXCLUDE_PARTS:
+            return True
+        if any(fnmatch(part, pat) for pat in _EXCLUDE_GLOBS):
+            return True
+    return False
+
+
 def iter_scene_manifests(bases: Tuple[Path, ...] = ()) -> Iterator[SceneMeta]:
-    """扫描场景分区，产出全部合法 ``SceneMeta``。
+    """扫描 scenarios 全树，产出全部合法 ``SceneMeta``。
+
+    ★ 2026-11-04：扫描范围 = scenarios 包**全树**（不再限定
+      public/flash_demo/private 三个分区）—— 场景目录任意移动/归类均可发现；
+      排除产物/缓存/备份目录与 core/scripts 框架子树。
 
     ★ 校验失败（非法 manifest）**不吞** —— 静默跳过会把"场景消失"变成
       谜题；重复 name/alias 同样显式报错。
@@ -211,34 +366,30 @@ def iter_scene_manifests(bases: Tuple[Path, ...] = ()) -> Iterator[SceneMeta]:
 
     metas: List[SceneMeta] = []
     for base in base_dirs:
-        for part in _PARTITIONS:
-            part_dir = base / part
-            if not part_dir.is_dir():
-                if part not in _OPTIONAL_PARTITIONS:
-                    # 随发布包分区的缺失是打包缺陷，但发现器不做 import，
-                    # 交给 warm_registry/cli 的既有报错路径 —— 这里跳过即可。
-                    continue
+        for mf in sorted(base.rglob("scene*.json")):
+            if not mf.is_file():
                 continue
-            # ★ 场景目录深度不一（ch_center 在 2 级、sandwich 3 级、
-            #   SNB 4 级）⇒ 必须递归扫，不能只看一层。
-            # ★ 一目录多场景（2026-10-27）：triplet 族（VTi/TiTi/CHTi…）
-            #   同目录含 3 个变体 ⇒ 支持 ``scene.<名>.json`` 命名。
-            for mf in sorted(part_dir.rglob("scene*.json")):
-                meta = load_manifest(mf)
-                # name/alias 全局唯一
-                for key in (meta.name, *meta.aliases):
-                    table, what = ((seen_names, "场景名") if key == meta.name
-                                   else (seen_aliases, "别名"))
-                    if key in seen_names or key in seen_aliases:
-                        prev = seen_names.get(key) or seen_aliases.get(key)
-                        raise ManifestError(
-                            f"{mf}: {what} '{key}' 与 {prev} 重复")
-                    if key == meta.name:
-                        seen_names[key] = str(mf)
-                    else:
-                        seen_aliases[key] = str(mf)
-                metas.append(meta)
+            try:
+                rel = mf.parent.resolve().relative_to(base.resolve()).parts
+            except ValueError:
+                continue
+            if _is_excluded(rel):
+                continue
+            meta = load_manifest(mf, base=base)
+            # name/alias 全局唯一
+            for key in (meta.name, *meta.aliases):
+                table, what = ((seen_names, "场景名") if key == meta.name
+                               else (seen_aliases, "别名"))
+                if key in seen_names or key in seen_aliases:
+                    prev = seen_names.get(key) or seen_aliases.get(key)
+                    raise ManifestError(
+                        f"{mf}: {what} '{key}' 与 {prev} 重复")
+                if key == meta.name:
+                    seen_names[key] = str(mf)
+                else:
+                    seen_aliases[key] = str(mf)
+            metas.append(meta)
 
-    # 稳定顺序：按 name（分区顺序无业务含义，private 先于 public 纯属字母序）
+    # 稳定顺序：按 name（目录顺序无业务含义）
     metas.sort(key=lambda m: m.name)
     yield from metas

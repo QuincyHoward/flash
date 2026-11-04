@@ -859,10 +859,9 @@ class FlashSimulatorEngine:
             else:
                 _hint = (
                     f"引擎只承接本机执行（local/wsl），当前判定为 {target}。\n"
-                    f"  超算执行请改用场景脚本或统一 CLI：\n"
-                    f"    · ch_center: python flash/scenarios/public/center_evolution/"
-                    f"ch_center/laserslab1d_local_custom.py  (RUN_MODE='auto')\n"
-                    f"    · 统一入口: python -m flash.scenarios.core.cli <场景> --mode {target}"
+                    f"  超算执行请改用场景自带入口或统一 CLI（场景目录位置无关）：\n"
+                    f"    · cd <场景目录> && python run.py --mode {target}\n"
+                    f"    · 统一入口: python -m flash.scenarios.core.cli run <场景名> --mode {target}"
                 )
                 print("  [X] " + _hint.replace("\n", "\n      "))
                 return SimulationOutput(

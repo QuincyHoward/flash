@@ -34,7 +34,8 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Dict, Optional, Sequence, Tuple
 
 __all__ = [
@@ -179,7 +180,13 @@ def _merge_manifest_hpc_jobs() -> None:
 
     ★ 新增超算场景 = 场景目录 ``scene.json`` 里写 ``"hpc": {...}``
       （字段白名单见 ``_HPC_MANIFEST_FIELDS``），**不改本模块**。
-    ★ 内置表优先：同名时 manifest 不覆盖（存量场景声明仍是唯一事实源）。
+
+    ★ 2026-11-04 任意移动改造：
+      1. manifest ``hpc`` 节改为**按字段覆盖**内置表（原为同名整体跳过），
+         内置表仅作为未声明字段的兜底 —— scene.json 成为路径唯一事实源；
+      2. 内置表遗留条目（grad_dens_sandwich / thin_layer_sandwich_si）的
+         ``input_rel_dir``/``gen_script`` 若其目标 basename 在场景目录
+         （scene.json 物理位置）下存在，则按场景目录重写 —— 场景移动免疫。
     """
     global _merged
     if _merged:
@@ -190,9 +197,50 @@ def _merge_manifest_hpc_jobs() -> None:
     except Exception:
         return   # discovery 不可用时退回纯内置表（与旧行为一致）
     for meta in iter_scene_manifests():
+        scene_dir = Path(meta.source).parent if meta.source else None
         hpc = meta.extra.get("hpc")
-        if not isinstance(hpc, dict) or meta.name in SCENE_HPC_JOBS:
-            continue
-        kwargs = {k: (tuple(v) if isinstance(v, list) else v)
-                  for k, v in hpc.items() if k in _HPC_MANIFEST_FIELDS}
-        SCENE_HPC_JOBS[meta.name] = SceneHpcJob(name=meta.name, **kwargs)
+        if isinstance(hpc, dict):
+            manifest_kwargs = {k: (tuple(v) if isinstance(v, list) else v)
+                               for k, v in hpc.items() if k in _HPC_MANIFEST_FIELDS}
+            base_job = SCENE_HPC_JOBS.get(meta.name)
+            if base_job is not None:
+                # 按字段合并：manifest 声明优先，内置表兜底未声明字段
+                merged = replace(base_job, name=meta.name, **manifest_kwargs)
+            else:
+                merged = SceneHpcJob(name=meta.name, **manifest_kwargs)
+            SCENE_HPC_JOBS[meta.name] = merged
+        elif meta.name in SCENE_HPC_JOBS and scene_dir is not None:
+            # 内置表条目：路径字段按 scene.json 物理位置动态校正
+            job = SCENE_HPC_JOBS[meta.name]
+            new_ie = _rebase_to_scene(job.input_rel_dir, scene_dir)
+            new_gs = _rebase_to_scene(job.gen_script, scene_dir)
+            if (new_ie, new_gs) != (job.input_rel_dir, job.gen_script):
+                SCENE_HPC_JOBS[meta.name] = replace(
+                    job, input_rel_dir=new_ie, gen_script=new_gs)
+
+
+def _rebase_to_scene(repo_rel: str, scene_dir: Path) -> str:
+    """内置表路径字段重写：目标 basename 在场景目录下存在 → 按场景目录重写。
+
+    Args:
+        repo_rel: 旧仓库根相对 POSIX 路径（如 flash/scenarios/public/…/sim_input）。
+        scene_dir: 场景目录（scene.json 所在）。
+
+    Returns:
+        重写后的仓库根相对 POSIX 路径；无法重写时原样返回。
+    """
+    if not repo_rel:
+        return repo_rel
+    try:
+        from flash.scenarios.core.scene_paths import repo_root
+        repo = repo_root()
+    except RuntimeError:
+        return repo_rel          # wheel 模式：不动
+    old = repo / repo_rel
+    cand = scene_dir / old.name
+    if cand.exists() and cand.resolve() != old.resolve():
+        try:
+            return cand.resolve().relative_to(repo).as_posix()
+        except ValueError:
+            return repo_rel
+    return repo_rel

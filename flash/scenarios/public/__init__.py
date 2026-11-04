@@ -4,19 +4,25 @@
 
   center_evolution/      中心演化 —— ch_center (CH 靶 1D 激光)
   sandwich/              薄层三明治 —— thin_layer_sandwich / grad_dens_sandwich
-  collision_compression/ 对撞压缩 (占位, 场景在 private 分区)
-  plasma_preparation/    等离子体制备 (占位, 待补充)
 
-★ 每个子包内部自行负责注册（见各子包 __init__.py），本文件只做容错导入：
+★ 2026-11-04 任意移动改造：不再硬编码子包清单（清单本身就是位置绑定，
+  且占位名会产生告警噪声）—— 改为枚举本目录下实际存在的子包；
   某个专题在裁剪过的发布包里缺失时不应拖垮其余示例。
+
+★ 每个子包内部自行负责注册（见各子包 __init__.py），本文件只做容错导入。
 """
 
 from __future__ import annotations
 
 import warnings
+from pathlib import Path
 
-for _sub in ("center_evolution", "collision_compression",
-             "plasma_preparation", "sandwich"):
+_HERE = Path(__file__).resolve().parent
+
+for _child in sorted(p for p in _HERE.iterdir() if p.is_dir()):
+    if _child.name.startswith(("_", ".")) or _child.name == "__pycache__":
+        continue
+    _sub = _child.name
     try:
         __import__(f"flash.scenarios.public.{_sub}")
     except ImportError as _e:  # pragma: no cover
