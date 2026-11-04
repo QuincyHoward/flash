@@ -3,6 +3,6 @@
   "kind": "main",
   "description": "CH 屏蔽 + Ti 示踪层 (F 变体) (变体 CHTi1_F)",
   "policy": "default",
-  "module": "flash/scenarios/private/tracer/CHTi_F.CHTi1_F",
+  "module": ".CHTi1_F",
   "script": ""
 }

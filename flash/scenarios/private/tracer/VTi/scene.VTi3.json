@@ -3,6 +3,6 @@
   "kind": "main",
   "description": "V 屏蔽 + Ti 示踪层 (变体 VTi3)",
   "policy": "default",
-  "module": "flash/scenarios/private/tracer/VTi.VTi3",
+  "module": ".VTi3",
   "script": ""
 }

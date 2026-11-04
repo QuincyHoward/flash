@@ -380,13 +380,15 @@ _TREE_PATCHES = (
 )
 # t001 归档目录 (相对本场景: private/tracer/SNB/SNBVTi → private/SNB/...)
 # parents[3] 即 scenarios/private/ (已实测核对: SNB/SNBtest/Test/t001 存在)
-_T001_DIR = Path(__file__).resolve().parents[3] / "SNB/SNBtest/Test/t001"
+from flash.scenarios.core.anchors import anchor as _anchor
+_T001_DIR = _anchor("SNB.t001")
 
 # ★★★ SNB 覆盖 F90 的**本地权威源** (仓内镜像, 离线可用, 无需超算)
 # 同为 parents[3] 基准: private/SNB/SNB/source/snb_package (已实测存在)
 # 实测与 (a) 上游 SNB_1D_laser 单元 (b) NC-E 已部署单元 (c) SNBOneCH_ml/
 # flash_input 三者 sha256 全部一致 (9/9)。
-_SNB_PKG_DIR = Path(__file__).resolve().parents[3] / "SNB/SNB/source/snb_package"
+from flash.scenarios.core.anchors import anchor as _anchor
+_SNB_PKG_DIR = _anchor("SNB.snb_package")
 
 # 生成的 provenance 审计文件 + 远端 cn4 重部署辅助脚本
 PROVENANCE_FILE = "SNB_F90_PROVENANCE.md"

@@ -34,8 +34,13 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]          # .../tracer
-PROJ = Path(__file__).resolve().parents[5]          # .../layer3/flash (含 .venv)
+ROOT = Path(__file__).resolve().parents[1]          # .../tracer (场景族内相对引用)
+PROJ = Path(__file__).resolve()                     # 仓库根: 向上搜（层级无关）
+for _c in (PROJ, *PROJ.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        break
+else:
+    raise RuntimeError("无法定位仓库根")
 PY = PROJ / ".venv" / "Scripts" / "python.exe"
 
 # 已在本轮单独验证过的不再重复 (TiTi1/VTi1 已 exit 0 且读数已核对)

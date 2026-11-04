@@ -420,10 +420,11 @@ def main() -> int:
 
     scene = Path(args.snb_scene).resolve()
     out = Path(args.out).resolve() if args.out else _HERE / "images"
-    # 默认 OneCH_ml 输出: <scene>/../../OneCH_ml/flash_output/outputfiles
-    #   scene = tracer/SNB/SNBOneCH/scene → parents[2] = tracer
+    # 默认 OneCH_ml 输出: 经逻辑锚点 tracer.OneCH_ml 解析（_scene_anchors.json）,
+    #   与两场景各自所在目录无关
+    from flash.scenarios.core.anchors import anchor as _anchor
     onech = Path(args.onech_dir).resolve() if args.onech_dir else \
-        scene.parents[2] / "OneCH_ml" / "flash_output" / "outputfiles"
+        _anchor("tracer.OneCH_ml") / "flash_output" / "outputfiles"
     onech = _resolve_onech_dir(onech)
     out.mkdir(parents=True, exist_ok=True)
 

@@ -27,7 +27,13 @@ from pathlib import Path
 import paramiko
 
 HERE = Path(__file__).resolve().parent          # .../SNBVTi1um/scripts
-REPO = HERE.parents[6]                          # flash 包根 (含 pyproject.toml)
+REPO = HERE                                     # 仓库根: 向上搜（层级无关, 场景移动免疫）
+for _c in (REPO, *REPO.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        REPO = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根")
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 

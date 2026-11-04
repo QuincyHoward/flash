@@ -13,7 +13,14 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[5]))
+_REPO = Path(__file__).resolve()
+for _c in (_REPO, *_REPO.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _REPO = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根")
+sys.path.insert(0, str(_REPO))
 import h5py  # noqa: E402
 from flash.input_gen.gen_checker.relations._parsers import (  # noqa: E402
     strip_par_comment, unquote,

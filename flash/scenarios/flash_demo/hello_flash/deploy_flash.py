@@ -51,8 +51,14 @@ def get_flash_user_name() -> str:
         python -m flash._core.credentials user <用户名>
     """
     try:
-        # flash 包入口: hello_flash → flash_demo → scenarios → flash → sim
-        _sim_root = str(SCRIPT_DIR.parents[3])  # parents[3] = .../sim (import flash 需要)
+        # flash 包入口: 向上搜仓库根（含 pyproject.toml + start_flash.py）, 层级无关
+        _sim_root = SCRIPT_DIR
+        for _c in (_sim_root, *_sim_root.parents):
+            if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+                break
+        else:
+            raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
+        _sim_root = str(_c)
         if _sim_root not in sys.path:
             sys.path.insert(0, _sim_root)
         from flash._core.credentials import get_user_name

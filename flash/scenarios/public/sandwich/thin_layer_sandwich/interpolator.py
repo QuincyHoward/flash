@@ -32,9 +32,15 @@ except ImportError:
     from flash.output_pro.hdf5pro import FlashHDF5File
 
 # Bootstrap: workspace root = sandwich/scenarios/flash/<root> (fixed depth, robust)
-_ROOT = Path(__file__).resolve().parents[4]
-_PARENT = _ROOT.parent
-for _p in [str(_PARENT), str(_ROOT)]:
+_REPO_ROOT = Path(__file__).resolve()
+for _c in (_REPO_ROOT, *_REPO_ROOT.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _REPO_ROOT = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
+_PARENT = _REPO_ROOT.parent
+for _p in [str(_PARENT), str(_REPO_ROOT)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 

@@ -428,19 +428,22 @@ _TREE_PATCHES = (
 )
 # t001 归档目录 (相对本场景: private/tracer/SNB/SNBVTi → private/SNB/...)
 # parents[3] 即 scenarios/private/ (已实测核对: SNB/SNBtest/Test/t001 存在)
-_T001_DIR = Path(__file__).resolve().parents[3] / "SNB/SNBtest/Test/t001"
+from flash.scenarios.core.anchors import anchor as _anchor
+_T001_DIR = _anchor("SNB.t001")
 
 # ★★★ SNB 覆盖 F90 的**本地权威源** (仓内镜像, 离线可用, 无需超算)
 # 同为 parents[3] 基准: private/SNB/SNB/source/snb_package (已实测存在)
 # 实测与 (a) 上游 SNB_1D_laser 单元 (b) NC-E 已部署单元 (c) SNBOneCH_ml/
 # flash_input 三者 sha256 全部一致 (9/9)。
-_SNB_PKG_DIR = Path(__file__).resolve().parents[3] / "SNB/SNB/source/snb_package"
+from flash.scenarios.core.anchors import anchor as _anchor
+_SNB_PKG_DIR = _anchor("SNB.snb_package")
 
 # ★★★ 本场景专属: radON 驱动变体 (核心模块 variants/, 活 call RadTrans)。
 #   辐射开 ↔ radON 驱动联动 (docs/04 §2): 作者原版 Driver 把两处
 #   `call RadTrans` 注释了 → par 三开关形同虚设。本场景在
 #   _deploy_snb_overrides() 里复制 9 个 F90 后用此变体覆盖 Driver。
-_SNB_VARIANTS_DIR = Path(__file__).resolve().parents[3] / "SNB/SNB/variants"
+from flash.scenarios.core.anchors import anchor as _anchor
+_SNB_VARIANTS_DIR = _anchor("SNB.variants")
 _RADON_DRIVER = "Driver_evolveFlash_radON.F90"
 
 # 生成的 provenance 审计文件 + 远端 cn4 重部署辅助脚本

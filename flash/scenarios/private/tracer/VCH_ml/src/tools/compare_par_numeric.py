@@ -5,7 +5,14 @@ import re
 
 import os
 REF = os.environ["FLASH_OLD_VM_RUNFILES"] + r"\\flash.par"  # 旧 VM 参考算例 runfiles 目录（显式注入）
-OUR = str(Path(__file__).resolve().parents[7] / "flash" /
+_REPO_ROOT = Path(__file__).resolve()
+for _c in (_REPO_ROOT, *_REPO_ROOT.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _REPO_ROOT = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根")
+OUR = str(_REPO_ROOT / "flash" /
           "scenarios/private/tracer/layer_tracer_CH_ml/flash_input/run_000001/laserslab_chml.par")
 
 

@@ -4,5 +4,5 @@
   "description": "SNB 多群 + VTi2 几何 (遗留; 自带全流程); 仅超算",
   "policy": "snb",
   "module": "",
-  "script": "flash/scenarios/private/tracer/SNB/SNBVTi2_ml/SNBVTi2_ml.py"
+  "script": "./SNBVTi2_ml.py"
 }

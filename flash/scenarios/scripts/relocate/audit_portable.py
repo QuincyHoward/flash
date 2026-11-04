@@ -125,10 +125,21 @@ def _scene_root(f: Path) -> Path:
     return SCEN
 
 
+#: 固定共享区（永不随场景移动）：其内 parents[N] 指向仓库内目标视为合法
+FIXED_ZONES = ("scripts", "core", "common")
+
+
+def _in_fixed_zone(rel: Path) -> bool:
+    return bool(rel.parts) and rel.parts[0] in FIXED_ZONES
+
+
 def audit_py(py: Path, rel: Path, findings: list) -> None:
+    if rel.parts[:2] == ("scripts", "relocate"):
+        return          # 审计工具自身不改写也不自审（规则文本含模式字符串）
     src = py.read_text(encoding="utf-8", errors="replace")
     own = _own_pkg(py)
     sroot = _scene_root(py)
+    fixed = _in_fixed_zone(rel)
     try:
         tree = ast.parse(src)
     except SyntaxError as e:
@@ -152,6 +163,9 @@ def audit_py(py: Path, rel: Path, findings: list) -> None:
                 if target is None:
                     findings.append(("ERROR", str(rel), node.lineno,
                                      f"parents[N] 动态索引（无法判定）: {line[:110]}"))
+                elif fixed:
+                    findings.append(("INFO", str(rel), node.lineno,
+                                     f"parents[N] 固定共享区内引用（{target.name}）: {line[:110]}"))
                 elif sroot == SCEN or not (target == sroot or sroot in target.parents):
                     findings.append(("ERROR", str(rel), node.lineno,
                                      f"parents[N] 逃逸场景根(→{target.name}): {line[:110]}"))

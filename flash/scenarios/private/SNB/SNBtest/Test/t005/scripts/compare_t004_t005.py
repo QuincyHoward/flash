@@ -1,7 +1,13 @@
 """对比 t004 (成功基线) 与 t005 (修复后) 的 SNB 腿逐帧量。"""
 import sys
 from pathlib import Path
-_FLASH_PKG = Path(__file__).resolve().parents[8] / 'flash'  # 仓库根/flash 包目录
+_FLASH_PKG = Path(__file__).resolve()
+for _c in (_FLASH_PKG, *_FLASH_PKG.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _FLASH_PKG = _c / "flash"
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
 import h5py
 import numpy as np
 

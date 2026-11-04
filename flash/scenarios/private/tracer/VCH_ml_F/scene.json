@@ -3,6 +3,6 @@
   "kind": "main",
   "description": "V/CH 多薄层 (F 变体)",
   "policy": "default",
-  "module": "flash/scenarios/private/tracer/VCH_ml_F.VCH_ml_F",
+  "module": ".VCH_ml_F",
   "script": ""
 }

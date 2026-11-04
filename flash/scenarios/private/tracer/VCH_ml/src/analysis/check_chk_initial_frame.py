@@ -15,7 +15,13 @@ for _ in range(14):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-_FLASH_PKG = Path(__file__).resolve().parents[7] / 'flash'  # 仓库根/flash
+_FLASH_PKG = Path(__file__).resolve()
+for _c in (_FLASH_PKG, *_FLASH_PKG.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _FLASH_PKG = _c / "flash"
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
 import numpy as np
 from flash.output_pro.loader import FlashDataLoader
 

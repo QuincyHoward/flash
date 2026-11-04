@@ -1,7 +1,13 @@
 """穷尽比对 t004 与 t005 的 SNB 侧 flash_input 全部文件 (含非 F90)。"""
 import hashlib
 from pathlib import Path
-_FLASH_PKG = Path(__file__).resolve().parents[8] / 'flash'  # 仓库根/flash 包目录
+_FLASH_PKG = Path(__file__).resolve()
+for _c in (_FLASH_PKG, *_FLASH_PKG.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _FLASH_PKG = _c / "flash"
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
 
 T004 = Path(str(_FLASH_PKG) +
             r'\scenarios\private\SNB\SNBtest\Test\t004\sim_snb\flash_input')

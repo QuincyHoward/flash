@@ -13,8 +13,14 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # Bootstrap: workspace root = sandwich/scenarios/flash/<root> (fixed depth, robust)
-_ROOT = Path(__file__).resolve().parents[4]
-_PARENT = _ROOT.parent
+_REPO_ROOT = Path(__file__).resolve()
+for _c in (_REPO_ROOT, *_REPO_ROOT.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _REPO_ROOT = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
+_PARENT = _REPO_ROOT.parent
 _PAR_BUILDER_DIR = Path(__file__).resolve().parent
 if str(_PARENT) not in sys.path:
     sys.path.insert(0, str(_PARENT))

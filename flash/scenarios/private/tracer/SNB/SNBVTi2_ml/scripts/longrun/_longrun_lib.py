@@ -29,7 +29,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 # ★ 本文件位于 <SCEN>/scripts/longrun/_longrun_lib.py → 上溯 3 级到 <SCEN>
 HERE = Path(__file__).resolve().parent          # scripts/longrun/
 SCEN_DIR = HERE.parents[1]                      # SNBVTi2_ml/
-REPO_ROOT = SCEN_DIR.parents[4]                 # flash/
+REPO_ROOT = SCEN_DIR
+for _c in (_REPO_ROOT, *_REPO_ROOT.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        _REPO_ROOT = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根（需含 pyproject.toml + start_flash.py）")
 FLASH_OUT = SCEN_DIR / "flash_output"
 FLASH_IN = SCEN_DIR / "flash_input"
 

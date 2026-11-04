@@ -44,8 +44,14 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
-# 仓库根: .../flash  (本文件在 flash/scenarios/private/tracer/SNB/SNBOneCH_ml/)
-ROOT = SCRIPT_DIR.parents[4]
+# 仓库根: 向上搜 pyproject.toml + start_flash.py（层级无关, 场景移动免疫）
+ROOT = SCRIPT_DIR
+for _c in (ROOT, *ROOT.parents):
+    if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+        ROOT = _c
+        break
+else:
+    raise RuntimeError("无法定位仓库根")
 
 # ── 直接复用核心模块的既有函数与常量 (禁止重写) ─────────────
 import SNBOneCH_ml as M  # noqa: E402

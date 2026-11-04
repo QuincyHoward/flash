@@ -60,7 +60,12 @@ def get_sim_user() -> str | None:
 
     绝不硬编码用户名: 优先 flash._core.credentials.get_user_name()。
     """
-    for root in (None, T001.parents[5] if len(T001.parents) > 5 else None):
+    _repo = None
+    for _c in (T001, *T001.parents):
+        if (_c / "pyproject.toml").is_file() and (_c / "start_flash.py").is_file():
+            _repo = _c
+            break
+    for root in (None, _repo):
         if root is not None:
             sys.path.insert(0, str(root))
         try:
