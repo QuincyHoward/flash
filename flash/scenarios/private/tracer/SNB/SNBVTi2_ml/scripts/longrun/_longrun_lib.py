@@ -58,9 +58,9 @@ M = _importlib.import_module(SCEN_MODULE)
 # ⇒ 若本库直接写 `R._HpcRemote(...)` 会 **AttributeError** (实测)。
 # 正确做法: 原语从参考模块取, 仅 **命名常量** 从本场景 M 取 —— 这正是
 # "不重复实现"原则的正确落法 (第二套真相源是原语代码, 不是常量)。
-from flash.scenarios.private.tracer.SNB.SNBOneCH_ml import (  # noqa: E402
-    SNBOneCH_ml as _REF,
-)
+from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+_REF = _scene_ref_load("SNBOneCH_ml")
+
 # `_HpcRemote` / `resolve_deploy_dir` / `_remote_snb_home` / `_hpc_env_block`
 # 一律经下面的薄封装访问 —— 见 R / 同名模块级别名。
 R = _REF

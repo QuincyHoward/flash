@@ -195,9 +195,8 @@ def _make_build_par(def_mod):
 
 def _make_build_grid(def_mod):
     def _grid_fn(params):
-        from flash.scenarios.public.sandwich.thin_layer_sandwich.interpolator import (
-            build_variable_grid as bvg,
-        )
+        from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+        bvg = _scene_ref_load("thin_layer_sandwich_si", stem="interpolator").build_variable_grid
         t_max = min(
             params.get("output_t_max", def_mod.OUTPUT_T_MAX),
             # ★ 与 par 的 tmax 同源（否则 tmax 覆盖只改 par、不改输出网格）
@@ -217,9 +216,8 @@ def _make_build_grid(def_mod):
 
 def _make_interpolate():
     def _interp_fn(flash_files, t_grid, x_grid, var_names):
-        from flash.scenarios.public.sandwich.thin_layer_sandwich.interpolator import (
-            interpolate_flash_to_grid,
-        )
+        from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+        interpolate_flash_to_grid = _scene_ref_load("thin_layer_sandwich_si", stem="interpolator").interpolate_flash_to_grid
         return interpolate_flash_to_grid(
             flash_files=[str(f) for f in flash_files],
             t_grid=t_grid, x_grid=x_grid,
@@ -245,7 +243,7 @@ class _AutoGenScenario(SimulationScenario):
     """sim_input 非py输入文件由 gen_flash_inputs.py 按需自动生成的场景。"""
 
     def _gen_module_name(self) -> str:
-        return "flash.scenarios.public.sandwich.grad_dens_sandwich.gen_flash_inputs"
+        return f"{__package__}.gen_flash_inputs"
 
     def ensure_sim_input(self) -> None:
         d = self.sim_input_dir

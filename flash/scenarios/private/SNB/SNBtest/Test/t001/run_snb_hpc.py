@@ -145,7 +145,7 @@ class Remote:
         self.session = None
 
     def __enter__(self):
-        from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+        from flash.flash_run.remote.session import RemoteSession
         self.session = RemoteSession(credential_name=self.credential_name, verbose=True)
         self.session.__enter__()
         return self

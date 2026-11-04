@@ -1463,7 +1463,8 @@ def run_hpc_pipeline(args, cfg: Dict[str, Any]) -> int:
     ⚠ 重绑定是**进程内全局副作用**, 故必须在 finally 中无条件恢复, 且本函数
     不可重入并发调用 (单场景单次运行, 可接受)。
     """
-    from flash.scenarios.private.tracer.SNB.SNBOneCH_ml import SNBOneCH_ml as ref
+    from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+    ref = _scene_ref_load("SNBOneCH_ml")
 
     # ── 0. ★★★ 先格式化 SETUP_FLAGS 的 {nxb} 占位符 ──
     #   根因 (2026-09-13 实测): 参考模块的模块级 SETUP_FLAGS 是**未格式化模板**

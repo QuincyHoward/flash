@@ -251,10 +251,10 @@ BASENM_AMR = "snbonech_"
 LOG_FILE = "snbonech.log"
 
 # 物种列表 (顺序即 FLASH 物种常量顺序, 同 OneCH_ml)
-from flash.scenarios.private.tracer.OneCH_ml.OneCH_ml import (
-    SPECIES_LIST,
-    build_species_defs,
-)
+from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+_onech_ml = _scene_ref_load("OneCH_ml")
+SPECIES_LIST = _onech_ml.SPECIES_LIST
+build_species_defs = _onech_ml.build_species_defs
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
 from flash.input_gen.gen_par.defaults import (  # noqa: E402
@@ -1046,7 +1046,7 @@ class _HpcRemote:
         self.session = None
 
     def __enter__(self):
-        from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+        from flash.flash_run.remote.session import RemoteSession
         self.session = RemoteSession(credential_name=self.account, verbose=True)
         self.session.__enter__()
         return self

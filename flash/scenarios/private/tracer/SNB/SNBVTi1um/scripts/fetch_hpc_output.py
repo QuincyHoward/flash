@@ -31,12 +31,12 @@ REPO = HERE.parents[6]                          # flash 包根 (含 pyproject.to
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import (  # noqa: E402
+from flash.flash_run.remote.session import (  # noqa: E402
     _resolve_route_and_credential,
 )
-from flash.scenarios.private.tracer.SNB.SNBOneCH_ml import (  # noqa: E402
-    SNBOneCH_ml as R,
-)
+from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+R = _scene_ref_load("SNBOneCH_ml")
+
 
 ROUTE: dict | None = None   # main() 内解析一次; 快速通道与 _HpcRemote 同一凭据源
 

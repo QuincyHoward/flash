@@ -49,7 +49,7 @@ def _log(msg, tag="i"):
 
 def _route(account):
     """取路由 (host/port/user/password), 复用项目动态探测。"""
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import (
+    from flash.flash_run.remote.session import (
         _resolve_route_and_credential)
     return _resolve_route_and_credential(account)
 

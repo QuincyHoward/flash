@@ -222,7 +222,7 @@ def deploy_to_supercomputer(
     Returns:
         {power_factor: remote_run_dir}
     """
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     remote_dirs: Dict[float, str] = {}
     batch_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -287,7 +287,7 @@ def run_remote_analysis_and_download(
     Returns:
         {描述: 本地文件路径}
     """
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     plot_paths: Dict[str, Path] = {}
     analysis_dir = remote_dirs.pop("_analysis_dir", "")
@@ -393,7 +393,7 @@ def run_remote_analysis_and_download(
             try:
                 # 通过 scp 直接下载
                 from flash.scenarios.flash_demo.demo_hpc.laserslab1d_hpc_demo_batch import _direct_scp_download
-                from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import _resolve_route_and_credential
+                from flash.flash_run.remote.session import _resolve_route_and_credential
                 route = _resolve_route_and_credential(credential_name)
 
                 ok = _direct_scp_download(route, remote_path, local_path, timeout=60)
@@ -580,7 +580,7 @@ def run_flash_remotely(
       run_flash.sh 会复制文件到:
         $FLASH_HOME/source/Simulation/SimulationMain/{SIM_USER_DIR}/LaserSlab_batch/
     """
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     results: Dict[float, bool] = {}
     job_ids: Dict[float, str] = {}
@@ -727,7 +727,7 @@ def _direct_scp_download(route: Dict[str, Any], remote_path: str, local_path: st
                                  route["port"], route["username"])
 
     # 查找 scp 可执行文件
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import _find_scp
+    from flash.flash_run.remote.session import _find_scp
     scp_exe = _find_scp()
 
     # 使用 .bat askpass (Windows 兼容)
@@ -783,7 +783,7 @@ def download_results(
         2. flash_run.log (日志)
       - 分析在后续步骤中基于下载的 chk 文件进行
     """
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     local_files: Dict[float, List[Path]] = {}
     log("\n[步骤 4] 下载关键结果文件 (仅 1 chk + 日志 每功率)...")

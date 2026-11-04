@@ -274,10 +274,10 @@ BASENM_AMR = "snbonechm_"
 LOG_FILE = "snbonech_m.log"
 
 # 物种列表 (顺序即 FLASH 物种常量顺序, 同 OneCH_ml)
-from flash.scenarios.private.tracer.OneCH_ml.OneCH_ml import (
-    SPECIES_LIST,
-    build_species_defs,
-)
+from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+_onech_ml = _scene_ref_load("OneCH_ml")
+SPECIES_LIST = _onech_ml.SPECIES_LIST
+build_species_defs = _onech_ml.build_species_defs
 
 # 规范物理参数（沿用水脉冲/MGD 等内嵌字典, 自包含）
 from flash.input_gen.gen_par.defaults import (  # noqa: E402
@@ -1086,7 +1086,7 @@ class _HpcRemote:
         self.session = None
 
     def __enter__(self):
-        from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+        from flash.flash_run.remote.session import RemoteSession
         self.session = RemoteSession(credential_name=self.account, verbose=True)
         self.session.__enter__()
         return self
@@ -1994,9 +1994,10 @@ def _radiation_ready() -> bool:
         log("  ✗ flash_input 缺 Driver_evolveFlash.F90 (无法部署 radON)", "ERROR")
         return False
     if _RADON_VARIANT is None:
-        import flash.scenarios as _sc
-        _RADON_VARIANT = (Path(_sc.__file__).parent / "private" / "SNB"
-                          / "SNB" / "variants" / "Driver_evolveFlash_radON.F90")
+        # ★ 2026-11-04 任意移动改造: 数据文件跨场景引用走逻辑锚点
+        #   （_scene_anchors.json 的 SNB.variants），不再绑定分区层级包路径
+        from flash.scenarios.core.anchors import anchor as _anchor
+        _RADON_VARIANT = _anchor("SNB.variants") / "Driver_evolveFlash_radON.F90"
     if _RADON_VARIANT.exists():
         import hashlib
         dh = hashlib.sha256(drv.read_bytes()).hexdigest()

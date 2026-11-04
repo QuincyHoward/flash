@@ -420,7 +420,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 # ═══════════════════════════════════════════════════════════════
 
 def cmd_fetch_insitu(args: argparse.Namespace) -> int:
-    from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+    from flash.flash_run.remote.session import RemoteSession
 
     key = "hpc-insitu"
     local_dir = RESULTS_DIR / key

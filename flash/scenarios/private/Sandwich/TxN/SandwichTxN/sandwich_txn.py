@@ -1,11 +1,12 @@
 """sandwich_txn — CH/Si/CH 三明治靶 + 极低密度 He 填充场景（自包含单文件版）
 
-目录约定（2026-10-29 精简）:
-  __init__.py       场景构建（defaults + .par 构建 + FLASH 源输入生成, 本文件）
+目录约定（2026-10-31 拆分, 弃用 __init__.py 承载场景代码）:
+  sandwich_txn.py   场景构建 + CLI（defaults + .par 构建 + FLASH 源输入生成
+                    + run/analyze/gen 子命令, 本文件）
+  scene.json        场景声明 (discovery 扫描; module/attr 与 hpc.gen_script
+                    均指向本文件)
   analyze_output.py 输出分析脚本 (chk → 4 张诊断图 + summary)
-  scene.json        场景声明 (discovery 扫描)
   sim_input_si/     FLASH 输入 (生成物, 数据)
-  temp_delete/      旧多文件实现的存档, 待删除, 终止使用
 
 结构（对称, x=0 为 Si 中心面）:
     |x| <= 0.5 um       Si   (targ, 2.33 g/cm^3, 总厚 1 um)
@@ -1447,7 +1448,7 @@ def main(argv=None) -> int:
     import argparse
 
     ap = argparse.ArgumentParser(
-        prog="SandwichTxN/__init__.py",
+        prog="SandwichTxN/sandwich_txn.py",
         description="sandwich_txn 自包含场景: 独立运行/分析 "
                     "(runs → <本目录>/runs/<run_id>)")
     sub = ap.add_subparsers(dest="cmd", required=True)

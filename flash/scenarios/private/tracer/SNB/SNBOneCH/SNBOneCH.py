@@ -107,9 +107,8 @@ from flash.input_gen.gen_par.defaults import (  # noqa: E402
     LAYER_TRACER_BASELINE,
     pulse_from_params,
 )
-from flash.scenarios.private.tracer.OneCH_ml.OneCH_ml import (        # noqa: E402
-    config_constants as ONECH_CFG,
-)
+from flash.scenarios.common.scene_ref import scene_module as _scene_ref_load
+ONECH_CFG = _scene_ref_load("OneCH_ml").config_constants
 
 # OneCH_ml 的分层几何 → 本场景合并为**单层固体靶**
 DELTA_UM = ONECH_CFG["delta_um"]      # 0.1

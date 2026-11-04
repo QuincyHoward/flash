@@ -20,7 +20,7 @@ for _ in range(8):
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession  # noqa: E402
+from flash.flash_run.remote.session import RemoteSession  # noqa: E402
 
 PARTITION = {"flash_ssh": "v5_192", "flash_ssh_2": "v6_384"}
 

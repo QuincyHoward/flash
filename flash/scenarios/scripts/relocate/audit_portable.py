@@ -88,9 +88,8 @@ def _iter_files():
 
 
 def _own_pkg(py: Path) -> str:
-    """文件的场景包路径（相对 scenarios 的点分），非 .py 返回 ''。"""
-    rel = py.relative_to(SCEN)
-    return ".".join(rel.parent.parts) if rel.parent != Path(".") else ""
+    """文件所属场景根的包路径（相对 scenarios 的点分）。"""
+    return _scene_root(py).relative_to(SCEN).as_posix().replace("/", ".")
 
 
 def _is_own_or_shared(own: str, imported: str) -> str:
@@ -102,9 +101,12 @@ def _is_own_or_shared(own: str, imported: str) -> str:
     if top in SHARED_TOPS:
         return "shared"
     own_parts = own.split(".") if own else []
-    if own_parts and imported.startswith("flash.scenarios." + ".".join(own_parts[:2])) and \
-       all(rest[i] == own_parts[i] for i in range(min(len(rest), len(own_parts)))):
-        return "ok"          # 引用自身场景包
+    # 自身判定：own 是 import 的前缀（导入自身子模块）或 import 是 own 的
+    # 前缀（导入自身所在包/上级包）—— 两者都随场景整体移动，均视为 ok
+    if own_parts:
+        n = min(len(own_parts), len(rest))
+        if rest[:n] == own_parts[:n]:
+            return "ok"
     return "cross"
 
 

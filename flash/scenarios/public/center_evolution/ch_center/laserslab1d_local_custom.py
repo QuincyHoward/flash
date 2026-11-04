@@ -83,7 +83,7 @@ if str(_PARENT) not in sys.path:
 
 
 # ── RemoteSession 导入 ───────────────────────────────
-from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
+from flash.flash_run.remote.session import RemoteSession
 
 # ── 时间控制收缩（短跑时 dtmax/dtinit 随 tmax 缩）──
 from flash.scenarios.scripts.time_control import fit_time_controls
