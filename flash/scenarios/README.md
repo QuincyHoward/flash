@@ -796,6 +796,18 @@ python start_flash.py --offline --wheelhouse <wheelhouse 路径>   # 远端执�
 
 ---
 
+## 场景任意收纳整理（2026-11-04 可移植化改造）
+
+任意场景子目录可在 `flash/scenarios/` 树内**自由移动 / 重新归类 / 任意深度嵌套，无需任何修改**，全流程脚本照常执行。
+
+- **机制**：discovery 全树发现 + manifest 路径相对解析 + `core/scene_paths.py` 根定位 + 场景间零 import（代码复用走 `common/scene_ref.py` 按名加载，数据文件走 `_scene_anchors.json` 逻辑锚点）。
+- **移动场景**：`python flash/scenarios/scripts/relocate/relocate_scene.py <src> <dst>`（自动 git mv + 锚点重写 + 残留扫描）。
+- **整理后验证**：`scripts/relocate/audit_portable.py --strict`（须 ERROR=0）+ `verify_all_scenes.py --strict`（须 35/35）。
+- **详细说明**：见 [场景收纳整理改造计划.md](场景收纳整理改造计划.md)。
+
+---
+---
+
 ## 许可、致谢与商用
 
 flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节](../README.md#许可)、[LICENSE](../LICENSE) 与 [NOTICE](../NOTICE)。
