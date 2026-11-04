@@ -512,13 +512,13 @@ def _check_sim_input() -> None:
     if auto_gen:
         print("\n  说明: 本仓库为源码模式, 上述文件由自动生成器补齐 —")
         print("    运行 laserslab1d_local_custom.py (步骤 1 自动检查生成) 或")
-        print("    python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py")
+        print(f"    python -m {__package__}.gen_flash_inputs")
         print("    生成后本提示自动消失, 无需手动编写。")
     else:
         print("\n  说明: 按 FLASH License Agreement §3, FLASH 分发的源文件不可再分发,")
         print("  请从 https://flash.rochester.edu 获取 FLASH 后, 参照 FLASH 自带")
         print("  SimulationMain/LaserSlab 示例文件修改, 或按下方伪代码自行编写。")
-        print("  完整参考实现见源码仓库 scenarios/center_evolution/ch_center/flash_input/。")
+        print("  完整参考实现见本场景目录 flash_input/（生成产物）。")
         for fname, _ships in missing:
             if not _ships:
                 _print_file_pseudocode(fname, _REQUIRED_SIM_INPUT[fname][1])
@@ -544,7 +544,10 @@ class ChCenterScenario(SimulationScenario):
         d = self.sim_input_dir
         if d.exists() and any(d.glob("*.cn4")):
             return
-        from flash.scenarios.public.center_evolution.ch_center import gen_flash_inputs as _gen
+        # ★ 2026-11-04 任意移动改造：不再硬编码本场景包路径（目录移动即断），
+        #   改用 __package__（在包 __init__ 中即本包名，随场景移动自动跟随）。
+        import importlib
+        _gen = importlib.import_module(f"{__package__}.gen_flash_inputs")
         _gen.ensure_generated()
 
 

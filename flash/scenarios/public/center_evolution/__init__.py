@@ -1,22 +1,9 @@
-"""中心演化系列 — ch_center (CH 靶中心演化)
+"""中心演化系列场景分类目录。
 
-ch_center 依赖私有场景 thin_layer_sandwich 提供的 `interpolator` 模块
-(见 .gitignore PRIVATE 分区, 不随包分发)。因此此处采用与
-collision_compression/__init__.py 相同的容错导入策略:
-本地工作区存在时正常注册; 克隆/发布环境缺失时优雅跳过,
-保证公共包可独立导入。
+★ 2026-11-04 任意移动改造：本文件不再急切导入任何场景子包（旧注册时代
+  遗产）。场景发现/注册已全部由 manifest 驱动（core/discovery.py 纯文件
+  扫描 + core/registry.py 惰性导入）—— 场景目录在本分类内增删、改名、
+  移动均无需修改本文件。
+
+  分类目录约定：仅作组织用途，可自由新建/更名/嵌套。
 """
-from __future__ import annotations
-
-import warnings
-
-try:
-    from . import ch_center  # noqa: F401
-
-    _ch_center_ok = True
-except ImportError as e:  # pragma: no cover - 依赖私有场景时才触发
-    warnings.warn(
-        f"场景 'ch_center' 未加载 (依赖私有 interpolator, 不随包分发): {e}",
-        stacklevel=2,
-    )
-    _ch_center_ok = False
