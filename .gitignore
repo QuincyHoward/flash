@@ -485,6 +485,9 @@ wheels/
 flash/scenarios/**/flash_input/
 flash/scenarios/**/flash_output/
 flash/scenarios/**/scripts/*
+# 例外: 场景收纳整理工具链（scripts/relocate）需入库复用
+!flash/scenarios/scripts/relocate
+!flash/scenarios/scripts/relocate/**
 flash/scenarios/**/*.html
 
 # --------------------------------------------------------------------
