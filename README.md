@@ -108,7 +108,7 @@ output = engine.run()  # 自动编译→运行→插值→输出
 开箱即用；也可单独运行 `python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py`
 （`--check` 仅检查 / `--force` 强制重生成）。
 
-详见 [`scenarios/README.md`](scenarios/README.md)。
+详见 [`scenarios/README.md`](flash/scenarios/README.md)。
 
 **参考场景文档**:
 
@@ -511,7 +511,7 @@ print(f"   chk 文件:   {output.n_chk}")
 print(f"   输出字段:   {output.fields}")
 ```
 
-详见 [`scenarios/README.md`](scenarios/README.md)。
+详见 [`scenarios/README.md`](flash/scenarios/README.md)。
 
 ### 2. 仿真输入生成
 
