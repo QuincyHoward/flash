@@ -1,5 +1,8 @@
 # Output Processors 使用说明
 
+> ★ 2026-11-05 校对注：本文成文于 2026-07-04。此后包内新增 `plasmapy_bridge.py`（PlasmaPy 单位桥，松耦合）、`extraction_modes.py`（提取模式注册表）、`parallel.py`（并行处理工具）——相关能力以代码 docstring 为准，另见 [PlasmaPy使用指南](PlasmaPy使用指南.md)。
+
+
 > `flash/output_pro` 包提供 FLASH 仿真 HDF5 输出文件的处理功能。
 > 使用纯 h5py 实现，无需安装 yt，适合超算环境。
 > 最后更新: 2026-07-04

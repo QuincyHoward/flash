@@ -1,5 +1,8 @@
 # 性能调优指南
 
+> ★ 2026-11-05 校对注：本文成文于 2026-07-04。此后包内新增 `plasmapy_bridge.py`（PlasmaPy 单位桥，松耦合）、`extraction_modes.py`（提取模式注册表）、`parallel.py`（并行处理工具）——相关能力以代码 docstring 为准，另见 [PlasmaPy使用指南](PlasmaPy使用指南.md)。
+
+
 > 本指南介绍如何优化 `output_pro` 包的性能。
 > 最后更新: 2026-07-04
 

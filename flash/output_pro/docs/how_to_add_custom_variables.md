@@ -1,5 +1,8 @@
 # 如何新增自定义变量
 
+> ★ 2026-11-05 校对注：本文成文于 2026-07-04。此后包内新增 `plasmapy_bridge.py`（PlasmaPy 单位桥，松耦合）、`extraction_modes.py`（提取模式注册表）、`parallel.py`（并行处理工具）——相关能力以代码 docstring 为准，另见 [PlasmaPy使用指南](PlasmaPy使用指南.md)。
+
+
 > 本教程介绍如何在 `output_pro` 包中新增自定义变量（派生变量）。
 > 最后更新: 2026-07-04
 
