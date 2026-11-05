@@ -1,112 +1,43 @@
-# FLASH 环境配置管理
+# flash_run/env — 环境与资源配置
 
-> 子包级 API 文档；模块总览、执行目标判定与工程铁律见上层 [`../README.md`](../README.md)。
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动本目录下 .py 后必须同步本文模块表
 
-管理 FLASH 仿真在不同计算环境中的配置。
+## 1. 职责定位
 
-## 功能
+FLASH 仿真的环境与资源参数管理：**装置参数**（超算分区/模块/库路径）、**资源档位**（装置判档×维度→核数/内存）、**venv 路径**（三平台唯一事实源）、**多环境管理**（SSH/WSL 环境切换与运行命令生成）。配置落盘 `~/.physimx/`，仓库不携带用户配置。
 
-- **多环境支持**: 本地 WSL、远程超算 SSH/SLURM
-- **维度感知**: 根据仿真维度 (1D/2D/3D) 自动调整资源配置
-- **自动同步**: 从凭据系统自动同步用户名
-- **持久化存储**: 配置保存在 `~/.physimx/flash_envs/environments.json`
+## 2. 模块清单
 
-## 主要类
+| 文件 | 行数 | 职责 | 关键入口 |
+|---|---|---|---|
+| `__init__.py` | 13 | 只导出 `FlashEnvironment`、`FlashResourceConfig`；`FlashEnvManager`/`get_env_manager` 需从 `env_manager` 模块导入 | — |
+| `devices.py` | 276 | **超算装置参数唯一事实源**（分区/模块/库路径），与场景无关；新代码禁止再硬编码装置参数 | `device_default`、`credential_name`、`intel_mpi_lib_dirs`、`runtime_lib_dirs`、`main()` |
+| `resource_config.py` | 666 | 资源配置管理器：`classify_device` 装置判档 × 维度 → 核数/内存/并行档位 | `FlashResourceConfig`、`classify_device`、`get_resource_config`、`main()` |
+| `env_manager.py` | 536 | 多环境管理（列出/切换/当前环境/生成运行命令） | `FlashEnvironment`、`FlashEnvManager`、`get_env_manager` |
+| `venv_paths.py` | 166 | 三平台 venv 路径唯一事实源（2026-10-24 解耦改造） | `repo_root`、`platform_tag` |
 
-### FlashEnvironment
+## 3. 资源档位（现状）
 
-单个 FLASH 运行环境配置。
+`classify_device()` 将运行机器判为 **laptop / desktop / hpc** 三档；配置类为 `LocalDimensionConfig` / `HPCDimensionConfig`（基类 `DeviceDimensionConfig`）。历史版本为「本地/超算」二分（本地 1D 80%·3并行、超算 1D 95%·4并行等，代码中 `get_local_config`/`get_hpc_config` 仍可用），现按档位给出更细的核数/内存建议；`FlashResourceConfig.get_effective_nproc(dimension, is_hpc, total_cpus)` 为有效进程数统一计算入口。
 
-**属性**:
-- `name`: 环境名称 (唯一标识)
-- `env_type`: 环境类型 (`"local_wsl"` | `"ssh_slurm"`)
-- `description`: 环境描述
-- `user_name`: 用户名称 (用于构造路径前缀)
-- `flash_home`: FLASH 安装路径 (本地)
-- `remote_flash_home`: FLASH 安装路径 (远程)
-- `remote_work_dir`: 工作目录 (远程)
-- `ssh_credential`: 凭据名称
-- `default_nproc`: 默认进程数
-- `default_walltime`: 默认墙钟时间
-- `bundle_input_files`: 是否打包输入文件
+## 4. 快速上手
 
-**方法**:
-- `build_run_command(par_file, nproc, flash_exe)`: 构建运行命令
-- `build_sbatch_script(...)`: 生成 SLURM/SBATCH 提交脚本
-- `get_effective_nproc(dimension, total_cpus)`: 计算有效进程数
-- `get_mem_per_job_gb(dimension, detected_total_gb)`: 计算每作业内存
-- `to_dict()`: 序列化为字典
-- `from_dict(d)`: 从字典反序列化
-
-### FlashEnvManager
-
-FLASH 运行环境管理器 (单例模式)。
-
-**方法**:
-- `list_environments()`: 列出所有注册的环境
-- `get(name)`: 按名称获取环境
-- `get_active()`: 获取当前活跃环境
-- `set_active(name)`: 设置活跃环境
-- `add(env)`: 添加新环境
-- `remove(name)`: 删除环境
-- `auto_create_from_credentials()`: 从凭据自动创建环境
-- `summary()`: 生成环境摘要文本
-
-### FlashResourceConfig
-
-FLASH 仿真资源配置管理器 (单例模式)。
-
-按维度和计算环境管理 CPU/内存/并行数配置。
-
-**配置维度**:
-- **本地 WSL**:
-  - 1D: 80% CPU, 3 并行
-  - 2D: 80% CPU, 2 并行
-  - 3D: 80% CPU, 1 并行
-
-- **超算**:
-  - 1D: 95% CPU, 4 并行, 自动内存分配
-  - 2D: 95% CPU, 3 并行, 自动内存分配
-  - 3D: 95% CPU, 2 并行, 自动内存分配
-
-**方法**:
-- `get_local_config(dimension)`: 获取本地 WSL 配置
-- `set_local_config(dimension, ...)`: 修改本地 WSL 配置
-- `get_hpc_config(dimension)`: 获取超算配置
-- `set_hpc_config(dimension, ...)`: 修改超算配置
-- `get_effective_nproc(dimension, is_hpc, total_cpus)`: 计算有效进程数
-- `get_resource_config()`: 获取全局单例
-- `reset_to_defaults()`: 重置为默认配置
-
-## 用法
-
-### 基本用法
+```bash
+python -m flash.flash_run.env.resource_config    # 查看当前装置判档与资源配置
+```
 
 ```python
-# ★ `env/__init__.py` 只导出下面这两个；FlashEnvManager / get_env_manager
-#   需从各自的模块导入（见第 2 行）。
-from flash.flash_run.env import FlashResourceConfig, get_resource_config
+# env/__init__.py 只导出这两个；FlashEnvManager 需从 env_manager 导入
+from flash.flash_run.env import FlashEnvironment, FlashResourceConfig, get_resource_config
 from flash.flash_run.env.env_manager import FlashEnvManager, get_env_manager
 
-# 获取环境管理器 (单例)
-mgr = get_env_manager()
-
-# 列出所有环境
+mgr = get_env_manager()                     # 单例
 for env in mgr.list_environments():
     print(f"{env.name}: {env.description}")
-
-# 切换环境
 mgr.set_active("supercomputer_nc_e")
-
-# 获取当前环境
 env = mgr.get_active()
-print(f"当前环境: {env.name} ({env.env_type})")
-
-# 生成运行命令
 cmd = env.build_run_command(par_file="flash.par", nproc=4)
-print(cmd)
 
-# 获取资源配置
 rc = get_resource_config()
 print(rc.summary())
 ```
@@ -114,163 +45,35 @@ print(rc.summary())
 ### 添加新环境
 
 ```python
-from flash.flash_run.env import FlashEnvironment, FlashEnvManager
-
-mgr = FlashEnvManager()
-
-# 创建新环境
 new_env = FlashEnvironment(
     name="my_hpc",
     env_type="ssh_slurm",
     description="我的超算环境",
-    ssh_credential="my_ssh",
+    ssh_credential="my_ssh",                 # 凭据键名（见 _core/credentials）
     remote_flash_home="~/my_flash/FLASH4.8",
     remote_work_dir="~/my_flash/run",
     default_nproc=64,
     default_walltime="04:00:00",
 )
-
-# 添加到管理器
-mgr.add(new_env)
-print(f"已添加环境: {new_env.name}")
+mgr.add_environment(new_env)
 ```
 
-### 修改资源配置
+### FlashEnvironment 主要属性/方法
 
-```python
-from flash.flash_run.env.resource_config import get_resource_config
+属性：`name`（唯一标识）、`env_type`（`"local_wsl"` | `"ssh_slurm"`）、`user_name`（路径前缀，**运行期解析**）、`flash_home`/`remote_flash_home`/`remote_work_dir`、`ssh_credential`、`default_nproc`、`default_walltime`。
+方法：`build_run_command(par_file, nproc, flash_exe)`、`build_sbatch_script(...)`、`get_effective_nproc(dimension, total_cpus)`、`get_mem_per_job_gb(...)`。
 
-rc = get_resource_config()
+### FlashEnvManager 主要方法
 
-# 修改本地 1D 配置
-rc.set_local_config(
-    dimension=1,
-    max_cpu_percent=90,  # 使用 90% CPU
-    max_parallel=2,        # 最多 2 个并行
-)
+`list_environments()` / `get(name)` / `get_active()` / `set_active(name)` / `add(env)` / `remove(name)` / `auto_create_from_credentials()` / `summary()`。
 
-# 修改超算 2D 配置
-rc.set_hpc_config(
-    dimension=2,
-    max_cpu_percent=100,  # 使用 100% CPU
-    max_parallel=2,         # 最多 2 个并行
-)
+## 5. 配置存储
 
-print(rc.summary())
-```
+| 内容 | 位置 |
+|---|---|
+| 环境配置 | `~/.physimx/flash_envs/environments.json` |
+| 资源配置 | `~/.physimx/flash_resource/resource_config.json` |
 
-### 从凭据自动创建环境
+## 6. 导航
 
-```python
-from flash.flash_run.env import FlashEnvManager
-
-mgr = FlashEnvManager()
-
-# 扫描所有 flash_ssh 开头的凭据，自动创建环境
-created = mgr.auto_create_from_credentials()
-print(f"自动创建了 {len(created)} 个环境: {created}")
-```
-
-## 配置存储
-
-环境配置: `~/.physimx/flash_envs/environments.json`
-
-```json
-{
-  "active": "local_wsl",
-  "environments": {
-    "local_wsl": {
-      "name": "local_wsl",
-      "env_type": "local_wsl",
-      "description": "本地 WSL Ubuntu (FLASH 4.8)",
-      "user_name": "hello",   # 默认值；实际由 get_sim_user_dir() 解析（当前机凭据为 QC）
-      "flash_home": "$HOME/<user>/FLASH/FLASH4.8",
-      "mpi_path": "/usr/local/mpich",
-      ...
-    },
-    "supercomputer_nc_e": {
-      "name": "supercomputer_nc_e",
-      "env_type": "ssh_slurm",
-      "description": "ParaCloud 并行云 NC-E (中卫)",
-      "ssh_credential": "flash_ssh",
-      "remote_flash_home": "~/<超算账号>/FLASH/FLASH4.8",
-      ...
-    }
-  }
-}
-```
-
-资源配置: `~/.physimx/flash_resource/resource_config.json`
-
-```json
-{
-  "local": {
-    "1d": {"max_cpu_percent": 80, "max_parallel": 3},
-    "2d": {"max_cpu_percent": 80, "max_parallel": 2},
-    "3d": {"max_cpu_percent": 80, "max_parallel": 1}
-  },
-  "hpc": {
-    "1d": {"max_cpu_percent": 95, "max_parallel": 4, "mem_per_job_auto": true},
-    "2d": {"max_cpu_percent": 95, "max_parallel": 3, "mem_per_job_auto": true},
-    "3d": {"max_cpu_percent": 95, "max_parallel": 2, "mem_per_job_auto": true}
-  }
-}
-```
-
-## 命令行用法
-
-### 查看/修改资源配置
-
-```bash
-# 查看所有配置
-python -m flash.flash_run.env.resource_config
-
-# 查看本地 1D 配置
-python -m flash.flash_run.env.resource_config local 1
-
-# 修改本地 1D 配置 (CPU 90%, 2 并行)
-python -m flash.flash_run.env.resource_config local 1 90 2
-
-# 查看超算 2D 配置
-python -m flash.flash_run.env.resource_config hpc 2
-
-# 重置为默认配置
-python -m flash.flash_run.env.resource_config reset
-```
-
-## 预定义环境
-
-安装后自动创建 3 个默认环境:
-
-1. **local_wsl**: 本地 WSL Ubuntu
-   - flash_home: `$HOME/<user>/FLASH/FLASH4.8`
-   - 默认 4 进程
-
-2. **supercomputer_nc_e**: ParaCloud NC-E (中卫)
-   - 凭据: `flash_ssh`
-   - 默认 32 进程, 2 小时墙钟时间
-
-3. **supercomputer_bscc_t6**: ParaCloud BSCC-T6 (中卫)
-   - 凭据: `flash_ssh_2`
-   - 默认 32 进程, 2 小时墙钟时间
-
-## 注意事项
-
-1. **user_name 自动同步**: 环境管理器会自动从凭据系统同步 `user_name`，确保路径正确。
-
-2. **路径构造**: 如果创建环境时不传 `flash_home` / `remote_flash_home` / `remote_work_dir`，会自动从 `user_name` 构造:
-   - `flash_home`: `~/${user_name}/FLASH/FLASH4.8`
-   - `remote_flash_home`: `~/${user_name}/FLASH/FLASH4.8`
-   - `remote_work_dir`: `~/${user_name}/FLASH/run`
-
-3. **资源配置维度**: 修改资源配置后，运行命令时会自动使用新配置。
-
-4. **超算内存计算**: 如果 `mem_per_job_auto=True`，每作业内存会自动计算:
-   ```
-   mem_per_job = (总内存 * max_cpu_percent / 100) / max_parallel
-   ```
-
-## 依赖
-
-- `flash._core.credentials`: 密码管理
-- `paramiko`: SSH/SFTP (仅远程环境)
+上级：[../README.md](../README.md)（含工程铁律） · 相邻：[../remote/README.md](../remote/README.md)、[../modes/README.md](../modes/README.md)
