@@ -26,7 +26,7 @@ _core/
 | 文件 | 行数 | 职责 | 关键入口 | 备注 |
 |---|---|---|---|---|
 | `__init__.py` | 40 | 包导出 | `BaseSimulator`、`FlashConfig`、凭据 API | |
-| `config.py` | 115 | 运行配置（FlashConfig dataclass：mode/ssh_*/nodes/ppn/walltime/flash_exe_path） | `get_default_config()`、`FlashConfig.load/save`、`main()`（`flash-setup` 入口） | 2026-11-05 自 `flash/config/` 迁入；超算主机权威来源是 hpc_accounts.json（见 credentials/README §4），本模块 ssh_* 字段仅为临时覆盖 |
+| `config.py` | 115 | 运行配置（FlashConfig dataclass：mode/ssh_*/nodes/ppn/walltime/flash_exe_path） | `get_default_config()`、`FlashConfig.load/save`、`main()`（`flash-setup` 入口） | 2026-11-05 自原 config/ 包迁入；超算主机权威来源是 hpc_accounts.json（见 credentials/README §4），本模块 ssh_* 字段仅为临时覆盖 |
 | `interface.py` | 89 | `BaseSimulator` 抽象基类（run/capabilities 契约） | `BaseSimulator` | |
 | `schema.py` | 117 | 仿真请求/结果/能力卡 dataclass | `SimulationRequest`、`SimulationResult`、`CapabilityCard` | 免 pydantic |
 | `registry.py` | 35 | 模拟器注册表（名字→实例） | `register`、`get_simulator` | |
@@ -73,4 +73,4 @@ flash/__init__.py               ──再导出──> FlashConfig/get_default_c
 
 ## 8. 导航
 
-上级：[../](../README.md)（flash 包根 README） · 子包：[credentials/README.md](credentials/README.md) · 下游：[../flash_run/README.md](../flash_run/README.md)、[../scenarios/README.md](../scenarios/README.md)
+上级：[../../README.md](../../README.md)（仓库根 README） · 子包：[credentials/README.md](credentials/README.md) · 下游：[../flash_run/README.md](../flash_run/README.md)、[../scenarios/README.md](../scenarios/README.md)
