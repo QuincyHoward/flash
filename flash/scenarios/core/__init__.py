@@ -8,7 +8,7 @@ scenarios 根只保留包组织（__init__/__main__）与分区目录
     registry      声明式场景注册表（get_scenario/register）
     discovery     scene.json 零注册发现器
     catalog       可执行场景目录（CLI 数据源）
-    cli           python -m flash.scenarios.core.cli（统一入口）
+    cli           python -m flash.scenarios.core.entry.cli（统一入口）
     launcher      场景目录 run.py 薄启动器实现
     simulator     FlashSimulatorEngine
     policies      场景族执行策略（R-LAYER-03：场景层唯一归属）

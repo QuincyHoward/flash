@@ -40,12 +40,12 @@
 ★ policy 用符号引用
 
   manifest 里写 ``"policy": "public_scene"|"snb"|"default"``，
-  本模块映射到 ``flash.scenarios.core.policies`` 的策略常量
+  本模块映射到 ``flash.scenarios.core.scene_reg.policies`` 的策略常量
   （策略对象仍住场景层 ⇒ R-LAYER-03 合规）。
 
 用法::
 
-    from flash.scenarios.core.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
 
     for meta in iter_scene_manifests():
         print(meta.name, meta.kind, meta.module)
@@ -126,7 +126,7 @@ class SceneMeta:
     def policy_object(self):
         """解析 policy 符号 → 策略常量（延迟 import 防环）。"""
         from flash.flash_run.execution import DEFAULT_POLICY
-        from flash.scenarios.core.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
+        from flash.scenarios.core.scene_reg.policies import PUBLIC_SCENE_POLICY, SNB_POLICY
         return {
             "default": DEFAULT_POLICY,
             "public_scene": PUBLIC_SCENE_POLICY,
@@ -137,9 +137,13 @@ class SceneMeta:
 def scenario_base() -> Path:
     """scenarios 包目录（发现基准）。
 
-    ★ 本模块住 ``scenarios/core/`` ⇒ 包根在**上一级**。
+    ★ 2026-11-05 功能化重组：本模块移入 ``core/scene_reg/``，层级算术
+      （原 ``parent.parent``）会随文件移动失效 —— 改经
+      ``scene_paths.scenarios_root()`` 统一定位（单一事实源）。
     """
-    return Path(__file__).resolve().parent.parent
+    from flash.scenarios.core.scene_paths import scenarios_root
+
+    return scenarios_root()
 
 
 # 兼容别名（文档/测试用）

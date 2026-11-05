@@ -17,7 +17,7 @@
     python verify_all_scenes.py --strict         # 有失败退出码 1
 
 动态冒烟（真实极短运行）请按场景单独执行:
-    python -m flash.scenarios.core.cli run <场景> --tmax 1e-11
+    python -m flash.scenarios.core.entry.cli run <场景> --tmax 1e-11
 """
 from __future__ import annotations
 
@@ -42,8 +42,8 @@ def main(argv=None) -> int:
     ap.add_argument("--strict", action="store_true")
     a = ap.parse_args(argv)
 
-    from flash.scenarios.core.discovery import iter_scene_manifests
-    from flash.scenarios.core.catalog import CATALOG
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.catalog import CATALOG
     from flash.scenarios.core.anchors import anchors_table
 
     results = []
@@ -76,7 +76,7 @@ def main(argv=None) -> int:
     # 2) engine 型 scenario 实例
     for name in [r["name"] for r in results if r["kind"] == "engine" and r["ok"]]:
         try:
-            from flash.scenarios.core.registry import get_scenario
+            from flash.scenarios.core.scene_reg.registry import get_scenario
             get_scenario(name)
         except Exception as e:
             for r in results:

@@ -151,7 +151,7 @@ dx=域宽/(iProcs*nxb), 且 nproc 必须严格等于 iProcs。
 
 ## ★ 新超算入口 (2026-10-27, flash_run 统一提交链)
 
-    python -m flash.scenarios.core.cli submit SNBVTi2umx [--run-id NNNNNN]
+    python -m flash.scenarios.core.entry.cli submit SNBVTi2umx [--run-id NNNNNN]
     (声明在 flash/scenarios/hpc_job.py::SCENE_HPC_JOBS["SNBVTi2umx"];
      gen_mode=local_upload: 本地生成 + SFTP 上传; launcher=mpiexec;
      ntasks=125 nodes=3; setup_common=SNB_UG_SETUP_COMMON (+ug 精确网格);

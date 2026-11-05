@@ -43,7 +43,7 @@ else:
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
-from flash.scenarios.core.base import SimulationScenario
+from flash.scenarios.core.engine.base import SimulationScenario
 from flash.scenarios.scripts.time_control import fit_time_controls
 
 # ============================================================
@@ -1482,7 +1482,7 @@ def main(argv=None) -> int:
         return 0
 
     if args.cmd == "run":
-        from flash.scenarios.core.simulator import FlashSimulatorEngine
+        from flash.scenarios.core.engine.simulator import FlashSimulatorEngine
         engine = FlashSimulatorEngine(scenario_txn)
         res = engine.run(
             runs_dir=str(_HERE / "runs"),

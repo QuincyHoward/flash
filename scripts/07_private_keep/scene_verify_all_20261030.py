@@ -178,7 +178,7 @@ def main() -> int:
     try:
         # ── 场景清单 ──
         sys.path.insert(0, str(ROOT))
-        from flash.scenarios.core.catalog import list_scenes
+        from flash.scenarios.core.scene_reg.catalog import list_scenes
         scenes = list_scenes()
         log(f"共 {len(scenes)} 个注册场景")
 

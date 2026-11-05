@@ -1008,7 +1008,7 @@ def _check_env(strict: bool = False) -> int:
 
     try:
         import flash.scenarios as _scen
-        from flash.scenarios.core.registry import list_scenarios
+        from flash.scenarios.core.scene_reg.registry import list_scenarios
 
         _scenes = list_scenarios()
         _n_ok = sum(1 for _, d in _scenes if d != "(加载失败)")

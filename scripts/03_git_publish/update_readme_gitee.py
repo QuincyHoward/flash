@@ -88,8 +88,8 @@ Clone with HTTPS: `git clone https://gitee.com/physimx/flash.git`
 ## Quick Start
 
 ```python
-from flash.scenarios.core.registry import get_scenario
-from flash.scenarios.core.simulator import FlashSimulatorEngine
+from flash.scenarios.core.scene_reg.registry import get_scenario
+from flash.scenarios.core.engine.simulator import FlashSimulatorEngine
 
 scenario = get_scenario("thin_layer_sandwich_si")
 engine = FlashSimulatorEngine(scenario, verbose=True)

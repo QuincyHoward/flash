@@ -54,7 +54,7 @@ def scene_module(name: str, stem: str = "") -> ModuleType:
         cached = _cache.get(modname)
         if cached is not None:
             return cached
-    from flash.scenarios.core.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
 
     meta = next((m for m in iter_scene_manifests() if m.name == name), None)
     if meta is None:

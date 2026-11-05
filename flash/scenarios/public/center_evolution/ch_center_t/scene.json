@@ -4,7 +4,7 @@
   "aliases": [
     "laserslab_t"
   ],
-  "description": "1D LaserSlab（ch_center 克隆实验版；auto/wsl/hpc-remote/hpc-insitu）",
+  "description": "1D LaserSlab（CH 中心层，官方一键场景；auto/wsl/hpc-remote/hpc-insitu）",
   "policy": "default",
   "module": ".laserslab1d_local_custom",
   "sim_name": "laserslab1d_t",

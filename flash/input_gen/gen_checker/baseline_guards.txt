@@ -1,7 +1,11 @@
 # 规则基线（自动生成，勿手改）——`python -m flash.input_gen.gen_checker.check_scene_sources --freeze`
 # 语义：本清单内 = 已知历史债（只报告）；清单外 = 新增违规（RC=1）。
 # ★ 只降不升：修复后重跑 --freeze 会自动收缩；不要手工追加条目。
-# 生成时间基线条目数: 90
+# 生成时间基线条目数: 97
+R-ID-01	flash/output_pro/PlasmaPy/install_editable.py
+R-ID-01	flash/output_pro/PlasmaPy/install_from_source.sh
+R-ID-01	flash/output_pro/docs/PlasmaPy_bridge_测试报告.md
+R-ID-01	flash/output_pro/docs/PlasmaPy在output_pro中的使用指南.md
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/_backup_t004_20260911_205949/scripts/run/run_t004.py
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/t001/run_snb.py
 R-SCENE-02	flash/scenarios/private/SNB/SNBtest/Test/t002/common/t002_common.py
@@ -32,8 +36,9 @@ R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi1.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi2.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi/VTi3.py
 R-SCENE-02	flash/scenarios/private/tracer/VTi_oldstyle/build_vti_oldstyle.py
-R-SCENE-03	flash/scenarios/core/simulator.py
+R-SCENE-03	flash/scenarios/core/engine/simulator.py
 R-SCENE-03	flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
+R-SCENE-03	flash/scenarios/public/center_evolution/ch_center_t/laserslab1d_local_custom.py
 R-SCENE-05	flash/scenarios/flash_demo/demo_hpc/laserslab1d_hpc_demo_batch.py
 R-SCENE-05	flash/scenarios/flash_demo/demo_hpc/laserslab1d_supercomputer_demo.py
 R-SCENE-05	flash/scenarios/flash_demo/hello_flash/deploy_flash.py
@@ -67,6 +72,7 @@ R-SCENE-05	flash/scenarios/private/tracer/VTi/VTi2.py
 R-SCENE-05	flash/scenarios/private/tracer/VTi/VTi3.py
 R-SCENE-05	flash/scenarios/private/tracer/VTi_oldstyle/build_vti_oldstyle.py
 R-SCENE-05	flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
+R-SCENE-05	flash/scenarios/public/center_evolution/ch_center_t/laserslab1d_local_custom.py
 R-SCENE-06	flash/scenarios/flash_demo/hello_flash/deploy_flash.py
 R-SCENE-07	flash/scenarios/flash_demo/demo_local/laserslab1d_local_demo.py
 R-SCENE-07	flash/scenarios/private/tracer/Au/VAuTi/VAuTi.py
@@ -92,3 +98,4 @@ R-SCENE-07	flash/scenarios/private/tracer/VTi/VTi1.py
 R-SCENE-07	flash/scenarios/private/tracer/VTi/VTi2.py
 R-SCENE-07	flash/scenarios/private/tracer/VTi/VTi3.py
 R-SCENE-07	flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
+R-SCENE-07	flash/scenarios/public/center_evolution/ch_center_t/laserslab1d_local_custom.py

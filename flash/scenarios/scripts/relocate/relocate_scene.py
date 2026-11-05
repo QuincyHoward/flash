@@ -48,7 +48,7 @@ SCAN_EXCLUDE_PARTS = {"__pycache__", "flash_output", "sim_output", "flash_input"
 
 
 def _scene_names() -> set:
-    from flash.scenarios.core.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
     return {m.name for m in iter_scene_manifests()}
 
 

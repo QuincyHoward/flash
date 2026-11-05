@@ -146,7 +146,7 @@ def main(argv=None) -> int:
 
     # 4. 后置校验
     sys.path.insert(0, str(REPO))
-    from flash.scenarios.core.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
     names = [m.name for m in iter_scene_manifests()]
     dup = [n for n in names if names.count(n) > 1]
     if dup:

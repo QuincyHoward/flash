@@ -111,7 +111,7 @@ def test_scene08_register_call_in_scenarios(tmp_path):
     """去注册化（2026-10-27）：场景层不得再调 registry.register(...)。"""
     repo = _make_repo(tmp_path, {
         "flash/scenarios/public/bad_scene/__init__.py": (
-            'from flash.scenarios.core.registry import register\n'
+            'from flash.scenarios.core.scene_reg.registry import register\n'
             'register("bad_scene", "flash.scenarios.public.bad_scene", "scenario")\n'
         ),
     })
@@ -203,7 +203,7 @@ def test_good_scene_has_zero_violations(tmp_path):
             SCENE = SceneSpec(name="good", sim_name="Good", objdir="obj", basenm="g_")
 
             def main(argv=None):
-                from flash.scenarios.core.cli import run_scene_cli
+                from flash.scenarios.core.entry.cli import run_scene_cli
                 return run_scene_cli(SCENE, argv)
         """,
     })
