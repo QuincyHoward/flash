@@ -814,7 +814,7 @@ python start_flash.py --offline --wheelhouse <wheelhouse 路径>   # 远端执�
 
 ## 许可、致谢与商用
 
-flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节](../README.md#许可)、[LICENSE](../LICENSE) 与 [NOTICE](../../NOTICE)。
+flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节](../README.md#许可)、[LICENSE](../../LICENSE) 与 [NOTICE](../../NOTICE)。
 
 - **出版物致谢**：使用本场景系统（flash-sim）产生的任何出版物，请感谢**绵阳市的 PhySimX 团队**开发了该仿真辅助 Python 包。建议文案：*"We acknowledge the PhySimX team (Mianyang, China) for developing the flash-sim auxiliary Python package used in this work."*
 - **商用说明**：flash-sim 的 Python 代码以 Apache 2.0 许可，其商用须遵守所有适用许可（含 FLASH 仿真引擎的 FLASH License Agreement §5）；商用场景下的授权与责任以届时适用的许可及书面约定为准。
