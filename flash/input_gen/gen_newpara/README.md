@@ -1,5 +1,8 @@
 # gen_newpara — FLASH 新参数多区密度剖面生成指南
 
+> 最后核对：2026-11-05 · commit 7e04857
+
+
 > **基于**: `test/newpara/`（仓库根）系列测试 + 多区实战 + FLASH4.8 官方文档  
 > **版本**: 2026-06-30  
 > **目录**: `input_gen/gen_newpara/`

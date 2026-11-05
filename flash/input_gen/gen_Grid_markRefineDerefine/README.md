@@ -3,26 +3,11 @@
 > FLASH AMR 网格细化/粗化自定义约束（逐材料区域层级约束）的一站式生成与说明文档。
 > 自动生成器 + 手写参考实现（来自 `thin_layer_sandwich` 场景）双轨并存。
 
----
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动 generator.py 后必须同步本文
 
-**flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
+**一句话职责**：生成 FLASH AMR 自定义约束 `Grid_markRefineDerefine.F90`（逐材料区域的细化层级约束，边界框重叠法），并沉淀 thin_layer_sandwich 场景验证过的手写模板要点。
 
-## 仓库地址 (Repository)
-
-本项目托管于 Gitee (码云), 支持 HTTPS 克隆与在线浏览:
-
-```
-https://gitee.com/physimx/flash
-```
-
-| 操作 | 命令 |
-|------|------|
-| **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
-| **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
-| **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新) |
-| **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
-
-> 发布包已通过全局测试 (236 passed / 1 skipped) 与 FLASH 版权合规检查, (详见 [许可](#许可) 与 [NOTICE](NOTICE))。
+**文件清单**：`generator.py`（567 行，`GridMarkRefineDerefineGenerator` + `ZoneConfig`）为本包唯一代码。
 
 ---
 
@@ -33,7 +18,7 @@ https://gitee.com/physimx/flash
 本子包提供**两种工作方式**，互为补充：
 
 1. **自动生成器（推荐）** —— `generator.py` 中的 `GridMarkRefineDerefineGenerator`，按参数生成基于**模式 C3（边界框重叠法）**的约束代码。
-2. **手写参考实现** —— 来自 `scenarios/collision_compression/thin_layer_sandwich/` 场景的 `sim_input_al/Grid_markRefineDerefine.F90` 与 `sim_input_si/Grid_markRefineDerefine.F90`，是已在实际仿真中验证通过的成品模板。
+2. **手写参考实现** —— 来自 `scenarios/public/sandwich/thin_layer_sandwich/` 场景的 `sim_input_al/Grid_markRefineDerefine.F90` 与 `sim_input_si/Grid_markRefineDerefine.F90`，是已在实际仿真中验证通过的成品模板。
 
 > ⚠️ **文档修订说明**：早期 `GEN_GRID_GUIDE.md` 中「暂无自动生成器，需手动编写或从 refs/ 复制」的描述**已过时**——生成器 `generator.py` 现已存在。本 README 已将其合并并纠正，原 `GEN_GRID_GUIDE.md` 中的「复制/手动编写」步骤仅作为手写参考保留。
 
@@ -54,8 +39,8 @@ https://gitee.com/physimx/flash
 | 方式 | 位置 | 用途 |
 |------|------|------|
 | 自动生成器 | `input_gen/gen_Grid_markRefineDerefine/generator.py` | 参数化生成模式 C3 约束代码 |
-| 手写模板 `al` 变体 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` | 三层靶（Al/CH/He）1D 实测模板 |
-| 手写模板 `si` 变体 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` | 同结构、不同材料表的变体 |
+| 手写模板 `al` 变体 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` | 三层靶（Al/CH/He）1D 实测模板 |
+| 手写模板 `si` 变体 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` | 同结构、不同材料表的变体 |
 
 `thin_layer_sandwich` 场景的物理背景：**1D 笛卡尔坐标、激光烧蚀多层靶**，域范围 `x ∈ [-200, 200] µm`（实际 `.par` 中 `xmin=-0.045, xmax=0.045` cm），材料对称布局：
 
@@ -294,10 +279,10 @@ res_max = |xmax - xmin| / (NXB * nblockx * 2^(lrefine_min-1))
 | 类型 | 路径 |
 |------|------|
 | 自动生成器 | `input_gen/gen_Grid_markRefineDerefine/generator.py` |
-| 手写 `al` 模板 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` |
-| 手写 `si` 模板 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` |
-| 配套半宽变量声明 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_al/Simulation_data.F90` |
-| 配套参数文件 | `scenarios/collision_compression/thin_layer_sandwich/sim_input_al/grid_rede.par` |
+| 手写 `al` 模板 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` |
+| 手写 `si` 模板 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` |
+| 配套半宽变量声明 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Simulation_data.F90` |
+| 配套参数文件 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/grid_rede.par` |
 
 > ⚠️ **废弃引用**：早期文档提到的 `refs/Grid_markRefineDerefine.F90`、`refs/Al_CH_He_laser_cart1D/`、`refs/Grid_markRefineDerefine_编写指南.md` 等 `refs/` 目录**当前不存在**。请以本仓库内 `thin_layer_sandwich` 的 F90 文件作为权威手写模板。
 
@@ -310,10 +295,10 @@ res_max = |xmax - xmin| / (NXB * nblockx * 2^(lrefine_min-1))
 - **出版物致谢**：使用 flash-sim 产生的任何出版物，请感谢**绵阳市的 PhySimX 团队**开发了该仿真辅助 Python 包。建议文案：*"We acknowledge the PhySimX team (Mianyang, China) for developing the flash-sim auxiliary Python package used in this work."*
 - **商用说明**：flash-sim 的 Python 代码以 Apache 2.0 许可，其商用须遵守所有适用许可（含 FLASH 仿真引擎的 FLASH License Agreement §5），商用场景下的授权与责任以届时适用的许可及书面约定为准。
 
-完整条款见根目录 [README.md 许可章节](../../README.md#许可)、[LICENSE](../../LICENSE) 与 [NOTICE](../../NOTICE)。
+完整条款见根目录 [README.md 许可章节](../../README.md#许可)、[LICENSE](../../../LICENSE) 与 [NOTICE](../../../NOTICE)。
 
 ---
 
-**文档版本**: 2.0（合并 `README.md` + `GEN_GRID_GUIDE.md`，并补充 `thin_layer_sandwich` F90 参考实现）
-**最后更新**: 2026-08-03
+**文档版本**: 3.0（模板化重组：去仓库级污染段、场景路径随 2026-11 收纳整理更新、GEN_GRID_GUIDE.md 已并入后删除）
+**最后核对**: 2026-11-05
 **维护**: PhySimX Team

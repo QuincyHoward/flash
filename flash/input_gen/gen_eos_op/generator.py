@@ -205,7 +205,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="au_ionmix10",
-            filename="Others_data/Au/Z79_1.00-20261009_1256.cn4",
+            filename="Gen_eos_op_data/Z79_1.00-20261009_1256/Z79_1.00-20261009_1256.cn4",
             aliases=["au_ionmix10", "au-ionmix10", "Z79_1.00-20261009_1256",
                      "z79_1.00-20261009_1256", "au10", "金_10群"],
             description="金 (Au, Z=79)，ionmix 新生成表 ntemp=51, ndens=31, ngrups=10 "
@@ -218,7 +218,7 @@ class EOSOpacityGenerator:
         # 供 layer_tracer CH/Ti 场景与 gold 变体使用。
         EOSMaterial(
             canonical="he_badger",
-            filename="Gen_eos_op_data/He-BADGER-TOPS-Final/He-BADGER-TOPS-Final.cn4",
+            filename="Gen_eos_op_data/badger_qc/He-BADGER-TOPS-Final.cn4",
             aliases=["he_badger", "he-badger", "he_badger_tops", "He-BADGER-TOPS-Final",
                      "helium_badger", "氦_badger"],
             description="氦 (He, Z=2)，ionmix 自生成表 ntemp=61, ndens=71 (BADGER-TOPS)",
@@ -226,7 +226,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="ch_qc",
-            filename="Gen_eos_op_data/CH-QC-1-001/CH-QC-1-001.cn4",
+            filename="Gen_eos_op_data/badger_qc/CH-QC-1-001.cn4",
             aliases=["ch_qc", "ch-qc-1-001", "CH-QC-1-001", "ch_qc_1_001", "qc_ch",
                      "碳氢混合物_qc"],
             description="碳氢混合物 (C0.5-H0.5, Z=6+1)，ionmix 自生成表 ntemp=61, ndens=71 (QC)",
@@ -234,7 +234,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="ch_qc_au",
-            filename="Gen_eos_op_data/CH-QC-1-001_Au/CH-QC-1-001_Au.cn4",
+            filename="Gen_eos_op_data/badger_qc/CH-QC-1-001_Au.cn4",
             aliases=["ch_qc_au", "ch-qc-1-001_au", "CH-QC-1-001_Au", "ch_au",
                      "ch_qc_1_001_au"],
             description="碳氢混合物 (C0.5-H0.5) 掺金变体，ionmix 自生成表 ntemp=61, ndens=71",
@@ -242,7 +242,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="ch_qc_t",
-            filename="Gen_eos_op_data/CH-QC-1-001_T/CH-QC-1-001_T.cn4",
+            filename="Gen_eos_op_data/badger_qc/CH-QC-1-001_T.cn4",
             aliases=["ch_qc_t", "ch-qc-1-001_t", "CH-QC-1-001_T", "ch_t",
                      "ch_qc_1_001_t"],
             description="碳氢混合物 (C0.5-H0.5) 掺氚变体，ionmix 自生成表 ntemp=61, ndens=71",
@@ -250,7 +250,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="ch_badger",
-            filename="Gen_eos_op_data/CH-BADGER-TOPS-Final/CH-BADGER-TOPS-Final.cn4",
+            filename="Gen_eos_op_data/badger_qc/CH-BADGER-TOPS-Final.cn4",
             aliases=["ch_badger", "ch-badger", "CH-BADGER-TOPS-Final", "ch_badger_tops",
                      "ch_badger_final"],
             description="CH 靶高分辨自生成表 ntemp=61, ndens=71 (BADGER-TOPS-Final)",
@@ -258,7 +258,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="ti_badger",
-            filename="Gen_eos_op_data/Ti-BADGER-TOPS/Ti-BADGER-TOPS.cn4",
+            filename="Gen_eos_op_data/badger_qc/Ti-BADGER-TOPS.cn4",
             aliases=["ti_badger", "ti-badger", "Ti-BADGER-TOPS", "ti_badger_tops",
                      "titanium_badger", "钛_badger"],
             description="钛 (Ti, Z=22)，ionmix 自生成表 ntemp=61, ndens=71 (BADGER-TOPS)",
@@ -266,7 +266,7 @@ class EOSOpacityGenerator:
         ),
         EOSMaterial(
             canonical="v_badger",
-            filename="Gen_eos_op_data/V-BADGER-TOPS/V-BADGER-TOPS.cn4",
+            filename="Gen_eos_op_data/badger_qc/V-BADGER-TOPS.cn4",
             aliases=["v_badger", "v-badger", "V-BADGER-TOPS", "v_badger_tops",
                      "vanadium_badger", "钒_badger"],
             description="钒 (V, Z=23)，ionmix 自生成表 ntemp=61, ndens=71 (BADGER-TOPS)",

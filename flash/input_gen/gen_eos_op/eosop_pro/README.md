@@ -1,5 +1,8 @@
 # eosop_pro
 
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动 eosop_pro/ 代码后同步本文模块要点
+
+
 > `Multi1D++Portable20241128/matter++` 的物质数据（EOS / 不透明度 / Z̄ / NLTE /
 > 冷不透明度 / 雨贡纽）→ **统一解析 → 统一网格 → 双轨 HDF5**。
 >
@@ -227,7 +230,7 @@ MULTI_EOSOP_MONOTONIC_POLICY=average \
 | 想做什么 | 读 |
 |---|---|
 | 搞清楚方法论 | [docs/02 两段式执行](docs/02_两段式执行.md) |
-| 查某个后缀是什么 | [docs/04](docs/04_格式规格_F1_MULTI反演EOS.md) ~ [docs/09](docs/09_格式规格_F6_其他数据源.md) |
+| 查某个后缀是什么 | [docs/20 格式规格手册](docs/20_格式规格手册.md)（04~09 旧规格已归档至 [docs/archive/](docs/archive/)） |
 | **给任意格式我怎么识别** | [docs/11 通用识别协议](docs/11_通用识别协议.md) |
 | 用 h5 数据 | [docs/12 HDF5 模式](docs/12_HDF5模式.md) |
 | 核对单位 | [docs/15 单位换算](docs/15_单位换算.md) |
@@ -236,7 +239,7 @@ MULTI_EOSOP_MONOTONIC_POLICY=average \
 
 ## 依赖
 
-见 [`requirements.txt`](requirements.txt)：`numpy` / `h5py` / `scipy` /
+第三方依赖：`numpy` / `h5py` / `scipy` /
 `matplotlib` / `cryptography`。
 核心解析层（`core/` / `parsers/` / `registry/`）**零第三方依赖** ——
 只用标准库 `re` / `zipfile` / `zlib` / `hashlib`。

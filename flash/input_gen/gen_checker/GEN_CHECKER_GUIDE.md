@@ -171,7 +171,7 @@ else:
 
 ### 2.6 场景集成（ch_center）
 
-`flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py` 的步骤 1
+`flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py` 的步骤 1
 已集成关联检查：文件存在检查 → 内在关联检查 → WSL/HPC 运行。若关联不一致，
 脚本打印 `[FAIL]` 明细并 `return False` 停止，避免带病编译/运行。
 

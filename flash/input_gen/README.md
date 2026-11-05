@@ -1,7 +1,9 @@
 # input_gen — FLASH 仿真输入文件生成器总览
 
-**版本**: 2.0  
-**最后更新**: 2026-07-04  
+> 最后核对：2026-11-05 · commit 7e04857
+
+
+**版本**: 2.1（2026-11-05 模板化核对：元信息块/架构图补 gen_eos_op 子体系/速查表核对）  
 **维护**: PhySimX Team
 
 ---
@@ -53,7 +55,12 @@ input_gen/
 ├── gen_sim_data/          # Simulation_data.F90 生成器
 ├── gen_sim_init/          # Simulation_init.F90 生成器
 ├── gen_sim_initblock/     # Simulation_initBlock.F90 生成器
-├── gen_eos_op/           # EOS/Opacity 数据文件管理器
+├── gen_eos_op/           # EOS/Opacity 数据子体系根
+│   ├── generator.py + GEN_EOS_OP_GUIDE.md   # .cn4 表文件管理（别名感知）
+│   ├── eos_op_data/      # 数据库（6 子目录 / 10 .cn4，2026-11 实测）
+│   ├── eosop_pro/        # matter++ 数据 → 统一解析/网格 → 双轨 HDF5（16 篇 docs）
+│   ├── ionmix/ionmix/    # IONMIX 输入生成 + .cn4 后处理参考实现
+│   └── src/multi_src/    # MULTI 格式历史资料
 ├── gen_shell_script/      # 运行脚本生成器
 ├── gen_checker/           # 依赖检查器 + 绘图工具
 ├── gen_Grid_markRefineDerefine/  # AMR 网格细化参考示例
@@ -330,11 +337,12 @@ print(files)
 - 复制 EOS 文件到目标目录
 - 列出所有可用材料
 
-**数据库目录**: `gen_eos_op/eos_op_data/`
+**数据库目录**: `gen_eos_op/eos_op_data/`（6 子目录 / 10 `.cn4`，2026-11-05 实测；注册表 25 条中 9 条可用，其余文件暂缺、靠 stem 自动发现兜底）
 
-**支持格式**: ionmix4 (`.cn4`), sesame (`.ses`)
+**支持格式**: ionmix4 (`.cn4`)；BADGER-TOPS/QC 外来表已经由 eosop_pro 解析链入库
 
-**文档**: `gen_eos_op/GEN_EOS_OP_GUIDE.md`
+**文档**: [`gen_eos_op/GEN_EOS_OP_GUIDE.md`](gen_eos_op/GEN_EOS_OP_GUIDE.md)（材料注册表 + 能群校验）
+**子体系**: [`eosop_pro/`](gen_eos_op/eosop_pro/README.md)（.cn4 解析/HDF5） · [`ionmix/ionmix/`](gen_eos_op/ionmix/ionmix/README.md)（输入生成 + 参考实现） · `src/multi_src/`（MULTI 资料）
 
 ---
 

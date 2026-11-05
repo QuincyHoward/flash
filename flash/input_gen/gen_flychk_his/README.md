@@ -1,5 +1,8 @@
 # gen_flychk_his — FLASH 数据 → FLYCHK history 输入压缩包
 
+> 最后核对：2026-11-05 · commit 7e04857
+
+
 **版本**: 0.1.0 · **最后更新**: 2026-09-10
 
 把 FLASH（1D）剖面时间序列转成 **NIST FLYCHK 网站可上传的 history 模式输入 zip**
