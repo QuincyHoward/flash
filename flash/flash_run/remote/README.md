@@ -1,381 +1,88 @@
-# FLASH 远程超算部署模块
+# flash_run/remote — 远程超算层
 
-> 子包级 API 文档；模块总览、执行目标判定与工程铁律见上层 [`../README.md`](../README.md)。
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动本目录下 .py 后必须同步本文模块表
 
-通过 SSH 在远程超算上部署、运行、管理 FLASH 仿真。
+## 1. 职责定位
 
-## 功能
+超算远程执行的全部实现：SSH 会话（**全仓唯一实现** `RemoteSession`）、统一命令执行器、SLURM 作业控制、作业目录拓扑/脚本生成/提交服务、chk-only 产物回收策略。**本包不硬编码任何主机/端口/线路**——路由与账户信息一律来自 `~/.physimx/flash/hpc_accounts.json`（权威声明见 [`../../_core/credentials/README.md`](../../_core/credentials/README.md) §4）。
 
-- **多超算账户支持**: 自动加载所有 `flash_ssh*` 凭据
-- **SSH 多路由自动选择**: TCP 延迟测试，选择最佳线路
-- **FLASH 远程安装**: 一键安装 (结合 FirstRun)
-- **SBATCH 作业管理**: 提交、监控、取消、等待
-- **文件传输**: 上传/下载仿真文件
-- **结果分析**: 下载并分析 HDF5 输出
+## 2. 模块清单
 
-## 主要类
+| 文件 | 行数 | 职责 | 关键入口 |
+|---|---|---|---|
+| `__init__.py` | 21 | 子包声明 | — |
+| `session.py` | 719 | ★ **RemoteSession 唯一实现**（ssh CLI / paramiko 双通道 + 动态路由）；15 个场景/框架消费方的唯一 SSH 底座 | `RemoteSession` |
+| `executors.py` | 288 | 统一命令执行器：local/wsl/ssh/hpc 四 target 共用唯一命令面 | `make_executor`、`CommandExecutor` 族 |
+| `slurm_control.py` | 322 | SLURM 作业控制薄层（三模式统一） | `submit`、`job_state`、`latest_job_by_name` |
+| `job_layout.py` | 427 | 超算作业**目录拓扑**与**资源规格**唯一实现点 | `JobLayout`、`ResourceSpec`、`resolve_layout` |
+| `job_scripts.py` | 271 | 超算作业体生成器（stage → build → run → archive） | `render_job_body` |
+| `job_submit.py` | 224 | 通用作业提交服务（不含场景信息） | `JobRequest`、`render_job`、`submit_job` |
+| `fetch_policy.py` | 139 | chk-only 下载策略——全场景唯一来源（plt 默认不回传） | `classify_names`、`pick_frames` |
+| `artifacts.py` | 79 | 产物回收——`fetch_policy` 的唯一执行器 | `fetch_artifacts` |
+| `route_tester.py` | 485 | SSH 多路由 TCP 延迟实测与自动择优（缓存 `~/.physimx/route_cache/`） | `RouteTester`、`main()` |
+| `remote_deploy.py` | 811 | ⚠️ **兼容壳**：旧 `FlashRemoteDeploy` 门面，内部已委托新模块；不推荐新代码使用 | `FlashRemoteDeploy`（历史 API） |
+| `remote_workflow.py` | 143 | 超算完整工作流脚本（临时调试用） | CLI |
+| `remote_check.py` | 71 | 远程环境检查（临时调试用） | CLI |
+| `ssh_check.py` | 108 | 连接→检查→分析→绘图→下载 调试链（临时） | CLI |
 
-### RouteTester
+## 3. 作业提交链（新主线）
 
-SSH 多路由延迟测试器。
-
-**功能**:
-- 测试所有路由的 TCP 连接延迟 (SYN-ACK)
-- 自动选择延迟最低的线路
-- 缓存最佳路由结果
-- 支持 `<超算账号>` 和 `<超算账号>` 两个账号
-
-**预定义路由**:
-
-`ROUTES_SCFA2696` (9 条):
-1. `ssh.cn-zhongwei-1.paracloud.com:8443`
-2. `ssh.cn-hongkong-1.paracloud.com:22`
-3. `ssh.cn-zhongwei-1.paracloud.com:22`
-4. `ssh.cn-zhongwei-1-v6.paracloud.com:22`
-5. `ssh.cn-zhongwei-1.paracloud.com:2222`
-6. `ssh.cn-zhongwei-1-v6.paracloud.com:2222`
-7. `ssh.cn-zhongwei-cstnet.paracloud.com:22`
-8. `ssh.cn-zhongwei-cstnet-v6.paracloud.com:22`
-9. `ssh.paracloud.com:2222`
-
-`ROUTES_SCH0348` (9 条): 同上，用户名为 `<超算账号>@BSCC-T6`
-
-> **★ 实测延迟参考**（2026-09-12/13，NC-E，网络波动大，仅作量级参考）：
->
-> | 路由 | 实测 TCP | 备注 |
-> |---|---|---|
-> | `ssh.paracloud.com:2222` | **201 ms** | 本次最佳 |
-> | `ssh.cn-zhongwei-1.paracloud.com:2222` | 311 ms | |
-> | `ssh.cn-zhongwei-1.paracloud.com:8443` | 335 ms | |
-> | `ssh.cn-zhongwei-1.paracloud.com:22` | **4582 ms** | 抖动极大，避免 |
-> | `ssh.cn-hongkong-1.paracloud.com:22` | REFUSED | |
-> | 各 `-v6` / `cstnet` 路由 | REFUSED | 本机无 IPv6 / 通道未开 |
->
-> 结论：**每次连接都实测**是必要的 —— 最优路由随网络状况变化，
-> 且 `-v6` / `cstnet` 在本机通常不可达。
-
-**方法**:
-- `test_route(route)`: 测试单条路由
-- `test_all_routes(routes, verify_ssh)`: 测试所有路由
-- `routes_for_account(cred_name, cred_data)`: 获取账号对应路由
-- `account_label(cred_name, cred_data)`: 获取账号标签
-- `_verify_ssh_banner(host, port)`: 验证 SSH 服务
-
-**数据结构**:
-- `RouteResult`: 单条路由测试结果 (host, port, tcp_ms, ping_ms, success)
-- `RouteTestReport`: 测试报告 (results, best, timestamp)
-
-### FlashRemoteDeploy
-
-FLASH 超算远程部署管理器。
-
-**功能**:
-- 自动路由选择 (每次连接时测试)
-- SSH 连接管理 (支持重试)
-- 远程命令执行
-- 文件上传/下载 (SFTP)
-- FLASH 远程安装 (占位符)
-- SBATCH 作业提交/监控/取消
-- 结果下载与分析
-
-**方法**:
-- `connect(retry, retry_interval)`: 建立 SSH 连接
-- `disconnect()`: 断开连接
-- `execute(command, work_dir, timeout)`: 执行远程命令
-- `upload(local_path, remote_path)`: 上传文件
-- `download(remote_path, local_path)`: 下载文件
-- `file_exists(remote_path)`: 检查远程文件是否存在
-- `install_flash(flash_version, install_dir, with_setup)`: 安装 FLASH
-- `submit_job(par_file, flash_exe, nprocs, wall_time, job_name)`: 提交作业
-- `check_job(job_id)`: 检查作业状态
-- `cancel_job(job_id)`: 取消作业
-- `wait_for_job(job_id, poll_interval, timeout)`: 等待作业完成
-- `download_results(remote_output_dir, local_output_dir, pattern)`: 下载结果
-
-## 用法
-
-### 测试 SSH 路由
-
-```python
-from flash.flash_run.remote.route_tester import (
-    RouteTester, ROUTES_SCFA2696, ROUTES_SCH0348,
-    test_and_select_best_route,
-)
-
-# 方法 1: 使用测试器类
-tester = RouteTester()
-report = tester.test_all_routes(ROUTES_SCFA2696, verify_ssh=True)
-print(report.summary())
-
-if report.best:
-    print(f"最佳路由: {report.best.label()} ({report.best.tcp_ms:.0f}ms)")
-
-# 方法 2: 使用便捷函数
-best = test_and_select_best_route(
-    username="<超算账号>@NC-E",
-    routes=ROUTES_SCFA2696,
-    verbose=True,
-)
+```
+job_layout.resolve_layout()      目录拓扑 + ResourceSpec（scratch 探测/输入暂存/并行编译）
+        ↓
+job_scripts.render_job_body()    生成 stage→build→run→archive 作业体
+        ↓
+job_submit.submit_job()          sbatch 提交（通用, 无场景信息）
+        ↓
+slurm_control                     作业状态/取消/按名回查
+        ↓
+fetch_policy → artifacts         chk-only 回收（完整 md5 校验后才删远端）
 ```
 
-### 提交超算作业
+## 4. 路径解析（★ 高频踩坑区，实战沉淀）
 
-```python
-from flash.flash_run.remote.remote_deploy import FlashRemoteDeploy
+### SFTP 不展开 `~`
 
-# 使用 with 语句自动管理连接
-with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
-    # 提交作业
-    job_id = deploy.submit_job(
-        par_file="laser_slab_2d.par",
-        flash_exe="flash4",
-        nprocs=90,
-        wall_time="02:00:00",
-        job_name="LaserSlab2D",
-    )
-    print(f"作业已提交: JobID={job_id}")
+SFTP 协议**没有 shell**，`~` 在 `sftp.put()/get()/stat()` 中是普通字符——"上传成功却找不到文件"的经典来源。`session.py` 的 `_resolve_path()` 已统一处理：`~/` 前缀经同一连接 `printf '%s' "$HOME"` 展开（★ 不要用 `echo ~`，部分环境返回字面 `~`）；但新代码仍建议**一律绝对路径**。
 
-    # 等待作业完成
-    final_state = deploy.wait_for_job(job_id, timeout=3600)
-    print(f"作业结束: {final_state}")
+### 远端文件清单：`find -printf`，不要 `ls -la | awk`
 
-    # 下载结果
-    if final_state == "COMPLETED":
-        downloaded = deploy.download_results(
-            remote_output_dir="$HOME/<user>/FLASH/FLASH4.8/object",
-            local_output_dir="./outputs",
-            pattern="*.h5",
-        )
-        print(f"下载了 {len(downloaded)} 个文件")
-```
-
-### 手动连接与命令执行
-
-```python
-from flash.flash_run.remote.remote_deploy import FlashRemoteDeploy
-
-deploy = FlashRemoteDeploy(credential_name="flash_ssh_2")
-deploy.connect()
-
-# 执行远程命令
-stdout, stderr, exit_code = deploy.execute(
-    command="ls -la $HOME/<user>/FLASH/FLASH4.8/object/",
-    work_dir=None,
-    timeout=60,
-)
-print(stdout)
-
-# 上传文件
-deploy.upload(
-    local_path="./flash_2d.par",
-    remote_path="$HOME/<user>/FLASH/FLASH4.8/object/flash_2d.par",
-)
-
-# 下载文件
-deploy.download(
-    remote_path="$HOME/<user>/FLASH/FLASH4.8/object/flash.log",
-    local_path="./outputs/flash.log",
-)
-
-deploy.disconnect()
-```
-
-### 多超算并行调度
-
-```python
-from flash.flash_run.remote.remote_deploy import deploy_to_all_accounts
-
-# 定义任务函数
-def my_task(deploy, **kwargs):
-    """在所有超算账户上执行的任务。"""
-    deploy.connect()
-    # 执行一些操作
-    stdout, stderr, exit_code = deploy.execute("echo Hello from $(hostname)")
-    return {"stdout": stdout, "exit_code": exit_code}
-
-# 并行部署到所有账户
-results = deploy_to_all_accounts(my_task)
-
-for account, result in results.items():
-    print(f"{account}: {result}")
-```
-
-## 命令行用法
-
-### 测试所有 SSH 路由
-
-```bash
-python -m flash.flash_run.remote.route_tester
-```
-
-输出示例:
-```
-============================================================
-SSH 路由延迟测试报告 (TCP 连接延迟)
-============================================================
-  [OK    ] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443       tcp= 45ms  ping= 48ms
-  [OK    ] <超算账号>@NC-E@ssh.cn-hongkong-1.paracloud.com:22          tcp= 78ms  ping= 82ms
-  [REFUSED] <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:22        tcp= N/A   ping= N/A
-...
-------------------------------------------------------------
-  最佳路由: <超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443  (TCP=45ms, Ping=48ms)
-```
-
-### 指定账号测试
-
-```bash
-python -m flash.flash_run.remote.route_tester <超算账号>
-```
-
-## 配置存储
-
-路由缓存: `~/.physimx/route_cache/best_routes.json`
-
-```json
-{
-  "<超算账号>@NC-E@ssh.cn-zhongwei-1.paracloud.com:8443": {
-    "host": "ssh.cn-zhongwei-1.paracloud.com",
-    "port": 8443,
-    "username": "<超算账号>@NC-E",
-    "tcp_ms": 45.2,
-    "ping_ms": 48.5
-  }
-}
-```
-
-## 作业提交流程
-
-1. **连接超算**: `FlashRemoteDeploy.connect()` 自动选择最佳路由
-2. **上传 .par 文件**: `FlashRemoteDeploy.upload()`
-3. **生成 SBATCH 脚本**: 自动生成并提交
-4. **提交作业**: `sbatch <script>`
-5. **解析 Job ID**: 从 sbatch 输出中提取
-6. **监控作业**: `sacct -j <job_id>`
-7. **等待完成**: 轮询作业状态
-8. **下载结果**: 下载 HDF5 文件
-
-## SBATCH 脚本模板
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=FLASH_LaserSlab
-#SBATCH --partition=cpu
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=90
-#SBATCH --time=02:00:00
-#SBATCH --output=flash_%j.out
-#SBATCH --error=flash_%j.err
-
-# 加载模块
-source /public1/soft/modules/module.sh
-module load hdf5/1.8.18
-module load mpich/3.2-gcc9.3
-
-# 设置环境变量
-export HYPRE_HOME=$HOME/<user>/FLASH/local/hypre
-export LD_LIBRARY_PATH=$HYPRE_HOME/lib:$LD_LIBRARY_PATH
-
-# 运行 FLASH
-cd $HOME/<user>/FLASH/FLASH4.8/object
-mpirun -np 90 ./flash4 -par_file laser_slab_2d.par
-```
-
-## 路径解析（★ 高频踩坑区）
-
-### SFTP **不展开 `~`**
-
-SFTP 协议**没有 shell**，`~` 在 `sftp.put()` / `sftp.get()` / `sftp.stat()` 中
-是**普通字符**。把 `"~/QC/out"` 传给 SFTP 会落到**字面 `~` 目录**，
-而 `ls ~/QC/out`（走 shell，会展开）当然找不到 → "上传成功却找不到文件"。
-
-| 场景 | 正确做法 |
-|---|---|
-| SFTP 路径 | **一律绝对路径**（`/publicfs01/.../home/<user>/...`） |
-| 获取 HOME | `printf '%s' "$HOME"`（★ **不要**用 `echo ~`，部分环境返回字面 `~`） |
-| `execute()` 命令 | 走 shell，`~` 可展开，但**仍建议**统一绝对路径以免歧义 |
-| `upload`/`download`/`file_exists` | 内部调用 `_resolve_path()`，会把 `~/` 前缀替换为真实 HOME |
-
-```python
-with FlashRemoteDeploy(credential_name="flash_ssh") as deploy:
-    home, _, _ = deploy.execute('printf %s "$HOME"')   # 权威做法
-    home = home.strip()
-    deploy.upload("./a.tar.gz", f"{home}/QC/deploy/a.tar.gz")   # 显式绝对路径
-```
-
-### 远端文件清单：用 `find -printf`，不要 `ls -la | awk`
-
-文件名含空格 / 中文 / 特殊字符时，`ls -la | awk '{print $NF}'` 会截断或错位。
-
-```bash
-# ✓ 推荐（GNU find）
-find <dir> -maxdepth 1 -type f -printf '%s %f\n'
-
-# ✓ 或走 Python
-for a in sftp.listdir_attr(remote_dir):
-    print(a.st_size, a.filename)
-```
+文件名含空格/中文时后者会截断错位：`find <dir> -maxdepth 1 -type f -printf '%s %f\n'`，或走 Python `sftp.listdir_attr()`。
 
 ### 下载完整性判据
 
-FLASH `chk` 文件的完整性**只认 md5**。
-"h5py 能打开"与"文件完整"是**正交**的两件事 —— 截断的 HDF5 有时仍可打开
-但读出的数据是错的。**逐文件核对 md5 后再删除远端源**。
+FLASH `chk` 完整性**只认 md5**——"h5py 能打开"与"文件完整"正交（截断的 HDF5 有时仍可打开但数据是错的）。**逐文件核对 md5 后再删远端源**。
 
 ### 断网重试
 
-本项目默认网络不稳定。长下载/上传应带**连接级重试**（每文件独立建连 +
-指数退避），而不是整批失败退出。参考实现见
-`scenarios/private/tracer/SNB/SNBOneCH_ml/scripts/longrun/03_run_16ns_pipeline.py`
-的 `_run_with_net_retry()`。
+长传输应**每文件独立建连 + 指数退避**，而非整批失败退出（参考 `scenarios/private/tracer/SNB/SNBOneCH_ml/scripts/longrun/03_run_16ns_pipeline.py` 的 `_run_with_net_retry()`）。
 
-## 注意事项
+## 5. 快速上手
 
-1. **路由自动选择**: 每次调用 `connect()` 时都会重新测试所有路由，确保使用当前网络条件下最快的线路。
-
-2. **SSH 认证**: TCP 连接成功不代表 SSH 认证成功，需要在连接时使用正确的密码/密钥。
-
-3. **FLASH 安装**: `install_flash()` 目前是占位符实现，真实部署需要手动上传 FLASH 源码并编译。
-
-4. **作业监控**: `check_job()` 使用 `sacct` 命令，确保超算上已安装 SLURM。
-
-5. **文件权限**: 上传/下载文件时，确保有相应的读写权限。
-
-6. **★ SFTP 路径**: 见上节「路径解析」——**绝对路径**是唯一安全做法。
-
-7. **★ 默认超算 = NC-E**（`--account flash_ssh`）。BSCC-T6 为 `flash_ssh_2`。
-
-## 依赖
-
-- `paramiko`: SSH/SFTP 客户端
-- `flash._core.credentials`: 密码管理
-- `flash.input_gen`: 输入文件生成 (可选)
-
-## 调试
-
-### 启用详细日志
-
-```python
-deploy = FlashRemoteDeploy(
-    credential_name="flash_ssh",
-    verbose=True,  # 打印详细日志
-)
+```bash
+python -m flash.flash_run.hpc route-test                  # 路由实测择优（推荐入口）
+python -m flash.flash_run.remote.route_tester             # 模块直跑同上
 ```
 
-### 检查 SSH 连接
-
 ```python
-from flash._core.credentials import load_ssh_credentials
-cred = load_ssh_credentials("flash_ssh")
-print(cred)
+from flash.flash_run.remote.session import RemoteSession
+
+with RemoteSession(credential_name="flash_ssh") as s:     # 路由自动实测择优
+    out, rc = s.run("squeue -u $USER")
+    s.upload("a.tar.gz", "/abs/path/a.tar.gz")            # 绝对路径
 ```
 
-### 手动测试 TCP 连接
+## 6. 注意事项
 
-```python
-import socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.settimeout(5)
-sock.connect(("ssh.cn-zhongwei-1.paracloud.com", 8443))
-print("TCP 连接成功")
-sock.close()
-```
+1. 每次连接都**重新实测路由**——最优线路随网络波动变化（实测 201ms~4582ms 抖动，历史数据见 git 历史），且部分 v6/cstnet 线路常不可达；
+2. TCP 通 ≠ SSH 认证成功；默认超算账户 `flash_ssh`（第二账户 `flash_ssh_2`），凭据管理见 `_core/credentials`；
+3. `install_flash()` 在兼容壳中为占位实现，真实部署走 `job_scripts` 编译链；
+4. 作业监控用 `sacct`，需超算已装 SLURM。
+
+## 7. 测试入口
+
+路由测试命令见 §5；`route_tester.py` 有 `--dry-run` 类自检；产物回收策略由 `fetch_policy.pick_frames` 纯函数可单测。完整链路验证走场景 `hpc-remote` 模式。
+
+## 8. 导航
+
+上级：[../README.md](../README.md)（含工程铁律 §8——SFTP/SLURM/insitu 实战事故） · 相邻：[../modes/README.md](../modes/README.md)、[../env/README.md](../env/README.md) · 凭据权威：[../../_core/credentials/README.md](../../_core/credentials/README.md)
