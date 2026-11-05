@@ -490,6 +490,12 @@ flash/scenarios/**/scripts/*
 # 例外: 场景收纳整理工具链（scripts/relocate）需入库复用
 !flash/scenarios/scripts/relocate
 !flash/scenarios/scripts/relocate/**
+!flash/scenarios/scripts/__init__.py
+!flash/scenarios/scripts/README.md
+!flash/scenarios/scripts/legacy
+!flash/scenarios/scripts/legacy/**
+!flash/scenarios/scripts/checks/README.md
+!flash/scenarios/scripts/validation/README.md
 flash/scenarios/**/*.html
 
 # --------------------------------------------------------------------

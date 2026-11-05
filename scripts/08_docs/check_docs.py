@@ -26,6 +26,7 @@ DEFAULT_EXCLUDES = {
     "PlasmaPy", "flash_output", "sim_output", "flash_input", "sim_input",
     "sim_input_si", "artifacts", "database", "logs_archive", "test_output",
     "reports", "inputfiles", "node_modules", "_legacy_diags",
+    "temp_delete",
 }
 
 MD_PATTERNS = ("README*.md", "*GUIDE*.md", "README.md")
