@@ -1,4 +1,6 @@
 # t002 —— SNB vs FL-SH 简易对比场景
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 > 创建：2026-09-10 ｜ 位置：`flash/scenarios/private/SNB/SNBtest/Test/t002/`
 > 参照：`SNBtest/Test/t001`（SNB 基线）、`tracer/SNB/SNBOneCH`（+ug 最小两区）、

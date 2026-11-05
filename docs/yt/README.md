@@ -1,4 +1,6 @@
 # yt — FLASH 可视化与分析工具
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 > yt (https://yt-project.org) 是一个开源的宇宙学和天体物理仿真数据分析与可视化工具包，原生支持 FLASH AMR HDF5 输出格式。
 
