@@ -27,6 +27,8 @@ DEFAULT_EXCLUDES = {
     "sim_input_si", "artifacts", "database", "logs_archive", "test_output",
     "reports", "inputfiles", "node_modules", "_legacy_diags",
     "temp_delete",
+    # pytest 基线外测试区（--ignore），不纳入文档体系
+    "hdf5ploter_easy", "newpara", "remote_connect",
 }
 
 MD_PATTERNS = ("README*.md", "*GUIDE*.md", "README.md")
