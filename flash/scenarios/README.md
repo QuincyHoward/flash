@@ -249,7 +249,7 @@ python flash/scenarios/public/short_validation.py --tmax 1e-11
 三个场景的实测耗时（Windows→WSL，tmax=1e-13 s）：
 `ch_center` ≈ 21 s / `grad_dens_sandwich` ≈ 5 s / `thin_layer_sandwich_si` ≈ 3 s。
 
-> ★ **极短验证的三条铁律**（`flash/scenarios/public/time_control.py` 统一实现）：
+> ★ **极短验证的三条铁律**（`flash/scenarios/common/time_control.py` 统一实现）：
 > ① `dtmax ≤ tmax × 1.05`（否则 FLASH 浪费步长跨越 tmax）；
 > ② `dtinit ≤ tmax × 0.1`（否则第一步就结束 = 白跑）；
 > ③ 输出时间网格步长随 tmax 收缩（否则 `t_grid` 只剩 1 点 ⇒ 插值除零）。
