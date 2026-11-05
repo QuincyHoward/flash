@@ -197,7 +197,7 @@ python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py --c
 - 已知工程铁律（wsl.exe 命令串拆分、drvfs MPI-IO、SFTP `~`/尾斜杠、
   Intel MPI 库路径、sbatch 超时≠未提交等）汇总于
   [`modes_test/README.md` §6](modes_test/README.md) 与
-  [`flash_run/README.md` §8](../../flash_run/README.md)。
+  [`flash_run/README.md` §8](../../../../flash_run/README.md)。
 
 ## 9. 挂账
 
