@@ -80,6 +80,9 @@ def main(argv=None) -> int:
 
     # 1. 复制
     dst = Path(a.dst).resolve() if a.dst else src.parent / new_name
+    if SCEN not in dst.parents:
+        print(f"[X] 目标不在 scenarios 树内: {dst}")
+        return 2
     if dst.exists():
         print(f"[X] 目标已存在: {dst}")
         return 2
@@ -99,9 +102,8 @@ def main(argv=None) -> int:
     if not a.dry_run:
         shutil.copytree(src, dst, ignore=_ignore)
 
-    # 2. scene.json 再标识
-    mf = dst / "scene.json"
-    raw = json.loads(mf.read_text(encoding="utf-8"))
+    # 2. scene.json 再标识（dry-run 从源读；落盘只写目标）
+    raw = json.loads((src / "scene.json").read_text(encoding="utf-8"))
     raw["name"] = new_name
     raw["aliases"] = []
     raw["description"] = str(raw.get("description") or "") + f"（{old} 克隆）"
@@ -110,13 +112,14 @@ def main(argv=None) -> int:
     if raw.get("basenm"):
         raw["basenm"] = re.sub(r"_+$", "_t_", str(raw["basenm"]))
     if not a.dry_run:
-        mf.write_text(json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
-                      encoding="utf-8", newline="")
+        (dst / "scene.json").write_text(
+            json.dumps(raw, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8", newline="")
     print(f"[scene.json] name={new_name}, aliases=[], sim_name/basenm 加后缀")
 
     # 3. 代码内身份常量（best-effort 正则，逐项报告）
     todo_manual = []
-    for py in sorted(dst.rglob("*.py")):
+    for py in sorted(dst.rglob("*.py")) if not a.dry_run else []:
         if py.name == "run.py":
             continue
         t = py.read_text(encoding="utf-8", errors="replace")
