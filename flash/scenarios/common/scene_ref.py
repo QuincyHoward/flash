@@ -54,13 +54,14 @@ def scene_module(name: str, stem: str = "") -> ModuleType:
         cached = _cache.get(modname)
         if cached is not None:
             return cached
-    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
+    from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta
 
-    meta = next((m for m in iter_scene_manifests() if m.name == name), None)
-    if meta is None:
+    try:
+        meta = resolve_scene_meta(name)   # name 精确命中优先，别名回退
+    except KeyError as e:
         raise ImportError(
             f"scene_ref: 场景 {name!r} 未注册（无 scene.json）；"
-            "跨场景引用请按 scene.json 的 name 解析")
+            "跨场景引用请按 scene.json 的 name 解析") from e
     stem = stem or name
     path = Path(meta.source).parent / f"{stem}.py"
     if not path.is_file():

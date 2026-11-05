@@ -37,6 +37,14 @@
 
      派生失败显式抛 ``ManifestError``，绝不静默。
 
+★ 2026-11-05 scene.json 极简化（身份由位置派生，**位置优先**）
+
+  仅 ``kind`` 必填；身份 = manifest 所在位置（``scene.json`` → 目录名，
+  ``scene.<变体>.json`` → 变体名）。**复制场景目录到新名目录 = 零改
+  manifest 得新场景**；显式 ``name`` 与派生名不同时自动降级并入别名
+  （旧引用仍可达）。生效 name 全树硬唯一；aliases 降级为非独占提示
+  （歧义延迟到 catalog 按别名查找时报错并列出候选，不再阻塞整棵树）。
+
 ★ policy 用符号引用
 
   manifest 里写 ``"policy": "public_scene"|"snb"|"default"``，
@@ -270,11 +278,18 @@ def load_manifest(path: Path, base: Optional[Path] = None) -> SceneMeta:
     if not isinstance(raw, dict):
         raise ManifestError(f"{path}: 顶层必须是对象")
 
-    # 必填字段
-    for key in ("name", "kind"):
+    # 必填字段：kind 必填；★ name 自 2026-11-05 起**位置优先** ——
+    #   身份 = manifest 所在位置（scene.json → 目录名；scene.<变体>.json →
+    #   变体名），**复制/移动场景目录到新名目录即得新场景，无需改 manifest**；
+    #   显式 name 仅作后备（位置不可用），且与派生名不同时降级并入 aliases。
+    for key in ("kind",):
         if not str(raw.get(key) or "").strip():
             raise ManifestError(f"{path}: 缺必填字段 '{key}'")
-    name, kind = str(raw["name"]).strip(), str(raw["kind"]).strip()
+    kind = str(raw["kind"]).strip()
+    explicit_name = str(raw.get("name") or "").strip()
+    stem = path.stem                        # "scene" 或 "scene.<变体>"
+    variant = stem.split(".", 1)[1] if "." in stem else ""
+    name = variant or path.parent.name or explicit_name
 
     if kind not in _KIND_REQUIRED:
         raise ManifestError(
@@ -287,6 +302,9 @@ def load_manifest(path: Path, base: Optional[Path] = None) -> SceneMeta:
             f"{path}: policy='{policy}' 未知；允许: {', '.join(POLICY_ALIASES)}")
 
     aliases = tuple(str(a).strip() for a in raw.get("aliases") or () if str(a).strip())
+    # ★ 位置优先：显式 name 与派生名不同 → 降级并入别名（旧引用仍可达）
+    if explicit_name and explicit_name != name and explicit_name not in aliases:
+        aliases = (explicit_name, *aliases)
     default_args = tuple(str(a) for a in raw.get("default_args") or ())
 
     known_extra = {"hpc", "nproc_default"}
@@ -359,14 +377,20 @@ def iter_scene_manifests(bases: Tuple[Path, ...] = ()) -> Iterator[SceneMeta]:
       排除产物/缓存/备份目录与 core/scripts 框架子树。
 
     ★ 校验失败（非法 manifest）**不吞** —— 静默跳过会把"场景消失"变成
-      谜题；重复 name/alias 同样显式报错。
+      谜题。
+
+    ★ 2026-11-05 唯一性策略（scene.json 极简化）：
+      - 生效 name（显式或目录/变体派生）**硬唯一** —— 重复显式报错
+        （复制场景到同名目录属配置错误，须重命名目录或显式设 name）；
+      - aliases **降级为非独占提示**：重复不再阻塞发现（复制场景携带的
+        旧别名不会弄哑整棵树），歧义延迟到 catalog 按别名查找时报错并列
+        出全部候选。
 
     Args:
         bases: 覆盖扫描基准（测试注入用）；默认 ``scenario_base()``。
     """
     base_dirs = tuple(bases) if bases else (scenario_base(),)
     seen_names: Dict[str, str] = {}
-    seen_aliases: Dict[str, str] = {}
 
     metas: List[SceneMeta] = []
     for base in base_dirs:
@@ -380,20 +404,38 @@ def iter_scene_manifests(bases: Tuple[Path, ...] = ()) -> Iterator[SceneMeta]:
             if _is_excluded(rel):
                 continue
             meta = load_manifest(mf, base=base)
-            # name/alias 全局唯一
-            for key in (meta.name, *meta.aliases):
-                table, what = ((seen_names, "场景名") if key == meta.name
-                               else (seen_aliases, "别名"))
-                if key in seen_names or key in seen_aliases:
-                    prev = seen_names.get(key) or seen_aliases.get(key)
-                    raise ManifestError(
-                        f"{mf}: {what} '{key}' 与 {prev} 重复")
-                if key == meta.name:
-                    seen_names[key] = str(mf)
-                else:
-                    seen_aliases[key] = str(mf)
+            # 生效 name 全局硬唯一
+            if meta.name in seen_names:
+                raise ManifestError(
+                    f"{mf}: 场景名 '{meta.name}' 与 {seen_names[meta.name]} 重复"
+                    f"（重命名目录，或在 manifest 显式设置不同的 name）")
+            seen_names[meta.name] = str(mf)
             metas.append(meta)
 
     # 稳定顺序：按 name（目录顺序无业务含义）
     metas.sort(key=lambda m: m.name)
     yield from metas
+
+
+def resolve_scene_meta(key: str):
+    """按 name 或别名解析 SceneMeta（scene.json 极简化的统一查找入口）。
+
+    规则：精确 name 命中优先；否则按别名收集命中——唯一命中即解析，
+    多重命中（克隆复制携带同名别名所致）显式报错列出候选，未命中报
+    KeyError。供 registry/scene_ref/catalog 共用，避免三处漂移。
+    """
+    k = (key or "").strip()
+    metas = list(iter_scene_manifests())
+    for m in metas:
+        if m.name == k:
+            return m
+    hits = [m for m in metas if k in m.aliases]
+    if len(hits) == 1:
+        return hits[0]
+    if len(hits) > 1:
+        cands = "; ".join(f"{m.name}({m.source})" for m in hits)
+        raise KeyError(
+            f"别名 {k!r} 命中多个场景（复制克隆携带同名别名所致），"
+            f"请改用精确场景名: {cands}")
+    raise KeyError(
+        f"未知场景: {k!r}；可用: {', '.join(m.name for m in metas)}")

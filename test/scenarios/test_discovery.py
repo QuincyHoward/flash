@@ -44,16 +44,41 @@ class TestLoadManifest:
     def test_valid_engine(self, tmp_path):
         mf = _write(_make_base(tmp_path), "demo", VALID_ENGINE)
         meta = load_manifest(mf)
-        assert meta.name == "demo_engine"
+        assert meta.name == "demo"                     # 位置派生（目录名）
+        assert "demo_engine" in meta.aliases           # 显式 name 降级为别名
         assert meta.kind == "engine"
         assert meta.module == "flash.scenarios.public.demo"
         assert meta.policy == "default"
 
-    def test_missing_name(self, tmp_path):
-        mf = _write(_make_base(tmp_path), "demo", {"kind": "engine",
-                                                   "module": "x", "attr": "s"})
-        with pytest.raises(ManifestError, match="name"):
-            load_manifest(mf)
+    def test_missing_name_now_derived(self, tmp_path):
+        """★ 2026-11-05: name 可选 —— 缺省由 manifest 位置派生（目录名）。"""
+        base = _make_base(tmp_path)
+        mf = _write(base, "my_scene_dir",
+                    {"kind": "engine", "attr": "s", "module": "x"})
+        meta = load_manifest(mf, base=base)
+        assert meta.name == "my_scene_dir"
+
+    def test_variant_manifest_name_derived_from_stem(self, tmp_path):
+        """★ scene.<变体>.json → name 派生为变体名（多场景同目录形态）。"""
+        base = _make_base(tmp_path)
+        d = base / "public" / "TiTi"
+        d.mkdir(parents=True, exist_ok=True)
+        mf = d / "scene.TiTi9.json"
+        mf.write_text(json.dumps({"kind": "engine", "attr": "s",
+                                  "module": "x"}), encoding="utf-8")
+        meta = load_manifest(mf, base=base)
+        assert meta.name == "TiTi9"
+
+    def test_location_priority_explicit_name_demoted_to_alias(self, tmp_path):
+        """★ 位置优先：显式 name ≠ 目录名 → 目录名为身份，显式名并入别名
+        （复制目录零改 manifest 的关键语义）。"""
+        base = _make_base(tmp_path)
+        mf = _write(base, "some_dir",
+                    {"name": "old_name_ref", "kind": "engine",
+                     "attr": "s", "module": "x"})
+        meta = load_manifest(mf, base=base)
+        assert meta.name == "some_dir"
+        assert "old_name_ref" in meta.aliases
 
     def test_missing_kind(self, tmp_path):
         mf = _write(_make_base(tmp_path), "demo", {"name": "n",
@@ -120,26 +145,35 @@ class TestIterManifests:
         _write(base, "s_scene", {"name": "s", "kind": "script",
                                  "script": "x/y.py"}, part="private")
         metas = list(iter_scene_manifests(bases=(base,)))
-        assert [m.name for m in metas] == ["a", "b", "s"]
+        assert [m.name for m in metas] == ["a_scene", "b_scene", "s_scene"]
 
-    def test_duplicate_name_raises(self, tmp_path):
+    def test_explicit_name_demoted_keeps_unique(self, tmp_path):
+        """显式 name ≠ 目录名 → 降级为别名，不再触发重名护栏。"""
         base = _make_base(tmp_path)
         _write(base, "one", dict(VALID_ENGINE, name="dup"))
         _write(base, "two", dict(VALID_ENGINE, name="dup"))
-        with pytest.raises(ManifestError, match="重复"):
-            list(iter_scene_manifests(bases=(base,)))
+        metas = list(iter_scene_manifests(bases=(base,)))
+        assert [m.name for m in metas] == ["one", "two"]
+        assert all("dup" in m.aliases for m in metas)
 
-    def test_duplicate_alias_raises(self, tmp_path):
+    def test_duplicate_alias_tolerated(self, tmp_path):
+        """★ 2026-11-05: 别名重复不再阻塞发现（非独占提示，歧义延迟到
+        catalog 按别名查找时显式报错）—— 复制场景携带旧别名不会弄哑整棵树。"""
         base = _make_base(tmp_path)
         _write(base, "one", dict(VALID_ENGINE, name="n1", aliases=["shared"]))
         _write(base, "two", dict(VALID_ENGINE, name="n2", aliases=["shared"]))
-        with pytest.raises(ManifestError, match="重复"):
-            list(iter_scene_manifests(bases=(base,)))
+        metas = list(iter_scene_manifests(bases=(base,)))
+        assert [m.name for m in metas] == ["one", "two"]
 
-    def test_alias_collides_with_name(self, tmp_path):
+    def test_duplicate_derived_name_raises(self, tmp_path):
+        """★ 同目录名复制到别处 → 派生 name 冲突 → 显式报错（需改名或显式设 name）。"""
         base = _make_base(tmp_path)
-        _write(base, "one", dict(VALID_ENGINE, name="n1"))
-        _write(base, "two", dict(VALID_ENGINE, name="n2", aliases=["n1"]))
+        for part in ("public", "private"):
+            d = base / part / "same_name"
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "scene.json").write_text(
+                json.dumps({"kind": "engine", "attr": "s", "module": "x"}),
+                encoding="utf-8")
         with pytest.raises(ManifestError, match="重复"):
             list(iter_scene_manifests(bases=(base,)))
 
@@ -147,7 +181,7 @@ class TestIterManifests:
         base = _make_base(tmp_path)   # 无 private 分区
         _write(base, "one", VALID_ENGINE)
         metas = list(iter_scene_manifests(bases=(base,)))
-        assert [m.name for m in metas] == ["demo_engine"]
+        assert [m.name for m in metas] == ["one"]
 
     def test_invalid_manifest_raises_not_swallowed(self, tmp_path):
         base = _make_base(tmp_path)
@@ -166,5 +200,5 @@ class TestRealRepo:
         # 至少应发现基础 5 个（防止发现器回归到"扫不到"）
         names = {m.name for m in metas}
         base5 = {"ch_center", "grad_dens_sandwich",
-                 "thin_layer_sandwich_si", "SNBOneCH_m", "SNBOneCH_ml"}
+                 "thin_layer_sandwich", "SNBOneCH_m", "SNBOneCH_ml"}
         assert base5 <= names, f"基础场景缺失: {base5 - names}"

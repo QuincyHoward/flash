@@ -217,9 +217,19 @@ def list_scenes() -> List[Tuple[str, str, Tuple[str, ...]]]:
 
 def _lookup(name: str) -> CatalogEntry:
     key = (name or "").strip()
+    # ★ 精确 name 命中优先（scene.json 极简化后 name 可由目录派生）
     for entry in CATALOG:
-        if key == entry.name or key in entry.aliases:
+        if key == entry.name:
             return entry
+    # 别名为非独占提示（2026-11-05）：命中多个 → 歧义显式报错列出候选
+    hits = [e for e in CATALOG if key in e.aliases]
+    if len(hits) == 1:
+        return hits[0]
+    if len(hits) > 1:
+        cands = "; ".join(f"{e.name}({e.description[:20]})" for e in hits)
+        raise KeyError(
+            f"别名 {key!r} 命中多个场景（复制克隆携带同名别名所致），"
+            f"请改用精确场景名: {cands}")
     known = ", ".join(e.name for e in CATALOG)
     raise KeyError(f"未知可执行场景: {name!r}；可用: {known}")
 

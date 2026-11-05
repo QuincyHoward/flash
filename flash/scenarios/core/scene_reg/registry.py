@@ -63,8 +63,15 @@ def register(name: str, module_path: str, attr: str = "scenario"):
 
 
 def get_scenario(name: str) -> SimulationScenario:
-    """按名称获取场景实例"""
+    """按名称获取场景实例（★ 支持别名回退：场景名可由目录位置派生，
+    旧显式名自动降级为别名 —— scene.json 极简化 2026-11-05）"""
     _ensure_loaded()
+    if name not in _SCENARIO_REGISTRY:
+        from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta
+        try:
+            name = resolve_scene_meta(name).name
+        except KeyError:
+            pass   # 保持原有"未知场景"报错语义
     if name not in _SCENARIO_REGISTRY:
         raise KeyError(
             f"未知场景: '{name}'. 可用: {', '.join(sorted(_SCENARIO_REGISTRY))}"

@@ -43,7 +43,7 @@ from interpolator import (
 )
 
 from flash.scenarios.core.engine.base import SimulationScenario
-from flash.scenarios.scripts.time_control import fit_time_controls
+from flash.scenarios.common.time_control import fit_time_controls
 
 # ── 新子包导入 ──────────────────────────────────────────
 try:

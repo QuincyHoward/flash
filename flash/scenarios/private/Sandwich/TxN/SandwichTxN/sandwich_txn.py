@@ -44,7 +44,7 @@ if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
 from flash.scenarios.core.engine.base import SimulationScenario
-from flash.scenarios.scripts.time_control import fit_time_controls
+from flash.scenarios.common.time_control import fit_time_controls
 
 # ============================================================
 # defaults (原 defaults_si.py 内联)
