@@ -290,7 +290,7 @@ python scripts/03_git_publish/git_push.py           # 完成首次推送
 
 ## ⚠ 2026-10-26：场景诊断探针迁至 `scripts/02_hpc/probes/`
 
-原先放在 `flash/flash_run/remote/test/scripts/` 的一次性诊断探针（`_probe_*.py`
+原先放在 remote 层 test/scripts/ 子目录（已不存在）的一次性诊断探针（`_probe_*.py`
 / `diag_*.py` / `try_yt*.py` 等）迁至 **`scripts/02_hpc/probes/`**：
 
 - 它们 `import flash.scenarios` ⇒ 属于**场景侧工具**，留在执行层会污染
