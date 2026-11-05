@@ -1,4 +1,6 @@
 # flash-sim — FLASH 等离子体辐射流体力学仿真 Python 接口
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：目录/模块布局变化后同步 §目录地图与文档索引
+
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -82,10 +84,10 @@
 
 | 模块 | 功能 |
 |------|------|
-| `scenarios/base.py` | `SimulationScenario` 数据类 — 场景声明式配置 |
-| `scenarios/registry.py` | 场景注册表 — `get_scenario()`, `list_scenarios()` |
-| `scenarios/core/discovery.py` | **约定式场景发现器** — `scene.json` 零注册接入（新增场景 = 建目录 + 落 manifest，不改框架） |
-| `scenarios/core/cli.py` | **统一 CLI** — `python -m flash.scenarios list/run/submit`（平台自适应 `--mode auto`，支持 `--tmax` 极短验证） |
+| `scenarios/core/engine/base.py` | `SimulationScenario` 数据类 — 场景声明式配置 |
+| `scenarios/core/scene_reg/registry.py` | 场景注册表 — `get_scenario()`（name 优先→别名回退） |
+| `scenarios/core/scene_reg/discovery.py` | **约定式场景发现器** — `scene.json` 零注册接入（新增场景 = 建目录 + 落 manifest，不改框架） |
+| `scenarios/core/entry/cli.py` | **统一 CLI** — `python -m flash.scenarios list/run/submit`（平台自适应 `--mode auto`，支持 `--tmax` 极短验证） |
 | `simulator.py` | `FlashSimulatorEngine` 统一引擎 — 集成 WSL 执行 + chk 收集 + 插值 + 输出 |
 
 **即插即用**:
@@ -103,7 +105,7 @@ output = engine.run()  # 自动编译→运行→插值→输出
 （.gitignore 排除，同 output_pro 的 inputfiles/ 模式）。引擎
 `FlashSimulatorEngine.run()` 运行前调用场景 `ensure_sim_input()` 自动补齐
 （ch_center 由 `gen_flash_inputs.py` 经 input_gen 包生成），干净克隆/发布环境
-开箱即用；也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`
+开箱即用；也可单独运行 `python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py`
 （`--check` 仅检查 / `--force` 强制重生成）。
 
 详见 [`scenarios/README.md`](scenarios/README.md)。
@@ -116,10 +118,10 @@ output = engine.run()  # 自动编译→运行→插值→输出
 **公开场景统一入口**（三个场景，缺省 `--mode auto` 平台自适应）：
 
 ```bash
-python -m flash.scenarios.core.cli list                          # 列出场景与允许模式
-python -m flash.scenarios.core.cli run ch_center                # 缺省 auto
-python -m flash.scenarios.core.cli run grad_dens_sandwich --tmax 1e-13
-python -m flash.scenarios.core.cli run thin_layer_sandwich_si
+python -m flash.scenarios.core.entry.cli list                          # 列出场景与允许模式
+python -m flash.scenarios.core.entry.cli run ch_center                # 缺省 auto
+python -m flash.scenarios.core.entry.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.core.entry.cli run thin_layer_sandwich_si
 python flash/scenarios/public/short_validation.py          # 三场景一键极短验证 (tmax=1e-13 s)
 ```
 
@@ -144,7 +146,7 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 |------|------|
 | `execution.py` | **唯一执行契约**：四种执行目标（local / wsl / hpc-remote / hpc-insitu）平台自适应判定 + 场景策略校验 |
 | `env/` | 多环境管理（本地 WSL / SSH 超算），维度感知资源配置，venv 路径单一事实源 |
-| `modes/` | 运行模式执行体（`run_wsl` / `HpcRunner` / `run_insitu`），自 `scenarios/runner.py` 迁入的唯一归属 |
+| `modes/` | 运行模式执行体（`run_wsl` / `HpcRunner` / `run_insitu`），自 scenarios 迁入的唯一归属（兼容壳现为 `scenarios/core/runner.py`） |
 | `remote/` | 远程部署：唯一 SSH（`RemoteSession`）、统一命令面（executors）、SLURM 下沉（slurm_control）、chk-only 回传策略（fetch_policy） |
 | `hpc.py` | 超算技能统一 CLI（本地驱动 / 登录节点两侧可调） |
 
@@ -192,7 +194,7 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 │               gen_eos_op · gen_shell_script · gen_Grid_markRefineDerefine  │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 仿真执行层   scenarios/ (base · registry · simulator · 物理场景)           │
-│               flash_run/ (env 环境管理 · remote 远程部署) · config/         │
+│               flash_run/ (env 环境管理 · remote 远程部署) · _core/config.py         │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ 输出处理层   output_pro/   hdf5pro → loader → plotter         │
 │               (+ parallel 并行加速 + plasmapy_bridge 物理量)  │
@@ -210,7 +212,7 @@ python flash/scenarios/public/short_validation.py          # 三场景一键极�
 | 接口/适配 | `interface.py::FlashSimulator`, `flash/__init__.py` | 对外统一入口。`mock` 模式用 Planck/Saha 闭式公式产出确定性假数据；`real` 模式调用 FLASH 二进制 |
 | 核心抽象 | `_core/interface.py::BaseSimulator`, `_core/schema.py` | 定义 `capability()` / `simulate()` 契约与 `SimulationRequest` / `SimulationResult` 数据结构；凭据经 `credentials.py` (Fernet) 加密 |
 | 输入生成 | `input_gen/*/generator.py` | 把结构化参数翻译成 FLASH 需要的 `.par`、Fortran 源、`Config`、`Makefile`、`.cn4` 表、运行脚本 |
-| 仿真执行 | `scenarios/simulator.py::FlashSimulatorEngine`, `flash_run/env`, `flash_run/remote` | 编排"编译 → 运行 → 采集 → 插值 → 保存"；管理本地 WSL 与超算 SSH/SLURM 环境 |
+| 仿真执行 | `scenarios/core/engine/simulator.py::FlashSimulatorEngine`, `flash_run/env`, `flash_run/remote` | 编排"编译 → 运行 → 采集 → 插值 → 保存"；管理本地 WSL 与超算 SSH/SLURM 环境 |
 | 输出处理 | `output_pro/{hdf5pro,loader,plotter,parallel}` + `plasmapy_bridge` | 纯 h5py 解析 FLASH AMR HDF5，结构化加载，自适应 1D/2D/3D 绘图；PlasmaPy 适配层提供带单位等离子体诊断量（lnΛ/λ_D/κ_e/K_n 等） |
 
 ### 自包含运行机制
@@ -230,7 +232,7 @@ from ._core.schema import SimulationRequest     # 无 pydantic 依赖
 
 ### 端到端数据流
 
-`FlashSimulatorEngine.run(params_override)` 是管线的中枢，单条调用串起下述全部步骤（源码见 `scenarios/simulator.py`）：
+`FlashSimulatorEngine.run(params_override)` 是管线的中枢，单条调用串起下述全部步骤（源码见 `scenarios/core/engine/simulator.py`）：
 
 ```
 参数 override
@@ -305,13 +307,14 @@ plotter.plot("dens", save_path="dens.png")
 ```
 flash/
 ├─ interface.py            # FlashSimulator（旧版 mock/real 统一接口）
-├─ _core/                  # 核心抽象：BaseSimulator / schema / registry / credentials(加密)
+├─ _core/                  # 核心抽象：BaseSimulator / schema / registry / config(FlashConfig) / credentials(加密)
 ├─ scenarios/              # 场景层（只做物理搭建 + 参数覆盖 + 分析回调）
-│  ├─ base.py              #   SimulationScenario 数据类
-│  ├─ registry.py          #   register / get_scenario / list_scenarios
-│  ├─ simulator.py         #   FlashSimulatorEngine 统一引擎（管线中枢）
-│  ├─ insitu_runner.py     #   超算登录节点就地编排（待迁入 flash_run/modes/）
-│  └─ public/ private/ flash_demo/   # 公开示例 / 私有研究线 / 演示脚本
+│  ├─ core/                #   框架层 4 子包：scene_reg(发现注册) entry(cli/launcher)
+│  │                       #   engine(simulator/base/interpolator) hpc(hpc_job/submit_cli)
+│  ├─ core/runner.py       #   兼容壳 → flash_run.modes.runner（125 处引用原地保留）
+│  ├─ common/              #   场景共享代码（scene_ref 按名加载 / time_control）
+│  ├─ scripts/             #   relocate 工具链 / checks / validation / legacy
+│  └─ public/ private/ flash_demo/   # 公开场景 / 私有研究线 / 演示脚本
 ├─ input_gen/              # 输入生成（按产物分子包，每个含 generator.py）
 │  ├─ gen_par/  gen_config/  gen_makefile/  gen_sim_data/  gen_sim_init/
 │  ├─ gen_sim_initblock/  gen_eos_op/  gen_shell_script/  gen_Grid_markRefineDerefine/
@@ -326,9 +329,9 @@ flash/
 │  ├─ loader/              #   FlashDataLoader / FlashDataContainer
 │  ├─ plotter/             #   FlashPlotter（自适应维度）
 │  └─ parallel.py          #   多文件 / 多变量并行加速
-├─ _core/config.py         # FlashConfig 运行配置（自 config/ 迁入）
-├─ scenarios/flash_demo/   # 参考示例与一键脚本
-├─ docs/ scripts/ utils/   # 文档 / Git 工具 / 辅助脚本
+├─ physics/                # 物理专题资料（ele_nonlocal 等）
+├─ projects/               # 项目级实验配置
+├─ docs/ scripts/ utils/   # 文档 / Git 工具（含 08_docs 文档门禁）/ 辅助脚本
 └─ test/                   # 测试套件
 ```
 
@@ -447,15 +450,15 @@ python start_flash.py --no-tests# 只装环境
 
 **② `laserslab1d_local_custom.py` — LaserSlab 1D 场景仿真（超算 / 本地 WSL 双模式）**
 
-`flash/scenarios/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
+`flash/scenarios/public/center_evolution/ch_center/` 下的可配置一维对称域 LaserSlab 仿真：CH 靶居中、两侧真空、两束 351nm 激光相向入射。自动完成：生成 FLASH 输入文件 → 运行（超算 SLURM 或本地 WSL）→ HDF5 分析 → 输出 PNG。
 
 ```bash
 # ★ 推荐入口（2026-10-24）：统一 CLI，--mode 默认 auto（平台自适应）
-python -m flash.scenarios.core.cli run ch_center            # auto：Win→wsl / Linux→local / 登录节点→hpc-insitu
-python -m flash.scenarios.core.cli run ch_center --mode hpc-insitu   # 已登录超算：就地 sbatch 编排
-python -m flash.scenarios.core.cli run ch_center --mode hpc-remote   # 本机驱动：上传 → sbatch → 回收
-python -m flash.scenarios.core.cli explain ch_center        # 只打印判定轨迹，不执行
-python -m flash.scenarios.core.cli list                     # 列出可执行场景与允许模式
+python -m flash.scenarios.core.entry.cli run ch_center            # auto：Win→wsl / Linux→local / 登录节点→hpc-insitu
+python -m flash.scenarios.core.entry.cli run ch_center --mode hpc-insitu   # 已登录超算：就地 sbatch 编排
+python -m flash.scenarios.core.entry.cli run ch_center --mode hpc-remote   # 本机驱动：上传 → sbatch → 回收
+python -m flash.scenarios.core.entry.cli explain ch_center        # 只打印判定轨迹，不执行
+python -m flash.scenarios.core.entry.cli list                     # 列出可执行场景与允许模式
 
 # 直跑场景脚本（等价，保留兼容；★ 该脚本**没有** argparse，
 #   模式只能由环境变量指定，传 --mode 会被忽略）
@@ -480,9 +483,9 @@ export FLASH_RUN_MODE=hpc-insitu    # bash
   ★ 干净克隆 / 离线机**没有** `credentials.enc`，第2 步读不到 ⇒ 会误指向
   `~/hello/...` 而报 `FLASH_HOME not found`；第 3 步的自动扫描正是为此准备的。
   需要强制指定时：`export FLASH_SIM_USER_DIR=QC`。
-- **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_pro 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
+- **必须文件自动生成（自愈）**：仓库不发布 `.par/Makefile/Config/F90/run 脚本/cn4` 等生成文件（`flash_input/` 被 .gitignore 排除，同 output_pro 的 inputfiles/ 模式）。脚本执行时先经 `gen_checker` 检查 7 项 FLASH 仿真必须文件，**缺失则自动调用 input_gen 包生成**，已就绪则直接下一步。也可单独运行 `python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py`（`--check` 仅检查 / `--force` 强制重生成）生成/检查输入文件
 - EOS 表：cn4 源文件存放于 `flash/input_gen/gen_eos_op/eos_op_data/Gen_eos_op_data/`（`ch_mix` / `helium_hires` 等自研 ionmix 表随仓库分发），由 `EOSOpacityGenerator` 复制到 `flash_input/`
-- 输出：`flash/scenarios/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地 WSL）
+- 输出：`flash/scenarios/public/center_evolution/ch_center/flash_output/plots/{dens,tele,trad}_hpc.png`（超算）/ `{dens,tele,trad}_wsl.png`（本地 WSL）
 
 ### 1. 场景系统 — 即插即用（推荐）
 
@@ -669,7 +672,7 @@ python deps_lock/generate_locks.py --check
 python -m flash.flash_run.modes.runner --check-env [--strict]
 
 # 场景统一入口（唯一实现；--mode 默认 auto，平台自适应）
-python -m flash.scenarios.core.cli list | explain <scene> | run <scene> [--mode ...]
+python -m flash.scenarios.core.entry.cli list | explain <scene> | run <scene> [--mode ...]
 
 # 超算技能统一 CLI（本地/登录节点两侧可调）
 python -m flash.flash_run.hpc status | submit | cancel | wait | download | route-test | nodes
@@ -857,13 +860,23 @@ python -m build
 | `docs/GIT_WORKFLOW.md` | Git 工作流与测试分层策略 |
 | `docs/VERSIONING.md` | 版本号命名协议 (SemVer) |
 | `docs/skills-map.md` | 技能 ↔ 文档 ↔ Python 模块索引 |
-| `flash_run/PROCESS.md` | 仿真运行流程（环境配置→SSH→提交→监控→后处理） |
+
+### 文档体系索引（2026-11-05 重建，各目录均含「最后核对」元信息）
+
+| 区域 | 入口文档 |
+|------|---------|
+| 核心层 | `flash/_core/README.md` · `flash/_core/credentials/README.md` |
+| 执行层 | `flash/flash_run/README.md`（含工程铁律）· `env/` · `remote/` · `modes/` |
+| 输入生成 | `flash/input_gen/README.md` · 12 份 `GEN_*_GUIDE.md` · `gen_eos_op/GEN_EOS_OP_GUIDE.md`（含 eosop_pro/ionmix/src 子体系导航） |
+| 输出处理 | `flash/output_pro/README.md` · `hdf5pro/` · `loader/` · `plotter/` · `test/README.md` |
+| 场景系统 | `flash/scenarios/README.md` · `core/`（4 子包）· `common/` · `scripts/`（relocate 六件套）· 各场景薄 README |
+| 文档工具 | `scripts/08_docs/README.md`（dump_docstrings 摘要 / check_docs 门禁） |
 
 ### 子模块文档
 
 | 文档 | 位置 |
 |------|------|
-| Output Processors 使用说明 | `output_pro/docs/output_pro_usage.md` |
+| Output Processors 使用说明 | `output_pro/docs/output_processors_usage.md` |
 | Hello FLASH 快速上手 | `scenarios/flash_demo/hello_flash/README.md` |
 | 网格细化实施指南 | `input_gen/gen_Grid_markRefineDerefine/README.md` |
 | 新参数生成指南 | `input_gen/gen_newpara/README.md` |
@@ -1032,6 +1045,11 @@ flash-sim 的 Python 代码以 Apache 2.0 许可，但其商用须遵守所有�
 ---
 
 # flash-sim — English Overview
+
+> **Sync rule**: the Chinese main body (above) is authoritative — update it first,
+> then mirror §Overview / §Architecture / §Directory map / §Quick start here.
+> Last synced: 2026-11-05 (module paths updated to `scenarios/core/{scene_reg,entry,engine,hpc}` layout;
+> `flash/config/` merged into `flash/_core/config.py`).
 
 **flash-sim** is a full-featured Python interface and automation toolkit for the
 [FLASH](https://flash.rochester.edu) high-energy-density physics (HEDP) simulation
@@ -1231,10 +1249,10 @@ Run the built-in 1D LaserSlab scenario with platform auto-detection:
 
 ```bash
 # Recommended (2026-10-24): the unified CLI, --mode defaults to auto
-python -m flash.scenarios.core.cli run ch_center                # auto: Win→wsl, Linux→local, login node→hpc-insitu
-python -m flash.scenarios.core.cli run ch_center --mode hpc-insitu
-python -m flash.scenarios.core.cli explain ch_center            # print the decision trace only
-python -m flash.scenarios.core.cli list
+python -m flash.scenarios.core.entry.cli run ch_center                # auto: Win→wsl, Linux→local, login node→hpc-insitu
+python -m flash.scenarios.core.entry.cli run ch_center --mode hpc-insitu
+python -m flash.scenarios.core.entry.cli explain ch_center            # print the decision trace only
+python -m flash.scenarios.core.entry.cli list
 
 # Running the scene script directly still works, but it has **no argparse** —
 # the mode can only be set via the environment variable (a `--mode` flag is ignored):
@@ -1284,8 +1302,8 @@ Virtual-environment lookup lives in **one** place
 Generate scenario input files explicitly (optional; normally auto-generated):
 
 ```bash
-python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --check   # 0=ready / 1=missing
-python flash/scenarios/center_evolution/ch_center/gen_flash_inputs.py --force   # regenerate all
+python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py --check   # 0=ready / 1=missing
+python flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py --force   # regenerate all
 ```
 
 Environment self-check (usable as a gate — non-zero exit on findings):

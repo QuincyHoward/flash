@@ -125,7 +125,7 @@ python -m flash.scenarios.core.cli explain ch_center     # 只打印判定轨迹
   输入**（否则覆盖被静默忽略 —— 输入已就绪时旧实现直接跑旧 tmax）。
 - **引擎路径**：`build_par(params)` 直接取 `params["tmax"]`。
 - **dt 联动**：`dtmax ≤ tmax×1.05`、`dtinit ≤ tmax×0.1`（统一实现在
-  `flash/scenarios/public/time_control.py`），否则 FLASH 会浪费步长跨越 tmax
+  `flash/scenarios/common/time_control.py`），否则 FLASH 会浪费步长跨越 tmax
   甚至第一步就结束。
 
 ## 5. 多执行模式测试（modes_test/）
