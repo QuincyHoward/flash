@@ -88,6 +88,11 @@ def _module_exists(mod: str) -> bool:
                  REPO / rel):
         if cand.exists():
             return True
+    # 末段可能是函数/类属性（如 ...execution.resolve_target）——父路径是模块即通过
+    if len(parts) > 2:
+        parent = Path(*parts[:-1])
+        if (REPO / parent.with_suffix(".py")).exists() or (REPO / parent / "__init__.py").exists():
+            return True
     return False
 
 
