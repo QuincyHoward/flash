@@ -1,4 +1,6 @@
 # ch_center — CH 靶中心演化场景（LaserSlab1D Custom v1.1）
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 一维对称域 LaserSlab 算例：**CH 靶居中、两侧近真空 He 腔、两束 351 nm 激光
 相向入射**，观测中心等离子体状态（密度 / 电子数密度 / 电子温度）的时域演化。
@@ -125,7 +127,7 @@ python -m flash.scenarios.core.cli explain ch_center     # 只打印判定轨迹
   输入**（否则覆盖被静默忽略 —— 输入已就绪时旧实现直接跑旧 tmax）。
 - **引擎路径**：`build_par(params)` 直接取 `params["tmax"]`。
 - **dt 联动**：`dtmax ≤ tmax×1.05`、`dtinit ≤ tmax×0.1`（统一实现在
-  `flash/scenarios/public/time_control.py`），否则 FLASH 会浪费步长跨越 tmax
+  `flash/scenarios/common/time_control.py`），否则 FLASH 会浪费步长跨越 tmax
   甚至第一步就结束。
 
 ## 5. 多执行模式测试（modes_test/）
