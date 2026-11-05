@@ -228,15 +228,15 @@ Windows + WSL → `wsl`；WSL/Linux 宿主 → `local`；超算登录节点 → 
 
 ```bash
 # 列出可执行场景与允许模式
-python -m flash.scenarios.core.cli list
+python -m flash.scenarios.core.entry.cli list
 
 # 只打印目标判定轨迹（不执行任何东西）
-python -m flash.scenarios.core.cli explain ch_center
+python -m flash.scenarios.core.entry.cli explain ch_center
 
 # 运行（模式缺省 auto）
-python -m flash.scenarios.core.cli run ch_center
-python -m flash.scenarios.core.cli run grad_dens_sandwich --tmax 1e-13
-python -m flash.scenarios.core.cli run thin_layer_sandwich_si --mode local
+python -m flash.scenarios.core.entry.cli run ch_center
+python -m flash.scenarios.core.entry.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.core.entry.cli run thin_layer_sandwich_si --mode local
 ```
 
 **极短验证**（一键跑三个公开场景，只确认链路通畅、**不产生物理结果**）：
@@ -701,8 +701,8 @@ python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
 | 场景 | 作业号 | 状态 | 耗时 | chk | 提交方式 |
 |---|---|---|---|---|---|
 | `ch_center` | 4924413 | COMPLETED | — | 341 | 场景脚本 `laserslab1d_local_custom.py`（`FLASH_RUN_MODE=hpc-insitu`） |
-| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `python -m flash.scenarios.core.cli submit grad_dens_sandwich` |
-| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `python -m flash.scenarios.core.cli submit thin_layer_sandwich_si` |
+| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `python -m flash.scenarios.core.entry.cli submit grad_dens_sandwich` |
+| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `python -m flash.scenarios.core.entry.cli submit thin_layer_sandwich_si` |
 
 > ★ 提交方式已于 2026-10-26 统一：原 `deploy/hpc_deploy/submit_sandwich.py`
 > （内含场景映射表 ⇒ 提交器里长出了子场景知识）已删除，改为

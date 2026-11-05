@@ -16,7 +16,7 @@
 | MPI | OpenMPI (`/usr/bin/mpirun`), 4 rank | Intel 2018 MPI + `srun`, 4 rank |
 | 编译 | make -j4（指纹缓存命中, 秒级增量） | make -j4（作业内全新编译, 91 s 含 setup） |
 | 工作盘 | /mnt/e（9P 跨文件系统, 慢） | 节点本地 /tmp（tmpfs）+ 共享并行盘归档 |
-| 提交方式 | `sandwich_txn.py run --mode wsl --nproc 4 --timeout 7200` | `python -m flash.scenarios.core.cli submit sandwich_txn --run-id 000002` |
+| 提交方式 | `sandwich_txn.py run --mode wsl --nproc 4 --timeout 7200` | `python -m flash.scenarios.core.entry.cli submit sandwich_txn --run-id 000002` |
 
 ## 2. WSL 运行统计（runs/000001）
 

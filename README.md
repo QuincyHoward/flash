@@ -300,7 +300,7 @@ plotter.plot("dens", save_path="dens.png")
 （可选）复制一份通用 `run.py` 到目录内即可 `python run.py --dry-run` 直跑。
 `flash.scenarios.core.discovery` 会自动扫描发现，**不改** `registry`/`catalog`/
 父包 `__init__`。超算提交需在 `scene.json` 追加 `"hpc": {...}` 节
-（见 `flash/scenarios/hpc_job.py` 字段白名单）；核数默认值写 `"nproc_default"`。
+（见 `flash/scenarios/core/hpc/hpc_job.py` 字段白名单）；核数默认值写 `"nproc_default"`。
 
 ### 目录地图（实际结构）
 

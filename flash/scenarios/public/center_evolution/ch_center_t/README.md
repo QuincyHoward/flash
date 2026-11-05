@@ -1,4 +1,6 @@
 # ch_center — CH 靶中心演化场景（LaserSlab1D Custom v1.1）
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 一维对称域 LaserSlab 算例：**CH 靶居中、两侧近真空 He 腔、两束 351 nm 激光
 相向入射**，观测中心等离子体状态（密度 / 电子数密度 / 电子温度）的时域演化。
@@ -51,12 +53,12 @@ ch_center/
 
 ```bash
 # 平台自适应：Windows→wsl，WSL/Linux→local，超算登录节点→hpc-insitu
-python -m flash.scenarios.core.cli run ch_center
+python -m flash.scenarios.core.entry.cli run ch_center
 
 # 显式指定模式与终止时间
-python -m flash.scenarios.core.cli run ch_center --mode wsl --tmax 2e-10
-python -m flash.scenarios.core.cli run ch_center --mode hpc-remote
-python -m flash.scenarios.core.cli explain ch_center        # 只打印目标判定轨迹
+python -m flash.scenarios.core.entry.cli run ch_center --mode wsl --tmax 2e-10
+python -m flash.scenarios.core.entry.cli run ch_center --mode hpc-remote
+python -m flash.scenarios.core.entry.cli explain ch_center        # 只打印目标判定轨迹
 ```
 
 ### 3.2 直跑场景脚本（等价，兼容保留）
@@ -111,9 +113,9 @@ python flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custo
 
 ```bash
 # 三个公开场景统一入口，缺省 --mode auto
-python -m flash.scenarios.core.cli run ch_center --tmax 1e-13
-python -m flash.scenarios.core.cli list
-python -m flash.scenarios.core.cli explain ch_center     # 只打印判定轨迹
+python -m flash.scenarios.core.entry.cli run ch_center --tmax 1e-13
+python -m flash.scenarios.core.entry.cli list
+python -m flash.scenarios.core.entry.cli explain ch_center     # 只打印判定轨迹
 ```
 
 ### 3.4 `tmax` 覆盖规则（极短验证）
