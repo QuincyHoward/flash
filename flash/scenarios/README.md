@@ -801,6 +801,7 @@ python start_flash.py --offline --wheelhouse <wheelhouse 路径>   # 远端执�
 任意场景子目录可在 `flash/scenarios/` 树内**自由移动 / 重新归类 / 任意深度嵌套，无需任何修改**，全流程脚本照常执行。
 
 - **机制**：discovery 全树发现 + manifest 路径相对解析 + `core/scene_paths.py` 根定位 + 场景间零 import（代码复用走 `common/scene_ref.py` 按名加载，数据文件走 `_scene_anchors.json` 逻辑锚点）。
+- **scene.json 极简化（2026-11-05 位置优先）**：身份 = manifest 所在目录名/变体名——复制/移动目录即完成整理，manifest 零改动；旧显式名自动降级为别名继续可用。
 - **移动场景**：`python flash/scenarios/scripts/relocate/relocate_scene.py <src> <dst>`（自动 git mv + 锚点重写 + 残留扫描）。
 - **整理后验证**：`scripts/relocate/audit_portable.py --strict`（须 ERROR=0）+ `verify_all_scenes.py --strict`（须 35/35）。
 - **详细说明**：见 [场景收纳整理改造计划.md](场景收纳整理改造计划.md)。
