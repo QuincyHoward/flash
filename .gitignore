@@ -494,8 +494,10 @@ flash/scenarios/**/scripts/*
 !flash/scenarios/scripts/README.md
 !flash/scenarios/scripts/legacy
 !flash/scenarios/scripts/legacy/**
-!flash/scenarios/scripts/checks/README.md
-!flash/scenarios/scripts/validation/README.md
+!flash/scenarios/scripts/checks
+!flash/scenarios/scripts/checks/**
+!flash/scenarios/scripts/validation
+!flash/scenarios/scripts/validation/**
 flash/scenarios/**/*.html
 
 # --------------------------------------------------------------------
