@@ -1,0 +1,14 @@
+{
+  "name": "ch_center_t",
+  "kind": "main",
+  "aliases": [
+    "laserslab_t"
+  ],
+  "description": "1D LaserSlab（ch_center 克隆实验版；auto/wsl/hpc-remote/hpc-insitu）",
+  "policy": "default",
+  "module": ".laserslab1d_local_custom",
+  "sim_name": "laserslab1d_t",
+  "basenm": "lasslab_t_",
+  "attr": "scenario",
+  "attr_module": "."
+}
