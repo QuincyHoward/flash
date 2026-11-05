@@ -1,6 +1,4 @@
 # flash-sim — FLASH 等离子体辐射流体力学仿真 Python 接口
-> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：目录/模块布局变化后同步 §目录地图与文档索引
-
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -385,6 +383,36 @@ pydantic>=2.0        # 数据校验
 # WSL 上确保 FLASH 4.8 已安装
 ./setup -auto ...  # (按 FLASH 安装文档)
 ```
+
+#### 0.1 还没装 FLASH？—— `hello_flash` 零基础一键安装包（从零到首图）
+
+[`flash/scenarios/flash_demo/hello_flash/`](flash/scenarios/flash_demo/hello_flash/README.md)
+是面向**首次接触 FLASH** 用户的快速上手包：从零安装 FLASH 4.8 → 运行首个 LaserSlab 1D 仿真 → 自动生成密度分析图，开箱即用。详细步骤、脚本清单与踩坑指南见其 [README.md](flash/scenarios/flash_demo/hello_flash/README.md)，此处只列功能概要：
+
+**① 前期准备（3 步，全部就绪后安装约 30–60 分钟）**
+
+| 步骤 | 内容 |
+|---|---|
+| 安装 WSL + Ubuntu | PowerShell（管理员）：`wsl --install -d Ubuntu` |
+| 下载 4 个源码包 → `flash/flash_src/` | **FLASH 4.8** / **HDF5 1.8.12** / **HYPRE 2.9.0b** / **MPICH 3.2**（受 FLASH License §3 约束**不随包分发**，需自行从官网下载，地址表见 hello_flash README） |
+| 设置用户名 | `python -m flash._core.credentials user <名字>`（默认 `hello`；FLASH 安装到 `~/<用户名>/FLASH/FLASH4.8/`，所有脚本自动读取，**代码零硬编码**） |
+
+（可选）下载 IONMIX 源码——仅后期用 `gen_eos_op` 生成自定义 EOS/不透明度表时需要。
+
+**② 推荐方式：交给 Agent AI 微调适配执行（不要直接点脚本）**
+
+脚本是给 Agent AI 的"操作蓝图"——Agent 会结合当前装置（Ubuntu 版本、gcc、核数内存、sudo、网络）自动微调编译参数与并行度、读取 credentials 用户名、出错时读日志定位根因重跑。直接执行需自行处理环境差异（如新版 Ubuntu 无 gcc-9）。
+
+**③ 三阶段流程**
+
+| 阶段 | 命令 | 自动完成 | 产物 |
+|---|---|---|---|
+| 📦 安装 | `python deploy_flash.py`（交互菜单：Local WSL / SSH1 / SSH2） | 系统依赖(gcc-9/gfortran-9/LAPACK) → 源码编译 MPICH/HDF5/HYPRE → 配置 FLASH → 编译 LaserSlab | `flash4` 可执行文件 |
+| 🎯 运行 | `bash run_and_collect.sh`（或总入口 `run_hello_flash.sh`） | 运行仿真 → 收集 HDF5 → 调用分析 | 41 个 chk + 80 个 plt（约 3–10 分钟） |
+| 📊 分析 | `python3 analyze_density.py`（阶段 2 已自动调用） | HDF5 → 密度分析 | `outputfiles/plots/` 下 3 张图（x-t 密度谱 / 演化曲线 / 快照对比） |
+
+> 环境变量：`FLASH_SIM_USER_DIR`（用户名覆盖）、`FLASH_SOURCE_SUFFIX`（数据来源后缀 `from_ssh1`/`from_ssh2`）。安装脚本会将 MPI/HDF5/HYPRE 路径写入 `~/.bashrc`。
+> 常见坑（HYPRE 符号链接、MPICH root 参数、`python` vs `python3`）的解决方案均已在 hello_flash README「已知问题」节收录。
 
 ### 0.5 两个常用脚本入口（推荐）
 
