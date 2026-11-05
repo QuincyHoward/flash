@@ -43,7 +43,8 @@ DATE_RE = re.compile(r"最后核对[：:]\s*\d{4}-\d{2}-\d{2}")
 SENSITIVE_RES = [
     re.compile(r"\bsk-[A-Za-z0-9_\-]{16,}"),            # API key
     re.compile(r"(?i)\b(password|passwd|token|secret)\s*[=:]\s*['\"]?[^\s'\"]{6,}"),
-    re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"),          # IPv4（含内网）
+    # IPv4（VERSIONISH 标记 → 降级 WARN）; 排除形如 hdf5/1.8.3.1 的版本号
+    re.compile(r"(?<![\w/.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])(?#VERSIONISH)"),
 ]
 
 SUFFIXES = ("", ".py", ".md", ".json", ".txt", ".toml", ".cfg", ".sh", ".bat", ".F90", ".f90")
@@ -121,7 +122,10 @@ def check_file(md: Path, findings: list) -> None:
         for rx in SENSITIVE_RES:
             m = rx.search(line)
             if m and "example" not in line.lower() and "占位" not in line:
-                findings.append(("ERROR", f"{rel}:{i}", f"疑似敏感信息: {m.group(0)[:24]}…"))
+                # IPv4 规则降为 WARN（版本号/子网表述无法自动区分, 人工复核）;
+                # 真实凭据类(sk-/password=/token=)保持 ERROR
+                lv = "WARN" if "VERSIONISH" in rx.pattern else "ERROR"
+                findings.append((lv, f"{rel}:{i}", f"疑似敏感信息: {m.group(0)[:24]}…"))
 
         if in_code or s.startswith((">", "#")) and not s.startswith("#!"):
             pass

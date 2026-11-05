@@ -346,7 +346,7 @@ bash run_and_collect.sh        # Step 2: 仿真 + 收集 HDF5
 python3 analyze_density.py     # Step 3: 密度时空演化图
 ```
 
-详见 [`scenarios/flash_demo/hello_flash/README.md`](../scenarios/flash_demo/hello_flash/README.md)
+详见 [`scenarios/flash_demo/hello_flash/README.md`](../flash/scenarios/flash_demo/hello_flash/README.md)
 
 ### Python API 安装脚本生成
 

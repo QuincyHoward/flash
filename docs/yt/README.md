@@ -104,7 +104,7 @@ module load yt/4.0.2
 
 ### 3.4 对比图
 
-![yt vs h5py 对比图](../test/hdf5ploter_easy/output/hpc_comparison/yt_vs_h5py_comparison.png)
+!yt vs h5py 对比图（测试运行时生成于 test/hdf5ploter_easy/output/hpc_comparison/）
 
 ---
 
