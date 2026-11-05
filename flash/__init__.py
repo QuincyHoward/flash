@@ -39,7 +39,7 @@ _STANDALONE = True
 # =======================================================================
 
 from .interface import FlashSimulator
-from .config import FlashConfig, get_default_config
+from ._core.config import FlashConfig, get_default_config
 
 # Optional exports (may not exist in all versions)
 try:
@@ -195,7 +195,7 @@ import sys as _sys
 if "flash" in _sys.modules:
     # Pre-import common submodules for better UX
     _common_submodules = [
-        "flash.config",
+        "flash._core.config",
         "flash._core.credentials",
         "flash.flash_run",
         "flash.input_gen",

@@ -9,7 +9,7 @@ FLASH 仿真基本配置
   - 编译选项
 
 用法示例：
-  from flash.config import FlashConfig, get_default_config
+  from flash._core.config import FlashConfig, get_default_config
 
   config = get_default_config()
   config.mode = "ssh"          # 切换到超算模式
@@ -101,9 +101,14 @@ def get_default_config() -> FlashConfig:
     return FlashConfig.load()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """CLI 入口（pyproject.toml ``flash-setup`` 脚本）。"""
     config = get_default_config()
     print("当前配置:", config)
     config.mode = "local"
     config.save()
     print("配置已保存到:", DEFAULT_CONFIG_PATH)
+
+
+if __name__ == "__main__":
+    main()

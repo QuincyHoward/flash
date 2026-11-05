@@ -11,6 +11,7 @@ from .schema import (
     SimulationRequest, SimulationResult, SimulationStatus, SimulatorType,
 )
 # 从新的模块化 credentials 包导入
+from .config import FlashConfig, get_default_config
 from .credentials import (
     get_credential_manager,
     get_user_name,
@@ -24,6 +25,7 @@ from .credentials import (
 
 __all__ = [
     "BaseSimulator",
+    "FlashConfig", "get_default_config",
     "CapabilityCard", "InputVar", "OutputVar", "PhysicsDomain",
     "SimulationRequest", "SimulationResult", "SimulationStatus", "SimulatorType",
     "get_credential_manager",

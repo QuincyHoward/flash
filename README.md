@@ -7,7 +7,7 @@
 [![Gitee](https://img.shields.io/badge/Gitee-physimx%2Fflash-C71D1D.svg)](https://gitee.com/physimx/flash)
 [![GitHub](https://img.shields.io/badge/GitHub-QuincyHoward%2Fflash-181717.svg)](https://github.com/QuincyHoward/flash)
 
-> **版本维护策略**: 本仓库以 Gitee 分支为开发主阵地 ,
+> **版本维护策略**: 以 Gitee 分支为开发主仓库 ,
 > PyPI 按阶段发布更新。文档中**不标注具体版本号** ,
 > 当前版本以 `pyproject.toml` 为准, 历史版本见 `git tag -l` 与 PyPI Releases。
 
@@ -326,7 +326,7 @@ flash/
 │  ├─ loader/              #   FlashDataLoader / FlashDataContainer
 │  ├─ plotter/             #   FlashPlotter（自适应维度）
 │  └─ parallel.py          #   多文件 / 多变量并行加速
-├─ config/                 # FlashConfig 运行配置
+├─ _core/config.py         # FlashConfig 运行配置（自 config/ 迁入）
 ├─ scenarios/flash_demo/   # 参考示例与一键脚本
 ├─ docs/ scripts/ utils/   # 文档 / Git 工具 / 辅助脚本
 └─ test/                   # 测试套件
@@ -598,10 +598,10 @@ print(result.output_data)
 
 | 类 | 包路径 | 说明 |
 |----|--------|------|
-| `FlashSimulatorEngine` | `flash.scenarios.core.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
-| `SimulationScenario` | `flash.scenarios.core.base` | 场景声明式配置数据类 |
+| `FlashSimulatorEngine` | `flash.scenarios.core.engine.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
+| `SimulationScenario` | `flash.scenarios.core.engine.base` | 场景声明式配置数据类 |
 | `FlashSimulator` | `flash` | 旧版统一仿真接口, 支持 mock/real 双模式 (旧接口) |
-| `FlashConfig` | `flash.config` | 全局配置管理器 |
+| `FlashConfig` | `flash._core.config` | 全局配置管理器 |
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
 | `ConfigGenerator` | `flash.input_gen.gen_config.generator` | `Config` 文件生成器 |
 | `BlockGenerator` | `flash.input_gen.gen_sim_initblock.generator` | `Simulation_initBlock.F90` 生成器 |

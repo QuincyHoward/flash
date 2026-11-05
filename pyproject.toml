@@ -81,7 +81,7 @@ plasmapy-dev = [
 [project.scripts]
 # CLI tools
 flash-cred = "flash._core.credentials:interactive_menu"
-flash-setup = "flash.config:main"
+flash-setup = "flash._core.config:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["flash"]

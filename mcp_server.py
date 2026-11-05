@@ -137,7 +137,7 @@ MODULE_MAP_TEXT = """\
 | 层 | 关键类 | 文件路径 (相对 PROJECT_ROOT) |
 |----|--------|------------------------------|
 | 接口/适配 | FlashSimulator (mock/real) | `flash/interface.py`; 导出: `flash/__init__.py` |
-| 接口/适配 | FlashConfig 全局配置 | `flash/config/` |
+| 接口/适配 | FlashConfig 全局配置 | `flash/_core/config.py` |
 | 核心抽象 | BaseSimulator 契约 | `flash/_core/interface.py` |
 | 核心抽象 | SimulationRequest/Result schema | `flash/_core/schema.py` (无 pydantic 依赖) |
 | 核心抽象 | 凭据加密 (Fernet) | `flash/_core/credentials/` |
@@ -183,7 +183,7 @@ API_REFERENCE_TEXT = """\
 | `FlashSimulatorEngine` | `flash.scenarios.core.engine.simulator` | **统一仿真引擎** — 场景驱动, 封装 WSL 执行 + 插值 + 输出管线 |
 | `SimulationScenario` | `flash.scenarios.core.engine.base` | 场景声明式配置数据类 (钩子: build_par / build_grid / interpolate) |
 | `FlashSimulator` | `flash` | 旧版统一仿真接口, mock/real 双模式 |
-| `FlashConfig` | `flash.config` | 全局配置管理器 |
+| `FlashConfig` | `flash._core.config` | 全局配置管理器 |
 | `ParGeneratorExtended` | `flash.input_gen.gen_par.generator` | `.par` 参数文件生成器 |
 | `ConfigGenerator` | `flash.input_gen.gen_config.generator` | `Config` 文件生成器 |
 | `BlockGenerator` | `flash.input_gen.gen_sim_initblock.generator` | `Simulation_initBlock.F90` 生成器 |
