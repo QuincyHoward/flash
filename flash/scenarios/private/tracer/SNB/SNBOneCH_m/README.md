@@ -1,4 +1,6 @@
 # SNBOneCH_m — SNBOneCH_ml + 辐射开启
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 **派生**: 2026-09-24, 自 `SNBOneCH_ml`（纯 CH 8 物种基线, 131 核 +ug dx=0.0298 µm）。
 

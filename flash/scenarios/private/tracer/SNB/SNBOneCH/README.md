@@ -1,4 +1,6 @@
 # SNBOneCH —— OneCH_ml 几何/材料 + SNB 非局域热传导（双标记）
+> 最后核对：2026-11-05 · commit 7e04857
+
 
 > 位置：`flash/scenarios/private/tracer/SNB/SNBOneCH`
 > 派生自：`tracer/OneCH_ml`（local，Spitzer+限流）× `SNB/SNB` 核心模块（nonlocal）

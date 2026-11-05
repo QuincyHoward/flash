@@ -1,4 +1,6 @@
 # flash-sim 场景系统 — 使用指南
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：core/ 布局或场景清单变化后同步 §架构说明
+
 
 > flash-sim 场景系统使用指南：从即插即用仿真入口到可参数化、可优化的工程工具。
 
@@ -576,40 +578,41 @@ layer_tracer_CH_ml 的分层几何参数（.par INITIAL CONDITIONS 段）：
 ## 架构说明
 
 ```
-flash/
-├── scenarios/
-│   ├── __init__.py               ← 容错导入各场景包 (触发注册)
-│   ├── base.py                   ← SimulationScenario 数据类
-│   ├── registry.py               ← 场景注册表 (get/list/register)
-│   ├── simulator.py              ← FlashSimulatorEngine (注册场景统一引擎)
-│   ├── runner.py                 ← 统一运行器 (RUN_MODE 一键切换 wsl/hpc)
-│   ├── interpolator.py           ← 时空插值共享模块
-│   ├── README.md                 ← 本文档
-│   │
-│   ├── center_evolution/         ← 物理专题: 中心演化
-│   │   └── ch_center/            ← CH 靶中心演化 (注册场景 + 本地直跑入口)
-│   │
-│   ├── collision_compression/    ← 物理专题: 预留 (暂无场景)
-│   │
-│   ├── plasma_preparation/       ← 物理专题: 预留 (暂无场景)
-│   │
-│   ├── flash_demo/               ← 演示场景
-│   │   ├── demo_local/           ← 本机 (WSL) 1D LaserSlab 演示
-│   │   ├── demo_hpc/             ← 超算 (SLURM) 1D LaserSlab 演示
-│   │   └── hello_flash/          ← 安装部署冒烟测试
-│   │
-│   └── private/                  ← 私有场景 (不随发布包分发)
-│       └── tracer/               ← 分层示踪靶系列 (_par_layers.py 共享规范参数)
-│           ├── layer_tracer_CH/  ← CH 示踪场景 (单示踪层模板)
-│           ├── layer_tracer_CH_ml/ ← 多薄层示踪场景 (6 物种, 预诊断图 + 新输出布局)
-│           └── layer_tracer_Ti/  ← Ti 示踪场景
+flash/scenarios/
+├── __init__.py / __main__.py     ← 包导出与旧名动态转发
+├── core/                          ← 框架层（2026-11-05 功能化重组 4 子包）
+│   ├── runner.py  insitu_runner.py   ← 兼容壳 → flash_run.modes.*（原地保留）
+│   ├── scene_paths.py  anchors.py    ← 地基：根定位 / 跨场景数据锚点
+│   ├── scene_reg/                    ← discovery registry catalog policies device_defaults
+│   ├── entry/                        ← cli launcher（统一 CLI 入口）
+│   ├── engine/                       ← simulator base interpolator hints
+│   └── hpc/                          ← hpc_job submit_cli
+├── common/                        ← 场景共享代码（非场景、位置固定）
+│   ├── scene_ref.py              ← 跨场景模块按名加载（场景间零 import）
+│   └── time_control.py           ← 极短验证 dt 收缩规则
+├── scripts/                       ← 共享脚本区
+│   ├── relocate/                 ← 收纳整理工具链六件套
+│   ├── checks/  validation/  legacy/
+├── _scene_anchors.json            ← 跨场景数据文件逻辑锚点表
+├── 场景收纳整理改造计划.md
 │
-└── test/scenarios/               ← 场景接口测试
-    ├── run_all_scenario_tests.py ← 批量测试运行器
-    ├── test_scenarios_imports.py ← 导入与注册表测试
-    ├── test_scenario_par_build.py← .par 生成测试
-    ├── test_engine_dryrun.py     ← 引擎 dry-run 测试
-    └── test_real_flash_run.py    ← 真实 FLASH 端到端测试
+├── public/                        ← 公开场景（runs_* 为运行产物目录）
+│   ├── center_evolution/ch_center|ch_center_t
+│   └── sandwich/thin_layer_sandwich|grad_dens_sandwich
+│
+├── flash_demo/                    ← 演示场景（hello_flash/demo_local/demo_hpc）
+│
+└── private/                       ← 私有场景（不随发布包分发）
+    ├── SNB/                       ← SNBtest（Test/t001…）与 snb_package 资料
+    ├── Sandwich/TxN/              ← 多层 sandwich TxN 场景
+    ├── archive_2026/              ← 归档
+    └── tracer/                    ← Ti/V 示踪层场景群
+        ├── SNB/                   ← FL-SH vs SNB 对比族（SNBOneCH_ml 委托链 + SNBVTi 系）
+        ├── OneCH_ml  OneC_ml(_F)  OneSi_ml(_F)
+        ├── TiTi  CHTi(_F)  VTi  VCH_ml(_F)  Au  VTi_oldstyle
+        └── tools_local/           ← 批量工具
+
+test/scenarios/                    ← 场景测试（含 tools/ 工具链门禁 24 项）
 ```
 
 ### 关键设计原则
