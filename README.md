@@ -1049,7 +1049,7 @@ flash-sim 的 Python 代码以 Apache 2.0 许可，但其商用须遵守所有�
 > **Sync rule**: the Chinese main body (above) is authoritative — update it first,
 > then mirror §Overview / §Architecture / §Directory map / §Quick start here.
 > Last synced: 2026-11-05 (module paths updated to `scenarios/core/{scene_reg,entry,engine,hpc}` layout;
-> 原 `flash/config/`（已迁 `flash/_core/config.py`） merged into `flash/_core/config.py`).
+> the former config/ package was merged into `flash/_core/config.py`).
 
 **flash-sim** is a full-featured Python interface and automation toolkit for the
 [FLASH](https://flash.rochester.edu) high-energy-density physics (HEDP) simulation
