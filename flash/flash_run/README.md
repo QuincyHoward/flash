@@ -22,7 +22,7 @@ scenarios/  →  flash_run/  →  flash/_core/        （禁止反向依赖）
 | 文件 | 行数 | 职责 | 关键 API |
 |---|---|---|---|
 | `__init__.py` | 50 | PEP 562 惰性导出（import 不拉起 paramiko） | `__getattr__` |
-| `execution.py` | 472 | **唯一执行契约**：目标解析 + 策略校验 + 转调执行体 | `resolve_target()` / `run_scene()` / `SceneSpec` / `ExecutionPolicy` / `EXEC_TARGETS` |
+| `execution.py` | 472 | **唯一执行契约**：目标解析 + 策略校验 + 转调执行体 | `run_scene()` / `normalize_target()` / `SceneSpec` / `ExecutionPolicy` / `EXEC_TARGETS` |
 | `hpc.py` | 176 | 超算技能统一 CLI（本地驱动/登录节点两侧可调） | `python -m flash.flash_run.hpc …` |
 | `modes/runner.py` | 1051 | wsl/hpc-remote 执行体（自 scenarios 迁入，唯一归属） | `run_wsl()` / `WslSpec` / `allocate_run_id()` / `resolve_venv_python()` / `discover_flash_home()` |
 | `modes/hpc_insitu.py` | 237 | hpc-insitu 执行体（就地 sbatch，**绝不 SSH 自连**） | `run_insitu()` |
@@ -53,7 +53,7 @@ scenarios/  →  flash_run/  →  flash/_core/        （禁止反向依赖）
 | `hpc-remote` | 本机 → SSH(RemoteSession) → 超算：上传→sbatch→sacct 轮询→远程分析→回传 | Windows / WSL |
 | `hpc-insitu` | 驱动脚本**已在超算登录节点**：就地 sbatch+收集，禁 SSH 自连 | 超算登录节点 |
 
-`auto`（默认）判定顺序——唯一实现 `execution.resolve_target()`：
+`auto`（默认）判定顺序——唯一实现 `execution.run_scene()`（auto 判定唯一实现）：
 1. `--mode` 显式参数 → 2. 环境变量 `FLASH_RUN_MODE` → 3. 场景 `policy.preferred` → 4. 本机 slurm 健康 → `hpc-insitu` → 5. 非 Windows → `local` → 6. Windows 有 WSL → `wsl` → 7. 报错（**绝不静默降级**）。
 
 场景可用 `ExecutionPolicy` 硬性约束：`allowed`（如 SNB 族仅允许两个 hpc 目标）、`nproc`（`exact`/`at_most`，执行层强制）、`forbid_reason`。策略校验失败即 `ok=False`，**绝不吞错返回假成功**。

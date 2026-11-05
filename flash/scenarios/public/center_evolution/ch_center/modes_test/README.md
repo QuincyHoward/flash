@@ -2,7 +2,7 @@
 
 同一子场景（`ch_center`：CH 靶居中、两束 351 nm 激光相向入射）在**五种执行路径**
 下的测试与维护工具集。子场景本身只关心物理搭建；执行方式由运行模式参数控制，
-默认 `auto` 按平台自适应（判定表唯一实现：`flash.flash_run.execution.resolve_target`）。
+默认 `auto` 按平台自适应（判定表唯一实现：`flash.flash_run.execution.run_scene`）。
 
 ## 1. 模式矩阵
 
