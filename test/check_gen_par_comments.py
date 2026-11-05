@@ -9,7 +9,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from flash.input_gen.gen_par.generator import ParGeneratorExtended, PARAM_COMMENTS
-from flash.scenarios.private.tracer._par_layers import CH_FLASH_PAR
+from flash.scenarios.scripts.legacy._par_layers import CH_FLASH_PAR
 
 # 用户要求的注释 (期望值)
 EXPECTED = {

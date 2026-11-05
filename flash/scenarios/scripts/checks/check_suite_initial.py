@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[3]  # 仓库根（scripts→scenarios→flash→根）
+REPO = Path(__file__).resolve().parents[4]  # 仓库根（checks→scripts→scenarios→flash→根）
 sys.path.insert(0, str(REPO))
 from flash.output_pro.loader import FlashDataLoader  # noqa: E402
 

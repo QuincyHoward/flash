@@ -14,4 +14,9 @@
     否则共享层反向绑定场景、移动场景会破坏共享层；
   - 允许依赖 flash.scenarios.core.*（框架层）与 flash.* 通用设施；
   - 本目录不含 scene.json，discovery 天然不识别为场景。
+
+★ 成员清单（2026-11-05）：
+  - ``scene_ref.py``   跨场景模块按名加载器（scene_module）
+  - ``time_control.py`` 极短验证 dtinit/dtmin/dtmax 收缩规则（自 scripts/ 迁入，
+    被公开场景包与 sandwich_txn 共用的纯函数库）
 """
