@@ -926,7 +926,7 @@ flash/flash_src/
 └── FLASH_one_click_install.sh   # 一键编译安装脚本（随仓库分发）
 ```
 
-### 2. IONMIX 相关源码 — `flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix/`
+### 2. IONMIX 相关源码 — `flash/input_gen/gen_eos_op/ionmix/ionmix/src/Ionmix_run/`
 
 IONMIX 物性生成程序源码、示例输入/输出与参考文献（许可限制，不随仓库分发）：
 
