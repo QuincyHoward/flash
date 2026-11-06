@@ -384,7 +384,7 @@ pydantic>=2.0        # 数据校验
 ./setup -auto ...  # (按 FLASH 安装文档)
 ```
 
-#### 0.1 还没装 FLASH？—— `hello_flash` 零基础一键安装包（从零到首图）
+### 0.1 还没装 FLASH？—— `hello_flash` 零基础一键安装包（从零到首图）
 
 [`flash/scenarios/flash_demo/hello_flash/`](flash/scenarios/flash_demo/hello_flash/README.md)
 是面向**首次接触 FLASH** 用户的快速上手包：从零安装 FLASH 4.8 → 运行首个 LaserSlab 1D 仿真 → 自动生成密度分析图，开箱即用。详细步骤、脚本清单与踩坑指南见其 [README.md](flash/scenarios/flash_demo/hello_flash/README.md)，此处只列功能概要：
@@ -414,7 +414,7 @@ pydantic>=2.0        # 数据校验
 > 环境变量：`FLASH_SIM_USER_DIR`（用户名覆盖）、`FLASH_SOURCE_SUFFIX`（数据来源后缀 `from_ssh1`/`from_ssh2`）。安装脚本会将 MPI/HDF5/HYPRE 路径写入 `~/.bashrc`。
 > 常见坑（HYPRE 符号链接、MPICH root 参数、`python` vs `python3`）的解决方案均已在 hello_flash README「已知问题」节收录。
 
-### 0.5 两个常用脚本入口（推荐）
+### 0.2 两个常用脚本入口（推荐）
 
 仓库根目录提供两个开箱即用的脚本，覆盖「安装验证」与「场景仿真」两类日常操作。
 
@@ -880,6 +880,9 @@ python -m build
 | 文件 | 说明 |
 |------|------|
 | `README.md` | **本文档** — 项目概述与快速入门 |
+| `AGENTS.md` | **Agent 入口索引** — 各类 Agent（Codex/Claude Code/OpenCode/WorkBuddy…）的技能索引与分工声明 |
+| `CLAUDE.md` | Claude Code 桥接（首行 `@AGENTS.md` 导入） |
+| `skills编写计划.md` | Agent skills 仓库化的计划与实施记录（Phase 0–3 已完成） |
 | `scenarios/README.md` | **场景系统使用指南** — 即插即用仿真入口 |
 | `docs/README.md` | FLASH 仿真使用指南（详细版，含所有子模块 API） |
 | `docs/flash_operation_standard.md` | 仿真操作规范（绘图语言/行尾格式/运行流程） |
@@ -887,7 +890,8 @@ python -m build
 | `docs/par_format_guide.md` | `.par` 排版规范 |
 | `docs/GIT_WORKFLOW.md` | Git 工作流与测试分层策略 |
 | `docs/VERSIONING.md` | 版本号命名协议 (SemVer) |
-| `docs/skills-map.md` | 技能 ↔ 文档 ↔ Python 模块索引 |
+| `docs/skills-map.md` | 技能 ↔ 文档 ↔ Python 模块三向索引 |
+| `docs/reference/param_index_flash48.md` | FLASH 4.8 高频参数索引（~150 条，含 setup 相关性） |
 
 ### 文档体系索引（2026-11-05 重建，各目录均含「最后核对」元信息）
 
@@ -899,6 +903,7 @@ python -m build
 | 输出处理 | `flash/output_pro/README.md` · `hdf5pro/` · `loader/` · `plotter/` · `test/README.md` |
 | 场景系统 | `flash/scenarios/README.md` · `core/`（4 子包）· `common/` · `scripts/`（relocate 六件套）· 各场景薄 README |
 | 文档工具 | `scripts/08_docs/README.md`（dump_docstrings 摘要 / check_docs 门禁） |
+| Agent 技能 | `skills/README.md`（skill 编写规范与 SKILL.md 模板）· 各 `skills/<name>/SKILL.md` |
 
 ### 子模块文档
 
@@ -911,26 +916,39 @@ python -m build
 | F90 参考文件指南 | `input_gen/gen_otherf90s/README.md` |
 | 多区密度剖面参考 | `input_gen/gen_newpara/RP_Reference.md` |
 
-### Skills (WorkBuddy AI 辅助)
+### Skills（Agent 技能库，多 Agent 通用，随 git 分发）
 
-> 已核实为**当前实际安装**的技能（用户级 `~/.workbuddy/skills/`）。
-> ⚠ 旧版本文档列的 `flash-orchestrator-activator` / `input-gen-generator` /
-> `physimx-workflow-orchestrator` **均已不存在**，已按实际替换。
+> 2026-11-06 起，Agent skills 沉淀到仓库级 `skills/`（13 个，统一 `flash-` 前缀），
+> 是**唯一事实源**。编写规范、SKILL.md 模板见 `skills/README.md`；
+> 技能索引与分工声明见根 `AGENTS.md`；skill ↔ docs ↔ 模块三向映射见 `docs/skills-map.md`。
 
-| Skill | 用途 |
+**各 Agent 的加载方式**：
+
+| Agent | 加载路径 |
 |---|---|
-| `snb-flash-scenario-setup` | ★ SNB 场景全流程：设置/判据/分享 + FLASHSNB 构建补丁与三机部署（`references/`） |
-| `flash-to-flychk-history` | FLASH 输出 → FLYCHK history 上传 zip |
-| `physimx-flash-backup-verify` | 备份校验 |
-| `physimx-h5py-batch-read` | h5py 大批量读取性能与索引对齐 |
-| `physimx-h5py-yt-extract` | yt 风格叶块提取 |
-| `physimx-float64-cv-fix` | float64 收敛/精度修复 |
-| `flaky-io-watchdog-extraction` | 批量提取防挂起（worker + 看门狗） |
-| `knnum-mc-ploter` | 蒙卡 Knudsen 数计算模块 |
-| `spectime-diag-v` | SPECTIME 速度诊断（step01–03） |
-| `literature-citation-graph-harvest` | 文献施引/引用检索与 PDF 批量下载 |
-| `gitee-cred-git-scaffold` · `gitee-enterprise-repo` | Gitee 凭据脚手架 / 企业仓库创建 |
-| `code-refactor-safe` | 安全重构工作流 |
+| Codex / OpenCode / Cursor / Zed / Warp / Amp / Jules / VS Code | 原生读取根级 `AGENTS.md` → 按索引表加载 `skills/<name>/SKILL.md` |
+| Claude Code | 根级 `CLAUDE.md`（首行 `@AGENTS.md` 导入） |
+| WorkBuddy | 项目级 `.workbuddy/skills/` 自动加载——由 `python scripts/sync_workbuddy_skills.py` 从 `skills/` 单向镜像（`--dry-run` 预览 / `--check` 一致性校验） |
+| 其他任意 Agent | 纯 markdown 链路：`AGENTS.md` → `skills/README.md` → 对应 `SKILL.md` |
+
+**技能清单速览**（详细触发场景见 `AGENTS.md`）：
+
+| 类别 | Skill |
+|---|---|
+| 入口 | `flash-sim-overview`（含「意图→技能→模块」路由矩阵） |
+| 操作型 | `flash-scenario-setup`（SNB/FL-SH 场景·dtmax·分享合规）· `flash-scenario-family`（家族派生·cn4 核查·关辐射变体）· `flash-input-gen`（输入文件全流程生成）· `flash-newpara`（新参数/多区密度剖面）· `flash-par-gen`（.par 排版规范）· `flash-grid-refine-constraint`（AMR 细化约束）· `flash-run-deploy`（三模式·超算部署）· `flash-output-analysis`（HDF5·x-t 图纪律）· `flash-eos-op`（IONMIX cn4/cnr）· `flash-flychk-history`（FLASH→FLYCHK）· `flash-hpc-fetch`（超算取数）· `flash-data-extract`（纯 h5py 提取）· `flash-backup-verify`（备份验证）· `flash-readme-sync`（全仓 README 巡检） |
+| 知识型 | `flash-knowledge`（FLASH 11 单元源码级知识导航 + src_finding 方程↔源码对照，吸收自上游 FLASH-Expert @ 25013c5）· `flash-pitfalls`（报错→根因→修复速查，38 条）· `flash-param-lookup`（联网查官方 rpDoc 参数定义，4050 参数离线索引） |
+| 通用工程 | `flash-code-refactor-safe`（安全重构）· `flash-code-execute-verify`（代码级执行验证）· `flash-token-budget`（token 节约纪律）· `flash-skill-sync`（全体系 skill 巡检维护） |
+
+**用户级 skill 已 deprecated（2026-11-06）**：以下 `~/.workbuddy/skills/` 技能内容已并入仓内
+对应 skill（SKILL.md 头部有 DEPRECATED 横幅），请改用仓库级版本：
+`snb-flash-scenario-setup` → `flash-scenario-setup`；
+`flash-to-flychk-history` → `flash-flychk-history`；
+`hpc-sftp-parallel-fetch` → `flash-hpc-fetch`；
+`physimx-h5py-yt-extract` / `physimx-h5py-batch-read` / `physimx-float64-cv-fix` → `flash-data-extract`；
+`physimx-flash-backup-verify` → `flash-backup-verify`。
+外部仓库依赖类技能（flychk 四件套 / spectime 双 skill / knnum-mc-ploter /
+eos-table-family-census / literature-citation-graph-harvest 等）保留在用户级，不受影响。
 
 ---
 
@@ -1062,6 +1080,18 @@ flash-sim（flash 仿真辅助 Python 包）由**绵阳市的 PhySimX 团队**�
 flash-sim 的 Python 代码以 Apache 2.0 许可，但其商用须遵守所有适用许可条款，包括 FLASH 仿真引擎的 [FLASH License Agreement](https://flash.rochester.edu) §5（商用须经 Flash Center 主任事先书面批准）。本包由绵阳市的 PhySimX 团队原创开发，商用场景下的授权与责任以届时适用的许可及书面约定为准。
 
 > 注：Apache 2.0 仅覆盖本包的 Python 代码，不授予 FLASH 仿真引擎的任何商用权利；flash-sim 不对任何商用后果作担保。
+
+### 第三方致谢：FLASH-Expert（AI 知识库）
+
+本仓库 `skills/flash-knowledge`（FLASH 源码级知识导航）、`skills/flash-pitfalls`（报错速查库）及
+`docs/reference/param_index_flash48.md`（FLASH 4.8 参数索引）的部分内容，整理/转写自
+**FLASH-Expert** 项目——由 **xubo（boxu-pku，北京大学）** 开发的 FLASH 4.8 多 harness AI 专家
+skill 系统（知识层 11 单元 + 工具层 5 + 操作层 2）。特此致谢！
+
+- 上游仓库：<https://github.com/boxu-pku/FLASH-Expert>
+- 本仓吸收基准：上游 commit `25013c5`（2026-11-06 收纳，各产物头部均有「上游：FLASH-Expert @ 25013c5」标注）
+- 使用说明：上游原文以浅克隆形式存放于 `temp/FLASH-Expert/`（不入 git），仅作本机更新通道；吸收产物为精华转写并保留源码锚点，未整体再分发原文
+- 上游许可：**仅供学术研究使用**；FLASH 4.8 本身遵循 [FLASH Code License](https://flash.uchicago.edu/site/license/)。使用本仓上述 skill 的出版物，建议同时致谢 FLASH-Expert 作者
 
 © 2026 PhySimX Contributors. Apache 2.0 License.
 

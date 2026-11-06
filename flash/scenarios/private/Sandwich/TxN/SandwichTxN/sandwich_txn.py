@@ -8,18 +8,23 @@
   analyze_output.py 输出分析脚本 (chk → 4 张诊断图 + summary)
   sim_input_si/     FLASH 输入 (生成物, 数据)
 
-结构（对称, x=0 为 Si 中心面）:
-    |x| <= 0.5 um       Si   (targ, 2.33 g/cm^3, 总厚 1 um)
-    0.5 < |x| <= 100.5 um  CH 泡沫 (poly, 0.3 g/cm^3, 两侧各 100 um)
-    |x| > 100.5 um     He   (cham, 1e-6 g/cm^3)
+结构（对称, x=0 为 Si 中心面, 2026-11-06 四层版）:
+    |x| <= 0.46 um          Si        (targ, 2.3 g/cm^3, 总厚 0.92 um)
+    0.46 < |x| <= 1.46 um   CH 致密层 (poly, 1.0 g/cm^3, 两侧各 1 um)
+    1.46 < |x| <= 51.46 um  CH 泡沫   (poly, 0.294 g/cm^3, 两侧各 50 um)
+    |x| > 51.46 um          He        (cham, 1e-6 g/cm^3)
 初始: 常温 290.11375 K (密度取设定值)。
-当前参数: tmax = 1.8 ns, lrefine_max = 10 (res_min ~ 0.0069 um), Si 总厚 1.0 um,
-CH 泡沫密度 0.3 g/cm^3, 激光 = 超高斯 (n=4) 脉冲 (峰值 3.14e14 W/cm² @1.0 ns,
-FWHM 1 ns, 100 组离散), chk 每 100 步输出 (平滑时空采样)。
+当前参数: tmax = 1.6 ns, lrefine_max = 10 (res_min ~ 0.0069 um),
+激光 = 梯形脉冲 (单束 ed_power 峰值 3.183e14 W/cm² = 2×800 J /
+(π×(400um)²×1.0ns), FWHM 1 ns, 上升/下降沿各 0.3 ns, 平顶 0.7 ns, 双束对打),
+chk 每 100 步输出 (平滑时空采样)。
+短验证: 环境变量 SANDWICH_TXN_TMAX=1e-11 覆盖 tmax (引擎每次 run 重建 par,
+gen --tmax 写盘会被覆盖, 故走 default_params 通道)。
 """
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 import warnings
@@ -53,11 +58,13 @@ XMIN_CM = -450e-4    # 域左边界 (cm) = -450 um
 XMAX_CM = 450e-4     # 域右边界 (cm) = 450 um
 DW      = 900e-4     # 域宽度 (cm) = 900 um
 
-DEFAULT_TARG_HEIGHT = 5e-5      # Si 半厚 (cm) = 0.5 um (总厚 1.0 um, 2026-10-30 调整)
-DEFAULT_POLY_HEIGHT = 100.5e-4  # CH 外边界半厚 (cm) = 100.5 um (两侧各 100 um)
-DEFAULT_RHO_POLY    = 0.3       # CH 泡沫密度 (g/cm^3, 2026-10-30 调整)
-DEFAULT_RHO_TARG    = 2.33      # Si 密度 (g/cm^3, 常压固态)
-DEFAULT_RHO_CHAM    = 1e-6      # He 填充密度 (g/cm^3, 极低)
+DEFAULT_TARG_HEIGHT = 0.46e-4    # Si 半厚 (cm) = 0.46 um (总厚 0.92 um, 2026-11-06)
+DEFAULT_POLY_HEIGHT = 1.46e-4    # 致密 CH 外边界半厚 (cm) = 1.46 um (两侧各 1 um)
+DEFAULT_RHO_POLY    = 1.0        # 致密 CH 密度 (g/cm^3, 2026-11-06)
+DEFAULT_FOAM_HEIGHT = 51.46e-4   # CH 泡沫外边界半厚 (cm) = 51.46 um (两侧各 50 um)
+DEFAULT_RHO_FOAM    = 0.294      # CH 泡沫密度 (g/cm^3 = 294 mg/cm^3)
+DEFAULT_RHO_TARG    = 2.3        # Si 密度 (g/cm^3, 2026-11-06)
+DEFAULT_RHO_CHAM    = 1e-6       # He 填充密度 (g/cm^3, 极低)
 
 EOS_TARG_FILE = "Z14_1.00-20260708_0850.cn4"           # Si EOS/op 表
 EOS_POLY_FILE = "Z06_0.50-Z01_0.50-20260708_0850.cn4"  # CH EOS/op 表 (高分辨)
@@ -74,39 +81,45 @@ NBX = 8      # 初始分块数
 LR8 = 10     # lrefine_max (2026-10-29 深夜: 9 → 10, res_min ~ 0.0069 um)
 LR1 = 1      # lrefine_min
 
-def _super_gaussian_pulse(n_pts: int = 100, i0: float = 3.14e14,
-                          t0: float = 1.0e-9, fwhm: float = 1.0e-9,
-                          order: float = 4.0, t_end: float = 1.8e-9):
-    """超高斯激光脉冲 (峰值 3.14e14 W/cm² @1.0 ns, FWHM 1 ns, n=4)。
+def _trapezoid_pulse(i0: float = 3.183e14, t_start: float = 0.0,
+                     t_rise: float = 0.3e-9, t_flat: float = 0.7e-9,
+                     t_end: float = 1.6e-9):
+    """梯形激光脉冲 — 严格 4 点定义 (2026-11-06 定案)。
 
-    I(t) = I0 * exp(-ln2 * (2|t - t0| / fwhm)^order)
-    - t0 = 峰值时刻; fwhm = 半高全宽 (任意 order 下均严格成立); order = n。
-    - n_pts 个 (t, I) 组均匀覆盖 [0, t_end], FLASH 在组间线性内插。
+    FLASH 在 ed_time/ed_power 组间线性内插, 梯形仅需 4 个节点:
+        (0.0 ns,        0 )
+        (0.3 ns,        i0)   上升沿 0.3 ns, 0.3 ns 达平台峰值
+        (1.0 ns,        i0)   平顶   0.7 ns
+        (1.3 ns,        0 )   下降沿 0.3 ns
+    → FWHM = t_flat + t_rise = 1.0 ns (半高点位于沿中点)。
+    峰值 i0 = 2×800 J / (π×(400 um)²×1.0 ns) = 3.183e14 W/cm²
+    (单束 ed_power 值; 光斑直径 800 um, 等效持续时间 1.0 ns,
+    用户 2026-11-06 确认功率按双束总能量 1600 J 计)。
+    脉冲占据 [0, 1.3] ns ⊂ [0, t_end=1.6 ns]。
     """
-    import math
-    ln2 = math.log(2.0)
-    out = []
-    for k in range(n_pts):
-        t = t_end * k / (n_pts - 1)
-        x = 2.0 * abs(t - t0) / fwhm
-        out.append((t, i0 * math.exp(-ln2 * x**order)))
-    return out
+    t2 = t_start + t_rise
+    t3 = t2 + t_flat
+    t4 = t3 + t_rise
+    return [(t_start, 0.0), (t2, float(i0)), (t3, float(i0)), (t4, 0.0)]
 
 
-DEFAULT_LASER_PULSE = _super_gaussian_pulse(
-    n_pts=100, i0=3.14e14, t0=1.0e-9, fwhm=1.0e-9, order=4.0, t_end=1.8e-9)
+DEFAULT_LASER_PULSE = _trapezoid_pulse()
 DEFAULT_WAVELENGTH = 0.351  # um
 
-DEFAULT_TMAX  = 1.8e-9   # 2026-10-29 深夜: 1.8 ns 仿真 (超高斯脉冲)
+DEFAULT_TMAX  = 1.6e-9   # 2026-11-06: 1.6 ns 仿真 (梯形脉冲)
 DEFAULT_DTINIT = 1e-16
 DEFAULT_DTMIN  = 1e-16
 DEFAULT_DTMAX  = 1e-09
+
+# 短验证通道: SANDWICH_TXN_TMAX=1e-11 → 仅推进到 1e-11 s (引擎每次 run
+# 用 default_params 重建 par, 故 tmax 覆盖必须进 default_params)
+_TMAX_ENV = os.environ.get("SANDWICH_TXN_TMAX", "").strip()
 
 DEFAULT_PLOT_INTERVAL_STEP = 1000
 DEFAULT_CHK_INTERVAL_STEP = 100
 
 OUTPUT_T_MIN  = 0.0
-OUTPUT_T_MAX  = 1.8e-9
+OUTPUT_T_MAX  = 1.6e-9
 OUTPUT_T_STEP = 10e-12
 
 SIM_NAME = "sandwich_txn"
@@ -199,11 +212,16 @@ D lase_variable saves (density of) the irradiated energy from EnergyDeposition u
 VARIABLE lase TYPE: PER_VOLUME
 
 DATAFILES Z06_0.50-Z01_0.50-20260708_0850.cn4
-# Poly (CH) material:
-D sim_polyHeight CH layer half-thickness
+# Poly (CH) material: 致密层 (sim_targHeight < |x| <= sim_polyHeight)
+D sim_polyHeight CH dense layer half-thickness
 PARAMETER sim_polyHeight REAL 0.01
-D sim_rhoPoly Initial CH density
+D sim_rhoPoly Initial dense CH density
 PARAMETER sim_rhoPoly REAL 1.05
+# Poly foam (CH): 泡沫层 (sim_polyHeight < |x| <= sim_foamHeight)
+D sim_foamHeight CH foam layer outer half-thickness
+PARAMETER sim_foamHeight REAL 0.05146
+D sim_rhoFoam Initial CH foam density
+PARAMETER sim_rhoFoam REAL 0.294
 D sim_telePoly Initial CH electron temperature
 PARAMETER sim_telePoly REAL 290.11375
 D sim_tionPoly Initial CH ion temperature
@@ -243,21 +261,22 @@ PARAMETER op_polyFileType STRING "ionmix4"
 !!  模式 C（默认二阶梯度 + 逐块几何区域加密）
 !!  ═══════════════════════════════════════════════════════════════════
 !!
-!!  仿真场景 — 1D 笛卡尔坐标，激光烧蚀多层靶 (TxN 三明治):
+!!  仿真场景 — 1D 笛卡尔坐标，激光烧蚀多层靶 (TxN 三明治, 2026-11-06 四层版):
 !!  ───────────────────────────────────────────────────────────────────
 !!  域范围:     x ∈ [sim_xMin, sim_xMax] = [-450, 450] um
-!!  
+!!
 !!  材料布局（对称, x=0 为 Si 中心面）:
-!!    位置 |x| (um)       材料         目标细化
+!!    位置 |x| (um)         材料           目标细化
 !!    ─────────────────────────────────────────────
-!!    ≤ 5               Si 中间层    高精度 (6~8 级)
-!!    (5, 55]           CH 烧蚀层    中精度 (1~4 级)
-!!    > 55              He 填充      不强制（低精度）
+!!    ≤ 0.46              Si 靶芯        高精度 (8~10 级)
+!!    (0.46, 1.46]        CH 致密层      高精度 (8~10 级, 保中心精度)
+!!    (1.46, 51.46]       CH 泡沫        中精度 (≤5 级)
+!!    > 51.46             He 填充        低精度 (≤1 级)
 !!
 !!  激光条件:
-!!    两束 1ns 梯形波（30ps 上升/下降沿, 近似方波）
-!!    最大功率密度 5e11 W/cm², 波长 0.351 um
-!!    左右两边同时以相同波形入射
+!!    两束梯形脉冲 (0.3ns 上升沿 + 0.7ns 平顶 + 0.3ns 下降沿, FWHM 1ns)
+!!    单束 ed_power 峰值 3.183e14 W/cm² (= 2×800 J / (π×(400um)²×1.0ns))
+!!    波长 0.351 um, 左右两边同时入射
 !!
 !!  细化策略（三层保障）:
 !!    ① 二阶梯度加密     — 标准 FLASH 机制，捕获物理量梯度变化
@@ -337,7 +356,7 @@ subroutine Grid_markRefineDerefine()
                              Grid_getBlkBoundBox
   use Particles_interface, ONLY : Particles_sinkMarkRefineDerefine
   use Simulation_data, ONLY : &
-                              sim_polyHeight, sim_targHeight
+                              sim_polyHeight, sim_targHeight, sim_foamHeight
 
   implicit none
 
@@ -367,7 +386,8 @@ subroutine Grid_markRefineDerefine()
   integer, dimension(MAXBLOCKS) :: blkList
   integer :: lb
   real, dimension(LOW:HIGH, MDIM) :: boundBox
-  integer :: al_target_lref, al_lower_lref, ch_max_lref, he_max_lref
+  integer :: al_target_lref, al_lower_lref, pch_target_lref, pch_lower_lref, &
+             ch_max_lref, he_max_lref
 
   ! ─────────────────────────────────────────────────────────────────
   ! ③ 模式 A：标准二阶梯度加密流程
@@ -462,10 +482,13 @@ subroutine Grid_markRefineDerefine()
   ! ─────────────────────────────────────────────────────────────────
 
   ! —— ④-a：计算各材料区域的层级约束 ——
-  ! Al 区：下限 = lrefine_max-2, 上限 = lrefine_max
+  ! Si 区：下限 = lrefine_max-2, 上限 = lrefine_max
   al_target_lref = lrefine_max
   al_lower_lref  = max(lrefine_min, lrefine_max - 2)
-  ! CH 区：上限 = lrefine_max/2（不低于 2）
+  ! 致密 CH 区 (中心 ±1.46um 内): 与 Si 同级, 保证中心范围精度
+  pch_target_lref = lrefine_max
+  pch_lower_lref  = al_lower_lref
+  ! CH 泡沫区：上限 = lrefine_max/2（不低于 2）
   ch_max_lref = max(lrefine_min, lrefine_max / 2)
   if (ch_max_lref < 2) ch_max_lref = 2
   ! He 区：上限 = lrefine_min（退粗到最粗）
@@ -489,13 +512,12 @@ subroutine Grid_markRefineDerefine()
      !  ★ 当目标区域 < 块尺寸时，块中心法失效    ★
      ! ★━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━★
      !
-     ! 判断块是否与 Al 靶材区重叠:
-     !   Al 区范围: x ∈ [-sim_targHeight, sim_targHeight]
-     !   如果块边界与 Al 区间有交集 → Al 约束
+     ! 判断块是否与 Si 靶芯区重叠:
+     !   Si 区范围: x ∈ [-sim_targHeight, sim_targHeight]
      if (boundBox(HIGH, IAXIS) >= -sim_targHeight .and. &
          boundBox(LOW, IAXIS)  <=  sim_targHeight) then
 
-        ! ═══ Al 靶材区 ═══
+        ! ═══ Si 靶芯区 ═══
         !  约束: lref ∈ [lrefine_max-2, lrefine_max]
         if (lrefine(lb) < al_lower_lref) then
            ! 精度不足 → 强制 refine
@@ -508,21 +530,32 @@ subroutine Grid_markRefineDerefine()
         end if
         ! lref 在范围内 → 保留梯度加密结果
 
-     ! 判断块是否与 CH 泡沫区重叠（且不与 Al 重叠）:
-     !   CH 区范围: x ∈ [-sim_polyHeight, sim_polyHeight]
-     !   注: 上面已排除 Al 重叠，此处只需检查 CH 重叠即可
+     ! 判断块是否与致密 CH 区重叠（且不与 Si 重叠）:
+     !   致密 CH 区范围: x ∈ [-sim_polyHeight, sim_polyHeight]
      else if (boundBox(HIGH, IAXIS) >= -sim_polyHeight .and. &
               boundBox(LOW, IAXIS)  <=  sim_polyHeight) then
 
+        ! ═══ 致密 CH 区 ═══
+        !  约束: 与 Si 同级 lref ∈ [lrefine_max-2, lrefine_max]
+        !  (保证中心范围 ±1.46um 精度)
+        if (lrefine(lb) < pch_lower_lref) then
+           refine(lb)   = .true.
+           derefine(lb) = .false.
+        else if (lrefine(lb) > pch_target_lref) then
+           refine(lb)   = .false.
+           derefine(lb) = .true.
+        end if
+
+     ! 判断块是否与 CH 泡沫区重叠（且不与中心区重叠）:
+     else if (boundBox(HIGH, IAXIS) >= -sim_foamHeight .and. &
+              boundBox(LOW, IAXIS)  <=  sim_foamHeight) then
+
         ! ═══ CH 泡沫区 ═══
         !  约束: lref ≤ lrefine_max/2
-        !  应用: 双向 — 不足时 refine, 过度时 derefine
         if (lrefine(lb) < ch_max_lref) then
-           ! 精度不足（靠近 Al 边界可能被退粗）→ 确保最低精度
            refine(lb)   = .true.
            derefine(lb) = .false.
         else if (lrefine(lb) > ch_max_lref) then
-           ! ❗ 过度细化（梯度在 CH/He 边界误判）→ 强制退粗
            refine(lb)   = .false.
            derefine(lb) = .true.
         end if
@@ -604,6 +637,7 @@ module Simulation_data
   ! Geometry
   real, save :: sim_targHeight
   real, save :: sim_polyHeight
+  real, save :: sim_foamHeight
 
   ! Al (target) material
   real,    save :: sim_rhoTarg
@@ -611,8 +645,9 @@ module Simulation_data
   real,    save :: sim_tionTarg
   real,    save :: sim_tradTarg
 
-  ! CH (poly) material
+  ! CH (poly) material: dense layer + foam share species POLY
   real,    save :: sim_rhoPoly
+  real,    save :: sim_rhoFoam
   real,    save :: sim_telePoly
   real,    save :: sim_tionPoly
   real,    save :: sim_tradPoly
@@ -656,6 +691,7 @@ subroutine Simulation_init()
   ! Geometry
   call RuntimeParameters_get('sim_targHeight', sim_targHeight)
   call RuntimeParameters_get('sim_polyHeight', sim_polyHeight)
+  call RuntimeParameters_get('sim_foamHeight', sim_foamHeight)
 
   ! Al (target)
   call RuntimeParameters_get('sim_rhoTarg', sim_rhoTarg)
@@ -663,8 +699,9 @@ subroutine Simulation_init()
   call RuntimeParameters_get('sim_tionTarg', sim_tionTarg)
   call RuntimeParameters_get('sim_tradTarg', sim_tradTarg)
 
-  ! CH (poly)
+  ! CH (poly): dense + foam
   call RuntimeParameters_get('sim_rhoPoly', sim_rhoPoly)
+  call RuntimeParameters_get('sim_rhoFoam', sim_rhoFoam)
   call RuntimeParameters_get('sim_telePoly', sim_telePoly)
   call RuntimeParameters_get('sim_tionPoly', sim_tionPoly)
   call RuntimeParameters_get('sim_tradPoly', sim_tradPoly)
@@ -692,13 +729,14 @@ end subroutine Simulation_init
 !! DESCRIPTION
 !!
 !!  Initializes fluid data for a specified block.
-!!  TxN sandwich target setup with 3 material layers:
+!!  TxN sandwich target setup with 4 material layers (2 CH densities):
 !!
-!!    Layer 1 — Si (targ):  |x| <= sim_targHeight   (5 um, high-Z)
-!!    Layer 2 — CH (poly):  sim_targHeight < |x| <= sim_polyHeight (55 um)
-!!    Layer 3 — He (cham):  |x| > sim_polyHeight    (chamber fill)
+!!    Layer 1 — Si (targ):        |x| <= sim_targHeight   (0.46 um)
+!!    Layer 2 — CH dense (poly):  targHeight < |x| <= sim_polyHeight (1 um)
+!!    Layer 3 — CH foam  (poly):  polyHeight < |x| <= sim_foamHeight (50 um)
+!!    Layer 4 — He (cham):        |x| > sim_foamHeight    (chamber fill)
 !!
-!!  The large density contrast (Si: 2.33, CH: 1.05, He: 1e-6 g/cm³)
+!!  Density contrast (Si 2.3, CH 1.0 / 0.294, He 1e-6 g/cm³)
 !!  drives AMR refinement at material interfaces.
 !!
 !!***
@@ -773,12 +811,12 @@ subroutine Simulation_initBlock(blockId)
 
            if (sim_initGeom == "slab") then
               if (NDIM == 1) then
-                 ! Symmetric slab geometry around x=0
+                 ! Symmetric slab geometry around x=0 (4 layers)
                  if (abs(xcent(i)) <= sim_targHeight) then
                     ! Si layer: |x| <= sim_targHeight
                     species = TARG_SPEC
-                 else if (abs(xcent(i)) <= sim_polyHeight) then
-                    ! CH layer: sim_targHeight < |x| <= sim_polyHeight
+                 else if (abs(xcent(i)) <= sim_foamHeight) then
+                    ! CH dense + foam share species POLY
                     species = POLY_SPEC
                  end if
               end if
@@ -791,7 +829,11 @@ subroutine Simulation_initBlock(blockId)
               tion = sim_tionTarg
               trad = sim_tradTarg
            else if (species == POLY_SPEC) then
-              rho  = sim_rhoPoly
+              if (abs(xcent(i)) <= sim_polyHeight) then
+                 rho  = sim_rhoPoly      ! dense CH (1 um)
+              else
+                 rho  = sim_rhoFoam      ! foam CH (50 um)
+              end if
               tele = sim_telePoly
               tion = sim_tionPoly
               trad = sim_tradPoly
@@ -1045,6 +1087,8 @@ def build_par(
     # 材料参数
     sim_polyHeight: float = DEFAULT_POLY_HEIGHT,
     sim_rhoPoly: float = DEFAULT_RHO_POLY,
+    sim_foamHeight: float = DEFAULT_FOAM_HEIGHT,
+    sim_rhoFoam: float = DEFAULT_RHO_FOAM,
     sim_targHeight: float = DEFAULT_TARG_HEIGHT,
     sim_rhoTarg: float = DEFAULT_RHO_TARG,
     sim_rhoCham: float = DEFAULT_RHO_CHAM,
@@ -1104,9 +1148,11 @@ def build_par(
     # 材料参数
     params["sim_rhoTarg"] = sim_rhoTarg
     params["sim_rhoPoly"] = sim_rhoPoly
+    params["sim_rhoFoam"] = sim_rhoFoam
     params["sim_rhoCham"] = sim_rhoCham
     params["sim_targHeight"] = sim_targHeight
     params["sim_polyHeight"] = sim_polyHeight
+    params["sim_foamHeight"] = sim_foamHeight
     params["eos_polyEosType"] = "eos_tab"
     params["eos_polySubType"] = "ionmix4"
     params["eos_polyTableFile"] = eos_poly_table
@@ -1309,6 +1355,8 @@ def _build_par_clojure(params):
         nxb=NXB,
         sim_polyHeight=params.get("sim_polyHeight", DEFAULT_POLY_HEIGHT),
         sim_rhoPoly=params.get("sim_rhoPoly", DEFAULT_RHO_POLY),
+        sim_foamHeight=params.get("sim_foamHeight", DEFAULT_FOAM_HEIGHT),
+        sim_rhoFoam=params.get("sim_rhoFoam", DEFAULT_RHO_FOAM),
         sim_targHeight=params.get("sim_targHeight", DEFAULT_TARG_HEIGHT),
         sim_rhoTarg=params.get("sim_rhoTarg", DEFAULT_RHO_TARG),
         sim_rhoCham=params.get("sim_rhoCham", DEFAULT_RHO_CHAM),
@@ -1399,7 +1447,7 @@ THIN_LAYER_SETUP = (
 
 scenario_txn = _SandwichTxNScenario(
     name="sandwich_txn",
-    description="CH(50µm)/Si(10µm)/CH(50µm) 三明治靶 5e14 W/cm² 激光烧蚀 (常温常压固态密度)",
+    description="Si(0.92µm)/CH(1µm)/CH泡沫(50µm) 四层三明治靶 梯形脉冲 3.18e14 W/cm² 烧蚀 (常温常压固态密度)",
     run_dir_name="runs_sandwich_txn",
     basenm="lasslab_",
     scenario_dir=_HERE,
@@ -1409,13 +1457,15 @@ scenario_txn = _SandwichTxNScenario(
     default_params={
         "sim_polyHeight": DEFAULT_POLY_HEIGHT,
         "sim_rhoPoly": DEFAULT_RHO_POLY,
+        "sim_foamHeight": DEFAULT_FOAM_HEIGHT,
+        "sim_rhoFoam": DEFAULT_RHO_FOAM,
         "sim_targHeight": DEFAULT_TARG_HEIGHT,
         "sim_rhoTarg": DEFAULT_RHO_TARG,
         "sim_rhoCham": DEFAULT_RHO_CHAM,
         "laser_wavelength": DEFAULT_WAVELENGTH,
         "laser_times": [t for t, _ in DEFAULT_LASER_PULSE],
         "laser_powers": [p for _, p in DEFAULT_LASER_PULSE],
-        "tmax": DEFAULT_TMAX,
+        "tmax": float(_TMAX_ENV) if _TMAX_ENV else DEFAULT_TMAX,
         "dtinit": DEFAULT_DTINIT,
         "dtmin": DEFAULT_DTMIN,
         "xmin_cm": XMIN_CM,

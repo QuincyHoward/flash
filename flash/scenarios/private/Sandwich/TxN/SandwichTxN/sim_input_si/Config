@@ -80,11 +80,16 @@ D lase_variable saves (density of) the irradiated energy from EnergyDeposition u
 VARIABLE lase TYPE: PER_VOLUME
 
 DATAFILES Z06_0.50-Z01_0.50-20260708_0850.cn4
-# Poly (CH) material:
-D sim_polyHeight CH layer half-thickness
+# Poly (CH) material: 致密层 (sim_targHeight < |x| <= sim_polyHeight)
+D sim_polyHeight CH dense layer half-thickness
 PARAMETER sim_polyHeight REAL 0.01
-D sim_rhoPoly Initial CH density
+D sim_rhoPoly Initial dense CH density
 PARAMETER sim_rhoPoly REAL 1.05
+# Poly foam (CH): 泡沫层 (sim_polyHeight < |x| <= sim_foamHeight)
+D sim_foamHeight CH foam layer outer half-thickness
+PARAMETER sim_foamHeight REAL 0.05146
+D sim_rhoFoam Initial CH foam density
+PARAMETER sim_rhoFoam REAL 0.294
 D sim_telePoly Initial CH electron temperature
 PARAMETER sim_telePoly REAL 290.11375
 D sim_tionPoly Initial CH ion temperature
