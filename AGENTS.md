@@ -42,6 +42,7 @@ python -m flash.scenarios.core.runner --check-env   # 三模式环境自检
 | `flash-param-lookup` | 不认识的 FLASH runtime 参数查权威定义/默认值/取值范围（联网 rpDoc + 本地 4050 参数索引） | `skills/flash-param-lookup/`（联网 skill） |
 | `flash-readme-sync` | 全仓 README 自底向上巡检维护（叶子先/父级后，先读代码后更新文档）、空白 README 补写 | `skills/flash-readme-sync/` |
 | `flash-skill-sync` | 全体系 skill 巡检（接口冒烟/声明核对）与合并/边界梳理；含当前 22 skill 边界基线 | `skills/flash-skill-sync/` |
+| `flash-git-publish` | 仓库推送/拉取/打标签发版/PyPI 发布；凭据体系与 403 排障 | `scripts/03_git_publish/` |
 
 ### 通用工程技能（非 FLASH 专属，2026-11-06 吸收）
 

@@ -45,6 +45,7 @@
 | `flash-param-lookup` | `docs/reference/param_index_flash48.md` | 联网 Flash Center rpDoc_4p8（references/param_index.tsv 本地 4050 参数索引） |
 | `flash-readme-sync` | `scripts/08_docs/check_docs.py` | 全仓 117+ README（豁免 PlasmaPy/_legacy_diags/pytest_cache/backup） |
 | `flash-skill-sync` | `AGENTS.md`, `skills/README.md` | 全部 `skills/*/SKILL.md`（22 个，边界基线 2026-11-06 定案） |
+| `flash-git-publish` | `docs/GIT_WORKFLOW.md` | `scripts/03_git_publish/`（git_push/git_pull/publish_pypi、credentials.enc 凭据体系） |
 
 ## Docs → Skills
 
