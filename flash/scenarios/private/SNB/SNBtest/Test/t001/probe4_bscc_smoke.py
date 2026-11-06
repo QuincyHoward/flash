@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""BSCC (sch0348) sbatch 作业内环境冒烟 (临时诊断)。
+"""BSCC sbatch 作业内环境冒烟 (临时诊断)。
 
 验证: 作业内 PATH/LD 继承、mpich mpif90 绝对路径可用、显式 export
 mpich bin + hdf5 lib 后常规树 flash4 依赖全解析、mpich mpiexec 可运行。

@@ -70,7 +70,7 @@
 | `temp/FLASH-Expert/`（上游 18 skill，gitignored） | flash-knowledge / flash-pitfalls / param_index 的吸收源；git pull 更新通道 |
 | 用户级 `~/.workbuddy/skills/`（不随项目分发） | 部分内容已重写并入本仓 skills/（scenario-setup、flychk-history、hpc-fetch、data-extract、backup-verify）；对应条目以本仓为准 |
 | `layer3/flash` 工作副本（旧，2026-10-29） | flash-scenario-family 与 SNB reference 的素材源；以本仓 sandwich 为唯一事实源 |
-| 用户级 skills 副本：`C:\Users\Administrator\Desktop\skills` 与 `C:\Users\Administrator\.workbuddy - 副本\skills`（两者 diff 零差异） | 2026-11-06 吸收源：6 个新技能 + 4 处并入（见文首二次吸收说明）；原件保留为历史存档 |
+| 用户级 skills 副本：`Desktop/skills` 与 `.workbuddy - 副本/skills`（Windows 用户目录）（两者 diff 零差异） | 2026-11-06 吸收源：6 个新技能 + 4 处并入（见文首二次吸收说明）；原件保留为历史存档 |
 | `simulation/flash/.workbuddy/skills/`（旧仓） | input-gen-generator 并入 flash-input-gen；output_processors-usage 并入 flash-output-analysis；flash-orchestrator-activator 跳过（失效） |
 | `flash/flash_src/docs/src_finding/`（已移至 `flash/temp_delete/docs/src_finding/`） | 7 份方程↔源码对照文档 2026-11-06 完整迁入 flash-knowledge/references/src_finding/ |
 | FLASH4.8 源码树（仓外 `simulation/flash/flash_src/FLASH4.8/FLASH4.8/source/`） | src_finding 文档与 flash-knowledge 锚点的核验对象；仓外只读，不入 git |

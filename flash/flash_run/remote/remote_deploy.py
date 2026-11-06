@@ -24,6 +24,7 @@ FLASH 超算远程部署模块
   job_id = deploy.submit_job("flash_2d.par")
 """
 
+from flash._core.credentials.hpc_config import _LEGACY_ROUTE_KEY
 import os
 import time
 import socket
@@ -134,7 +135,7 @@ class FlashRemoteDeploy:
         try:
             from flash.flash_run.remote.route_tester import (
                 RouteTester, test_and_select_best_route,
-                ROUTES_SCFA2696, ROUTES_SCH0348,
+                ROUTES_NC_E, ROUTES_BSCC_T6,
             )
         except ImportError:
             raise SSHConnectionError(
@@ -152,10 +153,10 @@ class FlashRemoteDeploy:
         route_key = self._credential.get("route_key", "")
         password = self._credential.get("password", "")
 
-        if route_key in ("scfa2696", "nc_e"):
-            routes = ROUTES_SCFA2696
+        if route_key == "nc_e" or _LEGACY_ROUTE_KEY.get(route_key) == "nc_e":
+            routes = ROUTES_NC_E
         else:
-            routes = ROUTES_SCH0348
+            routes = ROUTES_BSCC_T6
 
         if self.verbose:
             print(f"[FlashRemoteDeploy] 正在测试 SSH 路由 (TCP 延迟)...")

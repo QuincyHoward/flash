@@ -681,7 +681,7 @@ to non-void arrays`。
 统计器 `flash/temp_delete/hypre_stat.py`（逐行流式）：
 
 ```bash
-PY=/c/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=$FLASH_MANAGED_PYTHON  # 管理型解释器，运行期经 flash/_core/paths.py 解析
 $PY flash/temp_delete/hypre_stat.py <logfile>
 ```
 
@@ -751,7 +751,7 @@ t 与 dt 完全一致（逐字符）: 299,259  (100.0000%)
 | `_core/credentials_legacy.py` `MANUAL_FIELDS` | `host="ssh.cn-zhongwei-1.paracloud.com"` / `username="hello@NC-E"` → 置空 |
 | `scenarios/runner.py` `Remote.__init__` | 3 条硬编码线路 → `load_hpc_routes(credential)`（新函数） |
 | `SNBOneCH_ml` / `SNBVTi` `03_run_16ns_pipeline.py` `_probe_route()` | 硬编码 3 条 → `get_hpc_routes(account)` |
-| `ch_center/laserslab1d_local_custom.py` | 提示串 `scp ... scfa2696@ssh.cn-zhongwei-1...` → 从 JSON 拼 |
+| `ch_center/laserslab1d_local_custom.py` | 提示串 `scp ... <ACCOUNT>@ssh.cn-zhongwei-1...` → 从 JSON 拼 |
 | `flash/config/__init__.py`、`hello_flash/deploy_flash.py` | docstring/描述里的 `paracloud` 举例 → 通用化 |
 
 ### M3 语义收紧
@@ -789,12 +789,12 @@ t 与 dt 完全一致（逐字符）: 299,259  (100.0000%)
 * `py_compile` 12 文件全过；**ruff `--select=E9,F` 逐文件对比 HEAD 基线，issues 数完全一致**
 * pytest `test_gitee / test_flash_remote_deploy / test_interface / test_flash_simulator /
   test_flash_env_manager` = **60 passed**
-* 真实配置读取：2 账户 / 各 9 线路；`ROUTES_SCFA2696=9`、`ROUTES_SCH0348=9`、
+* 真实配置读取：2 账户 / 各 9 线路；`ROUTES_NC_E=9`、`ROUTES_BSCC_T6=9`、
   `runner.load_hpc_routes=9`
 * 隔离 HOME 边界：文件缺失→空、JSON 损坏→空、非法 port/host→过滤不崩、`extract` 保留既有 routes
 
 ### M8 遗留（未动，待用户决策）
-`hello_flash/deploy_flash.py` 的 `MACHINES[].label` 仍含账号名（`scfa2696@NC-E` 等）——
+`hello_flash/deploy_flash.py` 的 `MACHINES[].label` 仍含账号名（`<ACCOUNT>@NC-E` 等）——
 纯 UI 文本，**连接仍走凭据**；该 dict 还含 `slurm_partition`/`module_load` 等场景级配置，
 按"用户未提及参数不得改"原则未动。`private/SNB/SNBtest/.../run_snb_hpc.py` docstring、
 `test/remote_connect/diagnostics.py` 标签同理。
@@ -1352,7 +1352,7 @@ remote master = 39128c1...   → MATCH
 
 ---
 
-## §T flash-sim 超算离线部署链（2026-10-22 建成，NC-E scfa2696）— 全文
+## §T flash-sim 超算离线部署链（2026-10-22 建成，NC-E <ACCOUNT>）— 全文
 
 - 部署目录 `~/PhySimX/PhySimX/simulation/flash/flash_sim`（=Gitee 同步目录，HEAD 随 bundle 走）；
   命名环境 **`.venv-hpc-nce`**（module python/3.10.8，离线 --no-index），三套测试 132/83/45 全绿。

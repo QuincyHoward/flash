@@ -169,7 +169,7 @@ Grid_advanceDiffusion/4×hy_uhd_*；与场景层解耦已核查，部署时复�
    勿急着回退重跑。
 
 ### 双账号结果对照（2026-09-08）
-NC-E (scfa2696) 构建 jobID 4857085 + 运行 4857086 COMPLETED；BSCC (sch0348) 构建
+NC-E (<ACCOUNT>) 构建 jobID 4857085 + 运行 4857086 COMPLETED；BSCC (<ACCOUNT>) 构建
 36178794 (~2min) + 运行 36178818 COMPLETED。两超算 chk_0000=183988B、dat=15676B
 与 WSL 本地逐字节一致（log 差异仅 MPI tasks stamp 之类 meta，非物理量）。
 
@@ -185,7 +185,7 @@ NC-E (scfa2696) 构建 jobID 4857085 + 运行 4857086 COMPLETED；BSCC (sch0348)
 - **sbatch 输出路径**：`--output=~/{dir}/x` 不展开波浪号 → 输出落字面 `~` 目录、
   作业 marker 校验全空。一律用相对路径（相对 sbatch 提交目录）。
 - **remote_ssh_helper 路由键**：凭据记录 route_key 为 "nc_e"/"bscc_t6"，裸比较
-  =="scfa2696" 永不匹配 → flash_ssh 误路由 BSCC（同密码登录"成功"难察觉）。
+  =="<ACCOUNT>" 永不匹配 → flash_ssh 误路由 BSCC（同密码登录"成功"难察觉）。
   必须用 `RouteTester.routes_for_account(cred_name, cred)`；多账号操作串行 + whoami 核验。
 - **BSCC v6_384 运行库**：LD_LIBRARY_PATH 必须补
   `/public1/soft/miniforge/24.11/lib`（libgfortran.so.5 唯一来源；

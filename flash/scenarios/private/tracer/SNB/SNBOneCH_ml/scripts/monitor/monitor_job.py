@@ -45,7 +45,7 @@ def resolve_deploy(credential_name: str) -> str:
 
 DEPLOY = {
     "flash_ssh": "",   # 运行期由 resolve_deploy() 填充 (NC-E)
-    "flash_ssh_2": "",  # 运行期由 resolve_deploy() 填充 (BSCC: sch0348)
+    "flash_ssh_2": "",  # 运行期由 resolve_deploy() 填充 (BSCC)
 }
 
 

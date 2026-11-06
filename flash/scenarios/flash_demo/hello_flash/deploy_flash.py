@@ -123,7 +123,7 @@ MACHINES = {
     },
     "3": {
         "name": "ssh3",
-        "label": "SSH3 - ParaCloud BSCC-T6 (sch0348@BSCC-T6)",
+        "label": "SSH3 - ParaCloud BSCC-T6",
         "description": "Install FLASH on the BSCC-T6 supercomputer "
                        "(host/port 见 ~/.physimx/flash/hpc_accounts.json)",
         "ssh_credential": "flash_ssh_3",

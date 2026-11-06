@@ -7,7 +7,7 @@
 
 - `from flash.input_gen import create_input_files`
 - 签名：`create_input_files(output_dir, dimension=1, simulation_name="LaserSlab", target_material="aluminum", chamber_gas="helium", n_beams=1, par_filename="laserslab.par", generate_scripts=True, copy_eos_files=True, setup_cmd=None, sim_user_dir=None, platform="local", flash_home=None)`
-- ⚠️ `platform` 为中性路由标识：`"local"` / `"local/wsl_ubuntu22"` / `"hpc"` / `"hpc/nc_e"`（旧 scfa2696 等机名已废弃）
+- ⚠️ `platform` 为中性路由标识：`"local"` / `"local/wsl_ubuntu22"` / `"hpc"` / `"hpc/nc_e"`（旧 <ACCOUNT> 等机名已废弃）
 - ⚠️ `flash_home` 必须显式传入（见 SKILL.md 护栏 2）
 
 ## ParGeneratorExtended（`gen_par/generator.py`）
@@ -76,4 +76,4 @@
 
 - `from input_gen.par import ...` / `input_gen.par_calculator`（v1.x）
 - `physimx_sim.flash.*` 前缀（旧仓库布局）→ 一律 `from flash.input_gen...`
-- `PulseShape`、`BlockGenerator.visualize`、scfa2696 机名路由
+- `PulseShape`、`BlockGenerator.visualize`、<ACCOUNT> 机名路由

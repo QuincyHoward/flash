@@ -32,8 +32,8 @@ set -e
 # 路径配置 (根据超算账号修改)
 # ============================================================
 # 示例: Paracloud 超算路径 (用户名通过 flash._core.credentials 设置, 勿硬编码)
-# HPC_USER="sch0348"
-# HPC_HOST="172.16.0.1"   # 超算登录节点 IP
+# HPC_USER="hello"
+# HPC_HOST="<HPC_HOST>"  # 超算登录节点 IP（示例占位）
 # HPC_FLASH_HOME="/public1/wshome/ws173/${HPC_USER}/FLASH/FLASH4.8"
 
 # 用户名解析: FLASH_SIM_USER_DIR 环境变量 → flash._core.credentials → 默认 hello

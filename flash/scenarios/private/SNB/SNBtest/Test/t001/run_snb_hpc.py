@@ -12,7 +12,7 @@ sbatch + sacct 轮询 + SCP 下载。
 
 账号/分区/工具链 (每账号独立, 脚本自动探测):
   flash_ssh   (NC-E)   分区 v5_192,   常规树 FCOMP=oneAPI mpiifort
-  flash_ssh_2 (sch0348@BSCC-T6) 分区 v6_384,   常规树 FCOMP=${MPI_PATH}/bin/mpif90
+  flash_ssh_2 (BSCC-T6) 分区 v6_384,   常规树 FCOMP=${MPI_PATH}/bin/mpif90
 
 用法:
   python run_snb_hpc.py --account flash_ssh    # 默认账号

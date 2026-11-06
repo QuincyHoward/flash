@@ -46,10 +46,10 @@
 
 ```bash
 # 使用令牌克隆仓库
-git clone https://oauth2:令牌@gitee.com/你的用户名/physimx_flash.git
+git clone https://oauth2:<TOKEN>@gitee.com/你的用户名/physimx_flash.git
 
 # 或者，如果已经克隆了仓库，可以修改远程 URL
-git remote set-url origin https://oauth2:令牌@gitee.com/你的用户名/physimx_flash.git
+git remote set-url origin https://oauth2:<TOKEN>@gitee.com/你的用户名/physimx_flash.git
 ```
 
 ### 注意事项
