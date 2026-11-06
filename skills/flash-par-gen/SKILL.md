@@ -3,7 +3,9 @@ name: flash-par-gen
 description: FLASH .par 参数文件生成与排版规范：10 个 section 固定顺序、边框对齐、键值对等号对齐、数值格式（bool/str/科学计数法/repr）、gen_par 与 gen_newpara 生成器结构、defaults.py 权威默认值、新增参数流程。触发词：par 生成、par 排版、参数文件、gen_par、gen_newpara、defaults.py、section 顺序、新增参数、数值格式。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 14e320f（skill 巡检：分工声明补齐）
+> 分工：本 skill 管 .par **排版规范与生成器结构**；生成 8+ 种输入文件的全流程用 `flash-input-gen`（其 references/api-reference.md 为 API 速查）。
+
 
 # .par 参数文件生成与排版规范
 

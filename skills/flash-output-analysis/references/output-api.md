@@ -12,7 +12,8 @@ HDF5 文件 (.chk / .plt)
   ↓ 第三层 plotter/   FlashPlotter（另有 parallel.py 并行模块、extraction_modes.py 提取模式注册表）
 ```
 
-统一导入：`from flash.output_pro import FlashDataLoader, FlashPlotter`
+统一导入：⚠️ 根包**不 re-export**（实测 2026-11-06），必须从子包导入：
+`from flash.output_pro.loader import FlashDataLoader` / `from flash.output_pro.plotter import FlashPlotter`
 ⚠️ 旧路径 `physimx_sim.flash.output_processors.*`、`output_processors.*`、`hdf5processor` 均已废弃。
 
 ## 1. FlashHDF5File（`hdf5pro/flash_hdf5.py:593`）
@@ -59,7 +60,7 @@ DATA_CONFIG["dens"]                       # 变量元信息（label/unit/factor/
 ## 3. FlashDataLoader / FlashDataContainer（`loader/data_loader.py`）
 
 ```python
-from flash.output_pro import FlashDataLoader
+from flash.output_pro.loader import FlashDataLoader
 
 loader = FlashDataLoader("sim_output/chk_0039")
 container = loader.load("dens", compute_derived=True)   # 指定变量可选
@@ -79,7 +80,7 @@ loader.print_info(detailed=True)
 ## 4. FlashPlotter（`plotter/plot_generator.py`）
 
 ```python
-from flash.output_pro import FlashPlotter
+from flash.output_pro.plotter import FlashPlotter
 
 plotter = FlashPlotter(container)
 plotter.plot("dens", save_path="dens.png")            # 自适应 1/2/3D

@@ -3,7 +3,8 @@ name: flash-hpc-fetch
 description: 从超算批量下载 FLASH 结果文件（chk/plt/日志）的稳健 SFTP 模式：会话策略按批量规模二选、连接级重试、多线程并行、逐文件字节数校验、原子改名、收敛遍，以及凭据解析、远端路径定位、解释器选择三个前置坑与 T1-T6 传输层缺陷。触发词：超算下载、SFTP 下载、下载卡住、.part 残留、socket is closed、批量拉取 chk、paramiko 下载、hpc_download_results、结果回收。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 14e320f（skill 巡检：分工声明补齐）
+> 分工：本 skill 管**结果回收（下载/校验）**；作业提交与运行部署用 `flash-run-deploy`。
 
 # HPC/SFTP 批量下载 —— 并行 + 容错 + 校验
 

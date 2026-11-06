@@ -3,7 +3,9 @@ name: flash-knowledge
 description: FLASH 源码级知识导航（11 单元：laser/driver/grid/hydro/eos/radtrans/sourceterms/material/io/diffuse/multispecies 的物理原理、关键参数语义、典型坑）+ 方程↔源码对照反查（src_finding 文档组）。FLASH 物理/setup 标志/参数语义问答、"某方程在哪个源码文件实现"类反查时使用。触发词：laser 块、+ug 语义、mgd_meshgroups、EOS 表、MGD、radtrans、multispecies、diffuse 求解器、FLASH 参数是什么意思、源码反查、方程源码对照、源码定位、hy_uhd_unsplitUpdate、ed_traceRays、Spitzer 热导率源码。
 ---
 
-> 最后核对：2026-11-06 · commit 54a9f69
+> 最后核对：2026-11-06 · commit 14e320f（skill 巡检：分工声明补齐）
+> 分工：本 skill 管**源码级物理语义与实现原理**；官方 runtime 参数的权威定义/默认值/取值范围查询用 `flash-param-lookup`。
+
 > 上游：FLASH-Expert @ 25013c5（github.com/boxu-pku/FLASH-Expert，temp/ 浅克隆只读）
 > 本 skill 是导航索引；每节为 20 行级精华转写，全文见 references/ 或 temp/ 原文。
 

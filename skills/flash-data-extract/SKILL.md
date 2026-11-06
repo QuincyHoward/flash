@@ -3,7 +3,9 @@ name: flash-data-extract
 description: 纯 h5py 提取 FLASH AMR 数据三合一：超算无 yt 时的 yt 风格块提取、压缩数据集批读提速与时间轴行对齐、float32 np.std 溢出修复。触发词：h5py 提取、yt 风格、AMR 叶块、node_type、批读、逐行慢、时间轴错位、np.std inf、float32 溢出、FlashHDF5File、FlashDataLoader、extraction_mode。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 14e320f（skill 巡检：分工声明补齐）
+> 分工：本 skill 管**无 yt 环境的底层提取/批读提速/数值陷阱**；常规分析与绘图纪律（pcolormesh/x-t/健康检查）用 `flash-output-analysis`。
+
 
 # 纯 h5py 提取 FLASH AMR 数据（无 yt 环境）
 

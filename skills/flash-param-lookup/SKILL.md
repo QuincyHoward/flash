@@ -3,7 +3,9 @@ name: flash-param-lookup
 description: 联网查询 FLASH4.8 官方 runtime parameters 文档（Flash Center rpDoc）：本地 4050 参数离线索引 + 在线抓取完整定义（类型/默认值/Valid Values/完整说明）。遇到不认识的 FLASH 参数需要权威定义解释、确认默认值与取值范围、核对 .par 参数拼写时使用。触发词：这个参数是什么意思、参数定义、默认值、Valid Values、rpDoc、参数查询、不认识的参数、ed_/gr_/rt_/dr_/io_/eos_/hx_/op_ 参数。
 ---
 
-> 最后核对：2026-11-06 · commit 0937198
+> 最后核对：2026-11-06 · commit 14e320f（skill 巡检：分工声明补齐）
+> 分工：本 skill 管**官方参数定义查询**（rpDoc 权威文本）；参数物理语义与场景推荐值用 `flash-knowledge` / `flash-pitfalls`。
+
 > 索引来源：Flash Center rpDoc_4p8（抓取 2026-11-06，4050 参数 / 333 模块，抽验通过）
 
 # FLASH 官方运行参数联网查询（flash-param-lookup）

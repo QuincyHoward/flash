@@ -37,7 +37,8 @@ output_pro/
 ## 4. 快速上手
 
 ```python
-from flash.output_pro import FlashDataLoader, FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 loader = FlashDataLoader("sim_output/chk_0039")
 data = loader.load("dens")             # 结构化容器（含单位/派生量）

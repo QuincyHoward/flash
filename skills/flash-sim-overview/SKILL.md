@@ -51,7 +51,8 @@ flash-sim 是 FLASH 高能量密度物理（HEDP）仿真的全功能 Python 封
    ```
 4. **HDF5 分析**：
    ```python
-   from flash.output_pro import FlashDataLoader, FlashPlotter
+   from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
    container = FlashDataLoader("..._hdf5_chk_0001").load(compute_derived=True)
    FlashPlotter(container).plot("dens", save_path="dens.png")
    ```

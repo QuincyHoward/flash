@@ -70,7 +70,8 @@ Simulation_init.F90 `RuntimeParameters_get` → Simulation_initBlock.F90 区域�
 ## 示例 4: 分析 HDF5 输出
 
 ```python
-from flash.output_pro import FlashDataLoader, FlashPlotter
+from flash.output_pro.loader import FlashDataLoader
+from flash.output_pro.plotter import FlashPlotter
 
 loader = FlashDataLoader("hdf5_plt_cnt_0080")
 data = loader.load("dens", compute_derived=True)
