@@ -2,6 +2,41 @@
 
 > 本文件记录用户可感知的功能变更。历史版本细节见 `git tag -l` 与 PyPI Releases。
 
+## 0.2.1 (2026-11-06)
+
+**README 和 skills 升级**
+
+### 新增
+
+- **技能体系 12 → 22 个**：
+  - 自外部技能库吸收并按本仓 API 校正：`flash-input-gen`（输入文件全流程生成）、
+    `flash-newpara`（新参数/多区密度剖面）、`flash-grid-refine-constraint`（AMR 细化约束）、
+    `flash-param-lookup`（联网查官方 rpDoc 参数定义 + 4050 参数离线索引）、
+    `flash-readme-sync`（全仓 README 自底向上巡检）、`flash-skill-sync`（全体系 skill 巡检）；
+  - 通用工程技能统一 flash- 命名：`flash-code-refactor-safe` / `flash-code-execute-verify` /
+    `flash-token-budget`；
+  - L0 编排器路由矩阵并入 `flash-sim-overview`；6 处重叠 skill 分工声明补齐。
+- **方程↔源码对照文档组**：`flash-knowledge/references/src_finding/` 7+1 份
+  （查找方法论 / hy_uhd / EnergyDeposition / RadTrans / ThermalConduction / MFP-Knudsen / 映射表），
+  行号抽验通过，FLASH4.8 源码树锚点注明仓外位置。
+- **output_pro API 速查**（`skills/flash-output-analysis/references/output-api.md`）：
+  三层架构全签名，含 `collect_xt` / `load_folder_parallel` / `extract_var_yt_style`。
+
+### 修复
+
+- **`flash.output_pro` 根包不 re-export**：5 处文档的错误导入声明
+  （`from flash.output_pro import FlashDataLoader`）全部修正为子包导入
+  （`from flash.output_pro.loader import FlashDataLoader`），经接口冒烟实测验证。
+- `deploy/README` 离线安装路径 16 处（`scripts/08_offline_install/` → `deploy/`）；
+  input_gen 各 gen_* 子包 GUIDE 统一改名 `README.md`（10 份）并全仓引用同步。
+- 补写空白 README 9 份；全仓 117 份 README 路径声明审计清零。
+
+### 变更
+
+- `SandwichTxN` 场景升级四层结构（Si 0.92μm / 致密 CH 1.0 / 泡沫 CH 0.294 / He），
+  梯形脉冲双束对打，`SANDWICH_TXN_TMAX` 环境变量短验证通道。
+- 移除 `flash/_core/credentials_legacy.py`（1125 行，由 `credentials` 体系替代）。
+
 ## 0.1.15 (2026-10-30)
 
 **PlasmaPy 加入后处理，场景目录优化**
