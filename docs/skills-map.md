@@ -42,6 +42,7 @@
 | `flash-backup-verify` | — | `scripts/04_backup/usb_backup.py` |
 | `flash-knowledge` | `docs/reference/param_index_flash48.md`；references/src_finding/（方程↔源码对照，迁自 flash_src） | 上游 `temp/FLASH-Expert/skills/`（不入 git）；FLASH4.8 源码树（仓外 `simulation/flash/flash_src/FLASH4.8/FLASH4.8/`） |
 | `flash-pitfalls` | `docs/FLASH-Expert吸收计划.md` | 上游 `temp/FLASH-Expert/skills/flash-pitfall-finder/` |
+| `flash-param-lookup` | `docs/reference/param_index_flash48.md` | 联网 Flash Center rpDoc_4p8（references/param_index.tsv 本地 4050 参数索引） |
 
 ## Docs → Skills
 
@@ -53,7 +54,7 @@
 | `docs/flash_operation_standard.md`（操作规范） | 全部 |
 | `docs/flash_simulation_execution_knowledge.md` | `flash-run-deploy` |
 | `docs/FLASH_深度调研.md` | `flash-knowledge` |
-| `docs/reference/param_index_flash48.md`（FLASH 4.8 参数索引） | `flash-knowledge` |
+| `docs/reference/param_index_flash48.md`（FLASH 4.8 参数索引） | `flash-knowledge`, `flash-param-lookup` |
 | `docs/FLASH-Expert吸收计划.md`（上游吸收规划，已并入 skills编写计划.md 执行） | `flash-knowledge`, `flash-pitfalls` |
 | `input_gen/gen_newpara/README.md` / `RP_Reference.md` | `flash-par-gen`, `flash-newpara` |
 | `flash/output_pro/FLASH物理量说明.md` | `flash-output-analysis`, `flash-data-extract` |
