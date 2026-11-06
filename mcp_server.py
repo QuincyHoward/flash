@@ -129,6 +129,15 @@ OVERVIEW_TEXT = f"""\
 
 高级变量: FLASH_VENV_DIR / FLASH_FORCE_CLEAN=1 / FLASH_NO_AUTO_REBUILD=1 /
 FLASH_SIM_USER_DIR (指定 FLASH 安装用户目录)。
+
+## 仓库内 Agent skills (skills/)
+
+skills/ 下有 13 个随项目分发的 Agent skill (SKILL.md, WorkBuddy/Claude Code/Codex 通用),
+入口索引与分工声明见仓库根 AGENTS.md。操作型: flash-sim-overview / flash-scenario-setup /
+flash-scenario-family / flash-run-deploy / flash-output-analysis / flash-par-gen /
+flash-eos-op / flash-flychk-history / flash-hpc-fetch / flash-data-extract /
+flash-backup-verify; 知识型: flash-knowledge (FLASH 参数/物理语义) / flash-pitfalls
+(报错速查)。可用 read_doc 直接读取 skills/<name>/SKILL.md。
 """
 
 MODULE_MAP_TEXT = """\

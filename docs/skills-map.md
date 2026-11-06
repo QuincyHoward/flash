@@ -1,34 +1,52 @@
-# FLASH 技能 ↔ 文档 ↔ Python 模块 双向索引表
+# FLASH 技能 ↔ 文档 ↔ Python 模块 三向索引
 
-## Skills → Docs
+> 最后核对：2026-11-06 · commit 72f6428
 
-| 用户级 Skill | 关联的 Project Docs | 关联的 Python 模块 |
-|-------------|-------------------|-------------------|
-| `flash-workflow-orchestrator` | — | 全部 |
-| `input-gen-generator` | `input_gen/README.md`, `docs/par_format_guide.md` | `input_gen/` (全部子模块) |
-| `flash-newpara` | `input_gen/gen_newpara/README.md`, `input_gen/gen_newpara/RP_Reference.md` | `input_gen/gen_newpara/` |
-| `flash-output-process` | — | `output_pro/` |
-| `flash-run-deploy` | — | `flash_run/env/`, `flash_run/remote/` |
-| `flash-f90-development` | `input_gen/gen_otherf90s/ref_f90s/*/README.md` (5 个) | `input_gen/gen_otherf90s/ref_f90s/`, `input_gen/gen_sim_initblock/` |
-| `flash-examples` | — | 全部 |
+本表是仓库内 skill（`skills/`，随 git 分发）与 docs、flash.* 模块的双向索引。
+入口索引与分工声明见根 `AGENTS.md`；skill 编写规范见 `skills/README.md`。
 
-## Project Docs → Skills
+> 2026-11-06 重写说明：旧版索引引用的用户级/项目级 skill（flash-workflow-orchestrator、
+> flash-orchestrator-activator、physimx-* 系列等）已在 2026-09-14 的 skill 规范化迁移中
+> 删除或并入；`docs/flash4_ug_4p8.md`（FLASH 用户指南，版权材料）与
+> `input_gen/gen_otherf90s/ref_f90s/` 路径已不存在，相关行移除。
+
+## Skills → Docs / Modules
+
+| 仓内 skill | 关联 docs | 关联模块/脚本 |
+|---|---|---|
+| `flash-sim-overview` | `README.md`, `docs/README.md` | 全部 |
+| `flash-scenario-setup` | `docs/flash_operation_standard.md` | `flash/scenarios/private/SNB/`（SNB/ 核心模块 + scripts/） |
+| `flash-scenario-family` | `docs/flash_operation_standard.md` | `flash/scenarios/private/tracer/`（CHTi/TiTi/OneSi_ml 等） |
+| `flash-run-deploy` | `docs/FLASH三模式运行体系.md`, `docs/flash_simulation_execution_knowledge.md` | `flash/flash_run/`（env/modes/remote）, `scripts/02_hpc/` |
+| `flash-output-analysis` | `docs/flash_operation_standard.md` | `flash/output_pro/`（loader/plotter/extraction_modes/parallel） |
+| `flash-par-gen` | `docs/par_format_guide.md` | `flash/input_gen/gen_par/`, `flash/input_gen/gen_newpara/`, `flash/input_gen/gen_checker/` |
+| `flash-eos-op` | `flash/input_gen/gen_eos_op/GEN_EOS_OP_GUIDE.md` | `flash/input_gen/gen_eos_op/`（eosop_pro/ionmix/eos_op_data） |
+| `flash-flychk-history` | — | `flash/input_gen/gen_flychk_his/` |
+| `flash-hpc-fetch` | — | `scripts/02_hpc/` |
+| `flash-data-extract` | `flash/output_pro/FLASH物理量说明.md` | `flash/output_pro/loader/`, `flash/output_pro/extraction_modes.py`, `flash/output_pro/parallel.py` |
+| `flash-backup-verify` | — | `scripts/04_backup/usb_backup.py` |
+| `flash-knowledge` | `docs/reference/param_index_flash48.md` | 上游 `temp/FLASH-Expert/skills/`（不入 git） |
+| `flash-pitfalls` | `docs/FLASH-Expert吸收计划.md` | 上游 `temp/FLASH-Expert/skills/flash-pitfall-finder/` |
+
+## Docs → Skills
 
 | 文档 | 相关 Skill |
-|------|-----------|
-| `docs/README.md` (FLASH 仿真使用指南) | `flash-input-gen` |
-| `docs/par_format_guide.md` (.par 排版规范) | `flash-input-gen` |
-| `docs/FLASH_深度调研.md` | `flash-f90-development` |
+|---|---|
+| `docs/README.md`（FLASH 仿真使用指南） | `flash-sim-overview` |
+| `docs/par_format_guide.md`（.par 排版规范） | `flash-par-gen` |
+| `docs/FLASH三模式运行体系.md` | `flash-run-deploy` |
+| `docs/flash_operation_standard.md`（操作规范） | 全部 |
 | `docs/flash_simulation_execution_knowledge.md` | `flash-run-deploy` |
-| `docs/flash_operation_standard.md` | 全部 |
-| `docs/flash4_ug_4p8.md` (FLASH 用户指南) | 全部 |
-| `input_gen/gen_newpara/README.md` | `flash-newpara` |
-| `input_gen/gen_newpara/RP_Reference.md` | `flash-newpara`, `flash-input-gen` |
-| `input_gen/gen_otherf90s/ref_f90s/*/README.md` | `flash-f90-development` |
+| `docs/FLASH_深度调研.md` | `flash-knowledge` |
+| `docs/reference/param_index_flash48.md`（FLASH 4.8 参数索引） | `flash-knowledge` |
+| `docs/FLASH-Expert吸收计划.md`（上游吸收规划，已并入 skills编写计划.md 执行） | `flash-knowledge`, `flash-pitfalls` |
+| `input_gen/gen_newpara/README.md` / `RP_Reference.md` | `flash-par-gen` |
+| `flash/output_pro/FLASH物理量说明.md` | `flash-output-analysis`, `flash-data-extract` |
 
-## 项目级 skills → 用户级 skills
+## 与本仓外 skill 资产的关系
 
-| 项目级 skill (cascade) | 关联的用户级 skill |
-|----------------------|-------------------|
-| `flash-orchestrator-activator.md` 🔥 | `~/.workbuddy/skills/flash/flash-workflow-orchestrator/` |
-| `physimx-*.md` (通用 PhySimX) | PhySimX 根目录级 skills |
+| 位置 | 状态 |
+|---|---|
+| `temp/FLASH-Expert/`（上游 18 skill，gitignored） | flash-knowledge / flash-pitfalls / param_index 的吸收源；git pull 更新通道 |
+| 用户级 `~/.workbuddy/skills/`（不随项目分发） | 部分内容已重写并入本仓 skills/（scenario-setup、flychk-history、hpc-fetch、data-extract、backup-verify）；对应条目以本仓为准 |
+| `layer3/flash` 工作副本（旧，2026-10-29） | flash-scenario-family 与 SNB reference 的素材源；以本仓 sandwich 为唯一事实源 |

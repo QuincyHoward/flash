@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""check_docs — README/GUIDE 文档机器校验（文档防回归门禁）。
+"""check_docs — README/GUIDE/SKILL/AGENTS 文档机器校验（文档防回归门禁）。
 
-扫描指定根下全部 README*.md / *GUIDE*.md，校验四类问题：
+扫描指定根下全部 README*.md / *GUIDE*.md / SKILL.md / AGENTS.md，校验四类问题：
   1. 相对路径链接：Markdown 链接与行内代码路径指向的文件/目录必须存在；
   2. Python 模块引用：`flash.xxx.yzz` 形式的模块路径必须能定位到 .py；
   3. 元信息块：每个 README 头部必须有「最后核对：YYYY-MM-DD」行（防腐化锚）；
@@ -27,11 +27,15 @@ DEFAULT_EXCLUDES = {
     "sim_input_si", "artifacts", "database", "logs_archive", "test_output",
     "reports", "inputfiles", "node_modules", "_legacy_diags",
     "temp_delete",
+    # 上游知识库浅克隆（不入 git；含 18 个第三方 SKILL.md/AGENTS.md，不纳入门禁）
+    "temp",
+    # WorkBuddy 本地生成物（skills/ 的镜像副本，避免重复扫描）
+    ".workbuddy",
     # pytest 基线外测试区（--ignore），不纳入文档体系
     "hdf5ploter_easy", "newpara", "remote_connect",
 }
 
-MD_PATTERNS = ("README*.md", "*GUIDE*.md", "README.md")
+MD_PATTERNS = ("README*.md", "*GUIDE*.md", "README.md", "SKILL.md", "AGENTS.md")
 
 # 行内代码或裸路径中形如 flash/xxx/yyy 的仓库内路径（排除 URL、锚点）
 REPO_PATH_RE = re.compile(r"`(flash/[\w\-./]+?)`")
@@ -109,8 +113,9 @@ def check_file(md: Path, findings: list) -> None:
         return
     head = text[:1500]
 
-    # 3. 元信息块
-    if md.name.lower().startswith("readme") and not DATE_RE.search(head):
+    # 3. 元信息块（README* / SKILL.md / AGENTS.md 均须防腐锚点）
+    if (md.name.lower().startswith("readme")
+            or md.name in ("SKILL.md", "AGENTS.md")) and not DATE_RE.search(head):
         findings.append(("WARN", str(rel), "头部缺「最后核对：YYYY-MM-DD」元信息块"))
 
     in_code = False
