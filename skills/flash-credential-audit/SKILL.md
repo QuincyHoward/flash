@@ -54,7 +54,7 @@ L1 账号名:  scfa2696|sch0348 及新增真实账号（维护在下方"已知�
 L2 密钥赋值: (?i)(token|password|passwd|secret|api_key|access_key|private_key)\s*[=:]\s*["'][^"']+["']
 L3 URL 凭据: https?://[^\s/"']+:[^\s/"']+@
 L4 token 传输: access_token=[A-Za-z0-9]{8,} | Bearer [A-Za-z0-9._\-]{16,}
-L5 内网地址: \b(?:10|172\.(1[6-9]|2\d|3[01])|192\.168)\.\d+\.\d+\b
+L5 内网地址: \b(?:10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)\b   # 四段 IP（排除文档小节号 10.2.1 与依赖版本表 10.3.0）
 L6 pypirc/netrc 泄露: -\wpypirc|\[pypi\].*password
 ```
 
