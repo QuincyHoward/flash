@@ -69,7 +69,7 @@ TYPE 对照：REAL→real 模块变量；INTEGER→integer；BOOLEAN→logical�
 | 3 | linear | `ρ = ρ₀·(p1 + p2·x_local/w)` | p1=截距, p2=斜率 |
 | 4 | gaussian | `ρ = ρ₀·exp(-0.5·((x_local-p1·w)/(p2·w))²)` | p1=中心, p2=宽度，须 >0 |
 
-`x_local` = 距区域左边界距离，`w` = 区域宽度。5 种类型已在 `test/newpara/flash_profile/` 全扫描验证（exp_decay R²=0.9939）。
+`x_local` = 距区域左边界距离，`w` = 区域宽度。5 种类型已经 WSL 实测全扫描验证（exp_decay R²=0.9939；原 `test/newpara/flash_profile/` 扫描工件已清理，历史记录见 gen_newpara/README.md）。
 
 ## 护栏与铁律
 

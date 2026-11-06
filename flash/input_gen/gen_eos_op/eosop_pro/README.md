@@ -1,6 +1,6 @@
 # eosop_pro
 
-> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动 eosop_pro/ 代码后同步本文模块要点
+> 最后核对：2026-11-06 · commit 20337b6 · 维护规则：改动 eosop_pro/ 代码后同步本文模块要点
 
 
 > `Multi1D++Portable20241128/matter++` 的物质数据（EOS / 不透明度 / Z̄ / NLTE /
@@ -190,7 +190,7 @@ legend ≥ 18 pt、linewidth ≥ 2、markersize ≥ 8（由测试断言）。
 ## 配置
 
 **唯一常量来源**是 `eosop_pro/config.py`，其他模块不得硬编码
-（由 `test/test_config_single_source.py` 用 `ast` 扫源码强制）。
+（由 `test/hygiene/test_config_single_source.py` 用 `ast` 扫源码强制）。
 
 任意项可用环境变量覆盖（前缀 `MULTI_EOSOP_`）：
 

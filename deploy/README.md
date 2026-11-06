@@ -1,5 +1,5 @@
 # 离线安装（Offline Install）指南
-> 最后核对：2026-11-05 · commit 7e04857
+> 最后核对：2026-11-06 · commit 20337b6
 
 
 本项目**同一个入口**支持两种安装方式，联网机与离线机各走一条：
@@ -75,23 +75,23 @@ python start_flash.py --profile lite      # 再去掉 yt/matplotlib/pandas
 
 只有在**目标电脑无网络**时才需要这一步。
 
-双击 `scripts\08_offline_install\build_wheelhouse.bat`，或命令行：
+双击 `deploy\build_wheelhouse.bat`，或命令行：
 
 ```bash
 # 默认：full 档 + 附带 Python 安装程序（离线机没Python 时需要）
-python scripts/08_offline_install/build_wheelhouse.py
+python deploy/build_wheelhouse.py
 
 # 精简档（保留 yt 出图，去掉 dev 工具链）
-python scripts/08_offline_install/build_wheelhouse.py --profile runtime
+python deploy/build_wheelhouse.py --profile runtime
 
 # 最精简（无 yt/matplotlib/pandas）
-python scripts/08_offline_install/build_wheelhouse.py --profile lite
+python deploy/build_wheelhouse.py --profile lite
 
 # 离线机已有 Python，不要附带安装程序（省 25MB）
-python scripts/08_offline_install/build_wheelhouse.py --no-interpreter
+python deploy/build_wheelhouse.py --no-interpreter
 
 # 只看计划不实际下载
-python scripts/08_offline_install/build_wheelhouse.py --dry-run
+python deploy/build_wheelhouse.py --dry-run
 ```
 
 ### 产物结构
@@ -144,7 +144,7 @@ offline_pkg/wheelhouse/          ← ★ 只拷这个目录
    - Python 版本不匹配：wheelhouse 造于 **3.10**，本机是 **3.13**。
      wheel 带 cp3XX ABI 标签，跨小版本无法安装。
      ⇒ 请用 Python 3.10 造包，或在 3.13 机器上重造：
-       python scripts/08_offline_install/build_wheelhouse.py
+       python deploy/build_wheelhouse.py
 ```
 
 > ★ 为什么需要：wheel 文件名带 `cp3XX-` **ABI 标签**，跨版本根本装不上，
@@ -179,8 +179,8 @@ if exclude_spec.match_file(self.root):
 ### 泄漏审计（构建后自动跑）
 
 ```bash
-python scripts/08_offline_install/wheel_leak_audit.py            # 审计默认 wheelhouse
-python scripts/08_offline_install/wheel_leak_audit.py <wheel>     # 指定 wheel
+python deploy/wheel_leak_audit.py            # 审计默认 wheelhouse
+python deploy/wheel_leak_audit.py <wheel>     # 指定 wheel
 ```
 
 检查四项：**体积 / 条目数 / FLASH License §3 材料 / git-ignored 泄漏**。
@@ -237,7 +237,7 @@ python scripts/04_backup/usb_backup.py --mode gitee E:\usb_target
 
 ```bash
 # 联网机：造包 + 导出源码，一起放到 U 盘
-python scripts/08_offline_install/build_wheelhouse.py --zip
+python deploy/build_wheelhouse.py --zip
 ```
 
 `--zip` 会额外生成 `wheelhouse.zip`（约 90MB），单个文件拷 U 盘更省事，
@@ -277,13 +277,13 @@ python scripts/08_offline_install/build_wheelhouse.py --zip
 
    > 若 wheelhouse 不完整（缺 `pip-*.whl`），脚本会明确提示重新造包。
 
-3. 双击 `scripts\08_offline_install\install_offline.bat`，或：
+3. 双击 `deploy\install_offline.bat`，或：
 
 ```bash
-python scripts/08_offline_install/install_offline.py            # 自动找 wheelhouse/
-python scripts/08_offline_install/install_offline.py D:\pkg\wheelhouse   # 显式指定
-python scripts/08_offline_install/install_offline.py --check-only# 只校验不安装
-python scripts/08_offline_install/install_offline.py --quick     # 快速装环境不跑测试
+python deploy/install_offline.py            # 自动找 wheelhouse/
+python deploy/install_offline.py D:\pkg\wheelhouse   # 显式指定
+python deploy/install_offline.py --check-only# 只校验不安装
+python deploy/install_offline.py --quick     # 快速装环境不跑测试
 ```
 
 或走统一入口（等价于上面第 3 步）：
@@ -350,7 +350,7 @@ venv 半残，必须从头再来"。
 | 自动探测 | 强制 `FLASH_FORCE_ONLINE=1` | 项目根有 `wheelhouse/MANIFEST.json` → 自动转离线 |
 
 > **自动探测的判据只能是 `wheelhouse/MANIFEST.json` 本身**，绝不能用
-> 「`scripts/08_offline_install/` 目录存在」这类间接信号 —— 该目录随仓库分发，
+> 「`deploy/` 目录存在」这类间接信号 —— 该目录随仓库分发，
 > 联网机上永远存在，拿它当判据会把**所有在线用户**误切成离线模式。
 
 在线路径行为**完全不变**（仍为 `pip install -e ".[full,dev]" scipy paramiko`）。

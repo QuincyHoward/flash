@@ -6,15 +6,17 @@
 > `Multi1D++Portable20241128/matter++` 的 EOS / 不透明度数据 → 统一解析 → 统一网格 → HDF5
 >
 > **闸口**：`已解析 992 + 已跳过 222 == 1214`，问题文件 **0**，耗时 144.7 s
+> ⚠ 2026-11-06 核对：原 `docs/extracted/`（上游说明书纯文本 + MANIFEST.md）已清理，不再存在；文中相关表述仅作历史流程说明。
+
 > **交叉验证**：`identify` 比对 997 个文件 → `conflict` **0**（首轮 10 → 修掉 7 处缺陷）
 > **下游**：`convert-all` 写出 992 个 h5 / 335.3 MiB / 0 失败
 > **测试**：`all tests passed across 51 file(s)`（2026-09-15 复跑，无回归；含新增
-> `test/eosopdata/` 材料测试套件 —— `step01_cn4/`（提取/彩图/路径 79，彩图含
+> `../test/eosopdata/` 材料测试套件 —— `step01_cn4/`（提取/彩图/路径 79，彩图含
 > nion-T / **ne-T / rho-T 双坐标**）+
 > `step02_families/`（11 族提取 26 / 彩图 15 / 物理路径 18 / 两重认证守护 7 /
 > **逐类型批量出图 `test_plot_<type>.py` × 11（33，含 source_data 副本守护）**）+
 > `step03_transcn4/`（跨族转 cn4 + NaN 占位 44））
-> 与 `test/io/test_convert_default.py`（convert 默认目标 cn4，11）；
+> 与 `../test/io/test_convert_default.py`（convert 默认目标 cn4，11）；
 > **产物跟测试走**：各 step 文件夹内 `_out/`（图/cn4 产物/test_log.txt，已 gitignore））
 > **统一绘图模块**：`plotting/gridmap.py` —— 任意族 ParsedTable 批量出图 +
 > `_report.txt` 核查报告（网格点/物理意义/单位/认证标记）；**标记规约**
@@ -34,7 +36,7 @@
 > 派生轴 n_e（code-derived）；其余条目 `uk`（无一级出处，如实登记）；
 > **控制字典**：`registry/field_checks.py`（eosop 家族唯一权威，未来
 > 未知格式经 `register_family` 注册即可被绘图/分析链路采用）；字典
-> Markdown 全文 `docs/eosop变量控制字典.md`（与字典逐字同步，测试守护，
+> Markdown 全文 `eosop变量控制字典.md`（与字典逐字同步，测试守护，
 > `python -m eosop_pro.registry.field_checks` 再生成）；**raw 兜底规约**：语义映射不可行的
 > 字段画 `raw values vs element index` 序列图（数值可读即可画，标注
 > semantics unknown），不再静默零图；**原始数据跟图走**：每族处理前 3 个

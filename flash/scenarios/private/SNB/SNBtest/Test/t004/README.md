@@ -1,5 +1,7 @@
 # t004 —— 「辐射开关」2×2 受控矩阵（FL-SH / SNB × 辐射开 / 关）
 > 最后核对：2026-11-05 · commit 7e04857
+> ⚠ 2026-11-06 核对：文中引用的 `scripts/generate/make_therm_variant.py` 与 `docs/snb_source_diagnosis.md` 已随场景清理移除，本 README 保留为历史实验记录。
+
 
 
 **目的**：按用户要求，分别在 **FL-SH 侧**与 **SNB 侧**各跑「开启辐射 / 关闭辐射」

@@ -1,3 +1,5 @@
+> 最后核对：2026-11-06 · commit 20337b6（flash-readme-sync 首轮巡检补锚）
+
 # NewPara — 新参数区域控制与划分测试
 
 ## 目标

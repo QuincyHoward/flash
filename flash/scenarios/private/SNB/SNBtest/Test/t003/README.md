@@ -1,5 +1,7 @@
 # t003 —— SNB vs FL-SH 受控对比（烧蚀速率成因核查）
 > 最后核对：2026-11-05 · commit 7e04857
+> ⚠ 2026-11-06 核对：文中引用的 `scripts/generate/make_therm_variant.py` 与 `docs/snb_source_diagnosis.md` 已随场景清理移除，本 README 保留为历史实验记录。
+
 
 
 **目的**：核查「SNB 的质量烧蚀速率显著快于 FL-SH」是**物理**还是**代码/设置**问题。
