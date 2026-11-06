@@ -8,7 +8,7 @@ description: FLASH EOS/不透明度数据子体系：gen_eos_op 表文件管理�
 # EOS/不透明度数据子体系（gen_eos_op + eosop_pro）
 
 权威参考：
-- `flash/input_gen/gen_eos_op/GEN_EOS_OP_GUIDE.md` — 表文件管理指南（材料注册表）
+- `flash/input_gen/gen_eos_op/README.md` — 表文件管理指南（材料注册表）
 - `flash/input_gen/gen_eos_op/eosop_pro/README.md` — 解析/网格/双轨 HDF5 子包
 - `flash/input_gen/gen_eos_op/ionmix/ionmix/README.md` — IONMIX 输入生成
 
@@ -16,7 +16,7 @@ description: FLASH EOS/不透明度数据子体系：gen_eos_op 表文件管理�
 
 ```
 flash/input_gen/gen_eos_op/
-├── generator.py + GEN_EOS_OP_GUIDE.md + eos_op_data/   ← 表文件管理（别名感知）
+├── generator.py + gen_eos_op/README.md + eos_op_data/   ← 表文件管理（别名感知）
 ├── eosop_pro/          解析/网格/转换/绘图（~60 模块）
 ├── ionmix/ionmix/      IONMIX 输入生成 + .cn4 后处理参考实现
 └── src/multi_src/      MULTI 格式历史资料（含 04_probe 权威记录）
@@ -95,7 +95,7 @@ g.list_discovered_files()                    # 磁盘全部 .cn4（含未注册�
 
 ## 关联资源
 
-- `flash/input_gen/gen_eos_op/GEN_EOS_OP_GUIDE.md`（材料注册表与 API 速查）
+- `flash/input_gen/gen_eos_op/README.md`（材料注册表与 API 速查）
 - `flash/input_gen/gen_eos_op/eosop_pro/README.md`（解析/转换子包）
 - `flash/input_gen/gen_eos_op/ionmix/ionmix/README.md`、`flash/input_gen/gen_eos_op/ionmix/ionmix/docs/IONMIX用户指南.md`
 - skill `flash-par-gen`（.par 装配消费 .eosmeta.json）

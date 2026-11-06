@@ -79,7 +79,7 @@ g.list_discovered_files()                      # 磁盘全部 .cn4（含未注�
 
 ```
 gen_eos_op/
-├── generator.py + GEN_EOS_OP_GUIDE.md(本文) + eos_op_data/   ← 表文件管理（本指南）
+├── generator.py + gen_eos_op/README.md(本文) + eos_op_data/   ← 表文件管理（本指南）
 ├── eosop_pro/          matter++ 数据 → 统一解析/网格 → 双轨 HDF5（~60 模块 + 16 篇 docs）
 │                       → 详见 eosop_pro/README.md
 ├── ionmix/ionmix/      IONMIX 输入生成（src/Ionmix_run）+ .cn4 后处理参考实现（eosop_pro/core）

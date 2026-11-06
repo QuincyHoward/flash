@@ -2,7 +2,7 @@
 relations.rules_parameter — 规则 B：参数级一致性关联
 ═════════════════════════════════════════════════════
 
-对应 GEN_CHECKER_GUIDE「B. 参数级一致性关联」：
+对应 gen_checker/README.md「B. 参数级一致性关联」：
   4. .par 中的 sim_* 运行时参数应在 Config 有对应 PARAMETER 定义
   5. Simulation_data.F90 声明的模块变量应与 Simulation_init.F90 的读取一一对应
   6. .par 的 sim_* 键应与 Simulation_init.F90 读取的键一致

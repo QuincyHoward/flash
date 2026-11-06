@@ -2,7 +2,7 @@
 relations.rules_script — 规则 D：脚本级装配关联
 ════════════════════════════════════════════════
 
-对应 GEN_CHECKER_GUIDE「D. 脚本级装配关联」：
+对应 gen_checker/README.md「D. 脚本级装配关联」：
  12. .par 文件名与 run_flash.sh 的 PAR_FILE 一致
  13. setup 的 species= 与 Config 的 SPECIES 一致
  14. Makefile 引用的 .o 与存在的 Simulation_*.F90 对应

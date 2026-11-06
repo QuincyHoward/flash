@@ -42,4 +42,4 @@ python ionmix/ionmix/eosop_pro/test/run_tests.py
 
 `eosop_pro/core/`（本目录）是**早期扁平参考实现**；生产级目标实现在 [`../../eosop_pro/`](../../eosop_pro/README.md)（分层包架构：parsers 17 解析器/统一网格/双轨 HDF5）。两者由 `../../eosop_pro/eosop_pro/test/cross_validate_cn4.py` 交叉验证一致性。新功能请进目标实现。
 
-**上级导航**：[../../GEN_EOS_OP_GUIDE.md](../../GEN_EOS_OP_GUIDE.md)
+**上级导航**：[../../README.md](../../README.md)

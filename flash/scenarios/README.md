@@ -516,7 +516,7 @@ layer_tracer_CH_ml 的分层几何参数（.par INITIAL CONDITIONS 段）：
 - **plot_var 白名单**：物种增删必须同步重写 `plot_var_1..N`（见下条 9）。
 - **par 行尾注释**（gen_par 全场景生效）：绝大多数参数行尾自动追加对齐的
   `# 说明`（静态字典 + 脉冲序列/能群边界/物种族动态规则），lrefine 行尾
-  直接给出分辨率公式与结果——详情见 `gen_par/GEN_PAR_GUIDE.md`。
+  直接给出分辨率公式与结果——详情见 `gen_par/README.md`。
 
 #### 通用注意事项
 

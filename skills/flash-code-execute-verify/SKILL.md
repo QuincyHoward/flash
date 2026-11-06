@@ -1,10 +1,10 @@
 ---
-name: physimx-code-execute-verify
+name: flash-code-execute-verify
 description: 代码级执行验证纪律：AI 添加/修改代码后必须实际运行代码验证功能正确，禁止仅做语法检查就声称完成。写新函数/类/模块、迁移老代码、修改现有逻辑后必须触发。与场景级短时验证（flash-scenario-setup）构成两级验证链。触发词：写完代码、改代码完成、验证一下、跑通、execute verify。
 ---
 
 > 最后核对：2026-11-06 · commit 54a9f69
-> 来源：用户级 physimx-code-execute-verify 技能吸收（原文核心保留，补充本仓两级验证分工）
+> 来源：用户级同名技能吸收（原名 physimx-code-execute-verify，2026-11-06 统一更名 flash- 格式；原文核心保留，补充本仓两级验证分工）
 
 # 代码执行验证（Code Execute & Verify）
 

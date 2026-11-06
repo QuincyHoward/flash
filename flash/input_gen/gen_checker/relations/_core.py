@@ -8,7 +8,7 @@ relations._core — 文件内在关联检查框架核心
   - relation_rule  : 装饰器，把规则函数注册进 REGISTRY
   - REGISTRY       : 规则注册表（id -> rule func）
 
-扩展方式见 check_relations.py 头注释与 GEN_CHECKER_GUIDE.md「如何扩展自定义关联」。
+扩展方式见 check_relations.py 头注释与 gen_checker/README.md「如何扩展自定义关联」。
 """
 
 from __future__ import annotations

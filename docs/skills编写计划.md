@@ -64,7 +64,7 @@
 |---|---|
 | `flash/scenarios/private/tracer/`（CHTi/TiTi/VCH_ml/OneSi_ml/OneC_ml/SNB 等） | ✅ 存在 |
 | `flash/input_gen/gen_flychk_his/` | ✅ 存在 |
-| `flash/input_gen/gen_eos_op/`（GEN_EOS_OP_GUIDE.md、eosop_pro、ionmix） | ✅ 存在 |
+| `flash/input_gen/gen_eos_op/`（gen_eos_op/README.md、eosop_pro、ionmix） | ✅ 存在 |
 | `scripts/04_backup/usb_backup.py` | ✅ 存在 |
 | `flash/output_pro/loader` + `extraction_modes.py` + `plotter` | ✅ 存在 |
 | `pf_*` 系列脚本与 `CASES_Comp` 目录 | ❌ **全仓不存在** → flash-cases-focus-plot 不可独立成 skill |
@@ -144,7 +144,7 @@ sandwich/flash/
 | 4 | flash-run-deploy | docs/FLASH三模式运行体系 + flash_simulation_execution_knowledge | flash_run/env、flash_run/remote、scripts/02_hpc | P1 |
 | 5 | flash-output-analysis | output_pro/README + 上游 result-analyzer 诊断清单 + flash-cases-focus-plot 方法论（仅 pcolormesh 纪律/csnd 派生场） | output_pro/loader、extraction_modes.py、plotter | P1 |
 | 6 | flash-par-gen | docs/par_format_guide + input_gen/README | gen_par、gen_checker、gen_newpara | P1 |
-| 7 | flash-eos-op | gen_eos_op/GEN_EOS_OP_GUIDE + layer3 gen_eos_op MEMORY 经验 | flash/input_gen/gen_eos_op/eosop_pro、ionmix | P2 |
+| 7 | flash-eos-op | gen_eos_op/gen_eos_op/README.md + layer3 gen_eos_op MEMORY 经验 | flash/input_gen/gen_eos_op/eosop_pro、ionmix | P2 |
 | 8 | flash-flychk-history | 用户级 flash-to-flychk-history | flash/input_gen/gen_flychk_his/ | P2 |
 | 9 | flash-hpc-fetch | 用户级 hpc-sftp-parallel-fetch | scripts/02_hpc/ | P2 |
 | 10 | flash-data-extract | 用户级 physimx-h5py-* 三合一（含 float64-cv-fix） | output_pro/loader、extraction_modes.py | P2 |

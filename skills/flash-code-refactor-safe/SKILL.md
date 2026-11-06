@@ -1,10 +1,10 @@
 ---
-name: code-refactor-safe
+name: flash-code-refactor-safe
 description: 通用安全重构工作流：重命名函数/类、拆分大文件（>300 行）、提取公共接口、移动模块时的必要步骤与风险分级，防止引用断裂和功能损坏。触发词：重命名、重构、拆分文件、提取接口、移动模块、safe refactor。
 ---
 
 > 最后核对：2026-11-06 · commit 54a9f69
-> 来源：用户级 code-refactor-safe 技能吸收（备份机制已按本仓约定适配）
+> 来源：用户级同名技能吸收（原名 code-refactor-safe，2026-11-06 统一更名 flash- 格式；备份机制已按本仓约定适配）
 
 # 安全重构工作流（Safe Refactor）
 

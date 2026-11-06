@@ -895,7 +895,7 @@ python -m build
 |------|---------|
 | 核心层 | `flash/_core/README.md` · `flash/_core/credentials/README.md` |
 | 执行层 | `flash/flash_run/README.md`（含工程铁律）· `env/` · `remote/` · `modes/` |
-| 输入生成 | `flash/input_gen/README.md` · 12 份 `GEN_*_GUIDE.md` · `gen_eos_op/GEN_EOS_OP_GUIDE.md`（含 eosop_pro/ionmix/src 子体系导航） |
+| 输入生成 | `flash/input_gen/README.md` · 各 gen_* 子包 README.md（原 GEN_*_GUIDE，2026-11-06 统一改名）· `gen_eos_op/README.md`（含 eosop_pro/ionmix/src 子体系导航） |
 | 输出处理 | `flash/output_pro/README.md` · `hdf5pro/` · `loader/` · `plotter/` · `test/README.md` |
 | 场景系统 | `flash/scenarios/README.md` · `core/`（4 子包）· `common/` · `scripts/`（relocate 六件套）· 各场景薄 README |
 | 文档工具 | `scripts/08_docs/README.md`（dump_docstrings 摘要 / check_docs 门禁） |
@@ -908,7 +908,7 @@ python -m build
 | Hello FLASH 快速上手 | `scenarios/flash_demo/hello_flash/README.md` |
 | 网格细化实施指南 | `input_gen/gen_Grid_markRefineDerefine/README.md` |
 | 新参数生成指南 | `input_gen/gen_newpara/README.md` |
-| F90 参考文件指南 | `input_gen/gen_otherf90s/GEN_OTHER_F90S_GUIDE.md` |
+| F90 参考文件指南 | `input_gen/gen_otherf90s/README.md` |
 | 多区密度剖面参考 | `input_gen/gen_newpara/RP_Reference.md` |
 
 ### Skills (WorkBuddy AI 辅助)

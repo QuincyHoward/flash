@@ -311,7 +311,7 @@ species=cham,shld,samp,tar1,tar2,tar3,tar4,tar6 +mtmmmt +laser +uhd3t
 
 > 参数完整语义、默认值与生成链路见
 > `flash/input_gen/gen_newpara/RP_Reference.md`（运行时参数详解，含 chk 实测对照）与
-> `flash/input_gen/gen_par/GEN_PAR_GUIDE.md`（par 模板结构与生成器）。
+> `flash/input_gen/gen_par/README.md`（par 模板结构与生成器）。
 
 ---
 
@@ -790,6 +790,6 @@ $$\frac{\mathrm{d}(T^{5/2})}{\mathrm{d}t} = K_2\,u - K_2\,a_2$$
    （MacFarlane, CPC 56 (1989) 259–278）
 6. Multispecies 机制：`source/physics/multispecies/`（物种 A/Z/abundance 属性）
 7. 运行时参数详解与生成：`flash/input_gen/gen_newpara/RP_Reference.md`（含 chk 实测对照）、
-   `flash/input_gen/gen_par/GEN_PAR_GUIDE.md`（par 模板结构与生成器）
+   `flash/input_gen/gen_par/README.md`（par 模板结构与生成器）
 8. 表格 EOS 的 γ_c 合成：`source/physics/Eos/EosMain/Tabulated/eos_tabIonmix4.F90`（:585-598）
 9. 激波判据中的声速：`source/physics/Hydro/HydroMain/unsplit/hy_uhd_shockDetect.F90`（:74-170）

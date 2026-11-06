@@ -56,7 +56,7 @@ input_gen/
 ├── gen_sim_init/          # Simulation_init.F90 生成器
 ├── gen_sim_initblock/     # Simulation_initBlock.F90 生成器
 ├── gen_eos_op/           # EOS/Opacity 数据子体系根
-│   ├── generator.py + GEN_EOS_OP_GUIDE.md   # .cn4 表文件管理（别名感知）
+│   ├── generator.py + gen_eos_op/README.md   # .cn4 表文件管理（别名感知）
 │   ├── eos_op_data/      # 数据库（6 子目录 / 10 .cn4，2026-11 实测）
 │   ├── eosop_pro/        # matter++ 数据 → 统一解析/网格 → 双轨 HDF5（16 篇 docs）
 │   ├── ionmix/ionmix/    # IONMIX 输入生成 + .cn4 后处理参考实现
@@ -104,7 +104,7 @@ create_input_files()
 | `gen_newpara` | `NewParaGenerator` | 多区剖面文件 | ✅ 完整 | 5 种密度剖面 |
 | `gen_flychk_his` | `FlychkHistoryGenerator` | FLYCHK 输入 `*.zip` | ✅ 完整 | 由 FLASH 剖面生成 FLYCHK history 输入 |
 | `gen_Grid_markRefineDerefine` | `GridMarkRefineDerefineGenerator`（+ `ZoneConfig`） | `Grid_markRefineDerefine.F90` | ✅ 完整 | 分区细化/解细化条件生成（`generator.py` 567 行）；**无 `refs/` 目录** |
-| `gen_otherf90s` | (无生成器) | (手动复制) | ⚠️ 仅文档 | 子包只含 `__init__.py` + `GEN_OTHER_F90S_GUIDE.md`；**旧版"277 个 Fortran 文件"的说法有误** |
+| `gen_otherf90s` | (无生成器) | (手动复制) | ⚠️ 仅文档 | 子包只含 `__init__.py` + `gen_otherf90s/README.md`；**旧版"277 个 Fortran 文件"的说法有误** |
 | `gen_f90` | (无) | (无) | ⚠️ 预留 | 空模块 |
 
 ---
@@ -241,7 +241,7 @@ print(files)
 **参考示例**: 无内置示例目录（旧版文档提到的 `gen_par/refs/`（750+ 个 `.par`）
 **在本仓库中不存在**）。参数默认值的权威来源是同目录 `defaults.py`。
 
-**文档**: `gen_par/GEN_PAR_GUIDE.md`
+**文档**: `gen_par/README.md`
 
 ---
 
@@ -258,7 +258,7 @@ print(files)
 
 **默认模板**: 基于 `SimulationMain/LaserSlab/Config`
 
-**文档**: `gen_config/GEN_CONFIG_GUIDE.md`
+**文档**: `gen_config/README.md`
 
 ---
 
@@ -272,7 +272,7 @@ print(files)
 
 **当前状态**: 非常简单，只生成基本 Makefile 内容
 
-**文档**: `gen_makefile/GEN_MAKEFILE_GUIDE.md`
+**文档**: `gen_makefile/README.md`
 
 ---
 
@@ -287,7 +287,7 @@ print(files)
 
 **默认模板**: 基于 `LaserSlab1d/Simulation_data.F90`
 
-**文档**: `gen_sim_data/GEN_SIM_DATA_GUIDE.md`
+**文档**: `gen_sim_data/README.md`
 
 ---
 
@@ -302,7 +302,7 @@ print(files)
 
 **默认模板**: 基于 `LaserSlab/Simulation_init.F90`
 
-**文档**: `gen_sim_init/GEN_SIM_INIT_GUIDE.md`
+**文档**: `gen_sim_init/README.md`
 
 ---
 
@@ -323,7 +323,7 @@ print(files)
 
 **预设配置**: `from_laserslab_1d()` 等
 
-**文档**: `gen_sim_initblock/GEN_SIM_INITBLOCK_GUIDE.md`
+**文档**: `gen_sim_initblock/README.md`
 
 ---
 
@@ -341,7 +341,7 @@ print(files)
 
 **支持格式**: ionmix4 (`.cn4`)；BADGER-TOPS/QC 外来表已经由 eosop_pro 解析链入库
 
-**文档**: [`gen_eos_op/GEN_EOS_OP_GUIDE.md`](gen_eos_op/GEN_EOS_OP_GUIDE.md)（材料注册表 + 能群校验）
+**文档**: [`gen_eos_op/README.md`](gen_eos_op/README.md)（材料注册表 + 能群校验）
 **子体系**: [`eosop_pro/`](gen_eos_op/eosop_pro/README.md)（.cn4 解析/HDF5） · [`ionmix/ionmix/`](gen_eos_op/ionmix/ionmix/README.md)（输入生成 + 参考实现） · `src/multi_src/`（MULTI 资料）
 
 ---
@@ -358,9 +358,9 @@ print(files)
 **输出文件**:
 - `run_flash.bat` — Windows 批处理脚本
 - `run_flash.sh` — WSL/Linux shell 脚本
-- `submit_flash.slurm` — SLURM 提交脚本（详见 `gen_shell_script/GEN_SHELL_SCRIPT_GUIDE.md`）
+- `submit_flash.slurm` — SLURM 提交脚本（详见 `gen_shell_script/README.md`）
 
-**文档**: `gen_shell_script/GEN_SHELL_SCRIPT_GUIDE.md`
+**文档**: `gen_shell_script/README.md`
 
 ---
 
@@ -383,7 +383,7 @@ print(files)
 6. `Simulation_data.F90` - 数据模块
 7. `Makefile` - 编译配置
 
-**文档**: `gen_checker/GEN_CHECKER_GUIDE.md`
+**文档**: `gen_checker/README.md`
 
 ---
 
@@ -420,13 +420,13 @@ print(files)
 - 分区（Zone）驱动的细化/解细化条件
 - 分辨率换算与梯度条件
 
-**文档**: `gen_Grid_markRefineDerefine/GEN_GRID_GUIDE.md` 与同目录 `README.md`
+**文档**: `gen_Grid_markRefineDerefine/README.md`（原 GEN_GRID_GUIDE.md 已并入）
 
 ---
 
 ### 12. gen_otherf90s — 其他 Fortran 文件参考库
 
-**当前状态**: **本检出中该子包只有 `__init__.py` + `GEN_OTHER_F90S_GUIDE.md`**，
+**当前状态**: **本检出中该子包只有 `__init__.py` + `gen_otherf90s/README.md`**，
 不含任何 `.F90` 或分类子目录
 
 > ⚠ 旧版本文档曾称本子包含 "**277 个 Fortran 文件**" 及 `custom/`、`gr/`、
@@ -434,7 +434,7 @@ print(files)
 > 未随包分发）。如需参考实现，请改用 `gen_Grid_markRefineDerefine`
 > （已有 `GridMarkRefineDerefineGenerator` 生成器）。
 
-**文档**: `gen_otherf90s/GEN_OTHER_F90S_GUIDE.md`
+**文档**: `gen_otherf90s/README.md`
 
 ---
 
@@ -548,7 +548,7 @@ Config → Simulation_data.F90 → Simulation_init.F90 → Simulation_initBlock.
 1. FLASH User Guide — Chapter 4: Simulation Configuration
 2. FLASH User Guide — Chapter 5: Runtime Parameters
 3. FLASH Source Code — `source/Simulation/SimulationMain/*/`
-4. PhySimX Documentation — `input_gen/*/GEN_*_GUIDE.md`
+4. PhySimX Documentation — `input_gen/*/README.md`
 
 ---
 

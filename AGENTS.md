@@ -44,9 +44,9 @@ python -m flash.scenarios.core.runner --check-env   # 三模式环境自检
 
 | skill | 触发场景 |
 |---|---|
-| `code-refactor-safe` | 重命名/拆分大文件/提取接口的安全重构流程与风险分级 |
-| `physimx-code-execute-verify` | 写/改代码后必须实际运行验证（代码级，与场景级短时验证互补） |
-| `physimx-token-budget` | token 节约纪律：先 Grep 后读、HDF5 不直读、子代理承载宽泛搜索 |
+| `flash-code-refactor-safe` | 重命名/拆分大文件/提取接口的安全重构流程与风险分级 |
+| `flash-code-execute-verify` | 写/改代码后必须实际运行验证（代码级，与场景级短时验证互补） |
+| `flash-token-budget` | token 节约纪律：先 Grep 后读、HDF5 不直读、子代理承载宽泛搜索 |
 
 ## 分工声明（防触发词抢答）
 

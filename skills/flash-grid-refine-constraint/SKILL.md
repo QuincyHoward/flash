@@ -84,10 +84,10 @@ gen.save("sim_input/Grid_markRefineDerefine.F90")
 ## 常见坑
 
 - ⚠️ 旧导入 `from flash.input_gen.gen_Grid_markRefineDerefine import ...` 无效（包 `__init__` 为空），必须 `.generator` 结尾
-- ⚠️ 旧参考 `refs/Grid_markRefineDerefine_编写指南.md`、`refs/Al_CH_He_laser_cart1D/` 已删除；非 C3 模式（模式 B/E 几何/阈值判据）需求现参考 `flash/input_gen/gen_otherf90s/GEN_OTHER_F90S_GUIDE.md` 与 FLASH-Expert 上游（`temp/FLASH-Expert/`）
+- ⚠️ 旧参考 `refs/Grid_markRefineDerefine_编写指南.md`、`refs/Al_CH_He_laser_cart1D/` 已删除；非 C3 模式（模式 B/E 几何/阈值判据）需求现参考 `flash/input_gen/gen_otherf90s/README.md` 与 FLASH-Expert 上游（`temp/FLASH-Expert/`）
 
 ## 关联资源
 
 - `flash/input_gen/gen_Grid_markRefineDerefine/generator.py`（参数权威）
-- `flash/input_gen/gen_otherf90s/GEN_OTHER_F90S_GUIDE.md`（其他 F90 定制）
+- `flash/input_gen/gen_otherf90s/README.md`（其他 F90 定制）
 - `flash-knowledge`（grid/AMR 参数语义）、`flash-newpara`（参数 5 步注册）

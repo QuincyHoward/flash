@@ -7,7 +7,7 @@ check_relations.py — FLASH 文件内在关联检查器（主脚本）
 在"文件是否存在"（checker.py / DependencyChecker）之上，进一步校验 7 个关键
 文件之间的**内容一致性**。文件都在但彼此矛盾，FLASH 仍会编译/运行失败。
 
-内置 14 条规则（分类见 GEN_CHECKER_GUIDE「检查项的内在关联」）：
+内置 14 条规则（分类见 gen_checker/README.md「检查项的内在关联」）：
 
   A. 文件级引用（rules_reference）
       1  .par 引用的 .cn4 必须存在于磁盘
@@ -48,7 +48,7 @@ Python API:
     relations/__init__.py 末尾 import 即可，**无需修改本主脚本**；
   - 规则共享的解析结果缓存在 RelationContext（relations/_core.py），避免重复解析。
 
-详见 GEN_CHECKER_GUIDE「如何扩展自定义关联」。
+详见 gen_checker/README.md「如何扩展自定义关联」。
 """
 
 from __future__ import annotations

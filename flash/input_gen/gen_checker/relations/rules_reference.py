@@ -2,7 +2,7 @@
 relations.rules_reference — 规则 A：文件级引用关联
 ═══════════════════════════════════════════════════
 
-对应 GEN_CHECKER_GUIDE「A. 文件级引用关联」：
+对应 gen_checker/README.md「A. 文件级引用关联」：
   1. .par 引用的 EOS/Opacity 表必须在磁盘存在
   2. .par 引用的 .cn4 必须在 Config 的 DATAFILES 声明
   3. Config 的 PARAMETER 需定义 .par 用到的表绑定

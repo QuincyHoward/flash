@@ -1378,7 +1378,7 @@ def main(credential_name: Optional[str] = None,
         # ── 步骤 1.5: 文件内在关联检查（check_relations）──
         # 在"文件都存在"之上，进一步校验 7 个文件之间的内容一致性
         # （.par 引用 ↔ Config DATAFILES ↔ 磁盘 .cn4 / sim_* 参数 ↔ F90 /
-        #   维度/光束/脉冲 / 脚本装配），详见 gen_checker/GEN_CHECKER_GUIDE.md。
+        #   维度/光束/脉冲 / 脚本装配），详见 gen_checker/README.md。
         log("进行文件内在关联检查 (check_relations)...", "STEP")
         try:
             from flash.input_gen.gen_checker import RelationChecker

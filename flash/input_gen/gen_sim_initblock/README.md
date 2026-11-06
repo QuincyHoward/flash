@@ -1,3 +1,5 @@
+> 最后核对：2026-11-06（由 GEN_*_GUIDE.md 统一改名为 README.md，内容不变）
+
 # gen_sim_initblock — Simulation_initBlock.F90 生成器说明文档
 
 ## 目录

@@ -15,6 +15,6 @@
 | `Gen_eos_op_data/Z79_1.00-20261009_1256/` | 金（ngrups=10） |
 | `Gen_eos_op_data/badger_qc/` | BADGER-TOPS/QC 五表 |
 
-**维护规则**：文件不移动/不删除/不重命名（注册表引用路径）；新增表放任意子目录即可被自动发现，重要材料建议在 `generator.py` 注册别名。材料注册表与别名见 [../GEN_EOS_OP_GUIDE.md](../GEN_EOS_OP_GUIDE.md) §4。
+**维护规则**：文件不移动/不删除/不重命名（注册表引用路径）；新增表放任意子目录即可被自动发现，重要材料建议在 `generator.py` 注册别名。材料注册表与别名见 [../README.md](../README.md) §4。
 
-**上级导航**：[../GEN_EOS_OP_GUIDE.md](../GEN_EOS_OP_GUIDE.md)
+**上级导航**：[../README.md](../README.md)

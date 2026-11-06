@@ -93,6 +93,6 @@ gen.save("mysim.par")
 
 ## 关联资源
 
-- `flash/input_gen/README.md`（子包总览）、`flash/input_gen/gen_par/GEN_PAR_GUIDE.md`、`flash/input_gen/gen_checker/GEN_CHECKER_GUIDE.md`
+- `flash/input_gen/README.md`（子包总览）、`flash/input_gen/gen_par/README.md`、`flash/input_gen/gen_checker/README.md`
 - `docs/par_format_guide.md`、`flash-par-gen`（排版规范）、`flash-newpara`（新参数/多区剖面）
 - `flash-run-deploy`（三模式运行）、本技能 `references/api-reference.md`

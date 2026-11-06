@@ -12,8 +12,9 @@
 >
 > 2026-11-06 二次吸收说明：本轮自用户级 skills 副本（Desktop / .workbuddy - 副本，两者内容一致）
 > 与 `simulation/flash` 旧仓技能再次吸收——新建 flash-input-gen / flash-newpara /
-> flash-grid-refine-constraint 与 3 个通用技能（code-refactor-safe / physimx-code-execute-verify /
-> physimx-token-budget）；orchestrator 路由矩阵并入 flash-sim-overview，旧 output/run-deploy/
+> flash-grid-refine-constraint 与 3 个通用技能（flash-code-refactor-safe / flash-code-execute-verify /
+> flash-token-budget；吸收时原名 code-refactor-safe / physimx-code-execute-verify / physimx-token-budget，
+> 同日统一更名为 flash- 格式）；orchestrator 路由矩阵并入 flash-sim-overview，旧 output/run-deploy/
 > examples API 修正后并入对应现有技能；`flash_src/docs/src_finding/` 7 份方程↔源码对照文档
 > 完整迁入 flash-knowledge/references/src_finding/（源目录移至 flash/temp_delete/）。
 > 跳过：flash-f90-development（ref_f90s 已删）、flash-orchestrator-activator（指向的用户级
@@ -31,10 +32,10 @@
 | `flash-run-deploy` | `docs/FLASH三模式运行体系.md`, `docs/flash_simulation_execution_knowledge.md` | `flash/flash_run/`（env/modes/remote）, `scripts/02_hpc/` |
 | `flash-output-analysis` | `docs/flash_operation_standard.md` | `flash/output_pro/`（loader/plotter/extraction_modes/parallel） |
 | `flash-par-gen` | `docs/par_format_guide.md` | `flash/input_gen/gen_par/`, `flash/input_gen/gen_checker/` |
-| `flash-input-gen` | `flash/input_gen/README.md`, `gen_par/GEN_PAR_GUIDE.md`, `gen_checker/GEN_CHECKER_GUIDE.md` | `flash/input_gen/` 全部 gen_* 子包；references/api-reference.md |
+| `flash-input-gen` | `flash/input_gen/README.md`, `gen_par/README.md`, `gen_checker/README.md` | `flash/input_gen/` 全部 gen_* 子包；references/api-reference.md |
 | `flash-newpara` | `flash/input_gen/gen_newpara/README.md`, `RP_Reference.md` | `flash/input_gen/gen_newpara/`, `test/newpara/` |
-| `flash-grid-refine-constraint` | `flash/input_gen/gen_otherf90s/GEN_OTHER_F90S_GUIDE.md` | `flash/input_gen/gen_Grid_markRefineDerefine/generator.py` |
-| `flash-eos-op` | `flash/input_gen/gen_eos_op/GEN_EOS_OP_GUIDE.md` | `flash/input_gen/gen_eos_op/`（eosop_pro/ionmix/eos_op_data） |
+| `flash-grid-refine-constraint` | `flash/input_gen/gen_otherf90s/README.md` | `flash/input_gen/gen_Grid_markRefineDerefine/generator.py` |
+| `flash-eos-op` | `flash/input_gen/gen_eos_op/README.md` | `flash/input_gen/gen_eos_op/`（eosop_pro/ionmix/eos_op_data） |
 | `flash-flychk-history` | — | `flash/input_gen/gen_flychk_his/` |
 | `flash-hpc-fetch` | — | `scripts/02_hpc/` |
 | `flash-data-extract` | `flash/output_pro/FLASH物理量说明.md` | `flash/output_pro/loader/`, `flash/output_pro/extraction_modes.py`, `flash/output_pro/parallel.py` |

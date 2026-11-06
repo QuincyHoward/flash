@@ -1,3 +1,5 @@
+> 最后核对：2026-11-06（由 GEN_*_GUIDE.md 统一改名为 README.md，内容不变）
+
 # gen_otherf90s 说明文档
 
 ## 概述

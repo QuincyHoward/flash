@@ -2,7 +2,7 @@
 relations.rules_dimension — 规则 C：维度 / 光束 / 脉冲级约束关联
 ════════════════════════════════════════════════════════════════
 
-对应 GEN_CHECKER_GUIDE「C. 维度 / 光束 / 脉冲级约束关联」：
+对应 gen_checker/README.md「C. 维度 / 光束 / 脉冲级约束关联」：
   7. 维度一致性（.par 网格参数 vs setup 维度 flag / geometry）
   8. 光束数目一致性（ed_numberOfBeams vs ed_lensX_*/ed_targetX_*）
   9. 脉冲-光束绑定（ed_pulseNumber_i 在 ed_numberOfPulses 范围内）

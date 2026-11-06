@@ -1,10 +1,10 @@
 ---
-name: physimx-token-budget
+name: flash-token-budget
 description: token 节约纪律，防止 AI 陷入"读"的泥潭导致上下文爆炸。适用于所有代码阅读、文件搜索、HDF5/仿真输出处理场景。触发词：上下文太大、读太多、token、省着点读、token budget。
 ---
 
 > 最后核对：2026-11-06 · commit 54a9f69
-> 来源：用户级 physimx-token-budget 技能吸收（失效引用已按本仓现行工具链适配）
+> 来源：用户级同名技能吸收（原名 physimx-token-budget，2026-11-06 统一更名 flash- 格式；失效引用已按本仓现行工具链适配）
 
 # Token 预算管理（Token Budget）
 
