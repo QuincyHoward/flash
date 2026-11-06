@@ -43,6 +43,8 @@
 | `flash-knowledge` | `docs/reference/param_index_flash48.md`；references/src_finding/（方程↔源码对照，迁自 flash_src） | 上游 `temp/FLASH-Expert/skills/`（不入 git）；FLASH4.8 源码树（仓外 `simulation/flash/flash_src/FLASH4.8/FLASH4.8/`） |
 | `flash-pitfalls` | `docs/FLASH-Expert吸收计划.md` | 上游 `temp/FLASH-Expert/skills/flash-pitfall-finder/` |
 | `flash-param-lookup` | `docs/reference/param_index_flash48.md` | 联网 Flash Center rpDoc_4p8（references/param_index.tsv 本地 4050 参数索引） |
+| `flash-readme-sync` | `scripts/08_docs/check_docs.py` | 全仓 117+ README（豁免 PlasmaPy/_legacy_diags/pytest_cache/backup） |
+| `flash-skill-sync` | `AGENTS.md`, `skills/README.md` | 全部 `skills/*/SKILL.md`（22 个，边界基线 2026-11-06 定案） |
 
 ## Docs → Skills
 

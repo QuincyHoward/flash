@@ -40,6 +40,8 @@ python -m flash.scenarios.core.runner --check-env   # 三模式环境自检
 | `flash-knowledge` | FLASH 物理/setup/参数语义问答（激光/EOC/网格/流体/EOS/辐射输运等 11 单元）；方程↔源码对照反查（src_finding 文档组） | 导航型 skill（references/src_finding/） |
 | `flash-pitfalls` | 报错→根因→修复速查（编译/运行/物理失真） | 报错信息检索 |
 | `flash-param-lookup` | 不认识的 FLASH runtime 参数查权威定义/默认值/取值范围（联网 rpDoc + 本地 4050 参数索引） | `skills/flash-param-lookup/`（联网 skill） |
+| `flash-readme-sync` | 全仓 README 自底向上巡检维护（叶子先/父级后，先读代码后更新文档）、空白 README 补写 | `skills/flash-readme-sync/` |
+| `flash-skill-sync` | 全体系 skill 巡检（接口冒烟/声明核对）与合并/边界梳理；含当前 22 skill 边界基线 | `skills/flash-skill-sync/` |
 
 ### 通用工程技能（非 FLASH 专属，2026-11-06 吸收）
 
