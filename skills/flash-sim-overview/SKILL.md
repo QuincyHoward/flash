@@ -3,7 +3,8 @@ name: flash-sim-overview
 description: flash-sim 项目入口导航：分层架构、5 分钟上手、典型工作流（场景调用/par 生成/HDF5 分析/多模式运行）。初次接触本项目、需要全局结构地图或寻找"该用哪个模块"时使用。触发词：flash-sim 是什么、项目结构、怎么上手、工作流、模块地图、场景系统、FlashSimulator。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 54a9f69
+> 「请求→技能→模块」路由矩阵自旧 flash-workflow-orchestrator（L0 元技能）校正并入（2026-11-06）
 
 # flash-sim 项目概览与导航
 
@@ -38,7 +39,7 @@ flash-sim 是 FLASH 高能量密度物理（HEDP）仿真的全功能 Python 封
    # Windows
    .venv-win\Scripts\python.exe flash\scenarios\center_evolution\ch_center\laserslab1d_local_custom.py
    # WSL
-   .venv-linux/bin/python flash/scenarios/center_evolution/ch_center/laserslab1d_local_custom.py
+   .venv-linux/bin/python flash/scenarios/public/center_evolution/ch_center/laserslab1d_local_custom.py
    ```
    超算模式：脚本顶部 `RUN_MODE` 改 `"hpc"`，或环境变量 `FLASH_RUN_MODE=hpc`。
 3. **场景系统调用**：
@@ -77,7 +78,28 @@ flash-sim 是 FLASH 高能量密度物理（HEDP）仿真的全功能 Python 封
 - `python scripts/08_docs/check_docs.py`：文档门禁（链接/模块引用/防腐锚点/敏感信息）。
 - `python scripts/01_env_diagnose/fix_plot_style.py`：绘图规范扫描修复（全英文、字号 ≥18pt、Times New Roman）。
 
-## 6. 深入阅读
+## 6. 意图 → 技能 → 模块路由矩阵
+
+| 用户意图 | 技能 | 模块锚点 |
+|---|---|---|
+| 生成 .par / 新仿真输入文件 | flash-input-gen | `flash.input_gen.create_input_files` / `gen_par.ParGeneratorExtended`（权威默认 `gen_par/defaults.py`） |
+| 新增 sim_* 参数 / 多区密度 / 渐变剖面 | flash-newpara | `flash.input_gen.gen_newpara.NewParaGenerator`（流程见 `gen_newpara/README.md`） |
+| 自定义 AMR 细化约束（可选组件） | flash-grid-refine-constraint | `gen_Grid_markRefineDerefine.generator.GridMarkRefineDerefineGenerator` + 5 步参数注册 |
+| 编译运行 / 超算部署 / SLURM | flash-run-deploy | `flash/scenarios/core/runner`、`flash/flash_run/`（env/remote） |
+| 分析 HDF5 / 绘图 / x-t 图 | flash-output-analysis | `flash.output_pro`（loader → plotter） |
+| 报错 / 不收敛 / 结果异常 | flash-pitfalls（+ flash-knowledge） | 报错检索 + 源码语义 |
+| EOS/不透明度表、FLYCHK history、超算回收 | flash-eos-op / flash-flychk-history / flash-hpc-fetch | 对应子包与 `scripts/02_hpc/` |
+
+新仿真完整链路：`flash-input-gen`（8 文件 + 运行脚本 + 预诊断图，全部落 `sim_input/`）→ [新参数则 flash-newpara] → [可选 flash-grid-refine-constraint] → `flash-scenario-setup` 短时验证（tmax≈1e-11）→ 正式跑 → `flash-output-analysis`。
+
+硬性优先级规则（所有技能共享）：
+1. 有现有生成器/加载器就直接用，不手写重复代码
+2. 只改用户指定参数，其余保持 defaults.py 默认
+3. 生成输入后必须 setup→make→run 实际验证（含短时验证）
+4. Config/F90 必须在已验证模板上微调，禁止从零编写；.sh 一律 LF 换行
+5. 动手前先查 `.workbuddy/memory/` 近期日志与 MEMORY.md，避免重复造轮子
+
+## 7. 深入阅读
 
 - 根 `README.md` — 完整使用文档（场景系统、input_gen、flash_run、output_pro）
 - `flash/scenarios/README.md` — 场景系统（scene.json、位置优先语义）

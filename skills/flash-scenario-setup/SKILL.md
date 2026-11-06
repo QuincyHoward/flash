@@ -3,7 +3,8 @@ name: flash-scenario-setup
 description: SNB（多群非局域热传导）与 FL-SH 场景的全流程设置：setup 标志、par 参数清单（gr_hypreUseFloor/dtmax/限流器）、+ug 均匀网格与核数、辐射开关（radON 驱动）、dtmax 稳定性判据（读 chk 实测）、A/B 对比护栏、x-t 图 pcolormesh 纪律、SNB 分享红线。触发词：SNB 场景、SNB par、非局域热传导、gr_hypreUseFloor、dtmax、限流器、fl_harmonic、关辐射、radON、x-t 图、SNB 分享、SNB 崩塌。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 54a9f69
+> 端到端代码示例集：`references/examples.md`（5 例，2026-11-06 自旧 flash-examples 技能校正迁入）
 
 # SNB / FL-SH 场景设置（速查与操作指南）
 

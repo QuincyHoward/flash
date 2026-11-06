@@ -1,3 +1,10 @@
+> **迁移注记**（2026-11-06 · commit 54a9f69）：本文档迁自 `flash/flash_src/docs/src_finding/`（源目录已移至 `flash/temp_delete/`），内容零改动。
+> - FLASH4.8 源码树：`E://PhySimX//PhySimX//simulation//flash//flash_src//FLASH4.8//FLASH4.8//source//`（仓外只读）；文中 `FLASH4.8/source/...` 均为相对该树的路径，已抽验存在
+> - FLASH4.8 用户指南：`E://PhySimX//PhySimX//simulation//flash//docs//flash4_ug_4p8.md`（仓外）
+> - 归属：flash-knowledge 技能参考文档（skills/flash-knowledge/references/src_finding/）
+
+> - 行号抽验：✅ `ed_computeBeamPower.F90` 等引用文件存在（2026-11-06）
+
 # 激光能量沉积（EnergyDeposition）源码与方程对照
 
 > 本文档追踪 FLASH 中激光能量沉积从物理方程到 Fortran 代码的实现路径。

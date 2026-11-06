@@ -1,9 +1,9 @@
 ---
 name: flash-knowledge
-description: FLASH 源码级知识导航（11 单元：laser/driver/grid/hydro/eos/radtrans/sourceterms/material/io/diffuse/multispecies 的物理原理、关键参数语义、典型坑）。FLASH 物理/setup 标志/参数语义问答时使用。触发词：laser 块、+ug 语义、mgd_meshgroups、EOS 表、MGD、radtrans、multispecies、diffuse 求解器、FLASH 参数是什么意思。
+description: FLASH 源码级知识导航（11 单元：laser/driver/grid/hydro/eos/radtrans/sourceterms/material/io/diffuse/multispecies 的物理原理、关键参数语义、典型坑）+ 方程↔源码对照反查（src_finding 文档组）。FLASH 物理/setup 标志/参数语义问答、"某方程在哪个源码文件实现"类反查时使用。触发词：laser 块、+ug 语义、mgd_meshgroups、EOS 表、MGD、radtrans、multispecies、diffuse 求解器、FLASH 参数是什么意思、源码反查、方程源码对照、源码定位、hy_uhd_unsplitUpdate、ed_traceRays、Spitzer 热导率源码。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 54a9f69
 > 上游：FLASH-Expert @ 25013c5（github.com/boxu-pku/FLASH-Expert，temp/ 浅克隆只读）
 > 本 skill 是导航索引；每节为 20 行级精华转写，全文见 references/ 或 temp/ 原文。
 
@@ -138,6 +138,23 @@ description: FLASH 源码级知识导航（11 单元：laser/driver/grid/hydro/e
 - **关键参数**：`ms_<spec>A/Z`（必填，默认 -999 会除零 abort）；`ms_<spec>ZMin`；多元素物质用 `ms_<spec>NumElems + ZElems_k/AElems_k/Fractions_k` 三件套（如 CH：C 0.857/H 0.143）；8 个 API（getSum/getSumInv/getSumFrac/getAvg/getProperty/setProperty/list 等）。
 - **典型坑**：Abar=0 → ms_<spec>A 没填或 species= 没传；**species 名 4 处必须完全一致**（setup/Flash.h/parfile 前缀/initBlock），>4 字符长名触发 HDF5 dataset 冲突（见 pitfalls）。
 - **锚点**：`source/Multispecies/MultispeciesMain/Config:L1-L42`（自动生成核心）；`Multispecies_getSumInv.F90:L87-L159` · last_verified 2026-08-02
+
+## 源码查找与方程对照（src_finding 文档组）
+
+需要"某物理方程在 FLASH4.8 源码中如何实现/在哪个文件哪一行"的**反查**时，按需读取 `references/src_finding/` 下对应文档（迁自 flash_src 源码研读笔记，2026-11-06 迁入，行号已抽验）：
+
+| 文档 | 内容 | 对应单元 |
+|---|---|---|
+| `FLASH源码物理方程查找流程.md` | 六步查找方法论：目录结构 → 读文档 → 文件名前缀规律（hy_/ed_/rt_/Cond/Diffuse_）→ 关键词 grep → 提取关键行 → 跨单元耦合追踪 | 通用方法 |
+| `source_mapping.md` | 方程↔源码映射表（含具体行号：Euler 通量 hy_uhd_prim2flx、MGD、Spitzer 等） | 通用附录 |
+| `FLASH源代码读取理解.md` | FLASH4.8 源码树架构、读取顺序与理解框架 | 通用 |
+| `EnergyDeposition_方程源码对照.md` | 激光时间脉冲→光束功率→光线追迹→等离子体更新的方程级实现对照 | 1. laser |
+| `hy_uhd_unsplitUpdate_方程源码对照.md` | unsplit Hydro 守恒变量更新、通量与黎曼求解的方程级对照 | 4. hydro |
+| `RadTrans_方程源码对照.md` | MGD 辐射扩散方程与实现对照 | 6. radtrans |
+| `ThermalConduction_方程源码对照.md` | Spitzer 热导率与 Diffuse 求解链方程级对照 | 8. material / 10. diffuse |
+| `ElectronIonMFP_Knudsen_方程源码对照.md` | 电子/离子平均自由程、Knudsen 数与非局域判据的源码对照 | 8. material / 10. diffuse |
+
+> 源码树位置（仓外只读）：`E:\PhySimX\PhySimX\simulation\flash\flash_src\FLASH4.8\FLASH4.8\source\`；各文档头部注记含 last_verified。
 
 ## 上游原文获取
 

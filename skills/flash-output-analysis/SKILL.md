@@ -3,7 +3,8 @@ name: flash-output-analysis
 description: FLASH HDF5 输出（chk/plt）分析：FlashDataLoader/FlashPlotter 用法、+ug chk 布局与逐格 x 重建、质量守恒积分、x-t 时空图 pcolormesh 纪律、chk 健康检查四判据、边界热伪迹判据。触发词：HDF5 分析、chk 读取、plt 读取、x-t 图、时空图、pcolormesh、质量守恒、逐格坐标、bounding box、健康检查、边界伪迹、FlashDataLoader、FlashPlotter。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 54a9f69
+> API 逐方法速查：`references/output-api.md`（三层架构 FlashHDF5File/DataCalculator/FlashDataLoader/FlashPlotter 全签名，2026-11-06 自旧 output_processors 技能校正迁入）
 
 # FLASH 输出分析与绘图纪律
 

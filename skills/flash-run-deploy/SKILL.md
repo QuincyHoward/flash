@@ -3,7 +3,8 @@ name: flash-run-deploy
 description: FLASH 三模式运行体系（wsl/hpc-remote/hpc-insitu）：模式矩阵与解析优先级、目录契约（flash_sim_runs 外置）、环境变量总表、slurm 作业控制、超算分析 python 回退链、三端一致性自检、MPII_F_TRUE 等运行期环境故障。触发词：三模式、wsl 运行、hpc 部署、超算提交、sbatch、slurm、FLASH_RUN_MODE、hpc-insitu、作业链、run_job_chain、MPII_F_TRUE、LD_LIBRARY_PATH。
 ---
 
-> 最后核对：2026-11-06 · commit 72f6428
+> 最后核对：2026-11-06 · commit 54a9f69
+> §9 底层 API 速查自旧版同名技能校正并入（2026-11-06；旧 scfa2696 机名硬编码、`physimx_sim.flash.*` 前缀已废弃）
 
 # FLASH 三模式运行与超算部署
 
@@ -108,6 +109,22 @@ done
 - **WSL 侧**：`bash -c` 会吞 shell 变量与反引号；含 `$` 的文本落盘再执行。
 - **网络抖动**：SSH 失败先判类——网络类失败（Connection refused/No route 等）等 60 s 未恢复才判死；物理/编译错误立即返回不重试。
 - 长跑作业跟踪用单次探针脚本 + 宿主轮询，不要用单个阻塞进程死等（网络抖动/任务回收会整体丢失）。
+
+## 9. 底层 API 速查（env / remote）
+
+| API | 位置 | 现行要点 |
+|-----|------|---------|
+| `FlashEnvironment` | `flash/flash_run/env/env_manager.py:44` | 运行环境描述对象；`build_run_command()` / `build_sbatch_script()` / `get_effective_nproc(dimension)` / `get_mem_per_job_gb(dimension)` |
+| `FlashEnvManager` | 同上 `:307` | 具名环境管理器：`list_environments()` / `get(name)`；凭据经 `flash._core.credentials`，勿硬编码用户名 |
+| `FlashResourceConfig` | `flash/flash_run/env/resource_config.py` | 维度感知资源分配（`classify_device` + Local/HPC DimensionConfig） |
+| `FlashRemoteDeploy` | `flash/flash_run/remote/remote_deploy.py:74` | `connect()` / `execute()` / `upload(local, remote)` / `download(remote, local)` / `file_exists()` / `install_flash()` / `submit_job()` / `check_job(job_id)` / `cancel_job()`；构造时自动选路 |
+| `RouteTester` | `flash/flash_run/remote/route_tester.py` | `test_all_routes(ROUTES_*)` / `get_best_route(ROUTES_*)`；路由表 `ROUTES_SCFA2696`（凭据 `flash_ssh`）/ `ROUTES_SCH0348`（凭据 `flash_ssh_2`） |
+| 作业链 | `flash/flash_run/remote/slurm_control.py` | 见 §4（LocalExecutor/RemoteExecutor + run_job_chain） |
+
+⚠️ 旧 API 名称已变更：`submit_sbatch→submit_job`、`poll_job→check_job`、`find_best_route→get_best_route`；
+旧诊断入口 `python -m physimx_sim.flash.test.remote_connect.diagnostics/test_sbatch` 已删除，
+环境自检统一用 §6 的 `python -m flash.scenarios.core.runner --check-env`。
+超算规格（分区/核数/module）以 `docs/FLASH三模式运行体系.md` 与 deploy 固化 ENV_BLOCK（§7）为准，不在技能内维护机名细节。
 
 ## 关联资源
 
