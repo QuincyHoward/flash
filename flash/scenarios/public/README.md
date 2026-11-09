@@ -10,7 +10,8 @@
 |---|---|---|
 | [sandwich/](sandwich/README.md) | thin_layer_sandwich_si · grad_dens_sandwich | 多层靶 1D 激光烧蚀；thin_layer 已接入**超算批量提速** |
 | [center_evolution/](center_evolution/README.md) | ch_center · ch_center_t | 中心演化专题（1D LaserSlab CH 中心层） |
-| [laserfusion/](laserfusion/README.md) | hohlraum_auch | 间接驱动黑腔几何验证（2D rz） |
+| [Fusion/laserfusion/](Fusion/laserfusion/README.md) | hohlraum_auch · direct_drive_ch · hybrid_hohlraum · dci_double_cone | 间接/直接/混合驱动与双锥对撞四构型几何验证（2D rz） |
+| [Fusion/zpinch/](Fusion/README.md) | zpinch_beliner | Be-liner 圆柱 Z 箍缩 MHD 几何验证（1D 圆柱） |
 | `runs_*/` | — | 各场景运行产物目录（非场景） |
 
 ## 快速开始

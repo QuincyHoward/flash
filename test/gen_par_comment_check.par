@@ -47,10 +47,10 @@ rt_mgdBounds_8 = 1584.893                                                    # M
 rt_mgdBounds_9 = 6309.573                                                    # MGD radiation group boundary 9
 rt_mgdBounds_10 = 2.511886000000000e+04                                      # MGD radiation group boundary 10
 rt_mgdBounds_11 = 1.000000000000000e+05                                      # MGD radiation group boundary 11
-rt_mgdFlMode = "fl_harmonic"
-rt_mgdFlCoef = 1
-rt_mgdXlBoundaryType = "vacuum"
-rt_mgdXrBoundaryType = "vacuum"
+rt_mgdFlMode = "fl_harmonic"                                                 # MGD flux limiter mode
+rt_mgdFlCoef = 1                                                             # MGD flux limiter coefficient
+rt_mgdXlBoundaryType = "vacuum"                                              # MGD left boundary type
+rt_mgdXrBoundaryType = "vacuum"                                              # MGD right boundary type
 op_chamAbsorb = "op_tabpa"                                                   # cham opacity absorption mode
 op_chamEmiss = "op_tabpe"                                                    # cham opacity emission mode
 op_chamTrans = "op_tabro"                                                    # cham opacity transmission mode
@@ -71,7 +71,7 @@ op_shldEmiss = "op_tabpe"                                                    # s
 op_shldTrans = "op_tabro"                                                    # shld opacity transmission mode
 op_shldFileType = "ionmix4"                                                  # shld opacity opacity file type
 op_shldFileName = "CH-QC-1-001.cn4"                                          # shld opacity opacity table file
-rt_dtFactor = 1.000000000000000e+100
+rt_dtFactor = 1.000000000000000e+100                                         # radiation timestep limiter factor
 
 ##########################
 #                        #
@@ -272,8 +272,8 @@ useDiffuse = .true.                                                          # e
 diff_eleFlMode = "fl_minmax"                                                 # electron flux limiter mode
 diff_eleFlCoef = 0.08                                                        # electron flux limiter coefficient
 diff_thetaImplct = 1                                                         # implicitness factor (1 = fully implicit)
-diff_eleXlBoundaryType = "neumann"
-diff_eleXrBoundaryType = "neumann"
+diff_eleXlBoundaryType = "neumann"                                           # electron conduction left BC
+diff_eleXrBoundaryType = "neumann"                                           # electron conduction right BC
 
 ##########################
 #                        #
@@ -289,9 +289,9 @@ useHeatexchange = .true.                                                     # e
 #                        #
 ##########################
 
-eosModeInit = "dens_temp_gather"
-smallt = 1
-smallx = 1.000000000000000e-99
+eosModeInit = "dens_temp_gather"                                             # initial EOS mode (e.g. dens_temp_gather)
+smallt = 1                                                                   # minimum temperature floor
+smallx = 1.000000000000000e-99                                               # minimum mass fraction floor
 eos_useLogTables = .false.                                                   # EOS tables use log interpolation
 eos_chamEosType = "eos_tab"                                                  # cham EOS type
 eos_chamSubType = "ionmix4"                                                  # cham EOS subtype
@@ -326,8 +326,8 @@ RiemannSolver = "hllc"                                                       # R
 entropy = .false.                                                            # Entropy fix for the Roe solver
 shockDetect = .true.                                                         # shock detection sensor (used by use_hybridOrder)
 use_hybridOrder = .true.                                                     # Enforce Riemann density jump
-xl_boundary_type = "outflow"
-xr_boundary_type = "outflow"
+xl_boundary_type = "outflow"                                                 # left domain boundary condition
+xr_boundary_type = "outflow"                                                 # right domain boundary condition
 
 ##########################
 #                        #
@@ -344,29 +344,29 @@ sim_rhoCham = 1.000000000000000e-06                                          # c
 sim_teleCham = 290.11375                                                     # cham initial electron temperature [K]
 sim_tionCham = 290.11375                                                     # cham initial ion temperature [K]
 sim_tradCham = 290.11375                                                     # cham initial radiation temperature [K]
-ms_chamA = 4.002602                                                          # A-related: atomic weight (cham)
-ms_chamZ = 2                                                                 # Z-related: atomic number (cham)
+ms_chamA = 4.002602                                                          # cham atomic weight
+ms_chamZ = 2                                                                 # cham atomic number
 sim_rhoShld = 1                                                              # shld initial density [g/cm3]
 sim_teleShld = 290.11375                                                     # shld initial electron temperature [K]
 sim_tionShld = 290.11375                                                     # shld initial ion temperature [K]
 sim_tradShld = 290.11375                                                     # shld initial radiation temperature [K]
-ms_shldA = 6.509                                                             # A-related: atomic weight (shld)
-ms_shldZ = 3.5                                                               # Z-related: atomic number (shld)
-ms_shldZMin = 1.000000000000000e-23
+ms_shldA = 6.509                                                             # shld atomic weight
+ms_shldZ = 3.5                                                               # shld atomic number
+ms_shldZMin = 1.000000000000000e-23                                          # shld minimum mean ionization
 sim_rhoSamp = 1                                                              # samp initial density [g/cm3]
 sim_teleSamp = 290.11375                                                     # samp initial electron temperature [K]
 sim_tionSamp = 290.11375                                                     # samp initial ion temperature [K]
 sim_tradSamp = 290.11375                                                     # samp initial radiation temperature [K]
-ms_sampA = 6.509                                                             # A-related: atomic weight (samp)
-ms_sampZ = 3.5                                                               # Z-related: atomic number (samp)
-ms_sampZMin = 1.000000000000000e-23
+ms_sampA = 6.509                                                             # samp atomic weight
+ms_sampZ = 3.5                                                               # samp atomic number
+ms_sampZMin = 1.000000000000000e-23                                          # samp minimum mean ionization
 sim_rhoTarg = 1                                                              # targ initial density [g/cm3]
 sim_teleTarg = 290.11375                                                     # targ initial electron temperature [K]
 sim_tionTarg = 290.11375                                                     # targ initial ion temperature [K]
 sim_tradTarg = 290.11375                                                     # targ initial radiation temperature [K]
-ms_targA = 6.509                                                             # A-related: atomic weight (targ)
-ms_targZ = 3.5                                                               # Z-related: atomic number (targ)
-ms_targZMin = 1.000000000000000e-23
+ms_targA = 6.509                                                             # targ atomic weight
+ms_targZ = 3.5                                                               # targ atomic number
+ms_targZMin = 1.000000000000000e-23                                          # targ minimum mean ionization
 
 ##########################
 #                        #
@@ -374,11 +374,11 @@ ms_targZMin = 1.000000000000000e-23
 #                        #
 ##########################
 
-tstep_change_factor = 1.1
-cfl = 0.4
-dt_diff_factor = 1.000000000000000e+100
-rt_dtFactor = 1.000000000000000e+100
-hx_dtFactor = 1.000000000000000e+100
+tstep_change_factor = 1.1                                                    # timestep growth factor per step
+cfl = 0.4                                                                    # CFL number
+dt_diff_factor = 1.000000000000000e+100                                      # diffusion timestep limiter factor
+rt_dtFactor = 1.000000000000000e+100                                         # radiation timestep limiter factor
+hx_dtFactor = 1.000000000000000e+100                                         # heat-exchange timestep limiter factor
 tmax = 1.600000000000000e-09                                                 # simulation end time [s]
 dtmin = 1.000000000000000e-16                                                # minimum time step [s]
 dtinit = 1.000000000000000e-15                                               # initial time step [s]
@@ -399,8 +399,8 @@ lrefine_max = 9                                                              # r
 lrefine_min = 1                                                              # res = dir_delta/(nxb*nblock*2^(lrefine_min-1)) = 3.906250e-04 cm
 refine_var_1 = "targ"                                                        # AMR refinement criterion variable
 lrefine_min_init = 9
-refine_var_2 = "shld"
-refine_var_3 = "tele"
+refine_var_2 = "shld"                                                        # AMR refinement criterion variable #2
+refine_var_3 = "tele"                                                        # AMR refinement criterion variable #3
 
 ##########################
 #                        #
@@ -411,8 +411,8 @@ refine_var_3 = "tele"
 run_comment = "Laser Slab Example Simulation"                                # run description
 log_file = "lasslab.log"                                                     # runtime log file name
 basenm = "lasslab_"                                                          # basename for all output files
-useOpacity = .true.
-useEnergyDeposition = .true.
+useOpacity = .true.                                                          # enable opacity unit
+useEnergyDeposition = .true.                                                 # enable laser energy deposition unit
 refine_cutoff_1 = 0.8
 derefine_cutoff_1 = 0.6
 refine_cutoff_2 = 0.8

@@ -1,4 +1,4 @@
-# scenarios/public/laserfusion/indirect_drive
+# scenarios/public/Fusion/laserfusion/IndirectDrive
 
 > 最后核对：2026-11-08 · commit 96aa10d
 

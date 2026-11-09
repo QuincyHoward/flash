@@ -1,0 +1,17 @@
+{
+  "name": "hohlraum_auch",
+  "kind": "main",
+  "aliases": [
+    "hohlraum",
+    "hohlraum_auch",
+    "indirect_drive",
+    "indirectdrive"
+  ],
+  "description": "间接驱动黑腔几何验证 2D rz（Au 圆柱腔 + CH 靶丸 + He 充气；tmax=1e-13 极短运行）",
+  "policy": "default",
+  "module": ".run_hohlraum_verify",
+  "sim_name": "hohlraum_auch",
+  "basenm": "hohlraum_",
+  "attr": "scenario",
+  "attr_module": "."
+}

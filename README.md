@@ -7,7 +7,7 @@
 [![Gitee](https://img.shields.io/badge/Gitee-physimx%2Fflash-C71D1D.svg)](https://gitee.com/physimx/flash)
 [![GitHub](https://img.shields.io/badge/GitHub-QuincyHoward%2Fflash-181717.svg)](https://github.com/QuincyHoward/flash)
 
-> **版本维护策略**: 以 Gitee 分支为开发主仓库 ,
+> **维护说明**: 以 Gitee 分支为开发主仓库 ,
 > PyPI 按阶段发布更新。文档中**不标注具体版本号** ,
 > 当前版本以 `pyproject.toml` 为准, 历史版本见 `git tag -l` 与 PyPI Releases。
 

@@ -45,6 +45,14 @@ DEFAULT_GRUPBD: List[float] = [
     1.0e-1, 1.0e+0, 1.0e+01, 1.0e+02, 1.0e+03, 1.0e+04, 1.0e+05,
 ]
 
+# 10 群边界 [eV] (layer_tracer rt_mgdBounds_1..11 / au_ionmix10 同款;
+# 0.1 -> 1e5 eV, 每群 0.6 decade)。Hohlraum_AuCH 开辐射 (MGD 10 群) 用。
+GRUPBD_10G: List[float] = [
+    1.000000000e-01, 3.981072000e-01, 1.584893000e+00, 6.309573000e+00,
+    2.511886000e+01, 1.000000000e+02, 3.981072000e+02, 1.584893000e+03,
+    6.309573000e+03, 2.511886000e+04, 1.000000000e+05,
+]
+
 # 材料规格 (辅助确认文件信息)。取值为用户给定的参考标准：
 #   ntemp=61 温度点数, dlgtmp=0.105 温度对数增量,
 #   tplsma={1:1e-2} 起始温度[eV], ndens=71 密度点数,
@@ -212,6 +220,49 @@ class EOSOpacityGenerator:
                         "(T/D 网格与 au_ionmix_2026 完全一致, grupbd 精确=layer_tracer "
                         "rt_mgdBounds_1..11, 供 FLASH MGD 10 群场景 VAuTi 引用)",
             spec={**DEFAULT_SPEC, "ntemp": 51, "ndens": 31},
+        ),
+        # ── Hohlraum_AuCH 10 群再生表 (2026-11-08, gen_hohlraum10.py) ──
+        # He/CH/Au 统一 10 群 (grupbd = layer_tracer rt_mgdBounds_1..11,
+        # 0.1 -> 1e5 eV); T/D 网格与 2026-07-08 Gen 表逐点一致
+        # (ntemp=51, 1->2e4 eV; ndens=31; densnn He=1e13, CH/Au=1e16)。
+        # 供 Hohlraum_AuCH 场景开辐射 (MGD 10 群) 使用, 全物种群数一致。
+        EOSMaterial(
+            canonical="he_10g",
+            filename="Gen_eos_op_data/Z02_1.00-20261108_2013/Z02_1.00-20261108_2013.cn4",
+            aliases=["he_10g", "he-10g", "he10", "Z02_1.00-20261108_2013",
+                     "z02_1.00-20261108_2013", "氦_10群"],
+            description="氦 (He, Z=2)，ionmix 新生成表 ntemp=51, ndens=31, ngrups=10 "
+                        "(T/D 网格同 helium_hires, 仅能群改 10 群; "
+                        "Hohlraum_AuCH 开辐射用)",
+            spec={**DEFAULT_SPEC, "ntemp": 51, "dlgtmp": 0.08602,
+                  "tplsma": {1: 1.0}, "ndens": 31, "dlgden": 0.31003,
+                  "densnn": 1.0e13},
+            grupbd=list(GRUPBD_10G),
+        ),
+        EOSMaterial(
+            canonical="ch_10g",
+            filename="Gen_eos_op_data/Z06_0.50-Z01_0.50-20261108_2013/Z06_0.50-Z01_0.50-20261108_2013.cn4",
+            aliases=["ch_10g", "ch-10g", "ch10", "Z06_0.50-Z01_0.50-20261108_2013",
+                     "z06_0.50-z01_0.50-20261108_2013", "碳氢混合物_10群"],
+            description="碳氢混合物 (C0.5-H0.5)，ionmix 新生成表 ntemp=51, ndens=31, "
+                        "ngrups=10 (T/D 网格同 ch_mix, 仅能群改 10 群; "
+                        "Hohlraum_AuCH 开辐射用)",
+            spec={**DEFAULT_SPEC, "ntemp": 51, "dlgtmp": 0.08602,
+                  "tplsma": {1: 1.0}, "ndens": 31, "dlgden": 0.31003,
+                  "densnn": 1.0e16},
+            grupbd=list(GRUPBD_10G),
+        ),
+        EOSMaterial(
+            canonical="au_10g",
+            filename="Gen_eos_op_data/Z79_1.00-20261108_2014/Z79_1.00-20261108_2014.cn4",
+            aliases=["au_10g", "au-10g", "Z79_1.00-20261108_2014",
+                     "z79_1.00-20261108_2014", "金_10群_hohlraum"],
+            description="金 (Au, Z=79)，ionmix 新生成表 ntemp=51, ndens=31, ngrups=10 "
+                        "(T/D 网格同 au_ionmix10, 同批次再生; Hohlraum_AuCH 开辐射用)",
+            spec={**DEFAULT_SPEC, "ntemp": 51, "dlgtmp": 0.08602,
+                  "tplsma": {1: 1.0}, "ndens": 31, "dlgden": 0.31003,
+                  "densnn": 1.0e16},
+            grupbd=list(GRUPBD_10G),
         ),
         # ── BADGER-TOPS / QC 自生成表 (原 layer_tracer 场景, ntemp=61, ndens=71) ──
         # 来源: 原 private/tracer/tmp runfiles 中的自研 ionmix 表, 规范迁移至此;

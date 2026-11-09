@@ -5,7 +5,7 @@
 FLASH4.8 SimulationMain 场景：间接驱动（indirect drive）几何构型验证。
 **Au 圆柱黑腔 + 中心 CH 球形靶丸 + 低密度 He 充气**。
 
-> 状态: ★ 几何验证通过（run_000001，辐射关）★ 开辐射 MGD 10 群验证通过
+> 状态: ★ 几何验证通过（run_000001）★ 开辐射 MGD 10 群验证通过 ★ 物理全开验证通过（2026-11-09：NIF 型激光束 2×2 + 电子传导 + 热交换，9/9 采样点 OK）
 > （run_000002，2026-11-08：三开关 .true. + gr_hypreUseFloor=.false.，
 > 27 步达 tmax=1e-13 s，9/9 采样点吻合，trad≈231 K 自洽）
 > 运行入口: `run_hohlraum_verify.py`（模式 auto/wsl）
@@ -36,13 +36,13 @@ FLASH4.8 SimulationMain 场景：间接驱动（indirect drive）几何构型验
 
 | 文件 | 说明 |
 |---|---|
-| `input/Config` | 模块配置（物种 cham,cgas,caps,gold；sim_* 几何参数声明） |
-| `input/Makefile` | `Simulation += Simulation_data.o` |
-| `input/Simulation_data.F90` / `Simulation_init.F90` | 参数模块与读取 |
-| `input/Simulation_initBlock.F90` | ★ 几何初始化核心：r-z 四材料判据（球壳 + 圆柱壁 + 端盖 + LEH） |
-| `input/hohlraum_auch.par` | 运行参数（tmax=1e-13 s 验证；辐射 MGD 10 群开，激光/传导关） |
-| `input/run_flash.sh` | WSL 全流水线（setup→make→run→收集），模块 `QC/Hohlraum_AuCH` |
-| `input/*.cn4` + `*.eosmeta.json` | 10 群统一表 ×3（he_10g / ch_10g / au_10g，见 §3） |
+| `flash_input/Config` | 模块配置（物种 cham,cgas,caps,gold；sim_* 几何参数声明） |
+| `flash_input/Makefile` | `Simulation += Simulation_data.o` |
+| `flash_input/Simulation_data.F90` / `Simulation_init.F90` | 参数模块与读取 |
+| `flash_input/Simulation_initBlock.F90` | ★ 几何初始化核心：r-z 四材料判据（球壳 + 圆柱壁 + 端盖 + LEH） |
+| `flash_input/hohlraum_auch.par` | 运行参数（tmax=1e-13 s 验证；辐射 MGD 10 群 + 激光沉积 + 电子传导 + 热交换全开） |
+| `flash_input/run_flash.sh` | WSL 全流水线（setup→make→run→收集），模块 `QC/Hohlraum_AuCH` |
+| `flash_input/*.cn4` + `*.eosmeta.json` | 10 群统一表 ×3（he_10g / ch_10g / au_10g，见 §3） |
 | `run_hohlraum_verify.py` | 场景 runner：表复制 → 运行 → 出图 + 定量核对 |
 | `scene.json` / `__init__.py` | 场景注册（含声明式 `scenario` 对象） |
 | `README.md` | 本文档 |
@@ -72,6 +72,18 @@ ndens=31; densnn He=1e13, CH/Au=1e16），仅能群统一为 **10 群**
 
 辐射配置（run_000002 已验证）：`rt_useMGD/useOpacity/useRadTrans=.true.` +
 `gr_hypreUseFloor=.false.`（★0 铁律）+ 4 物种 op_ 表 + `rt_dtFactor=0.02`。
+
+**物理模型（2026-11-09 全部开启）**：
+
+| 模型 | 配置 |
+|---|---|
+| 激光沉积 | `useEnergyDeposition=.true.`，3Din2D 束表示（wedge 0.1°）、gaussian2D 焦斑（super-Gaussian n=4）、0.351 µm（3ω）、4096 rays/束 |
+| NIF 型束 ×4 | pulse 1（~3.9e12 W ≈ 5e14 W/cm² @ 500 µm 焦斑）：内锥 23.5° + 外锥 30° 上下对称各 1 束，经 LEH（入射穿越 r=1.3 mm < 孔半径 1.43 mm）→ 圆柱腔内壁（r=2.72 mm）；lens 置于域外（z=±0.708/0.757） |
+| 电子传导 | `useDiffuse/useConductivity/diff_useEleCond=.true.`，FL-minmax α=0.08，轴 neumann、其余 vacuum |
+| 电子-离子热交换 | `useHeatexchange=.true.`（Spitzer），`hx_dtFactor=1e100` 不限 dt |
+
+极短验证不受影响：tmax=1e-13 s 处脉冲处于上升沿（功率 ~1e-4 峰值），
+仅激活沉积/传导链路而不破坏几何构型。
 
 ## 4. 几何验证判据（run_hohlraum_verify.py 自动执行）
 
