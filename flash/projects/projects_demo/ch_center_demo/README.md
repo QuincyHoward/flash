@@ -16,4 +16,4 @@
 
 ## 关联资源
 
-- `flash/scenarios/public/center_evolution/ch_center/`（被对比的场景）、`projects/`（工程体系）
+- `flash/scenarios/public/LaserCompression_twoside/center_evolution/ch_center/`（被对比的场景）、`projects/`（工程体系）

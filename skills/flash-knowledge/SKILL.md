@@ -156,7 +156,7 @@ description: FLASH 源码级知识导航（11 单元：laser/driver/grid/hydro/e
 | `ThermalConduction_方程源码对照.md` | Spitzer 热导率与 Diffuse 求解链方程级对照 | 8. material / 10. diffuse |
 | `ElectronIonMFP_Knudsen_方程源码对照.md` | 电子/离子平均自由程、Knudsen 数与非局域判据的源码对照 | 8. material / 10. diffuse |
 
-> 源码树位置（仓外只读）：`E:\PhySimX\PhySimX\simulation\flash\flash_src\FLASH4.8\FLASH4.8\source\`；各文档头部注记含 last_verified。
+> 源码树位置（仓外只读）：`<PhySimX 根>/simulation/flash/flash_src/FLASH4.8/FLASH4.8/source/`；各文档头部注记含 last_verified。
 
 ## 上游原文获取
 

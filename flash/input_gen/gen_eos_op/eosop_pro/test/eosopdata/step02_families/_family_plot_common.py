@@ -3,7 +3,7 @@
 
 分工
 ----
-* 本模块只做「找样品 -> 调统一绘图模块 :mod:`eosop_pro.plotting.gridmap`
+* 本模块只做「找样品 -> 调统一绘图模块 :mod:`eosop_pro.plotting.qa.gridmap`
   -> 汇总报告」三件事；
 * 各类型的文件夹（如 ``mpqeos/``）里放**各自独立的**
   ``test_plot_<type>.py``，产物统一落在**根级** ``_out/<type>/``
@@ -130,7 +130,7 @@ def run_family_plots(family: str, patterns: tuple[str, ...], *,
     for _src_path, tables in found:
         all_tables.extend(tables)
 
-    from eosop_pro.plotting.gridmap import plot_table_all_fields
+    from eosop_pro.plotting.qa.gridmap import plot_table_all_fields
     report = plot_table_all_fields(
         all_tables, outdir, family=family, atomwt=atomwt,
         max_groups=max_groups, max_tables=max_tables)

@@ -22,12 +22,12 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.registry.database_index import (
+from eosop_pro.registry.schema.database_index import (
     DatabaseIndex, kind_from_sesame_id, parse_database_index, sesame_digit_of)
-from eosop_pro.registry.eos_list import RegistryLists, parse_eos_list, parse_opacity_list
-from eosop_pro.registry.material import MaterialRegistry
-from eosop_pro.registry.material_base import MaterialBase, parse_material_base
-from eosop_pro.registry.units_registry import UnitsRegistry, infer_T_from_logT_range
+from eosop_pro.registry.material.eos_list import RegistryLists, parse_eos_list, parse_opacity_list
+from eosop_pro.registry.material.material import MaterialRegistry
+from eosop_pro.registry.material.material_base import MaterialBase, parse_material_base
+from eosop_pro.registry.zeff.units_registry import UnitsRegistry, infer_T_from_logT_range
 
 
 # ── material.base ──────────────────────────────────────────────

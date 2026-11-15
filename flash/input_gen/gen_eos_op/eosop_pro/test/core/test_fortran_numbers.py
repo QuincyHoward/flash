@@ -16,7 +16,7 @@ import _runner  # noqa: F401  —— 顺带把项目根加入 sys.path
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import fortran_numbers as fn
+from eosop_pro.core.numbers import fortran_numbers as fn
 
 
 def test_packed_negatives_are_four_numbers():
@@ -102,7 +102,7 @@ def test_real_file_header_line_0_is_pure_numeric():
     → 所以**分界不能只看字母**：F1 家族的分界靠「表头行号规则」，
     字母判据只在「头部是自由文本」（F3/F5）时才作为主判据。
     """
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
 
     doc = textio.read_text(config.MATTER("mat_Al-1.0/AL_eos"))
     expect(
@@ -129,7 +129,7 @@ def test_header_line_coverage_is_not_zero_but_letters_give_it_away():
 
 def test_real_file_boundary_detected_by_letters():
     """真实文件：AL_eos 第 0 行含字母 → 头部；第 1 行起全部为 payload 行。"""
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
 
     doc = textio.read_text(config.MATTER("mat_Al-1.0/AL_eos"))
     expect(fn.has_letters(doc.lines[0]) is False,
@@ -144,7 +144,7 @@ def test_real_file_AL_eos_payload_count():
 
     9974 == 2*nr + ne + 2*nr*ne == 2*66 + 74 + 2*66*74
     """
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
 
     doc = textio.read_text(config.MATTER("mat_Al-1.0/AL_eos"))
     total = fn.count_numbers("\n".join(doc.lines))
@@ -156,7 +156,7 @@ def test_real_file_AL_eos_payload_count():
 
 def test_real_file_header_numbers_only_four():
     """表头行恰含 4 个数（id / rho0 / nr / ne）—— 证明分区纪律的必要性。"""
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
 
     doc = textio.read_text(config.MATTER("mat_Al-1.0/AL_eos"))
     hdr = fn.extract_numbers(doc.lines[0])

@@ -4,10 +4,10 @@
   "SNB.snb_package": "private/SNB/SNB/source/snb_package",
   "SNB.variants": "private/SNB/SNB/variants",
   "SNB.snbtest": "private/SNB/SNBtest",
-  "tracer.OneCH_ml": "private/tracer/OneCH_ml",
-  "tracer.VTi": "private/tracer/VTi",
-  "tracer.TiTi": "private/tracer/TiTi",
-  "tracer.CHTi": "private/tracer/CHTi",
-  "tracer.OneSi_ml": "private/tracer/OneSi_ml",
-  "tracer.VCH_ml": "private/tracer/VCH_ml"
+  "tracer.OneCH_ml": "OneCH_ml::.",
+  "tracer.VTi": "VTi1::.",
+  "tracer.TiTi": "TiTi1::.",
+  "tracer.CHTi": "CHTi1::.",
+  "tracer.OneSi_ml": "OneSi_ml::.",
+  "tracer.VCH_ml": "VCH_ml::."
 }

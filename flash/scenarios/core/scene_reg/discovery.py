@@ -82,6 +82,7 @@ MANIFEST_NAME = "scene.json"
 _EXCLUDE_PARTS = {
     "__pycache__", ".git", "flash_output", "sim_output", "sim_output_plots",
     "logs_archive", "database", "sim_input", "sim_input_si", "results",
+    "temp_delete",
 }
 #: 排除目录名（通配）—— runs_* 产物区 / 备份 / egg-info
 _EXCLUDE_GLOBS = ("runs_*", "*_output", "_backup_*", "*.egg-info", "NNNNNN")

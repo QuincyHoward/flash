@@ -1,0 +1,17 @@
+{
+  "name": "zpinch_beliner",
+  "kind": "main",
+  "aliases": [
+    "zpinch",
+    "zpinch_beliner",
+    "zp_beliner",
+    "beliner"
+  ],
+  "description": "Z 箍缩 Be-liner 几何验证 1D 圆柱（官方 magnetoHD/ZPinch stock；usm3t MHD + MGD6 + Circuit；tmax=1e-12 极短运行）",
+  "policy": "default",
+  "module": ".run_zpinch_verify",
+  "sim_name": "zpinch_beliner",
+  "basenm": "zpbe_",
+  "attr": "scenario",
+  "attr_module": "."
+}

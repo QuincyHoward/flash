@@ -234,7 +234,7 @@ def _resolve_route_and_credential(credential_name: Optional[str] = None) -> Dict
     from flash._core.credentials import load_ssh_credentials
     from flash.flash_run.remote.route_tester import (
         RouteTester, test_and_select_best_route,
-        ROUTES_SCFA2696, ROUTES_SCH0348,
+        ROUTES_NC_E, ROUTES_BSCC_T6,
     )
 
     cred = load_ssh_credentials(credential_name)

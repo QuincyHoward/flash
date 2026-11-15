@@ -1,0 +1,18 @@
+{
+  "name": "hybrid_hohlraum",
+  "kind": "main",
+  "aliases": [
+    "hybrid_drive",
+    "hybriddrive",
+    "hybrid_hohlraum",
+    "hohlraum_spherical",
+    "spherical_hohlraum"
+  ],
+  "description": "混合驱动球腔几何验证 2D rz（Au 球壳 + 双极 LEH + CH 靶丸 + He 充气；tmax=1e-13 极短运行）",
+  "policy": "default",
+  "module": ".run_hybrid_verify",
+  "sim_name": "hybrid_hohlraum",
+  "basenm": "hyhohl_",
+  "attr": "scenario",
+  "attr_module": "."
+}

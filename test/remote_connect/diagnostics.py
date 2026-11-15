@@ -31,6 +31,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from flash._core.credentials.hpc_config import _LEGACY_ROUTE_KEY
 from typing import Dict, Any, Optional, List, Tuple
 
 
@@ -232,7 +233,7 @@ def check_routes(report: DiagReport, cred: Optional[Dict] = None):
 
     try:
         from flash.flash_run.remote.route_tester import (
-            RouteTester, ROUTES_SCFA2696, ROUTES_SCH0348,
+            RouteTester, ROUTES_NC_E, ROUTES_BSCC_T6,
         )
     except ImportError as e:
         report.add("route", "import", "FAIL", str(e))
@@ -241,12 +242,12 @@ def check_routes(report: DiagReport, cred: Optional[Dict] = None):
 
     # 确定用哪组路由
     rk = (cred or {}).get("route_key", "")
-    if rk == "scfa2696":
-        routes = ROUTES_SCFA2696
+    if rk == "nc_e" or _LEGACY_ROUTE_KEY.get(rk) == "nc_e":
+        routes = ROUTES_NC_E
         label = "NC-E"
     else:
-        routes = ROUTES_SCH0348
-        label = "sch0348@BSCC-T6"
+        routes = ROUTES_BSCC_T6
+        label = "BSCC-T6"
 
     print(f"  [INFO] 路由组: {label} ({len(routes)} 条)")
 

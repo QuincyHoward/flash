@@ -74,10 +74,20 @@ ALLOW = {
     "config.py",
 }
 
+#: 不参与扫描的顶层目录（test/ 内的断言容差、参考常量字面量属合法用法；
+#: 扁平化后 PACKAGE_ROOT = 包根会扫到 test/，需显式排除以保持原语义）
+SKIP_DIRS = {
+    "test",
+    "outputs",
+    "__pycache__",
+}
+
 
 def _iter_modules(root: Path):
     for p in sorted(root.rglob("*.py")):
         if p.name in ALLOW:
+            continue
+        if any(part in SKIP_DIRS for part in p.relative_to(root).parts[:-1]):
             continue
         yield p
 
@@ -149,7 +159,7 @@ def test_distinctive_and_round_disjoint():
 
 def test_round_tier_does_not_false_positive_on_plot_defaults():
     """★ 回归：``densities=(0.01, 0.1, 1.0, 10.0)`` 这类**参数**不该被误报。"""
-    src = (Path(config.PACKAGE_ROOT) / "plotting" / "qa_plots.py") \
+    src = (Path(config.PACKAGE_ROOT) / "plotting" / "qa" / "qa_plots.py") \
         .read_text(encoding="utf-8")
     expect("densities=(0.01" in src or "densities=(" in src,
            "样本前提变了：qa_plots 应含 densities 默认参数")
@@ -205,7 +215,7 @@ def test_matter_rel_is_posix_style():
 
 def test_config_has_no_project_absolute_path_literals():
     """config.py 里不得出现写死的盘符路径 —— 必须由层级推导或环境变量给。"""
-    src = (Path(config.PACKAGE_ROOT) / "config.py").read_text(encoding="utf-8")
+    src = (Path(config.PACKAGE_ROOT) / "core" / "config.py").read_text(encoding="utf-8")
     code_lines = [ln for ln in src.splitlines()
                   if not ln.lstrip().startswith("#")]
     code = "\n".join(code_lines)
@@ -226,7 +236,7 @@ def test_env_override_is_wired():
         old = os.environ.get(env_key)
         os.environ[env_key] = str(val)
         try:
-            mod = importlib.reload(importlib.import_module("eosop_pro.config"))
+            mod = importlib.reload(importlib.import_module("eosop_pro.core.config"))
             got = getattr(mod, attr)
             if isinstance(val, float) or isinstance(got, float):
                 expect_eq(float(got), float(val), f"{attr} 未被 {env_key} 覆盖")
@@ -238,7 +248,7 @@ def test_env_override_is_wired():
             else:
                 os.environ[env_key] = old
     # 还原
-    importlib.reload(importlib.import_module("eosop_pro.config"))
+    importlib.reload(importlib.import_module("eosop_pro.core.config"))
 
 
 def test_output_dirs_helper_is_idempotent():

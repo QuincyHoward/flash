@@ -21,9 +21,9 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import textio
-from eosop_pro.core.annotations import canon_unit, extract_annotations
-from eosop_pro.registry.annotation_store import AnnotationStore
+from eosop_pro.core.text import textio
+from eosop_pro.core.infer.annotations import canon_unit, extract_annotations
+from eosop_pro.registry.schema.annotation_store import AnnotationStore
 
 
 def _ann(rel: str):
@@ -214,7 +214,7 @@ def test_store_summary_is_plausible():
 # ── 健壮性 ─────────────────────────────────────────────────────
 def test_extract_never_raises_on_garbage():
     """抽取器对任意垃圾输入都必须**降级为 notes**，绝不抛异常中断主流程。"""
-    from eosop_pro.core.annotations import extract_from_text
+    from eosop_pro.core.infer.annotations import extract_from_text
 
     for junk in ("", "###", "\x00\x01\x02", "a" * 5000, "NT = ???", "Z:xxx;P:yyy"):
         ann = extract_from_text(junk, source="junk")

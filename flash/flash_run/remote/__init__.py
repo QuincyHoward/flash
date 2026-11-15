@@ -6,7 +6,7 @@ on remote supercomputers via SSH.
 
 from .route_tester import (
     RouteTester, RouteTestReport, RouteResult,
-    ROUTES_SCFA2696, ROUTES_SCH0348,
+    ROUTES_NC_E, ROUTES_BSCC_T6,
     test_and_select_best_route,
 )
 
@@ -14,7 +14,7 @@ __all__ = [
     "RouteTester",
     "RouteTestReport",
     "RouteResult",
-    "ROUTES_SCFA2696",
-    "ROUTES_SCH0348",
+    "ROUTES_NC_E",
+    "ROUTES_BSCC_T6",
     "test_and_select_best_route",
 ]

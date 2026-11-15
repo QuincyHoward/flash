@@ -27,10 +27,9 @@ if _d not in sys.path:
 import _runner  # noqa: F401
 from _runner import expect, expect_eq, expect_in, main
 
-from eosop_pro import config, prune
-from eosop_pro import cli as mcli
-
-
+from eosop_pro import config
+from eosop_pro.ops import prune
+from eosop_pro.pipeline import cli as mcli
 def _mk(tmp: Path, name: str) -> Path:
     p = tmp / name
     p.write_text("x", encoding="utf-8", newline="\n")

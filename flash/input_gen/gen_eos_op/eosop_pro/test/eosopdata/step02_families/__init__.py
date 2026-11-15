@@ -12,7 +12,7 @@
   （ledcop_atomic rho/Te/Ross/Planck、coldopacity Eph/miu/"*"、
   hugoniot 全部）；未来未知格式经 ``register_family`` 注册进字典）
 * ``test_plot_<type>.py`` × 11 —— 逐类型批量出图（统一绘图模块
-  ``eosop_pro.plotting.gridmap``），产物落 ``_out/<type>/``，
+  ``eosop_pro.plotting.qa.gridmap``），产物落 ``_out/<type>/``，
   ``_report.txt`` 逐行给出网格点 / 物理意义 / 单位 / 认证标记
   （``tags=uk,uv`` 或 ``tags=uv``，完全核查后该键省略），供人工挨个核查
 * 2026-09-15 晚新增规约：①图与报告一律带认证标记（uk/uv，全通过省略）；

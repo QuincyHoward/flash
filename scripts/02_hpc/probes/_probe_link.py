@@ -9,8 +9,14 @@ _RH = _hpc_home_req()  # 超算家目录：运行期解析，绝不硬编码
 
 from flash.scenarios.flash_demo.demo_hpc.remote_ssh_helper import RemoteSession
 
-IN = (f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim"
-      "/flash/scenarios/public/center_evolution/ch_center/flash_input")
+# ★ 2026-11-11 可移植化：ch_center 目录经 discovery 按名解析（场景移动免疫），
+#   不再字面量硬编码包路径。
+from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta  # noqa: E402
+
+_REPO = Path(__file__).resolve().parents[3]
+_ch_dir = Path(resolve_scene_meta("ch_center").source).parent
+IN = (f"{_RH}/PhySimX/PhySimX/simulation/flash/flash_sim/"
+      f"{_ch_dir.relative_to(_REPO).as_posix()}/flash_input")
 
 with RemoteSession("flash_ssh") as s:
     checks = [

@@ -137,7 +137,7 @@ def test_marker_line_detection():
 
 def test_take_numbers_rejects_overshoot():
     """数值跨越子表边界必须报错，而不是静默截断。"""
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     raised = False
     try:
         f2.take_numbers(["1 2 3 4", "5 6 7 8"], 0, 6)
@@ -148,7 +148,7 @@ def test_take_numbers_rejects_overshoot():
 
 def test_count_mismatch_on_wrong_dims():
     """人为破坏一个数 → 必须落 count_mismatch / ParseError，不得静默成功。"""
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     import tempfile
     from pathlib import Path
     src = config.MATTER("mat_Al-1.0/1041_ROSS")

@@ -1,0 +1,23 @@
+{
+  "name": "grad_dens_sandwich",
+  "kind": "engine",
+  "aliases": [
+    "grad_dens"
+  ],
+  "description": "HE-CH-Si-CH-HE 渐变密度 CH 靶（超高斯脉冲；auto = 平台自适应）",
+  "policy": "public_scene",
+  "module": ".",
+  "attr": "scenario_grad",
+  "sim_name": "grad_dens_sandwich",
+  "basenm": "lasslab_",
+  "hpc": {
+    "input_rel_dir": "./sim_input",
+    "gen_script": "./gen_flash_inputs.py",
+    "flash_unit": "QC/grad_dens_sandwich_{run_id}",
+    "par_file": "grid_rede.par",
+    "setup_extra": [
+      "ed_maxPulseSections=240"
+    ],
+    "ntasks": 4
+  }
+}

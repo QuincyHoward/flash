@@ -284,6 +284,17 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
         poly_h = None
         poly_h_um = 200.0  # 默认
 
+    # ── 泡沫层 (可选, 2026-11-07): sim_foamHeight + sim_rhoFoam 均存在时启用,
+    #    形成四层结构 Si/dense-CH/foam-CH/He; 缺失时保持原三层行为 ──
+    rho_f_raw = params.get("sim_rhoFoam")
+    sim_foam = params.get("sim_foamHeight")
+    if rho_f_raw is not None and sim_foam is not None:
+        foam_h = float(sim_foam)
+        rho_f_val = float(rho_f_raw)
+    else:
+        foam_h = None
+        rho_f_val = None
+
     # ── 1. initial_density.png (双面板: 全范围 + 中心±1um放大) ──
     n = 2000
     x = np.linspace(-half, half, n)
@@ -293,6 +304,10 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
     if poly_h is not None and rho_p_val is not None:
         m_poly = (np.abs(x) > targ_h) & (np.abs(x) <= poly_h)
         dens[m_poly] = rho_p_val
+    if foam_h is not None:
+        base_h = poly_h if poly_h is not None else targ_h
+        m_foam = (np.abs(x) > base_h) & (np.abs(x) <= foam_h)
+        dens[m_foam] = rho_f_val
 
     fig, (ax_full, ax_zoom) = plt.subplots(2, 1, figsize=(14, 10), sharey=False)
 
@@ -301,7 +316,12 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
     ax_full.axvspan(-targ_h * 1e4, targ_h * 1e4, alpha=0.15, color="orange", label="Target")
     if poly_h is not None:
         ax_full.axvspan(-poly_h * 1e4, poly_h * 1e4, alpha=0.10, color="green",
-                         label=f"CH foam ({poly_h*2*1e4:.0f} um)")
+                         label=(f"CH dense ({(poly_h - targ_h)*2*1e4:.1f} um)"
+                                if foam_h is not None else
+                                f"CH foam ({poly_h*2*1e4:.0f} um)"))
+    if foam_h is not None:
+        ax_full.axvspan(-foam_h * 1e4, foam_h * 1e4, alpha=0.06, color="blue",
+                         label=f"CH foam ({(foam_h - poly_h)*2*1e4:.0f} um)")
     ax_full.set_ylabel("Density (g/cm^3)")
     ax_full.set_title("Initial Density Distribution (He-CH-Si-CH-He)", fontweight="bold")
     ax_full.legend()
@@ -313,7 +333,7 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
     si_half_um = targ_h * 1e4
     ax_full.axvline(x=0, color="orange", ls="--", lw=1.5, alpha=0.5)
     ax_full.annotate(f"Si {rho_t:.2f} g/cm\u00b3\n({targ_h_um:.2f} \u00b5m)",
-                     xy=(0, rho_t), xytext=(half*0.3*1e4, rho_t*1.05), color="orange", fontweight="bold",
+                     xy=(0, rho_t), xytext=(half*0.3*1e4, rho_t*0.72), color="orange", fontweight="bold",
                      arrowprops=dict(arrowstyle="->", color="orange", lw=1.5))
 
     # ── 下: 中心±1um 放大 (精细网格确保 Si 可见) ──
@@ -326,6 +346,10 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
     if poly_h is not None and rho_p_val is not None:
         m_poly_z = (np.abs(xz) > targ_h) & (np.abs(xz) <= poly_h)
         dens_z[m_poly_z] = rho_p_val
+    if foam_h is not None:
+        base_h = poly_h if poly_h is not None else targ_h
+        m_foam_z = (np.abs(xz) > base_h) & (np.abs(xz) <= foam_h)
+        dens_z[m_foam_z] = rho_f_val
 
     ax_zoom.plot(xz * 1e4, dens_z, "k-", lw=2.5)
 
@@ -353,8 +377,8 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
         ax_zoom.axhline(y=rho_p_val, xmin=0.1, xmax=0.9, color="green",
                          linestyle=":", alpha=0.5, lw=1.5)
         ax_zoom.text(si_half_um_z + 0.3, rho_p_val * 1.2,
-                      f"CH {rho_p_val:.2f}", color="green",
-                      fontweight="bold")
+                      f"CH {'dense' if foam_h is not None else ''} {rho_p_val:.2f}".replace("  ", " "),
+                      color="green", fontweight="bold")
 
     ax_zoom.set_xlabel("x (um)")
     ax_zoom.set_ylabel("Density (g/cm^3)")
@@ -387,10 +411,20 @@ def _simple_pre_diagnosis(params: dict, sim_input_dir: Path):
     # 手动绘制白色背景矩形 (避免 matplotlib FT2Font bbox bug)
     poly_rho_str = f"{rho_p_val:.3f}"
     target_rho_str = f"{rho_t:.2f}"
-    annot_lines = [
-        f"  CH foam: {poly_h_um:.1f} \u00b5m, {poly_rho_str} g/cm\u00b3",
-        f"  Target:  {targ_h_um:.2f} \u00b5m, {target_rho_str} g/cm\u00b3",
-    ]
+    if foam_h is not None:
+        # 四层结构标注 (层厚 = 2×半厚; dense/foam 厚度 = 相邻边界差×2)
+        annot_lines = [
+            f"  Si:       {targ_h*2*1e4:.2f} \u00b5m, {target_rho_str} g/cm\u00b3",
+            f"  CH dense: {(poly_h - targ_h)*2*1e4:.1f} \u00b5m, "
+            f"{poly_rho_str} g/cm\u00b3",
+            f"  CH foam:  {(foam_h - poly_h)*2*1e4:.1f} \u00b5m, "
+            f"{rho_f_val:.3f} g/cm\u00b3",
+        ]
+    else:
+        annot_lines = [
+            f"  CH foam: {poly_h_um:.1f} \u00b5m, {poly_rho_str} g/cm\u00b3",
+            f"  Target:  {targ_h_um:.2f} \u00b5m, {target_rho_str} g/cm\u00b3",
+        ]
     tele_cham = params.get("sim_teleCham", None)
     if tele_cham is not None:
         annot_lines.append(f"  Te init:  {float(tele_cham):.0f} K")

@@ -75,6 +75,9 @@ DIFF_THERM = "diff_advanceTherm.F90"
 VARIANT_MAP = {
     "limiter": ("diff_advanceTherm_limiterON.F90", DIFF_THERM),
     "radon": ("Driver_evolveFlash_radON.F90", "Driver_evolveFlash.F90"),
+    # gpDump: 19 群 Q_g/Λ_g/ν_g 落盘变体（par 开关 sim_snbGpDump；需配套扩 Config 的
+    # 57 个群维 VARIABLE 声明，见 make_gpDump_variant.py — tracer 场景不走此注册表）
+    "gpdump": ("diff_advanceTherm_gpDump.F90", DIFF_THERM),
 }
 
 LEG_SPECS: Dict[str, Dict[str, Any]] = {

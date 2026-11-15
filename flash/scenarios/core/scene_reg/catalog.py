@@ -156,10 +156,11 @@ class CatalogEntry:
         params: Dict[str, Any] = {}
         if opts.tmax:
             params["tmax"] = float(opts.tmax)
-        # 运行目录固定落在 `flash/scenarios/public/runs_<name>/`（与既有
-        # 约定一致）：引擎默认按"调用者所在目录"推导，CLI 调用时会落到
-        # `flash/scenarios/runs_*`，与场景自带的历史产物目录割裂。
-        runs_dir = repo_root() / "flash" / "scenarios" / "public" / scenario.run_dir_name
+        # 运行目录落在场景目录旁 `runs_<name>/`（★ 2026-11-11 可移植化：
+        # 原写死 `flash/scenarios/public/` 顶层——场景收纳进族目录后不再成立，
+        # 且 runs_* 旧约定已随收纳整理退役；引擎默认"调用者目录/runs_<name>"
+        # 又会与场景族产物割裂 ⇒ 折中取场景目录旁，任意收纳深度均成立）。
+        runs_dir = scenario.scenario_dir.parent / scenario.run_dir_name
         res = engine.run(params_override=params or None,
                          mode=target or "auto",
                          runs_dir=str(runs_dir),

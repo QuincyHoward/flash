@@ -214,8 +214,8 @@ def test_degenerate_table_yields_no_grid_instead_of_raising():
     这会让**整批** ``convert-all`` 中断（实测 700/1214 处崩溃）。
     新实现返回空 dict，让 h5 少一条 unified 轨。
     """
-    from eosop_pro.registry import declared_types as dt_mod
-    from eosop_pro.registry.dispatch import parse_declared
+    from eosop_pro.registry.schema import declared_types as dt_mod
+    from eosop_pro.registry.identify.dispatch import parse_declared
 
     rel = "Thermos/mat_Mo/Mo_Ideal_Gas"
     out = parse_declared(rel, dt_mod.declare(rel))
@@ -239,8 +239,8 @@ def test_build_grid_still_raises_on_direct_bad_input():
 
 def test_healthy_table_still_gets_both_grids():
     """★ 回归保护：修好退化处理之后，正常表的两套网格不能少。"""
-    from eosop_pro.registry import declared_types as dt_mod
-    from eosop_pro.registry.dispatch import parse_declared
+    from eosop_pro.registry.schema import declared_types as dt_mod
+    from eosop_pro.registry.identify.dispatch import parse_declared
 
     out = parse_declared("mat_Al-1.0/AL_eos", dt_mod.declare("mat_Al-1.0/AL_eos"))
     grids = ug.build_all_grids(out.tables, A=26.982)

@@ -129,7 +129,7 @@ def test_alias_families_resolve_to_a_registered_parser_family():
     这能抓住"解析器被删/改名但分派表未同步"的情况：断言 ``family`` 在
     ``FAMILY_PARSERS`` 里存在，且与请求族不同（正是"别名"的语义）。
     """
-    from eosop_pro.registry.dispatch import FAMILY_PARSERS
+    from eosop_pro.registry.identify.dispatch import FAMILY_PARSERS
     for fam, allowed in ALIAS_FAMILIES.items():
         real = [a for a in allowed if a in FAMILY_PARSERS]
         assert real, f"{fam} 的允许集合 {allowed} 里没有已注册解析族"
@@ -147,8 +147,8 @@ def test_declared_extensions_reference_registered_parsers():
     ⚠️ ``.dat`` **故意不在** ``EXT_MAP``（它走 ``NAME_TOKENS`` 路径规则），
     故不在此断言中 —— 这是设计，不是遗漏。
     """
-    from eosop_pro.registry.declared_types import EXT_MAP
-    from eosop_pro.registry.dispatch import FAMILY_PARSERS
+    from eosop_pro.registry.schema.declared_types import EXT_MAP
+    from eosop_pro.registry.identify.dispatch import FAMILY_PARSERS
     exts = (".301", ".feos", ".planck", ".coldopacity", ".hug")
     missing = [e for e in exts if e not in EXT_MAP]
     assert not missing, f"声明表缺扩展名: {missing}"
@@ -364,15 +364,14 @@ def test_coldopacity_axis_is_photon_energy():
 
 
 def test_feos_native_grids_are_strictly_monotonic():
-    """⚠️ 回归守护：``feos_native`` 的轴必须**严格单调**。
+    """⚠️ 回归守护：``feos_native`` 的轴必须**严格单调且为正**。
 
-    实测 ``Al.feos`` 头部声明 ``NR=192``，但真实 rho 网格只有 **191** 点，
-    末尾跟一个 ``0.0`` 哨兵。早期实现盲信声明值硬切，把 ``0.0`` 并入 rho
-    尾部、把 payload 首值 ``3.55e-44`` 并入 Te 尾部 —— **两个轴同时被污染**，
-    表现为轴非单调，进而破坏插值/等温线/雨贡纽拟合。
-
-    修复方式：``parsers/feos_native.grid_length()`` 用**严格递增前缀**判定
-    真实网格长度。本测试锁死该行为。
+    权威定案（FE-01_TABTOOLS.C::write_FEOS_format + makeRTPointArray）：
+    ``0.0`` 哨兵在网格**首点**（``Qstart = Rhostart = Tstart = 0.0``），
+    声明 NR/NT = 真实点数 + 1。解析器按声明维度确定性切分后修剪哨兵
+    （2026-11 修正：旧实现误诊为"尾部哨兵"并用单调前缀猜测 —— 系
+    ``lead=rest[:4]`` 硬编码错位导致的假象）。本测试锁死：
+    轴严格单调 + 首末点均为正。
     """
     tables = _first("feos_native")
     if tables is None:
@@ -388,16 +387,33 @@ def test_feos_native_grids_are_strictly_monotonic():
                if not ax[i + 1] > ax[i]]
         assert not bad, (
             f"feos_native.{key} 非严格单调，{len(bad)} 处违例，前 3: {bad[:3]}")
+        assert ax[0] > 0, f"feos_native.{key} 首点非正（前导哨兵未修剪）: {ax[0]}"
         assert ax[-1] > 0, f"feos_native.{key} 末点非正: {ax[-1]}"
         checked += 1
     assert checked == 2, f"未检查到两个轴（实际 {checked}）"
 
 
+def test_feos_native_blocks_decoded_and_counting_closed():
+    """布局定案回归：16 块 + Qtot + Q 全解码、计数公式闭合、形状正确。"""
+    tables = _first("feos_native")
+    if tables is None:
+        return
+    from eosop_pro.parsers.feos_native import FEOS_BLOCKS
+    t = tables[0]
+    for blk in FEOS_BLOCKS:
+        assert blk in t.fields, f"块 {blk} 未解码"
+    assert "Qtot" in t.fields and "Q0" in t.fields, "Qtot/Q0 未解码"
+    nr, nt = len(t.axes["rho"]), len(t.axes["Te"])
+    assert t.field_shape["P"] == (nt, nr), \
+        f"块形状应 (NT,NR)=({nt},{nr})，实测 {t.field_shape['P']}"
+    assert t.n_numbers_seen == t.n_numbers_expected, "计数公式未闭合"
+
+
 def test_feos_native_grid_length_helper_rejects_sentinel():
-    """``grid_length`` 应剔除尾部哨兵点（单元级验证）。"""
+    """``grid_length`` 防御性辅助（行为兼容保留；哨兵语义已由确定性布局接管）。"""
     from eosop_pro.parsers.feos_native import grid_length
     inc = [1.0, 2.0, 3.0, 4.0, 5.0]
-    assert grid_length(inc + [0.0], 0, 6) == 5, "应裁掉尾部 0.0 哨兵"
+    assert grid_length(inc + [0.0], 0, 6) == 5, "递增前缀遇 0.0 截断"
     assert grid_length(inc, 0, 5) == 5, "完整递增序列应原样返回"
     # 偏差过大时不猜（保持历史行为）
     assert grid_length(inc, 0, 99) == 5, "声明远超实际时退回可取长度"

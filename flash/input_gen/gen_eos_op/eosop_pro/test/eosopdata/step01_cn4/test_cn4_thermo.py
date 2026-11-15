@@ -8,7 +8,7 @@
   固化，包级唯一实现；声速唯一实现 = ``cn4_paths.sound_speed``）
 * 通用绘图入口: ``cn4_plots.plot_quantity_heatmap`` 的
   ``gamma_ion`` / ``gamma_ele`` / ``cs_thermal_fraction`` 通道
-* CLI: ``python -m eosop_pro.plotting.cn4_thermo <sample.cn4>``
+* CLI: ``python -m eosop_pro.plotting.cn4.cn4_thermo <sample.cn4>``
 
 物理锚（合成理想气体表上全部**机器精度**成立，见
 ``eosopdata._idealgas.IdealGasStub`` 的代数自洽设计）：
@@ -43,9 +43,9 @@ from pathlib import Path
 import numpy as np
 
 from eosop_pro.parsers.cn4_io import load_cn4
-from eosop_pro.plotting import cn4_thermo as TH
-from eosop_pro.plotting import cn4_plots as CP
-from eosop_pro.plotting.cn4_paths import sound_speed
+from eosop_pro.plotting.cn4 import cn4_thermo as TH
+from eosop_pro.plotting.cn4 import cn4_plots as CP
+from eosop_pro.plotting.cn4.cn4_paths import sound_speed
 
 from eosopdata._samples import first_cn4
 from eosopdata._idealgas import IdealGasStub

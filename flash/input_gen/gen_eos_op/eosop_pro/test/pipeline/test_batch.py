@@ -32,10 +32,9 @@ if _d not in sys.path:
 import _runner  # noqa: F401
 from _runner import expect, expect_eq, expect_in, main
 
-from eosop_pro import batch, config
-from eosop_pro import cli as mcli
-
-
+from eosop_pro import config
+from eosop_pro.pipeline import batch
+from eosop_pro.pipeline import cli as mcli
 # ══════════════════════════════════════════════════════════════
 # ① inventory
 # ══════════════════════════════════════════════════════════════
@@ -361,8 +360,7 @@ def test_cli_batch_commands_expose_report_dir_and_relpath():
     """
     import re
 
-    from eosop_pro import cli as mcli
-
+    from eosop_pro.pipeline import cli as mcli
     src = Path(mcli.__file__).read_text(encoding="utf-8")
     expect(src.count('"--report-dir"') >= 5,
            f"至少 5 个批量命令应提供 --report-dir，实测 {src.count('--report-dir')}")
@@ -387,7 +385,7 @@ def test_is_2d_helper():
 
 
 def test_A_for_reads_material_registry():
-    from eosop_pro.registry.material import MaterialRegistry
+    from eosop_pro.registry.material.material import MaterialRegistry
 
     reg = MaterialRegistry(build_annotations=False)
     a_al = batch._A_for("mat_Al-1.0/AL_eos", reg)

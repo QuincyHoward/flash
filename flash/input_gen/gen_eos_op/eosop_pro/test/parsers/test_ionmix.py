@@ -64,7 +64,7 @@ def test_cn4_full_block_decode():
 
 def test_cn4_unknown_units_declared():
     """``deion_dn`` / ``deele_dn`` 源码自注 ``(not sure)`` -> 单位标 unknown。"""
-    from eosop_pro.plotting.units import UNCERTAIN_UNITS
+    from eosop_pro.plotting.style.units import UNCERTAIN_UNITS
     expect("deion_dn" in UNCERTAIN_UNITS, "deion_dn 单位应标 unknown")
     expect("deele_dn" in UNCERTAIN_UNITS, "deele_dn 单位应标 unknown")
     t = ionmix.parse(config.MATTER("Ionmix/al-imx-002.cn4"), "Ionmix/al-imx-002.cn4")
@@ -118,7 +118,7 @@ def test_cnr_ntrad_solved_or_unknown():
 def test_cnr_does_not_look_like_cn4():
     """``.cnr`` 的 4e12.6+i12 头部**不得**被 cn4 的 i12 解析器接受。"""
     from eosop_pro.parsers.cn4_io import parse_header, CN4ParseError
-    from eosop_pro.core.textio import read_text
+    from eosop_pro.core.text.textio import read_text
     doc = read_text(config.MATTER("Ionmix/al-imx-001.cnr"))
     try:
         parse_header(doc.lines)

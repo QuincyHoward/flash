@@ -3,7 +3,7 @@ REM Step 04: Z-bar (mean ionisation) data-source inventory
 REM Double-clickable one-step launcher. ASCII-only (Windows cmd GBK safe).
 REM Line endings are CRLF on purpose: cmd.exe wants CRLF for multi-line blocks.
 setlocal
-set ROOT=%~dp0..
+set ROOT=%~dp0..\..
 set VENV=%USERPROFILE%\.workbuddy\binaries\python\envs\default
 set PYEXE=%VENV%\Scripts\python.exe
 if not exist "%PYEXE%" (
@@ -11,6 +11,6 @@ if not exist "%PYEXE%" (
   pause ^& exit /b 1
 )
 cd /d "%ROOT%"
-"%PYEXE%" -m eosop_pro.cli zeff %*
+"%PYEXE%" -m eosop_pro.pipeline.cli zeff %*
 echo.
 pause

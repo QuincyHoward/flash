@@ -20,7 +20,7 @@ if _d not in sys.path:
 import _runner  # noqa: F401
 from _runner import expect, expect_eq, expect_in, main
 
-from eosop_pro.guess import (  # noqa: E402
+from eosop_pro.core.infer.guess import (  # noqa: E402
     analyze_file,
     factor_pairs,
     match_fingerprints,

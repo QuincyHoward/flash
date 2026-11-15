@@ -102,6 +102,25 @@ objdir 名由 `LEG_SPECS` 固定（`SNB_SCENE_obj`）→ **不同场景复用同
 → 待提交集合改为 `git diff --cached` ∪ `git ls-files --others` ∪ `--modified` 三路并集；
 git 查询失败改 **fail-closed**（返回 2）。详见 `docs/06` §8。
 
+### 3.6 电子能群网格（19 群，2026-11-09 源码核定）
+
+| 项 | 结论 |
+|---|---|
+| 群数 | **19 个电子能群**。`multigp=20` 是**边界节点数**（`energy(20)` 数组），群循环只跑 `1..19`；常被误读成 20 群 |
+| 边界 | `E_1 = 0`；`E_2 = 0.1 eV` 起按每十进 3 群（公比 ≈2.1544）递增至 `E_20 ≈ 100.009 keV`。**第 1 群 `[0, 0.1 eV]` 是线性零群**，其余 18 群对数等距 |
+| 单位 | 源码内部存 **erg**（换算系数 1.6e-12 erg/eV，用于 `x=E/(k_B T_e)`）；文献/文档中通常写 eV、keV |
+| 精度 | 常数 `2.3026` 是 ln10 近似 ⇒ 公比 2.1544454、末边界 100.008945 keV（比标称 100 keV 高 0.00894 %） |
+| 定义位置 | 1D 与 2D 分支**各一份**，改群结构须两处同步；无 par 开关，改后必须重新编译 |
+| 与 MGD 的关系 | **两套独立网格**：辐射 MGD 光子群由 `rt_mgdNumGroups` / `rt_mgdBounds_*`（eV）与 cn4 表定义（本仓 10 群、0.1–1e5 eV），与 SNB 群数**无关** |
+
+坐标定用途：gpDump 后处理（§7.5 的 $W_g$ 权重）、`fe/fhot` 电子分布重建、逐群热流诊断，
+都必须用**这 20 个边界节点**，不可拿 `rt_mgdBounds_*` 代替。
+
+> 权威逐群数值表（20 节点 + 19 区间 + MGD 对比 + Python 复现片段）：
+> `flash/scenarios/private/SNB/SNB/docs/10_源码公式说明.md` §3.1.1；
+> 脚本侧复现：`SNB/SNB/scripts/analysis/snb_group_pipeline.py::energy_grid_erg()`。
+> 4 份 F90 覆盖件（基础版 / gpDump 版、source / tracer 部署副本）的边界定义逐字一致，已核对。
+
 ---
 
 ## 4. 场景与参考结果
@@ -681,7 +700,7 @@ to non-void arrays`。
 统计器 `flash/temp_delete/hypre_stat.py`（逐行流式）：
 
 ```bash
-PY=/c/Users/Administrator/.workbuddy/binaries/python/envs/default/Scripts/python.exe
+PY=$FLASH_MANAGED_PYTHON  # 管理型解释器，运行期经 flash/_core/paths.py 解析
 $PY flash/temp_delete/hypre_stat.py <logfile>
 ```
 
@@ -751,7 +770,7 @@ t 与 dt 完全一致（逐字符）: 299,259  (100.0000%)
 | `_core/credentials_legacy.py` `MANUAL_FIELDS` | `host="ssh.cn-zhongwei-1.paracloud.com"` / `username="hello@NC-E"` → 置空 |
 | `scenarios/runner.py` `Remote.__init__` | 3 条硬编码线路 → `load_hpc_routes(credential)`（新函数） |
 | `SNBOneCH_ml` / `SNBVTi` `03_run_16ns_pipeline.py` `_probe_route()` | 硬编码 3 条 → `get_hpc_routes(account)` |
-| `ch_center/laserslab1d_local_custom.py` | 提示串 `scp ... scfa2696@ssh.cn-zhongwei-1...` → 从 JSON 拼 |
+| `ch_center/laserslab1d_local_custom.py` | 提示串 `scp ... <ACCOUNT>@ssh.cn-zhongwei-1...` → 从 JSON 拼 |
 | `flash/config/__init__.py`、`hello_flash/deploy_flash.py` | docstring/描述里的 `paracloud` 举例 → 通用化 |
 
 ### M3 语义收紧
@@ -789,12 +808,12 @@ t 与 dt 完全一致（逐字符）: 299,259  (100.0000%)
 * `py_compile` 12 文件全过；**ruff `--select=E9,F` 逐文件对比 HEAD 基线，issues 数完全一致**
 * pytest `test_gitee / test_flash_remote_deploy / test_interface / test_flash_simulator /
   test_flash_env_manager` = **60 passed**
-* 真实配置读取：2 账户 / 各 9 线路；`ROUTES_SCFA2696=9`、`ROUTES_SCH0348=9`、
+* 真实配置读取：2 账户 / 各 9 线路；`ROUTES_NC_E=9`、`ROUTES_BSCC_T6=9`、
   `runner.load_hpc_routes=9`
 * 隔离 HOME 边界：文件缺失→空、JSON 损坏→空、非法 port/host→过滤不崩、`extract` 保留既有 routes
 
 ### M8 遗留（未动，待用户决策）
-`hello_flash/deploy_flash.py` 的 `MACHINES[].label` 仍含账号名（`scfa2696@NC-E` 等）——
+`hello_flash/deploy_flash.py` 的 `MACHINES[].label` 仍含账号名（`<ACCOUNT>@NC-E` 等）——
 纯 UI 文本，**连接仍走凭据**；该 dict 还含 `slurm_partition`/`module_load` 等场景级配置，
 按"用户未提及参数不得改"原则未动。`private/SNB/SNBtest/.../run_snb_hpc.py` docstring、
 `test/remote_connect/diagnostics.py` 标签同理。
@@ -1352,7 +1371,7 @@ remote master = 39128c1...   → MATCH
 
 ---
 
-## §T flash-sim 超算离线部署链（2026-10-22 建成，NC-E scfa2696）— 全文
+## §T flash-sim 超算离线部署链（2026-10-22 建成，NC-E <ACCOUNT>）— 全文
 
 - 部署目录 `~/PhySimX/PhySimX/simulation/flash/flash_sim`（=Gitee 同步目录，HEAD 随 bundle 走）；
   命名环境 **`.venv-hpc-nce`**（module python/3.10.8，离线 --no-index），三套测试 132/83/45 全绿。

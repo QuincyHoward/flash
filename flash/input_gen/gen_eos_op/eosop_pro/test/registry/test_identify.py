@@ -20,8 +20,8 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.registry import declared_types as dt
-from eosop_pro.registry.identify import identify, sweep
+from eosop_pro.registry.schema import declared_types as dt
+from eosop_pro.registry.identify.identify import identify, sweep
 
 
 def test_al_eos_feos_is_order_mismatch():
@@ -62,7 +62,7 @@ def test_skipped_files_excluded_from_sweep():
 def test_sweep_and_report():
     import tempfile
     from pathlib import Path
-    from eosop_pro.registry.identify import write_report
+    from eosop_pro.registry.identify.identify import write_report
     reg, store = dt.default_registry()
     rels = [d.relpath for d in dt.scan_declared(registry=reg, store=store)
             if not d.is_skipped][:25]
@@ -91,7 +91,7 @@ def test_no_silent_conflict_swallowing():
 # ★ agree_structure：结构等价 ≠ 不一致
 # ══════════════════════════════════════════════════════════════
 def test_same_structure_helper():
-    from eosop_pro.registry import identify as idm
+    from eosop_pro.registry.identify import identify as idm
 
     expect(idm.same_structure("hyades_eos", "hyades_eos"), "自反")
     expect(idm.same_structure("hyades_eos", "hyades_opacity"), "同组")
@@ -107,7 +107,7 @@ def test_struct_equiv_groups_share_a_count_formula():
     这里用 ``parsers.base.PAYLOAD_LAYOUTS`` 交叉验证。
     """
     from eosop_pro.parsers.base import PAYLOAD_LAYOUTS
-    from eosop_pro.registry import identify as idm
+    from eosop_pro.registry.identify import identify as idm
 
     for grp in idm.STRUCT_EQUIV:
         known = [f for f in grp if f in PAYLOAD_LAYOUTS]
@@ -138,9 +138,9 @@ def test_hyades_opacity_is_agree_structure_not_mismatch():
 
 def test_agree_structure_not_used_for_unrelated_families():
     """反例：不相干的两个族不得被判为 agree_structure。"""
-    from eosop_pro.registry.identify import TypeComparison
-    from eosop_pro.core.inference import InferenceResult, LayoutCandidate
-    from eosop_pro.registry import identify as idm
+    from eosop_pro.registry.identify.identify import TypeComparison
+    from eosop_pro.core.infer.inference import InferenceResult, LayoutCandidate
+    from eosop_pro.registry.identify import identify as idm
 
     fake = InferenceResult(status="ok")
     fake.best = LayoutCandidate(template="mpqeos", family="mpqeos", d1=10, d2=10)
@@ -158,7 +158,7 @@ def test_dispatch_fixes_drop_conflict_count():
     Thermos 路径规则先给 multi_opacity，内容表明是 F1）。
     关键断言是：**不再有 ``conflict``，且解析结果正确**。
     """
-    from eosop_pro.registry.dispatch import parse_declared
+    from eosop_pro.registry.identify.dispatch import parse_declared
 
     for rel in ("mat_CPC/AU.INV", "Thermos/mat_Mo/Mo_Ideal_Gas",
                 "SiO2/eos_21.sesame", "Ta2O5/PowerLawTa2O5_EOS.SESAME_",

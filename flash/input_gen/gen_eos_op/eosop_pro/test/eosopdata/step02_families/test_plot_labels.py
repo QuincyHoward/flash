@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(_d)))       # repo root
 
 from eosopdata._samples import find_parseable                     # noqa: E402
 
-from eosop_pro.plotting.labels import (                           # noqa: E402
+from eosop_pro.plotting.style.labels import (                           # noqa: E402
     CN4_SOURCE_FIELD, cn4_tags, display_unit, field_label, widest_tags)
 
 #: 演示族名（测试内注册、退出前还原 FIELD_CHECKS，绝不污染字典）。
@@ -109,7 +109,7 @@ def test_label_syncs_with_dictionary_checked_flip():
 def test_label_syncs_through_gridmap_axis_label():
     """``gridmap`` 的轴标签同样实时同步（经 _axis_label_of）。"""
     with _DemoFamily():
-        from eosop_pro.plotting.gridmap import _axis_label_of
+        from eosop_pro.plotting.qa.gridmap import _axis_label_of
 
         class _T:                      # 最小 duck-table（只用到两属性）
             family = DEMO
@@ -249,7 +249,7 @@ def test_cn4_plot_quantity_names_are_dictionary_backed():
     LaTeX 排版标签保留（第十二轮裁定），但量名集合不得偏离字典 ——
     字典登记键改名/删除而 cn4_plots 未同步时，本测试 FAIL。
     """
-    from eosop_pro.plotting.cn4_plots import (AXES, OPACITY_NAMES,
+    from eosop_pro.plotting.cn4.cn4_plots import (AXES, OPACITY_NAMES,
                                          _QUANTITY_META,
                                          SUPPORTED_QUANTITIES)
     from eosop_pro.registry.field_checks import FIELD_CHECKS
@@ -278,8 +278,8 @@ def test_cn4_plot_quantity_names_are_dictionary_backed():
 # ── 硬编码旁路守护 ─────────────────────────────────────────────
 def test_plotting_modules_have_no_hardcoded_labels():
     """绘图模块源码不得再出现硬编码物理量标签（旧缺陷的回归守护）。"""
-    import eosop_pro.plotting.gridmap as gridmap
-    import eosop_pro.plotting.qa_plots as qa_plots
+    import eosop_pro.plotting.qa.gridmap as gridmap
+    import eosop_pro.plotting.qa.qa_plots as qa_plots
     src_g = inspect.getsource(gridmap)
     src_q = inspect.getsource(qa_plots)
     for bad in ("Electron temperature Te", "log10 rho (g/cm",
@@ -309,7 +309,7 @@ def _mpqeos_first():
 
 def test_qa_plots_isobar_labels_carry_tags():
     """实图断言：mpqeos 等压线图的 x/y 轴标签带 ``uv`` 标记（指令 1 修复）。"""
-    from eosop_pro.plotting.qa_plots import _plt, plot_eos_isobars
+    from eosop_pro.plotting.qa.qa_plots import _plt, plot_eos_isobars
     t = _mpqeos_first()
     if t is None or "P" not in t.fields:
         return
@@ -328,7 +328,7 @@ def test_gridmap_axis_label_of_real_table_carries_tags():
     第十三轮双轨：mpqeos.Te 登记短标签就是 ``Te`` -> 默认
     ``"Te (eV), uv"``；``long=True`` 取完整 meaning（含陷阱注记）。
     """
-    from eosop_pro.plotting.gridmap import _axis_label_of
+    from eosop_pro.plotting.qa.gridmap import _axis_label_of
     t = _mpqeos_first()
     if t is None:
         return

@@ -1,0 +1,820 @@
+# flash-sim 场景系统 — 使用指南
+> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：core/ 布局或场景清单变化后同步 §架构说明
+
+
+> flash-sim 场景系统使用指南：从即插即用仿真入口到可参数化、可优化的工程工具。
+
+---
+
+## 场景层约定（2026-10-22 模块化改造，需求 3）
+
+场景目录**只做物理场景搭建 + 参数覆盖**，运行细节一律归 `flash.flash_run`：
+
+| 允许（场景层） | 禁止（应下沉到 flash_run / deploy） |
+|----------------|-------------------------------------|
+| SCENE VARS（物理参数、材料、层厚、脉冲） | `sbatch` / `scancel` / `squeue` / `sacct` 原始命令 |
+| `RUN_MODE = "wsl" \| "hpc"` 模块常量（默认值） | `paramiko` / `SSHClient` 直连 |
+| `nprocs` / `account` / `tmax` 等**覆盖参数** | 装置绝对路径（`/publicfs01`、`AI/Aitemp`）、`.venv-hpc-nce` |
+| `work_base=` 等工作目录参数 | 装置默认值硬编码（应走 `flash.flash_run.env.devices.device_default()`；场景专属核数走 `flash.scenarios.core.device_defaults.get_scene_nprocs()`） |
+
+- 运行一律经 `run_scenario(WslSpec(...), HpcSpec(...), cfg, run_mode=None)`
+  → `flash.flash_run.modes.runner`；
+- 老导入路径 `from flash.scenarios.core.runner import ...` 仍可用（兼容壳转发）；
+- **检查器**（新增文件会被拦截）：
+  ```bash
+  python -m flash.input_gen.gen_checker.check_scene_sources
+  ```
+  历史内联细节列于 `KNOWN_DEBT`（显式挂账、只降不升，新文件不得加回）。
+
+---
+
+**flash-sim** 是 [FLASH](https://flash.rochester.edu/) 高能量密度物理 (HEDP) 仿真代码的全功能 Python 封装。提供**场景系统**（即插即用仿真入口）、参数文件生成、多环境运行管理、HDF5 输出分析与自适应可视化的一站式工作流。
+
+## 仓库地址 (Repository)
+
+本项目托管于 Gitee (码云), 支持 HTTPS 克隆与在线浏览:
+
+```
+https://gitee.com/physimx/flash
+```
+
+| 操作 | 命令 |
+|------|------|
+| **HTTPS 克隆** | `git clone https://gitee.com/physimx/flash.git` |
+| **在线浏览** | https://gitee.com/physimx/flash (Code/Issues/Releases 页签) |
+| **版本标签** | 以 `git tag -l` 查看全部 (PyPI 按阶段更新) |
+| **问题反馈** | 通过 Gitee Issues 提交 (登录后新建 Issue) |
+
+---
+
+## 场景系统的重要性与广泛应用
+
+场景系统是 flash-sim 的核心价值所在，也是把 FLASH 这一庞大、门槛较高的 HEDP 仿真代码转化为「可计算、可复用、可优化」工程工具的关键枢纽：
+
+- **简单参数扫描**：批量覆盖材料厚度、密度、激光功率、AMR 层级等参数，无需改动任何 FLASH 源文件，即可在 Python 循环中自动生成 `.par` 并运行多组仿真。
+- **多组仿真数据对比**：运行输出统一规格的 HDF5 文件与统一命名的分析图像，天然便于跨工况、跨方案的定量对比。
+- **参数化接入优化算法**：场景以**结构化参数**为唯一输入、以物理量为输出，可无缝接入网格搜索、贝叶斯优化、遗传算法或代理模型，作为「黑盒仿真器」反复调用。
+- **为靶结构、脉冲波形等设计提供便利**：设计变量参数化后结合优化闭环，系统性探索设计空间，缩短「试错—仿真」迭代周期。
+
+---
+
+## 什么是场景系统？
+
+场景系统（`scenarios/`）是 **flash-sim 的顶层仿真入口**，将 FLASH 的完整工作流
+（输入文件生成 → 编译 → 运行 → HDF5 收集 → 分析绘图）封装为即插即用的**物理场景**。
+
+用户无需手动配置 FLASH 源文件、编写 `.par`、处理编译，也不需要写 HDF5 读取和插值代码。
+
+---
+
+## 当前场景总览
+
+| 场景 | 位置 | 运行方式 | 物理内容 |
+|------|------|---------|---------|
+| **`ch_center`** | `public/center_evolution/ch_center/` | **统一 CLI（缺省 auto）/ `python -m` 直跑** | CH 泡沫靶 + 两侧 He，双束 351nm 激光相向，中心等离子体状态时域演化 |
+| **`grad_dens_sandwich`** | `public/sandwich/grad_dens_sandwich/` | **统一 CLI（缺省 auto）** | HE-CH-Si-CH-HE 渐变密度 CH，超高斯脉冲 (order=4, 1ns FWHM, 5e14 W/cm²) |
+| **`thin_layer_sandwich_si`** | `public/sandwich/thin_layer_sandwich/` | **统一 CLI（缺省 auto）** | Si/CH/He 三层靶 (新 EOS 表) 激光烧蚀 |
+| `laserslab1d_local_demo` | `flash_demo/demo_local/` | `python -m` 直跑 | FLASH 1D LaserSlab 本机 (WSL) 演示 |
+| `laserslab1d_hpc_demo` | `flash_demo/demo_hpc/` | `python -m` 直跑 | FLASH 1D LaserSlab 超算 (SLURM) 演示 |
+| `hello_flash` | `flash_demo/hello_flash/` | `python -m` 直跑 | FLASH 安装/部署冒烟测试 + 密度图 |
+| `layer_tracer_CH` | `private/tracer/layer_tracer_CH/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (CH)：cham(He)→samp(CH)→targ(CH)→samp(CH)，MGD 10 群辐射 |
+| `VCH_ml` | `private/tracer/VCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, V 屏蔽层)：cham(He)→shld(V 0.1µm)→samp→tar1@1µm→samp→tar2@2µm→samp→tar3@3µm→samp→tar4@4µm→samp→tar6@6µm→samp(D=50µm) |
+| `OneCH_ml` | `private/tracer/OneCH_ml/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D **多薄层**示踪靶 (8 物种, 纯 CH)：与 VCH_ml 唯一物理差异为 shld 材质 V→CH (ρ=1.0)，其余设置完全一致 |
+| `CHTi` | `private/tracer/CHTi/` (CHTi1/2/3.py) | `python CHTi1.py` (wsl/hpc 一键切换) | 1D 多薄层示踪靶 + **Ti 示踪层** (shld=CH 无屏蔽层)：tar1/tar2/tar3 之一为 Ti (Ti-BADGER-TOPS.cn4, ρ=4.54, A=47.867, Z=22)，其余 tar*/samp 仍为 CH |
+| `CHTi_F` | `private/tracer/CHTi_F/` (CHTi1_F/2_F/3_F.py) | `python CHTi1_F.py` | CHTi 的**关辐射**变体：`rt_useMGD=.false.` + `useOpacity=.false.` + `useRadTrans=.false.` (纯运行时开关, 源码/setup 不变) |
+| `VCH_ml_F` | `private/tracer/VCH_ml_F/VCH_ml_F.py` | `python VCH_ml_F.py` | VCH_ml 的**关辐射**变体 (V 屏蔽层保留)：同上三开关 |
+| `TiTi` | `private/tracer/TiTi/` (TiTi1/2/3.py) | `python TiTi1.py` (wsl/hpc 一键切换) | 1D 多薄层示踪靶 + **Ti 屏蔽层** (由 CHTi 派生, shld 材质 CH→Ti, ρ=4.54 与 Ti 示踪层同材质)：tar1/tar2/tar3 之一为 Ti 示踪层 @1/2/3µm, 其余 tar*/samp 仍为 CH, 辐射开 |
+| `build_family` | `private/tracer/build_family.py` | `python build_family.py` | CHTi 家族生成器：由模板 CHTi1.py 派生其余 6 个变体脚本 (仅 docstring + SCENE VARS 块不同) |
+| `run_ml_suite` | `private/tracer/run_ml_suite.py` | `python run_ml_suite.py [--only 名单] [--tmax v]` | 一键顺序执行 9 场景 (OneCH_ml, VCH_ml, CHTi1/2/3, VCH_ml_F, CHTi1_F/2_F/3_F)，tmax 统一覆盖，默认 1e-11 验证 |
+| `OneSi_ml` | `private/tracer/OneSi_ml/OneSi_ml.py` | `python OneSi_ml.py` | 1D 多薄层**单一纯材料烧蚀** (Si, Z14_1.00-20260708_0850.cn4, ρ=1.00)：shld/tar*/samp 全 Si，cham=He (6 群 Z02 表)，MGD 6 能群 |
+| `OneSi_ml_F` | `private/tracer/OneSi_ml_F/OneSi_ml_F.py` | `python OneSi_ml_F.py` | OneSi_ml 的**关辐射**变体 (三开关 .false.) |
+| `OneC_ml` | `private/tracer/OneC_ml/OneC_ml.py` | `python OneC_ml.py` | 同 OneSi_ml，材质换 C (Z06_1.00-20260902_2228.cn4, A=12.011, Z=6) |
+| `OneC_ml_F` | `private/tracer/OneC_ml_F/OneC_ml_F.py` | `python OneC_ml_F.py` | OneC_ml 的**关辐射**变体 |
+| `build_sic_family` | `private/tracer/build_sic_family.py` | `python build_sic_family.py` | OneSi/OneC 家族生成器：由模板 OneSi_ml.py 派生 OneSi_ml_F/OneC_ml/OneC_ml_F |
+| `build_titi_family` | `private/tracer/build_titi_family.py` | `python build_titi_family.py` | TiTi 家族生成器：由模板 TiTi1.py 派生 TiTi2/TiTi3 (仅 docstring + SCENE VARS 块不同) |
+| `run_sic_suite` | `private/tracer/run_sic_suite.py` | `python run_sic_suite.py [--only 名单] [--tmax v]` | 一键顺序执行 OneSi_ml/OneSi_ml_F/OneC_ml/OneC_ml_F，默认 tmax=1.0e-11 |
+| `layer_tracer_Ti` | `private/tracer/layer_tracer_Ti/` | `python -m` 直跑 (wsl/hpc 一键切换) | 1D 分层示踪靶 (Ti tracer)，CH 靶 + Ti 示踪层 X-ray 谱学诊断 |
+
+### SNB 非局域热传导研究线（`private/SNB/` + `private/tracer/SNB/`）
+
+> SNB = Schurtz–Nicolaï–Busquet 多群非局域电子热传导。**必须在 FLASHSNB 树**编译
+> （场景单元含 9 个覆盖 F90 + 树级补丁），且**必须 `+ug` 均匀网格**。
+> 方法与分享规则见 `private/SNB/SNB/README.md` 及其 `docs/`。
+
+| 名称 | 位置 | 运行方式 | 内容 |
+|------|------|---------|------|
+| **`SNB`（核心模块）** | `private/SNB/SNB/` | 模块脚本（非场景） | ★ 自包含的**可分享**方法包：`gen_scene.py` 生成场景 / `run_scene.py` 运行 / `snb_params.py` 参数基线 / `check_share_safety.py` 提交前自检 / `docs/` 九篇 |
+| `SNBtest/t001…t006` | `private/SNB/SNBtest/Test/` | 场景自带脚本 | SNB 研究过程记录：t001 首个跑通 → t002 SNB vs FL-SH → t003 复现作者示例 → t004 辐射 2×2 → t005 失败案例（`dtmax` 误用）→ **t006 薄驱动推荐范式** |
+| `SNBOneCH_ml` | `private/tracer/SNB/SNBOneCH_ml/` | `python -m` 直跑 | OneCH_ml 几何/材料 + SNB（8 标记多层）；与 `OneCH_ml` 构成 **local vs nonlocal** 对照 |
+| **`SNBOneCH`** | `private/tracer/SNB/SNBOneCH/` | `python -m` 直跑 | 同上但**只用 cham+targ 两标记**；`+ug` iProcs16×nxb128（2048 格）；tmax=1.6 ns；对比图 `plot_compare_onech.py`（nele/tele/pele） |
+
+> ⚠️ **private/ 场景不随发布包分发**（.gitignore 排除），仅限内部使用；tracer 系列以
+> `python -m` 直跑，不进入注册表。**SNB 的 F90 源与生成 F90 的脚本一律不分享**（见 `private/SNB/SNB/docs/06`）。
+
+### 注册场景明细
+
+#### ch_center
+
+| 属性 | 值 |
+|------|-----|
+| **物理** | CH 泡沫靶 + 两侧 He, 双束 351nm 激光相向 |
+| **应用** | 中心等离子体状态时域演化观测 |
+| **激光** | 5e14 W/cm² |
+| **CH 靶** | ρ=1.0 g/cm³ |
+| **He** | ρ=1e-6 g/cm³ (eos_tab) |
+| **EOS 表** | 自研 IONMIX 表 (Z02, Z06-Z01, 随包分发, 无版权障碍) |
+| **tmax** | 1.2e-9 s |
+| **输出字段** | 7 个 (dens, tele, tion, trad, ye, sumy, pres) |
+| **备注** | 基于原始 FLASH LaserSlab 配置, EOS 表已替换为自研高分辨表 |
+| **多模式测试** | `center_evolution/ch_center/modes_test/`：五执行路径（Windows→WSL /
+  Windows→HPC / WSL→WSL / WSL→HPC / HPC→HPC insitu）同算例 dens/nele 对比，
+  驱动 `run_mode_test.py` + 分析 `analyze_modes.py`，用法与历史坑见其 README |
+
+#### VCH_ml / OneCH_ml (private, 多薄层, 2026-08-30 由 layer_tracer_CH_ml 更名拆分)
+
+| 属性 | 值 |
+|------|-----|
+| **物理** | 1D 多薄层示踪靶, 8 物种 13 区: cham(He, ρ=1e-6) → shld(0.1µm) → samp(CH) → tar1(CH@1µm, 0.1µm) → samp → tar2(CH@2µm) → samp → tar3(CH@3µm) → samp → tar4(CH@4µm) → samp → tar6(CH@6µm) → samp(D=50µm) → cham |
+| **两场景差异** | **仅 shld 材质**: VCH_ml = V (ρ=6.11, V-BADGER-TOPS.cn4)；OneCH_ml = CH (ρ=1.0, CH-QC-1-001.cn4)。其余 F90/par/几何/物种标记完全一致 |
+| **目录结构** | 主脚本 `VCH_ml.py` / `OneCH_ml.py`；其余脚本收纳于 `VCH_ml/src/`（analysis=chk 分析, tools=par 对比, docs=差异文档） |
+| **一键批量** | `python run_ml_suite.py [tmax]` (tracer/ 下)：顺序执行 OneCH_ml → VCH_ml，tmax 缺省 1.0e-11 验证值 |
+| **仿真域** | x = [-0.04, 0.01] cm, 1D 笛卡尔, NXB=16, lrefine_max=9 |
+| **激光** | 单光束 0.351µm (透镜 x=-1.0, 靶 x=0), 82 点功率脉冲 |
+| **初始状态** | 固体层常温 (290.11375 K) 固体密度; tar1/tar2/tar3/tar4/tar6 物质同为 CH, 独立物种标记 |
+| **tmax** | 规范值 1.6e-9 s; 搭建验证时可覆写为 1.0e-11 |
+| **输出分析** | dens 剖面 (全域 + [-5,10]µm 放大) + 8 物种分布图 + 物种时空图 + 预诊断图 (脉冲/初始分层) |
+| **与纯 CH 基准一致性** | 除几何/物质设置外与 `CH_CH_**um8.00e-02` 基准一致 (killdivb 段逐行一致, plotFileIntervalStep=2000 已对齐); 详见 `VCH_ml/src/docs/VCH与纯CH的差异.md` |
+| **历史运行** | 更名前快照保留在 `VCH_ml/flash_input/run_00000{1,4,5}/` (run_id 自动续接) |
+
+#### CHTi / CHTi_F / VCH_ml_F (private, Ti 示踪 + 关辐射家族, 2026-08-31)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | CHTi1/2/3 (tar1/tar2/tar3 = Ti, shld=CH, 辐射开) + CHTi1_F/2_F/3_F (同上, 辐射关) + VCH_ml_F (shld=V, 无 Ti, 辐射关)，共 7 脚本 4 目录 |
+| **模板架构** | 全部脚本由 `CHTi/CHTi1.py` 模板 + `build_family.py` 派生，仅 docstring + SCENE VARS 块 (`SCENE_NAME`/`SHLD_MATERIAL`/`TI_LAYER`/`RADIATION_OFF`) 不同 |
+| **Ti 材质** | Ti-BADGER-TOPS.cn4, ρ=4.54 g/cm³ (同参考 ReDo042sp sim_rhoTarg), A=47.867, Z=22 |
+| **关辐射机制** | 纯运行时三开关：`rt_useMGD=.false.` + `useOpacity=.false.` + `useRadTrans=.false.`；源码/Makefile/setup 编译完全不变 (学习自参考 ReDo042sp_*L/*F 对比) |
+| **tmax 控制** | 每脚本 `--tmax` 参数 (默认 1.0e-11) + `_par_tmax_ok()` 再生守卫 (par 与配置不符时自动重生成输入)；套件 `--tmax` 统一覆盖 |
+| **共享目录防串味** | CHTi1/2/3 共享 `CHTi/flash_input`、CHTi*_F 共享 `CHTi_F/flash_input` → 家族脚本 main() 无条件全量重生成输入文件 |
+| **2026-08-31 测试** | 7 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0)；VCH_ml_F 首跑曾因模板漏复制 V-BADGER-TOPS.cn4 abort，修复模板后重跑 PASS；初始帧 9 场景快检 (`check_suite_initial.py`) 全 PASS (Ti 层 4.54 位置正确、shld 1.0/6.11、8 物种 0/1 阶跃) |
+
+#### TiTi (private, Ti 屏蔽层家族, 2026-09-08)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | TiTi1/2/3 (tar1/tar2/tar3 = Ti 示踪层 @1/2/3µm, shld=Ti, 辐射开)，共 3 脚本 1 目录 |
+| **物理设计** | 由 CHTi 派生，**唯一物理差异为 shld 层材质 CH → Ti** (Ti-BADGER-TOPS.cn4, ρ=4.54 g/cm³, A=47.867, Z=22，与 Ti 示踪层同材质同密度)；几何/物种标记/激光/MGD 10 群辐射与 CHTi 完全一致 |
+| **模板架构** | 主模板 `TiTi/TiTi1.py` + `build_titi_family.py` 派生 TiTi2/TiTi3，仅 docstring + SCENE VARS 块 (`SCENE_NAME`/`SHLD_MATERIAL="Ti"`/`TI_LAYER`/`RADIATION_OFF`) 不同；模板 `build_species_defs`/par 覆写/tables 清单相对 CHTi1 新增 "Ti" 分支 |
+| **Ti 材质绑定** | shld 与 Ti 示踪层同 3 键运行时覆写 (`sim_rhoShld=4.54` + `eos_shldTableFile` + `op_shldFileName` → Ti-BADGER-TOPS.cn4)，A/Z 经 species_defs 写入 Config 默认 (与 CHTi Ti 示踪层同约定) |
+| **tmax 控制** | 每脚本 `--tmax` 参数 (默认 1.0e-11) + `_par_tmax_ok()` 再生守卫；TiTi1/2/3 共享 `TiTi/flash_input` → main() 无条件全量重生成输入 |
+| **2026-09-08 测试** | 3 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0, 无 DRIVER_ABORT, 各 run plt=2/chk=2)；初始帧快检 (`check_suite_initial.py TiTi1 TiTi2 TiTi3`) 3/3 PASS (shld/Ti 层 4.5400、samp 1.0000、8 物种 0/1 阶跃 out-max=1e-99) |
+
+#### OneSi_ml / OneC_ml (private, 单一纯材料烧蚀家族, 2026-09-02)
+
+| 属性 | 值 |
+|------|-----|
+| **家族构成** | OneSi_ml / OneSi_ml_F / OneC_ml / OneC_ml_F 共 4 脚本 4 目录；仿 OneCH_ml (L) 与 VCH_ml_F (F) 结构 |
+| **物理设计** | shld/tar1/2/3/4/6/samp **全部同一纯材料** (Si ρ=2.329 或 C 金刚石 ρ=3.515 g/cm³, 常温固体密度, 无 Ti 层) —— 单一材料烧蚀仿真；cham = He 填充 |
+| **材质表** | Si = `Z14_1.00-20260708_0850.cn4` (A=28.0855, Z=14)；C = `Z06_1.00-20260902_2228.cn4` (A=12.011, Z=6)；均在 `Gen_eos_op_data/` (表名 1.00 为生成标称密度; IONMIX4 密度网格为离子数密度 [1e16, 2e25] ions/cm³, 两种固体密度均覆盖) |
+| **★ MGD 能群结构** | Gen_eos_op_data 族表为 **6 群** (BADGER 族为 10 群)，FLASH 要求全物种表群数一致 → `rt_mgdNumGroups=6` + `rt_mgdBounds_1..7 = 0.1/1/10/100/1e3/1e4/1e5 eV` (十倍程，同 ch_center)，cham He 表用 6 群的 `Z02_1.00-20260708_0851.cn4`；混用 6/10 群表 → `op_readIonmix4Tables: bad size of IONMIX4 energy group grid` |
+| **模板架构** | 主模板 `OneSi_ml/OneSi_ml.py` + `build_sic_family.py` 派生 3 变体，仅 docstring + SCENE VARS (`SCENE_NAME`/`MAT_LABEL`/`MAT_TABLE`/`MAT_RHO`/`MAT_A`/`MAT_Z`/`RADIATION_OFF`) 不同 |
+| **一键批量** | `python run_sic_suite.py [--only 名单] [--tmax v]` (tracer/ 下)，默认 tmax=1.0e-11 |
+| **2026-09-02 测试** | 4 场景 tmax=1.0e-11 全部 PASS (FLASH exit 0)；初始帧快检 (`check_sic_initial.py`) 4/4 PASS (各标记层 dens=1.0000、物种 0/1 阶跃 out-max=1e-99)。调试轮次：①能群 6/10 不匹配 (L 全 FAIL) ②He 表仍 10 群 (10/6) + Windows 页面文件不足假 FAIL ③cham→Z02 后 3/4，OneSi_ml 因 objdir flash.par=0 字节瞬时故障单独重跑 PASS |
+| **2026-09-03 密度修正** | MAT_RHO 改常温固体密度 (Si 2.329 / C 金刚石 3.515 g/cm³) + 套件默认 tmax 改回 1.0e-11；重跑 4/4 PASS，快检 4/4 PASS (Si 层 2.3290、C 层 3.5150) |
+
+#### layer_tracer_CH (private)
+
+| 属性 | 值 |
+|------|-----|
+| **物理** | 1D 分层示踪靶: cham(He, ρ=1e-6) → samp(CH 示踪首层) → targ(CH 靶芯 0.1µm) → samp(CH) |
+| **仿真域** | x = [-0.04, 0.01] cm, 1D 笛卡尔, NXB=16, lrefine_max=9 |
+| **激光** | 单光束 0.351µm (透镜 x=-1.0, 靶 x=0), 82 点功率脉冲 (内嵌于 `_par_layers.py`) |
+| **辐射** | MGD 10 能群, tabular EOS/opacity (ionmix4: He-BADGER + CH-QC) |
+| **tmax** | 规范值 1.6e-9 s; 搭建验证时可覆写为 1.0e-11 (见「快速搭建工作流」) |
+| **运行模式** | `RUN_MODE = "wsl"` / `"hpc"` 一键切换 (环境变量 `FLASH_RUN_MODE` 可覆盖) |
+| **输出分析** | dens(x,t) 时空彩图 + 不同时刻密度剖面线图 (全域 + [-10,20]µm 放大) |
+
+---
+
+## 外部使用方式
+
+### 前提条件
+
+1. 已安装 FLASH 4.8（在 WSL 或超算上）
+2. Python ≥ 3.10，已安装 `h5py`, `numpy`, `matplotlib`
+
+### 1. 导入 flash 包
+
+```python
+import sys
+sys.path.insert(0, "/path/to/flash")   # flash 包根目录 (含 pyproject.toml)
+
+from flash.scenarios.core.registry import get_scenario, list_scenarios
+from flash.scenarios.core.simulator import FlashSimulatorEngine
+```
+
+### 2. 列出可用场景
+
+```python
+for name, desc in list_scenarios():
+    print(f"  {name:30s} → {desc}")
+```
+
+### 3. 运行公开场景（统一 CLI，缺省 `--mode auto`）
+
+三个公开场景都走同一个入口，**缺省模式 = auto（平台自适应）**：
+Windows + WSL → `wsl`；WSL/Linux 宿主 → `local`；超算登录节点 → 明确报错
+（引擎型场景只承接本机执行，见 `catalog.py` 的 `PUBLIC_SCENE_POLICY`）。
+
+```bash
+# 列出可执行场景与允许模式
+python -m flash.scenarios.core.entry.cli list
+
+# 只打印目标判定轨迹（不执行任何东西）
+python -m flash.scenarios.core.entry.cli explain ch_center
+
+# 运行（模式缺省 auto）
+python -m flash.scenarios.core.entry.cli run ch_center
+python -m flash.scenarios.core.entry.cli run grad_dens_sandwich --tmax 1e-13
+python -m flash.scenarios.core.entry.cli run thin_layer_sandwich_si --mode local
+```
+
+**极短验证**（一键跑三个公开场景，只确认链路通畅、**不产生物理结果**）：
+
+```bash
+python flash/scenarios/public/short_validation.py            # tmax=1e-13 s
+python flash/scenarios/public/short_validation.py --tmax 1e-11
+```
+
+三个场景的实测耗时（Windows→WSL，tmax=1e-13 s）：
+`ch_center` ≈ 21 s / `grad_dens_sandwich` ≈ 5 s / `thin_layer_sandwich_si` ≈ 3 s。
+
+> ★ **极短验证的三条铁律**（`flash/scenarios/common/time_control.py` 统一实现）：
+> ① `dtmax ≤ tmax × 1.05`（否则 FLASH 浪费步长跨越 tmax）；
+> ② `dtinit ≤ tmax × 0.1`（否则第一步就结束 = 白跑）；
+> ③ 输出时间网格步长随 tmax 收缩（否则 `t_grid` 只剩 1 点 ⇒ 插值除零）。
+
+### 4. 运行注册场景 (引擎 API)
+
+```python
+scenario = get_scenario("ch_center")
+engine = FlashSimulatorEngine(scenario, verbose=True)
+
+output = engine.run(
+    flash_timeout=900,       # FLASH 运行超时 (秒)
+    keep_flash_raw=True,     # 保留原始 chk 文件
+)
+
+print(f"✅ result.h5: {output.result_h5_path}")
+print(f"   运行目录:   {output.run_dir}")
+```
+
+### 5. 覆盖默认参数
+
+```python
+output = engine.run(
+    params_overrides={
+        "lrefine_max": 7,           # 提高 AMR 分辨率
+        # ...其它参数见 scenario.default_params.keys()
+    },
+    keep_flash_raw=True,
+)
+```
+
+> ⚠️ **重要规则**: 未在 `params_overrides` 中指定的参数**保持默认值**，不得私自修改。
+
+### 6. 直跑场景模块 (flash_demo / private tracer 系列)
+
+demo 与 tracer 系列场景为自包含模块，直接以 `python -m` 运行：
+
+```bash
+cd /path/to/flash                      # flash 包根目录
+
+# layer_tracer_CH: wsl/hpc 一键切换 (模块内 RUN_MODE 常量或 FLASH_RUN_MODE 环境变量)
+python -m flash.scenarios.private.tracer.layer_tracer_CH.layer_tracer_CH
+
+# ch_center 本地直跑入口
+python -m flash.scenarios.center_evolution.ch_center.laserslab1d_local_custom
+
+# FLASH 本地演示
+python -m flash.scenarios.flash_demo.demo_local.laserslab1d_local_demo
+```
+
+直跑场景的内置流程：
+
+```
+依赖检查 (7 个必须文件) → 缺失则自动调用 input_gen 生成器 (8 步)
+  → .par / Config / Makefile / Simulation_data / Simulation_init /
+    Simulation_initBlock / .cn4 复制 / run_flash.sh + submit_flash.sh
+→ WSL: run_flash.sh (setup→make→mpirun) → 收集 outputfiles/
+→ 本地分析绘图 (plots/)
+```
+
+HPC 模式支持分阶段断点续跑：`python -m ... all|upload|submit|monitor|analyze|download|status`。
+
+### 6. 跳过运行（仅生成输入文件）
+
+依赖检查发现文件缺失时才触发生成；如需强制重新生成，删除场景目录下的
+`flash_input/` 后重跑即可。
+
+---
+
+## 编译与缓存
+
+FLASH 的编译（`./setup` + `make`）只取决于**编译期输入**：`Config`、`Makefile`、
+`*.F90` 源文件以及 setup 参数。运行时参数 `.par` **不参与编译**。
+
+- **引擎方式** (`FlashSimulatorEngine.run`)：内置编译缓存（指纹 = setup 参数 +
+  源文件哈希），同一场景首次编译后自动命中缓存，改 `.par` 不触发重编译。
+- **直跑方式** (`python -m` + `run_wsl`)：每次运行前**清理旧 objdir** 再全新
+  `setup + make`（约 10~60 分钟），保证编译状态与当前输入文件严格一致——
+  适合搭建验证阶段；频繁迭代时建议保留 flash4 二进制手动复用（见下）。
+
+### 手动复用 flash4 二进制
+
+```bash
+mkdir -p /tmp/run_mycase && cd /tmp/run_mycase
+cp ~/<user>/FLASH/FLASH4.8/<user>/<objdir>/flash4 ./flash4
+cp <场景 flash_input 目录>/*.cn4 ./
+cp <场景 flash_input 目录>/laserslab_custom.par flash.par
+mpirun -np N ./flash4
+```
+
+### MPI 进程数 N 的来源
+
+N 由**装置 × 维度**自动计算（详见 `flash_run/env/resource_config.py`）：
+
+| 装置 (按总核数) | 1D | 2D | 3D |
+|------|------|------|------|
+| 笔记本 (<10 核) | 80% CPU，不支持并行 | 80% CPU，不支持并行 | 80% CPU，不支持并行 |
+| 台式机 (<30 核) | 80% CPU，2 个并行 | 80% CPU，不支持并行 | 80% CPU，不支持并行 |
+| 超算 (≥30 核) | 80% CPU，3 个并行 | 80% CPU，2 个并行 | 80% CPU，不支持并行 |
+
+```bash
+python scripts/01_env_diagnose/gen_resource_config.py --show          # 探测本机并生成控制文件
+python -m flash.flash_run.env.resource_config show    # 查看当前配置
+```
+
+---
+
+## 输出结构
+
+### 引擎方式 (注册场景)
+
+```
+{当前工作目录}/runs_{scenario_name}/{run_id:06d}/
+├── sim_input/              ← FLASH 源文件 + .par + .cn4 (always)
+├── sim_output/             ← FLASH 原始 chk HDF5 (keep_flash_raw=True 时)
+└── database/
+    ├── flash_in/
+    │   ├── input_params.json   ← 输入参数快照 (可追溯)
+    │   └── run.log             ← 运行日志
+    └── flash_out/
+        └── result.h5           ← ★ 核心输出 (变分辨率插值网格)
+```
+
+`result.h5` 数据集: `t (Nt,)`、`x (Nx,)`、`dens/tele/tion/trad/pres/pele/pion/prad/
+velx/ye/sumy/poly/targ`，均为 `(Nt, Nx)`。
+
+### 直跑方式 (python -m 场景)
+
+> **run_id 规范（06d，自动分配）**：`WslSpec.outputfiles_dir` 显式指定时，
+> `run_wsl` 每次运行自动扫描现有 `run_NNNNNN*` 目录取 max+1 作为本轮
+> run_id（`allocate_run_id()`，同时扫描 flash_input 快照目录），三层产物
+> 按 id 对称归档：**输入快照** `flash_input/run_NNNNNN/`、**输出**
+> `flash_output/outputfiles/run_NNNNNN/`（经环境变量 `FLASH_COLLECT_DIR`
+> 注入 run_flash.sh，优先于脚本内置 COLLECT_DIR）、**分析图**
+> `flash_output/plots/run_NNNNNN/`。run_id 用 6 位零填充为大规模仿真预留
+> 扩展位。旧场景（未指定 outputfiles_dir）保持旧行为。
+
+```
+{场景目录}/
+├── flash_input/            ← 工作输入文件 + run_flash.sh + wsl 运行日志
+│   ├── laserslab_custom.par / Config / *.F90 / *.cn4
+│   ├── run_flash.sh / submit_flash.sh
+│   ├── pre_diag_laser_pulse.png      ← 预诊断: 激光脉冲时间-功率 (gen_checker.ploter)
+│   ├── pre_diag_initial_density.png  ← 预诊断: 初始密度分层 + 区域边界
+│   ├── wsl_run.log / wsl_console.log   ← 运行日志 (排查编译/运行错误)
+│   ├── run_000001/         ← ★ run_000001 的输入快照 (par/Config/F90/cn4/预诊断图)
+│   └── run_000002/         ← ★ run_000002 的输入快照 (不同 id 输入可能不同)
+└── flash_output/
+    ├── outputfiles/
+    │   ├── run_000001/     ← ★ run_000001 的 FLASH 原始 HDF5 (plt_cnt_* / chk_*)
+    │   └── run_000002/     ← ★ run_000002 的 FLASH 原始 HDF5
+    └── plots/
+        ├── run_000001/     ← ★ 该轮分析图
+        └── run_000002/
+```
+
+---
+
+## 快速搭建新场景工作流
+
+以 `layer_tracer_CH` → 派生新场景为例，推荐六步流程：
+
+### 第 1 步：复制最接近的现有场景
+
+```
+flash/scenarios/private/tracer/
+├── _par_layers.py          ← 规范物理参数字典 (82 点脉冲/MGD 群边界等, 自包含)
+├── layer_tracer_CH/        ← CH 示踪场景 (模板)
+│   ├── layer_tracer_CH.py          ← 场景主脚本
+│   └── layer_tracer_CH_remote_analysis.py  ← HPC 远程分析脚本
+└── layer_tracer_Ti/        ← Ti 示踪场景 (由 CH 模板派生)
+```
+
+复制整个场景目录并重命名，物理参数字典放回 `_par_layers.py` 统一维护，避免转录错误。
+
+### 第 2 步：修改场景主脚本的可配置参数
+
+只需调整 `layer_tracer_XXX.py` 顶部的 `config_constants` 与 `SETUP_FLAGS`：
+
+| 参数 | 说明 | 示例值 |
+|------|------|--------|
+| `layer_samp_um` | 首层厚度 (µm) | `2.0` |
+| `xmin` / `xmax` | 仿真域 (cm) | `-0.04` / `0.01` |
+| `nblockx` / `lrefine_max` | 初始分块 / 最大 AMR 层级 | `8` / `9` |
+| `tmax` | 仿真结束时间 (s)；**验证期设 1.0e-11** | `1.0e-11` |
+| `plot_interval_step` | plt 输出频率 (步) | `1000` |
+| `nprocs` | MPI 进程数 (None=自动) | `None` |
+
+物种/分层几何在 `build_species_defs` 与 `GridBuilder.add_region` 中修改；
+新增材料时需在 `Config` 的 `DATAFILES` 追加对应 `.cn4` 条目。
+
+### 第 3 步：极小 tmax 快速验证（关键技巧）
+
+**首次搭建场景时，把 `.par` 中的 `tmax` 设为极小值（如 `tmax=1.0e-11`）**：
+FLASH 到达该仿真时间立即结束，编译完成后几分钟内跑完，专用于验证场景搭建
+（网格/物种/初始密度分层/激光配置）是否正确，不必等待完整物理演化。
+
+```python
+config_constants = {
+    ...
+    "tmax": 1.0e-11,   # 搭建验证用; 正式运行恢复规范值 (如 1.6e-9)
+}
+```
+
+### 第 4 步：一键运行
+
+```bash
+cd /path/to/flash
+python -m flash.scenarios.private.tracer.<新场景>.<新场景脚本>
+```
+
+自动完成：依赖检查 → 生成 8 类输入文件 → WSL 编译运行 → 收集输出 → 分析绘图。
+
+### 第 5 步：结果判读清单
+
+通过以下五类产物快速判断场景搭建是否正确：
+
+| 产物 | 判读要点 |
+|------|---------|
+| **密度剖面图** (`dens_profiles.png`) | ① 各物种分界面位置与厚度正确；② 各层密度平台值正确（log 轴上台阶清晰，V 层应显著高于 CH）；③ 域两端为腔室气体本底；④ 全域图 + 局部放大图结合看边界过渡 |
+| **物种分布图** (`species_zoom.png`) | 每个空间位置恰有一个物种为 1（0/1 阶跃干净）；各 tar 层位置/厚度与设计一致 |
+| **预诊断图** (`pre_diag_laser_pulse.png` / `pre_diag_initial_density.png`) | 激光脉冲 82 段形状/峰值功率与设计一致；初始密度分层台阶与区域边界标注正确（生成阶段即可核对，无需等仿真） |
+| **时空彩图** (`dens_timespace.png`) | 时间方向初始场无异常漂移（tmax 极小时仅 1 帧自动跳过） |
+| **FLASH 输入文件** | `.par` 参数（尤其 tmax/物种表绑定/plot_var 白名单）、`Config` DATAFILES+SPECIES、`Simulation_initBlock.F90` 分层边界逐一核对 |
+| **运行日志 + 输出文件** | `wsl_run.log` 无 `DRIVER_ABORT`/unknown parameter 告警；`flash_output/outputfiles/` 中 plt/chk 数量与输出频率设置一致 |
+
+### 第 6 步：恢复正式参数并提交
+
+验证通过后，把 `tmax` 恢复为规范值（如 `1.6e-9`），再跑正式仿真；一切稳定后
+推送 Gitee（`scripts/03_git_publish/git_push.py`）。
+
+### 注意事项（血泪经验）
+
+#### ★ par 参数控制规范化（layer_tracer_CH_ml 范式）
+
+场景几何**不再硬编码**于场景脚本/生成的 F90 中，而是全部经 FLASH 运行时参数控制——
+**只修改 `.par` 文件即可改变场景几何，无需改代码**（改 .par 不触发重编译）。
+
+layer_tracer_CH_ml 的分层几何参数（.par INITIAL CONDITIONS 段）：
+
+| par 参数 | 含义 | 默认值 | 控制的区域边界 |
+|----------|------|--------|----------------|
+| `sim_shldRadius` | delta: 屏蔽层/示踪薄层厚度 | 0.1 µm | shld=[0,shldR]；各 tar 层上界=L+shldR |
+| `sim_tar1Radius` | L1: tar1 外边界累积位置 | 1 µm | tar1=[tar1R, tar1R+shldR] |
+| `sim_tar2Radius` | L2 | 2 µm | tar2=[tar2R, tar2R+shldR] |
+| `sim_tar3Radius` | L3 | 3 µm | tar3=[tar3R, tar3R+shldR] |
+| `sim_sampHeight` | D: 尾部 samp 厚度 | 50 µm | samp_rear=[tar3R+shldR, +sampH] |
+
+声明链路（生成器自动维护，无需手写）：
+1. 场景 `build_species_defs` 给物种定义 `radius/height`（+ 可选
+   `radius_param/height_param` 自定义参数名）；
+2. `ConfigGenerator` 生成 `PARAMETER sim_* REAL <默认值>`；
+3. `SimDataGenerator` 生成 `Simulation_data.F90` 声明、`SimInitGenerator`
+   生成 `RuntimeParameters_get` 读取；
+4. `BlockGenerator` 区域用 `x_expr=("sim_tar1Radius", "sim_tar1Radius + sim_shldRadius")`
+   生成参数化边界（数值 `x_range` 仅用于采样/预诊断）；
+5. `.par` 经 `par_gen.set("sim_tar1Radius", ...)` 设定实际值。
+
+配套机制：
+- **lrefine 分辨率自动注释**（gen_par 全场景生效，行尾简化格式）：生成的
+  `.par` 在 `lrefine_max`/`lrefine_min` 行尾自动附理论网格分辨率
+  `res = dir_delta/(nxb*nblock*2^(lrefine-1))`，便于核对 AMR 是否能解析最薄层
+  （0.1 µm 层需 res_min ≤ 0.03 µm）。
+- **plot_var 白名单**：物种增删必须同步重写 `plot_var_1..N`（见下条 9）。
+- **par 行尾注释**（gen_par 全场景生效）：绝大多数参数行尾自动追加对齐的
+  `# 说明`（静态字典 + 脉冲序列/能群边界/物种族动态规则），lrefine 行尾
+  直接给出分辨率公式与结果——详情见 `gen_par/README.md`。
+
+#### 通用注意事项
+
+1. **tmax 极小值验证**是场景搭建的标准做法——先保证"能跑、初始场对"，再谈物理演化。
+2. **EOS/opacity 表温度下界**：`.cn4` 温度网格单位为 eV。旧表下界 2.0 eV，新表
+   0.01 eV；初始温度低于表下界时扩散求解器可能报 `[Diffuse]: computed dt is not positive!`。
+   优先用自研新表（Z02/Z06/Z14 等，`gen_eos_op` 规范库复制）。
+3. **物种名 ≤ 4 字符**（如 cham/samp/targ），FLASH Fortran 侧变量长度受限。
+4. **文件换行符必须 LF**：`run_flash.sh`/`submit_flash.sh` 等在 WSL/Linux 下运行，
+   CRLF 会导致 `/bin/bash^M` 错误（HPC 上传后 runner 会自动 `sed -i 's/\r$//'` 兜底）。
+5. **参数默认值的权威来源**是 `flash/input_gen/gen_par/defaults.py`；场景覆写之外的
+   参数不得私自修改，`.par` 基础参数通过 `ParGeneratorExtended` API 生成，禁止手写。
+6. **内在关联检查**：`flash/input_gen/gen_checker` 提供 14 条规则（`.par`↔`Config`↔F90↔
+   脚本一致性），场景验证 FAIL 时先跑
+   `python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>` 定位。
+7. **编译缓存权衡**：`run_wsl` 每次清 objdir 全新编译（状态严格一致但慢）；
+   频繁改 `.par` 迭代时手动复用 flash4 二进制（编译期输入不变则无需重编译）。
+8. **凭据安全**：超算 SSH 凭据经加密存储读取（`flash._core.credentials`），禁止在任何
+   脚本中硬编码用户名/密码/token。
+9. **★ 增删物种必须同步重写 `plot_var` 白名单**：`.par` 模板中的 `plot_var_1..N`
+   是 plotfile 输出变量的**白名单**——FLASH 只输出名单内的变量，名单外的新物种
+   **静默丢失**（dens/sumy 看似正常，极难察觉）。layer_tracer_CH_ml 已按
+   6 物种重写 plot_var_1..14；派生新物种场景时务必照做。
+10. **增删物种时同步清理 par 残留键**：物种删除后其 `sim_rho*/ms_*/op_*/eos_*`
+    键须从 par 显式剔除（Config 不再声明 → 成为 unknown parameter）。剔除时
+    用**显式键列表**，禁止 `"targ" in k` 式模糊匹配——会误删激光 `ed_targetX_1`
+    （"target" 包含 "targ"）。改材料密度同理：模板的 `sim_rhoShld` 等占位值
+    会覆盖 Config 默认，须显式覆写（如 V 层 1 → 6.11）。
+11. **EOS 表复制须校验返回值**：`copy_eos_file` 源缺失时返回 `None` 而非抛异常，
+    仅判 `FileNotFoundError` 会漏检。新克隆仓库的注册表路径可能与实际数据布局
+    不符（He/CH BADGER 表目前仅在旧 flash_c 仓库）——layer_tracer_CH_ml 的
+    `_copy_cn4()` 实现了 注册表别名 → eos_op_data 递归 → 旧仓库兜底 的三级查找。
+12. **outputfiles 收集位置与 run_id**：`WslSpec.outputfiles_dir`（Python 端）与
+    `ShellScriptGenerator` 的 `config["collect_dir"]`（run_flash.sh 端）必须
+    指向同一基目录；运行时 `run_wsl` 自动分配 run_id（06d）并以环境变量
+    `FLASH_COLLECT_DIR` 注入 `run_NNNNNN` 子目录（优先于脚本内置值），
+    输入快照同步归档到 `flash_input/run_NNNNNN/`。推荐基目录统一
+    `{场景}/flash_output/outputfiles`。
+13. **HDF5 剖面分析必须走 `extraction_mode` 路径**（2026-08-29 三方交叉验证结论）：
+   `FlashDataLoader` 的**默认 `load()` 走 `read_var`，不过滤 `node type`**，非叶子
+   父块的陈旧粗网格数据被混入且坐标/数据错位——实测 16352 点中 81 个与真值不符，
+   最大偏差 1.0 g/cm³（真值 1.0 处报 1e-6，反之亦然）。涉及剖面、界面、极值的
+   分析**禁止使用默认 `load()`**，应显式指定提取模式：
+
+   ```python
+   from flash.output_pro.loader import FlashDataLoader
+   c = FlashDataLoader(path).load(compute_derived=False, extraction_mode="yt")
+   # extraction_mode="yt"  → FlashHDF5File.extract_var_with_yt (只取 node_type==1)
+   # extraction_mode="h5py" → extract_var_yt_style (同样只取叶子, 无 yt 依赖, 超算推荐)
+   ```
+
+   两种模式均已实现叶子块过滤并经三方交叉验证一致（yt vs h5py-leaf：
+   max rel diff ≈ 2e-6，来自间断处插值）。可全局切换默认模式：
+   `flash.output_pro.extraction_modes.set_extraction_mode("yt")`
+   或环境变量 `FLASH_EXTRACTION_MODE=yt`。
+
+---
+
+## 架构说明
+
+```
+flash/scenarios/
+├── __init__.py / __main__.py     ← 包导出与旧名动态转发
+├── core/                          ← 框架层（2026-11-05 功能化重组 4 子包）
+│   ├── runner.py  insitu_runner.py   ← 兼容壳 → flash_run.modes.*（原地保留）
+│   ├── scene_paths.py  anchors.py    ← 地基：根定位 / 跨场景数据锚点
+│   ├── scene_reg/                    ← discovery registry catalog policies device_defaults
+│   ├── entry/                        ← cli launcher（统一 CLI 入口）
+│   ├── engine/                       ← simulator base interpolator hints
+│   └── hpc/                          ← hpc_job submit_cli
+├── common/                        ← 场景共享代码（非场景、位置固定）
+│   ├── scene_ref.py              ← 跨场景模块按名加载（场景间零 import）
+│   └── time_control.py           ← 极短验证 dt 收缩规则
+├── scripts/                       ← 共享脚本区
+│   ├── relocate/                 ← 收纳整理工具链六件套
+│   ├── checks/  validation/  legacy/
+├── _scene_anchors.json            ← 跨场景数据文件逻辑锚点表
+├── 场景收纳整理改造计划.md
+│
+├── public/                        ← 公开场景（runs_* 为运行产物目录）
+│   ├── center_evolution/ch_center|ch_center_t
+│   └── sandwich/thin_layer_sandwich|grad_dens_sandwich
+│
+├── flash_demo/                    ← 演示场景（hello_flash/demo_local/demo_hpc）
+│
+└── private/                       ← 私有场景（不随发布包分发）
+    ├── SNB/                       ← SNBtest（Test/t001…）与 snb_package 资料
+    ├── Sandwich/TxN/              ← 多层 sandwich TxN 场景
+    ├── archive_2026/              ← 归档
+    └── tracer/                    ← Ti/V 示踪层场景群
+        ├── SNB/                   ← FL-SH vs SNB 对比族（SNBOneCH_ml 委托链 + SNBVTi 系）
+        ├── OneCH_ml  OneC_ml(_F)  OneSi_ml(_F)
+        ├── TiTi  CHTi(_F)  VTi  VCH_ml(_F)  Au  VTi_oldstyle
+        └── tools_local/           ← 批量工具
+
+test/scenarios/                    ← 场景测试（含 tools/ 工具链门禁 24 项）
+```
+
+### 关键设计原则
+
+1. **场景 = 参数 + 组装流程**：场景差异在 `config_constants`/物种定义/参数字典，共享
+   runner 与 input_gen 生成器，不复制工作流代码。
+2. **规范参数自包含**：`.par` 全文参数内嵌于 `_par_layers.py` 等参数字典，避免手抄错。
+3. **输出可追溯**：输入文件与运行日志长期保留在 `flash_input/`，每次运行可复现。
+4. **一键切换运行环境**：`RUN_MODE = "wsl" | "hpc"`（或环境变量 `FLASH_RUN_MODE`），
+   同一场景本机调试与超算正式运行零改动切换。
+
+---
+
+## EOS/Opacity 表 (`.cn4`) 温度单位
+
+所有 `.cn4` 文件的**温度网格单位为 eV**（电子伏特），而非 K（开尔文）。FLASH 运行时
+将 `sim_*` 系列参数（如 `sim_teleCham`）中设定的 K 值自动转换为 eV 查表。
+
+| 值 | eV | K |
+|-----|-----|-----|
+| 室温 | 0.025 eV | 290.11375 K |
+| 旧 EOS 表下界 | 2.0 eV | 23209 K |
+| 新 EOS 表下界 | 0.01 eV | 116 K |
+
+初始温度注意事项:
+- **旧 EOS 表**（`he-imx-*`, `polystyrene-imx-008*`）起始温度 2.0 eV，室温低于下界时
+  FLASH 外推；简单场景（低功率）可用，高功率下扩散求解器易报
+  `[Diffuse]: computed dt is not positive!`。
+- **新 EOS 表**（`Z02_*`, `Z06_*`, `Z14_*`）起始温度 0.01 eV，室温在有效范围内，优先使用。
+- 如需自定义初始温度，在场景 `config_constants` 或 `params_overrides` 中显式传入
+  `sim_teleCham=290.11375` 等参数。
+
+> 此说明适用于 `sim_tele*`（电子温度）、`sim_tion*`（离子温度）、`sim_trad*`（辐射温度）
+> 所有温度参数。
+
+```bash
+# 运行所有接口测试 (无需 FLASH, 快速)
+cd flash/test/scenarios
+python run_all_scenario_tests.py
+
+# 运行真实 FLASH 端到端测试 (需要 5-10 分钟)
+python test_real_flash_run.py --scenario ch_center
+```
+
+---
+
+## 常见问题
+
+### Q: FLASH 编译失败？
+
+检查:
+1. WSL 中 `~/<user>/FLASH/FLASH4.8/` 是否存在
+2. `Config` 中 `DATAFILES` 指向的 `.cn4` 文件是否齐全（场景目录内要有实际文件）
+3. `SETUP_FLAGS` 中的 FLASH 单位是否已安装 (`+laser`, `+uhd3t`, `+mgd`)
+
+### Q: `[Diffuse]: computed dt is not positive!`
+
+EOS/opacity 表与初始温度不匹配。检查:
+- 初始温度是否低于 `.cn4` 表的最低温度节点（见上节）
+- `rt_mgdNumGroups` 和 `rt_mgdBounds` 必须与 `.cn4` 文件的 grupbd 匹配
+- 更换为新 EOS 表或调整 `eos_*EosType`
+
+### Q: `.par` 中出现 Unknown runtime parameter 告警？
+
+`.par` 的 `sim_*` 键未在 `Config` 中声明 `PARAMETER`。运行内在关联检查定位:
+
+```bash
+python flash/input_gen/gen_checker/check_relations.py <flash_input 目录>
+```
+
+### Q: WSL 运行报 `/bin/bash^M: bad interpreter`？
+
+脚本为 CRLF 换行。用 `dos2unix` 或编辑器转为 LF 后重跑（生成器默认输出 LF）。
+
+### Q: 如何并行运行多个仿真？
+
+直跑场景在 Python 中循环调用生成器并改写 `config_constants`（注意输出目录隔离）；
+引擎场景每次 `engine.run()` 自增 run_id，天然互不冲突。
+
+---
+
+## 超算（NC-E）实测记录（2026-10-26）
+
+三个公开场景在超算 **NC-E（分区 v5_192）全部跑通**：
+
+| 场景 | 作业号 | 状态 | 耗时 | chk | 提交方式 |
+|---|---|---|---|---|---|
+| `ch_center` | 4924413 | COMPLETED | — | 341 | 场景脚本 `laserslab1d_local_custom.py`（`FLASH_RUN_MODE=hpc-insitu`） |
+| `grad_dens_sandwich` | 4924566 | COMPLETED | 5:25 | 629 | `python -m flash.scenarios.core.entry.cli submit grad_dens_sandwich` |
+| `thin_layer_sandwich_si` | 4924560 | COMPLETED | 4:25 | 34 | `python -m flash.scenarios.core.entry.cli submit thin_layer_sandwich_si` |
+
+> ★ 提交方式已于 2026-10-26 统一：原 `deploy/hpc_deploy/submit_sandwich.py`
+> （内含场景映射表 ⇒ 提交器里长出了子场景知识）已删除，改为
+> **场景层声明 + 执行层通用服务**：
+>
+> | 内容 | 归属 |
+> |---|---|
+> | 场景输入目录 / FLASH 单元名 / setup 参数 | `flash.scenarios.core.hpc_job` |
+> | 场景族策略（仅超算 / 核数即网格） | `flash.scenarios.core.policies` |
+> | 场景专属核数默认值 | `flash.scenarios.core.device_defaults` |
+> | 通用提交实现（渲染 → 落盘 → sbatch） | `flash.flash_run.remote.job_submit` |
+>
+> 护栏 `R-LAYER-03` 机械校验：执行层出现场景名即 CI 失败。
+
+超算侧测试套件（离线重装后）：framework 221 passed / input_gen 86 passed /
+output_pro 45 passed —— 全绿。
+
+### 环境要点（全部由实跑对照实验确定，勿凭直觉改）
+
+1. **超算强制离线安装**：`start_flash.py` 自动探测 SLURM（三命令齐备 +
+   `sinfo -s` 返回分区行）⇒ 走 `--no-index` 离线模式并复用命名环境
+   `.venv-hpc-nce`；超算无外网，pip 命中 SSL 类错误即**立即失败**（不重试）。
+2. **编译期禁 `module load`**：module 设置的 `LIBRARY_PATH`/`CPATH` 指向旧
+   Intel 2018 环境，会屏蔽 oneAPI 2022.1 自带的 `libmpifort` ⇒ 链接期
+   `cannot find -lmpifort/-lmpi`。对照实测：无 module ⇒ OK；load mpich ⇒
+   FAIL；load hdf5 ⇒ FAIL。
+3. **运行期用 Intel 2018 的 `mpi/intel64/lib`**：oneAPI 2022.1 的
+   `lib/release` 组合在该集群会 `MPI_Init` SIGSEGV（forrtl severe 174）。
+   运行库链（顺序敏感）：Intel MPI → SLURM PMI（`srun` 必需）→ HDF5 →
+   oneAPI runtime → GCC runtime（`gcc/9.3.0-new/lib64`）。
+4. **⚠ 编译/运行放在哪，决定快慢**（2026-10-26 修正，勿再当"铁律"）：
+   中间产物写在**共享并行盘**上 ⇒ make 漫长；写在**节点本地 tmpfs**上 ⇒
+   setup 2 s + make 31 s（1550 个 `.o`）。⇒ 统一把编译 objdir 与运行目录
+   放在节点本地 scratch，产物再归档回共享盘。
+   ⇒ **编译/运行/归档全部在计算节点内完成**，登录节点只做提交与轮询
+   （登录节点是交互资源，不该被长时间占用；作业内编译才能吃满计算核）。
+5. **产物要归档，不能留在 scratch**：scratch 随节点生命周期消失 ⇒ 归档
+   目标必须在**共享并行盘**上（`$SLURM_SUBMIT_DIR` 一侧）。
+6. **装置参数唯一事实源** = `flash/flash_run/env/devices.py`（架构护栏
+   R-SCENE-05 禁止场景层硬编码分区/模块/站点路径）；场景脚本模板用
+   `@DEV_EXPORTS@` / `@RUNTIME_LIBS@` 等占位符，由生成器渲染。
+
+### 目录拓扑与资源规格（`flash.flash_run.remote.job_layout`）
+
+一次超算作业的目录分三类，各有职责：
+
+| 类别 | 放什么 | 为什么 |
+|---|---|---|
+| **scratch**（节点本地 tmpfs） | 编译 objdir、运行工作目录 | 快（内存盘）；用完即弃 |
+| **shared**（共享并行盘） | 输入源、最终产物、作业日志 | 持久、跨节点可见 |
+| **archive**（shared 内） | 从 scratch 归档回的 chk | 唯一持久的产物落点 |
+
+作业体由 `flash.flash_run.remote.job_scripts.render_job_body()` 生成，
+固定四阶段顺序：
+
+```
+scratch 探测 → stage(输入) → build(编译) → run(运行) → archive(归档)
+```
+
+提交时可直接指定资源与目录（`SlurmJobSpec` 扩展字段）：
+
+```python
+SlurmJobSpec(
+    name="flash_scene",
+    script=render_job_body(layout, build=..., run=...),
+    partition="v5_192", nodes=1, ntasks=16, cpus_per_task=1,
+    time_limit="02:00:00", mem_per_node="32G", account="flash_ssh",
+    chdir="/shared/proj", out_dir="/shared/proj/logs",
+)
+```
+
+★ 三条容易踩的（均有超算复现）：
+- `setup` 在 objdir 里遇到**实体 `.F90`** 会 `input()` 提问 ⇒ 批处理里
+  `EOFError`。⇒ objdir 保持干净 + 喂 `Y` + `-parfile`。
+- `find` 多 pattern 必须用 `-o` 连接，否则**静默拷 0 个**。
+- 归档用的 glob **不能加引号**（引住则 shell 不展开 ⇒ 拷不出文件）。
+
+### 离线安装（"U 盘式"迁移）
+
+```bash
+# 1) 联网机造 wheelhouse（本地平台）或交叉造 Linux 版
+python deploy/build_wheelhouse.py --profile full
+python deploy/hpc_deploy/build_wheelhouse_linux.py      # 交叉 manylinux
+
+# 2) 只更新本体 wheel（依赖闭包复用，秒级）
+python deploy/hpc_deploy/refresh_body_wheel.py --body artifacts/dist_new/flash_sim-0.1.11-py3-none-any.whl
+
+# 3) 迁移到超算（tar → SFTP → 双端 SHA256 → 展开 → 离线安装）
+python deploy/hpc_deploy/migrate_wheelhouse.py
+
+# 4) 强制清零重装（超算无外网 ⇒ 全程 --no-index）
+python start_flash.py --offline --wheelhouse <wheelhouse 路径>   # 远端执行
+```
+
+---
+
+## 场景任意收纳整理（2026-11-04 可移植化改造）
+
+任意场景子目录可在 `flash/scenarios/` 树内**自由移动 / 重新归类 / 任意深度嵌套，无需任何修改**，全流程脚本照常执行。
+
+- **机制**：discovery 全树发现 + manifest 路径相对解析 + `core/scene_paths.py` 根定位 + 场景间零 import（代码复用走 `common/scene_ref.py` 按名加载，数据文件走 `_scene_anchors.json` 逻辑锚点）。
+- **scene.json 极简化（2026-11-05 位置优先）**：身份 = manifest 所在目录名/变体名——复制/移动目录即完成整理，manifest 零改动；旧显式名自动降级为别名继续可用。
+- **移动场景**：`python flash/scenarios/scripts/relocate/relocate_scene.py <src> <dst>`（自动 git mv + 锚点重写 + 残留扫描）。
+- **整理后验证**：`scripts/relocate/audit_portable.py --strict`（须 ERROR=0）+ `verify_all_scenes.py --strict`（须 35/35）。
+- **详细说明**：见 [场景收纳整理改造计划.md](场景收纳整理改造计划.md)。
+
+---
+---
+
+## 许可、致谢与商用
+
+flash-sim 采用双重许可，完整条款见根目录 [README.md 许可章节](../README.md#许可)、[LICENSE](../../LICENSE) 与 [NOTICE](../../NOTICE)。
+
+- **出版物致谢**：使用本场景系统（flash-sim）产生的任何出版物，请感谢**绵阳市的 PhySimX 团队**开发了该仿真辅助 Python 包。建议文案：*"We acknowledge the PhySimX team (Mianyang, China) for developing the flash-sim auxiliary Python package used in this work."*
+- **商用说明**：flash-sim 的 Python 代码以 Apache 2.0 许可，其商用须遵守所有适用许可（含 FLASH 仿真引擎的 FLASH License Agreement §5）；商用场景下的授权与责任以届时适用的许可及书面约定为准。

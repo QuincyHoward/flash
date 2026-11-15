@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from eosop_pro.plotting.units import NA
+from eosop_pro.plotting.style.units import NA
 
 
 class IdealGasStub:

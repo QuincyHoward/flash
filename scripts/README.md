@@ -1,12 +1,12 @@
 # scripts/ — 脚本工具目录（按功能分类）
-> 最后核对：2026-11-05 · commit 7e04857
+> 最后核对：2026-11-15 · commit 97d5e5d
 
 
-本目录包含 PhySimX FLASH 模块的辅助脚本，按功能分为 **环境诊断 / 超算 HPC / Git 发布 / 备份 / 测试 / 迁移管理 / 私有保留** 七类（编号目录 `01_`–`07_`），另有 `git-hooks/`。
-（注：`07_private_keep/` 为私有脚本，不随发布包分发。）
+本目录包含 PhySimX FLASH 模块的辅助脚本，按功能分为 **环境诊断 / 超算 HPC / Git 发布 / 备份 / 测试 / 迁移管理 / 私有保留 / 文档门禁** 八类（编号目录 `01_`–`08_`），另有 `utils/`（独立小工具）、`git-hooks/`（Git 钩子）与两个根级脚本。
+（注：`07_private_keep/` 为私有脚本，不随发布包运行链分发；每个一级子目录均有自己的 README，见下方「子目录 README 索引」。）
 
-所有 `.py` 脚本均支持 **双击直接执行**（Windows 下双击 `.bat` 或 `.py` 即可），无需手动输入。
-凭据统一通过 `flash/_core/credentials` 模块加密管理，无需在脚本中硬编码敏感信息。
+Windows 下带 `.bat` 包装的入口（`git_push.bat` / `git_pull.bat` / `manage.bat`）可双击执行；其余 `.py` 脚本用 `python scripts/<目录>/<脚本>.py` 调用。
+凭据统一通过加密存储读取（见文末「凭据管理」），无需在脚本中硬编码敏感信息。
 
 ---
 
@@ -14,57 +14,63 @@
 
 ```
 scripts/
-├── README.md                     # 本文档
-├── __init__.py                   # Python 包标识
+├── README.md                      # 本文档（总索引）
+├── __init__.py                    # Python 包标识
+├── clean_sandwich_txn_wsl.sh      # WSL 侧 sandwich TxN 产物清理（一次性）
+├── sync_workbuddy_skills.py       # skills/ → .workbuddy/skills/ 单向镜像
 │
-├── 01_env_diagnose/              # 环境诊断与修复
-│   ├── check_env.py              #   环境自检 (Python/依赖/FLASH 路径)
-│   ├── diag_flash_env.py         #   FLASH 环境诊断 (用户名/安装路径探测)
-│   ├── check_plot_style.py       #   绘图规范扫描 (PPT 演讲级)
-│   ├── fix_plot_style.py         #   自动修复绘图样式违规
-│   ├── fix_bootstrap.py          #   修复包引导/导入问题
-│   ├── gen_resource_config.py    #   生成资源配置文件 (MPI 进程数等)
-│   └── test_dual_mode.py         #   双重导入模式测试 (standalone / PhySimX)
+├── 01_env_diagnose/               # 环境诊断与修复（README.md）
+│   ├── check_env.py / diag_flash_env.py
+│   ├── check_plot_style.py / fix_plot_style.py
+│   ├── fix_bootstrap.py / gen_resource_config.py
+│   └── test_dual_mode.py
 │
-├── 02_hpc/                       # 超算 HPC 部署
-│   ├── hpc_laserslab_test.py     #   一键编译 + 运行 + 报告 (LaserSlab)
-│   ├── hpc_run_laserslab.sh      #   超算运行脚本 (上传后执行)
-│   ├── hpc_run_uploader.py       #   脚本上传 + 执行器 (SFTP)
-│   └── hpc_download_results.py   #   SFTP 打包下载 HDF5 结果
+├── 02_hpc/                        # 超算部署与结果回传（README.md）
+│   ├── hpc_laserslab_test.py / hpc_run_laserslab.sh
+│   ├── hpc_run_uploader.py / hpc_download_results.py
+│   └── probes/                    # 一次性诊断探针（README.md）
 │
-├── 03_git_publish/               # Git 推送 / 发布 / 版本管理
-│   ├── git_push.py               #   ★ 核心: 统一 Git 推送脚本 (双击可用)
-│   ├── git_push.bat              #   Windows 批处理包装 (双击入口)
-│   ├── git_pull.py               #   一键拉取 (--ff-only, 可 --rebase/--stash)
-│   ├── git_pull.bat              #   Windows 批处理包装 (双击入口)
-│   ├── _git_auth.py              #   ★ 认证统一入口: credential helper 参数拼装
-│   ├── _git_credential_helper.py #   ★ git credential helper 协议实现 (只服务 gitee.com)
-│   ├── private/git_push_private.py # 私有备份仓推送 (独立目标, 不改公开 remote)
-│   ├── git_size_report.py        #   Gitee 分支文件大小统计 (xlsx 报告)
-│   ├── install-git-hooks.sh      #   安装 Git 钩子 (pre-commit / pre-push)
-│   ├── git-tag-with-test.sh      #   打标签前运行全局测试
-│   ├── tag-release.sh            #   完整发布流程 (格式检查 + 测试 + 构建 + 标签)
-│   ├── publish_pypi.py           #   PyPI 发布 (twine)
-│   └── update_readme_gitee.py    #   更新 Gitee 仓库 README
+├── 03_git_publish/                # ★ Git 推送 / 发版 / 手工 Git 速查（README.md）
+│   ├── git_push.py / .bat / git_pull.py / .bat
+│   ├── _git_auth.py / _git_credential_helper.py
+│   ├── git_size_report.py / .bat / publish_pypi.py / update_readme_gitee.py
+│   ├── install-git-hooks.sh / git-tag-with-test.sh / tag-release.sh
+│   ├── private/git_push_private.py
+│   └── reports/                   # xlsx 产物目录（已忽略，不入库）
 │
-├── 04_backup/                    # 备份
-│   └── usb_backup.py             #   USB/本地备份 (gitee/full 双模式)
+├── 04_backup/                     # 发布前备份（README.md）: usb_backup.py
+├── 05_test/                       # 全局测试（README.md）: run_global_tests.py
+├── 06_migration/                  # 迁移 / 合规清理（README.md）: migrate_imports.py / manage.bat
+├── 07_private_keep/               # 私有保留（README.md）: keep_private_only.py（破坏性，人工专用）
+├── 08_docs/                       # 文档门禁（README.md）: check_docs.py / dump_docstrings.py
+├── utils/                         # 独立小工具（README.md）: check_hdf5_time.py / convert_*.py
 │
-├── 05_test/                      # 测试
-│   └── run_global_tests.py       #   全局三套 pytest (framework/input/output)
-│
-├── 06_migration/                 # 迁移 / 管理 / 清理
-│   ├── migrate_imports.py        #   导入路径迁移工具
-│   ├── remove_flash_copyrighted.sh #  移除 FLASH 版权材料 (合规)
-│   └── manage.bat                #   凭据管理中心入口 (双击)
-│
-├── 07_private_keep/              # 私有保留 (不随发布包分发)
-│
-│
-└── git-hooks/                    # Git 钩子脚本 (自动触发, 勿移动)
-    ├── pre-commit                #   提交前: Black 格式检查 + 导入检查
-    └── pre-push                  #   推送前: 框架 pytest 测试
+└── git-hooks/                     # Git 钩子（README.md, 勿移动）
+    ├── pre-commit                 #   提交前: Black 格式检查 + 导入检查
+    └── pre-push                   #   推送前: 框架 pytest 测试
 ```
+
+---
+
+## 子目录 README 索引
+
+README 体系按「自底向上」维护：先定稿叶子目录 README，父级只引用子级结论；每条声明以当前代码为准。
+
+| 子 README | 内容 | 典型场景 |
+|---|---|---|
+| [01_env_diagnose/README.md](01_env_diagnose/README.md) | 环境自检、绘图规范、资源配置 | 新机器初始化、字体/DPI 合规检查 |
+| [02_hpc/README.md](02_hpc/README.md) | 超算部署、结果回传 | 提交作业、下载 HDF5 |
+| [02_hpc/probes/README.md](02_hpc/probes/README.md) | 一次性诊断探针清单 | 超算环境排障 |
+| [03_git_publish/README.md](03_git_publish/README.md) | ★ Git 常用指令速查、从 Gitee 删除文件（夹）、当前清理任务 | **手工 Git 操作** |
+| [04_backup/README.md](04_backup/README.md) | 双模式备份 | 发布前备份 |
+| [05_test/README.md](05_test/README.md) | 三套 pytest 分层 | 提交/发版前验证 |
+| [06_migration/README.md](06_migration/README.md) | 导入迁移、版权清理、凭据入口 | 结构调整、合规清理 |
+| [07_private_keep/README.md](07_private_keep/README.md) | 私有保全（含破坏性脚本边界） | 本机数据保全 |
+| [08_docs/README.md](08_docs/README.md) | 文档门禁与 AST 摘要工具 | README 批量维护 |
+| [utils/README.md](utils/README.md) | 独立小工具 | HDF5 时间戳核对、文档转换 |
+| [git-hooks/README.md](git-hooks/README.md) | pre-commit / pre-push 行为 | 钩子不触发、推送被拦 |
+
+改完 README 后运行 `python scripts/08_docs/check_docs.py` 做链接/锚点/模块引用门禁。
 
 ---
 
@@ -86,6 +92,9 @@ scripts/
 | 离线 | `deploy/build_wheelhouse.py`（**已提至根目录 deploy/**） | 联网机造离线包 | `python deploy/build_wheelhouse.py` |
 | 离线 | `deploy/install_offline.py` | 离线机一键安装 | `python deploy/install_offline.py` |
 | 管理 | `06_migration/manage.bat` | 凭据管理入口 | 双击 `manage.bat` |
+| 文档 | `08_docs/check_docs.py` | README 链接/锚点门禁 | `python scripts/08_docs/check_docs.py` |
+| Git | `03_git_publish/README.md` | 手工 Git 指令速查 / 从 Gitee 删除文件 | 见该 README 第 3、4 节 |
+| 镜像 | `sync_workbuddy_skills.py` | 仓库 skills 同步到项目级 | `python scripts/sync_workbuddy_skills.py --check` |
 
 ---
 
@@ -96,12 +105,14 @@ scripts/
 **双击即可一键推送**。自动完成：读取凭据 → 自动提交 → 推送到远程，全程无需手动输入。
 
 ```
-python scripts/03_git_publish/git_push.py           # 默认: 自动提交 + 推送 (双击即此)
+python scripts/03_git_publish/git_push.py           # 默认: 自动提交 + 推 Gitee + 同步超算
 python scripts/03_git_publish/git_push.py -m "fix: typo"   # 自定义提交信息
-python scripts/03_git_publish/git_push.py -b main   # 推送到 main 分支
+python scripts/03_git_publish/git_push.py -b main   # 推送到指定分支
+python scripts/03_git_publish/git_push.py --no-hpc  # 只推 Gitee, 跳过超算同步
 python scripts/03_git_publish/git_push.py -f        # 强制推送
 python scripts/03_git_publish/git_push.py -n        # dry-run (只展示不执行)
-python scripts/03_git_publish/git_push.py --tag v1.0  # 打标签 + 推送 (先跑测试)
+python scripts/03_git_publish/git_push.py --tags 0.2.1  # 推送已打好的标签 (发版用)
+python scripts/03_git_publish/git_push.py --allow-deletes # 允许提交删除 (默认拦截)
 python scripts/03_git_publish/git_push.py --status  # 查看 git 状态 (不推送)
 python scripts/03_git_publish/git_push.py --setup   # 进入凭据设置 (唯一需要交互的选项)
 ```
@@ -114,7 +125,7 @@ python scripts/03_git_publish/git_push.py --setup   # 进入凭据设置 (唯一
 | `git commit` (脚本内部) | **pre-commit** | Black 格式检查 + 导入检查 |
 | `git push` (脚本内部) | **pre-push** | 框架 pytest 测试 |
 | `--tag` 模式 | **git-tag-with-test.sh** | 全局三套测试 |
-| `git commit --no-verify` | 跳过钩子 | 不执行任何测试 |
+| `git commit --no-verify` | 跳过钩子 | **禁止使用**；钩子失败应先修代码或测试 |
 
 ### 2. 环境诊断与修复 — `01_env_diagnose/`
 
@@ -187,6 +198,21 @@ bash scripts/03_git_publish/tag-release.sh v0.2.0
 # 等价于命令行:
 python -m flash._core.credentials.manage
 ```
+
+### 8. 手工 Git 操作 — 详见 `03_git_publish/README.md`
+
+不调用一键脚本、直接在 Git Bash 操作时的完整指令集（状态同步、从 Gitee 删除文件/文件夹、撤销回滚、分支标签、体积排查、403 排障）集中在 [03_git_publish/README.md](03_git_publish/README.md) 第 3 节；第 4 节为 2026-11-15 的当前清理任务。
+
+**最常用的一条**（只从 Gitee 移除，本地文件全部保留）：
+
+```bash
+git rm -r --cached -- path/to/dir/       # --cached 是关键: 工作区文件一个都不动
+git add .gitignore                        # 同步忽略规则, 防止再次被 add -A 收入
+git commit -m "chore: stop tracking path/to/dir"
+git push origin master
+```
+
+⚠ 不要对 `git ls-files -ci --exclude-standard` 的全量结果批量执行删除：本仓实测 114 个命中，其中 84 个为有意保留的场景脚本与文档。必须按明确模式筛选后再操作。
 
 ---
 

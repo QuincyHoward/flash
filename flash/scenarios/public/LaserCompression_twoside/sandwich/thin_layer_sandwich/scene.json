@@ -1,0 +1,24 @@
+{
+  "name": "thin_layer_sandwich_si",
+  "kind": "engine",
+  "aliases": [
+    "thin_layer_sandwich",
+    "thin_layer"
+  ],
+  "description": "Si/CH/He 三层靶激光烧蚀（新 EOS 表；auto = 平台自适应）",
+  "policy": "public_scene",
+  "module": ".",
+  "attr": "scenario_si",
+  "sim_name": "grid_rede_si",
+  "basenm": "lasslab_",
+  "hpc": {
+    "input_rel_dir": "./sim_input_si",
+    "gen_script": "./gen_flash_inputs.py",
+    "flash_unit": "QC/grid_rede",
+    "par_file": "grid_rede.par",
+    "setup_extra": [
+      "ed_maxPulseSections=240"
+    ],
+    "ntasks": 4
+  }
+}

@@ -64,7 +64,7 @@ class SceneHpcJob:
     Attributes:
         name: 场景名。
         input_rel_dir: 场景输入目录（相对仓库根，如
-            ``flash/scenarios/public/sandwich/grad_dens_sandwich/sim_input``）。
+            ``flash/scenarios/public/LaserCompression_twoside/sandwich/grad_dens_sandwich/sim_input``）。
         gen_script: 输入生成脚本（相对仓库根）。
         flash_unit: FLASH 场景单元名；``{run_id}`` 会被替换。
         par_file: par 文件名。
@@ -121,38 +121,37 @@ class SceneHpcJob:
 
 #: 公开场景的超算提交声明表。
 #:
-#: ★ 2026-10-27 去注册化：SNBVTi{1,2,3}um / SNBVTi{1,2,3}umx 的提交声明
-#:   已迁至各自场景目录 ``scene.json`` 的 ``hpc`` 节（含 SNB_UG_SETUP_COMMON
-#:   全量 setup 参数、ntasks=125/175、nodes=3/4、gen_mode=local_upload 等），
-#:   由 ``_merge_manifest_hpc_jobs()`` 并入本表 —— **本模块不再保留副本**，
-#:   新增超算场景 = 写 scene.json，不改这里。
-SCENE_HPC_JOBS: Dict[str, SceneHpcJob] = {
-    "grad_dens_sandwich": SceneHpcJob(
-        name="grad_dens_sandwich",
-        input_rel_dir="flash/scenarios/public/sandwich/grad_dens_sandwich/sim_input",
-        gen_script="flash/scenarios/public/sandwich/grad_dens_sandwich/gen_flash_inputs.py",
-        flash_unit="QC/grad_dens_sandwich_{run_id}",
-        par_file="grid_rede.par",
-        setup_extra=("ed_maxPulseSections=240",),
-        ntasks=4,
-    ),
-    "thin_layer_sandwich_si": SceneHpcJob(
-        name="thin_layer_sandwich_si",
-        input_rel_dir="flash/scenarios/public/sandwich/thin_layer_sandwich/sim_input_si",
-        gen_script="flash/scenarios/public/sandwich/thin_layer_sandwich/gen_flash_inputs.py",
-        flash_unit="QC/grid_rede",
-        par_file="grid_rede.par",
-        setup_extra=(),
-        ntasks=4,
-    ),
-}
+#: ★ 2026-10-27 去注册化：新增超算场景 = 场景目录 ``scene.json`` 里写
+#:   ``"hpc": {...}``（字段白名单见 ``_HPC_MANIFEST_FIELDS``），由
+#:   ``_merge_manifest_hpc_jobs()`` 并入本表 —— 本模块不再保留副本。
+#: ★ 2026-11-11 收纳改造：原内置的 grad_dens_sandwich /
+#:   thin_layer_sandwich_si 两条目已迁入各自 scene.json hpc 节
+#:   （``"./xxx"`` 相对路径随场景目录移动自动跟随）；
+#:   内置表现已清零，本模块退化为纯 manifest 并表器 + 别名回退查询
+#:   （见 ``get_scene_hpc_job``）。
+SCENE_HPC_JOBS: Dict[str, SceneHpcJob] = {}
 
 
 def get_scene_hpc_job(name: str) -> SceneHpcJob:
-    """取场景的超算提交声明（未知场景报 KeyError）。"""
-    _merge_manifest_hpc_jobs()   # 幂等：manifest 声明并入内置表（去注册化）
+    """取场景的超算提交声明（未知场景报 KeyError）。
+
+    ★ 别名回退（2026-11-11）：discovery 位置优先命名后，生效 name =
+      目录名派生，而消费方常用 scene.json 显式 name/别名键
+      （如 thin_layer_sandwich_si → 生效名 thin_layer_sandwich）。
+      精确键未命中时经 discovery 按名/别名解析生效 name 再查；
+      仍未命中才 KeyError。
+    """
+    _merge_manifest_hpc_jobs()   # 幂等：manifest hpc 节并入声明表（去注册化）
     key = (name or "").strip()
     if key not in SCENE_HPC_JOBS:
+        try:
+            from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta
+            meta = resolve_scene_meta(key)
+        except Exception:
+            meta = None
+        canon = meta.name if meta is not None else None
+        if canon and canon != key and canon in SCENE_HPC_JOBS:
+            return SCENE_HPC_JOBS[canon]
         known = ", ".join(SCENE_HPC_JOBS)
         raise KeyError(f"场景 {name!r} 无超算提交声明；可用: {known}")
     return SCENE_HPC_JOBS[key]
@@ -181,12 +180,14 @@ def _merge_manifest_hpc_jobs() -> None:
     ★ 新增超算场景 = 场景目录 ``scene.json`` 里写 ``"hpc": {...}``
       （字段白名单见 ``_HPC_MANIFEST_FIELDS``），**不改本模块**。
 
-    ★ 2026-11-04 任意移动改造：
-      1. manifest ``hpc`` 节改为**按字段覆盖**内置表（原为同名整体跳过），
-         内置表仅作为未声明字段的兜底 —— scene.json 成为路径唯一事实源；
-      2. 内置表遗留条目（grad_dens_sandwich / thin_layer_sandwich_si）的
-         ``input_rel_dir``/``gen_script`` 若其目标 basename 在场景目录
-         （scene.json 物理位置）下存在，则按场景目录重写 —— 场景移动免疫。
+    ★ 2026-11-04 任意移动改造：manifest ``hpc`` 节**按字段覆盖**内置表，
+      scene.json 成为路径唯一事实源；``./xxx`` 相对路径由 discovery
+      ``_resolve_repo_rel`` 在 manifest 加载期解析（相对 scene.json
+      物理目录 → 仓库根相对），场景目录移动后自动跟随。
+
+    ★ 2026-11-11 收纳改造：内置表清零（原 grad_dens_sandwich /
+      thin_layer_sandwich_si 条目迁入各自 scene.json hpc 节），
+      rebase 自愈分支与 ``_rebase_to_scene`` 随之删除（死代码）。
     """
     global _merged
     if _merged:
@@ -197,7 +198,6 @@ def _merge_manifest_hpc_jobs() -> None:
     except Exception:
         return   # discovery 不可用时退回纯内置表（与旧行为一致）
     for meta in iter_scene_manifests():
-        scene_dir = Path(meta.source).parent if meta.source else None
         hpc = meta.extra.get("hpc")
         if isinstance(hpc, dict):
             manifest_kwargs = {k: (tuple(v) if isinstance(v, list) else v)
@@ -209,38 +209,3 @@ def _merge_manifest_hpc_jobs() -> None:
             else:
                 merged = SceneHpcJob(name=meta.name, **manifest_kwargs)
             SCENE_HPC_JOBS[meta.name] = merged
-        elif meta.name in SCENE_HPC_JOBS and scene_dir is not None:
-            # 内置表条目：路径字段按 scene.json 物理位置动态校正
-            job = SCENE_HPC_JOBS[meta.name]
-            new_ie = _rebase_to_scene(job.input_rel_dir, scene_dir)
-            new_gs = _rebase_to_scene(job.gen_script, scene_dir)
-            if (new_ie, new_gs) != (job.input_rel_dir, job.gen_script):
-                SCENE_HPC_JOBS[meta.name] = replace(
-                    job, input_rel_dir=new_ie, gen_script=new_gs)
-
-
-def _rebase_to_scene(repo_rel: str, scene_dir: Path) -> str:
-    """内置表路径字段重写：目标 basename 在场景目录下存在 → 按场景目录重写。
-
-    Args:
-        repo_rel: 旧仓库根相对 POSIX 路径（如 flash/scenarios/public/…/sim_input）。
-        scene_dir: 场景目录（scene.json 所在）。
-
-    Returns:
-        重写后的仓库根相对 POSIX 路径；无法重写时原样返回。
-    """
-    if not repo_rel:
-        return repo_rel
-    try:
-        from flash.scenarios.core.scene_paths import repo_root
-        repo = repo_root()
-    except RuntimeError:
-        return repo_rel          # wheel 模式：不动
-    old = repo / repo_rel
-    cand = scene_dir / old.name
-    if cand.exists() and cand.resolve() != old.resolve():
-        try:
-            return cand.resolve().relative_to(repo).as_posix()
-        except ValueError:
-            return repo_rel
-    return repo_rel

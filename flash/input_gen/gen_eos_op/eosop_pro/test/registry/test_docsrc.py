@@ -30,9 +30,8 @@ if _d not in sys.path:
 import _runner  # noqa: F401
 from _runner import expect, expect_eq, expect_in, main
 
-from eosop_pro import config, docsrc
-
-
+from eosop_pro import config
+from eosop_pro.core import docsrc
 # ── 路径固定（config.MATTER 会断言存在，避免静默跳过） ───────────────
 DOCX_SESAME = config.MULTI_HOME / "doc" / "MULTI使用的SESAME数据文件格式.docx"
 DOC_HYADES = config.MULTI_HOME / "doc" / "Hyades 数据格式说明.doc"

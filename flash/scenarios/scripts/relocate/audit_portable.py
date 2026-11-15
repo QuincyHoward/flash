@@ -46,7 +46,7 @@ SCEN = REPO / "flash" / "scenarios"
 #: 排除的目录名/通配（运行产物、缓存、备份）
 EXCLUDE_PARTS = {
     "__pycache__", ".git", "flash_output", "sim_output", "sim_output_plots",
-    "logs_archive", "database", "sim_input", "sim_input_si",
+    "logs_archive", "database", "sim_input", "sim_input_si", "temp_delete",
 }
 EXCLUDE_GLOBS = ("runs_*", "*_output", "_backup_*", "*.egg-info", "NNNNNN", "results")
 

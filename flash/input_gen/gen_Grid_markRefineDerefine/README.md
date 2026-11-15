@@ -18,7 +18,7 @@
 本子包提供**两种工作方式**，互为补充：
 
 1. **自动生成器（推荐）** —— `generator.py` 中的 `GridMarkRefineDerefineGenerator`，按参数生成基于**模式 C3（边界框重叠法）**的约束代码。
-2. **手写参考实现** —— 来自 `scenarios/public/sandwich/thin_layer_sandwich/` 场景的 `sim_input_al/Grid_markRefineDerefine.F90` 与 `sim_input_si/Grid_markRefineDerefine.F90`，是已在实际仿真中验证通过的成品模板。
+2. **手写参考实现** —— 来自 `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/` 场景的 `sim_input_al/Grid_markRefineDerefine.F90` 与 `sim_input_si/Grid_markRefineDerefine.F90`，是已在实际仿真中验证通过的成品模板。
 
 > ⚠️ **文档修订说明**：早期 `GEN_GRID_GUIDE.md` 中「暂无自动生成器，需手动编写或从 refs/ 复制」的描述**已过时**——生成器 `generator.py` 现已存在。本 README 已将其合并并纠正，原 `GEN_GRID_GUIDE.md` 中的「复制/手动编写」步骤仅作为手写参考保留。
 
@@ -39,8 +39,8 @@
 | 方式 | 位置 | 用途 |
 |------|------|------|
 | 自动生成器 | `input_gen/gen_Grid_markRefineDerefine/generator.py` | 参数化生成模式 C3 约束代码 |
-| 手写模板 `al` 变体 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` | 三层靶（Al/CH/He）1D 实测模板 |
-| 手写模板 `si` 变体 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` | 同结构、不同材料表的变体 |
+| 手写模板 `al` 变体 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` | 三层靶（Al/CH/He）1D 实测模板 |
+| 手写模板 `si` 变体 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` | 同结构、不同材料表的变体 |
 
 `thin_layer_sandwich` 场景的物理背景：**1D 笛卡尔坐标、激光烧蚀多层靶**，域范围 `x ∈ [-200, 200] µm`（实际 `.par` 中 `xmin=-0.045, xmax=0.045` cm），材料对称布局：
 
@@ -279,10 +279,10 @@ res_max = |xmax - xmin| / (NXB * nblockx * 2^(lrefine_min-1))
 | 类型 | 路径 |
 |------|------|
 | 自动生成器 | `input_gen/gen_Grid_markRefineDerefine/generator.py` |
-| 手写 `al` 模板 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` |
-| 手写 `si` 模板 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` |
-| 配套半宽变量声明 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/Simulation_data.F90` |
-| 配套参数文件 | `scenarios/public/sandwich/thin_layer_sandwich/sim_input_al/grid_rede.par` |
+| 手写 `al` 模板 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_al/Grid_markRefineDerefine.F90` |
+| 手写 `si` 模板 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_si/Grid_markRefineDerefine.F90` |
+| 配套半宽变量声明 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_al/Simulation_data.F90` |
+| 配套参数文件 | `scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/sim_input_al/grid_rede.par` |
 
 > ⚠️ **废弃引用**：早期文档提到的 `refs/Grid_markRefineDerefine.F90`、`refs/Al_CH_He_laser_cart1D/`、`refs/Grid_markRefineDerefine_编写指南.md` 等 `refs/` 目录**当前不存在**。请以本仓库内 `thin_layer_sandwich` 的 F90 文件作为权威手写模板。
 

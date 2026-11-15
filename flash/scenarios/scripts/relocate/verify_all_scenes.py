@@ -84,17 +84,27 @@ def main(argv=None) -> int:
                     r["ok"] = False
                     r["checks"].append(f"scenario 实例 FAIL: {e}")
 
-    # 3) anchors（存在性仅 WARN —— 部分锚点描述超算远端布局, 本地可不存在）
+    # 3) anchors（★ 2026-11-11 v2 语法经 discovery 按场景名解析；
+    #    场景名不可解析 → 失败；目录本地不存在仅 WARN —— 部分锚点描述超算远端布局）
+    from flash.scenarios.core.anchors import anchors_table, resolve_anchor
     from flash.scenarios.core.scene_paths import scenarios_root
-    warns = []
     for k, v in anchors_table().items():
         if k.startswith("_"):
             continue
-        if not (scenarios_root() / str(v).replace("\\", "/")).is_dir():
-            warns.append(f"[anchor:{k}] 本地不存在（远端布局锚点?）: {v}")
-    for w in warns:
-        results.append({"name": w.split(":")[1].split("]")[0], "kind": "anchor-warn",
-                        "ok": True, "checks": [w]})
+        v = str(v).replace("\\", "/")
+        if "::" in v:                          # v2：场景名寻址
+            try:
+                _, warn = resolve_anchor(k)
+            except KeyError as e:
+                results.append({"name": k, "kind": "anchor", "ok": False,
+                                "checks": [f"锚点解析失败: {e}"]})
+                continue
+            if warn:
+                results.append({"name": k, "kind": "anchor-warn",
+                                "ok": True, "checks": [warn]})
+        elif not (scenarios_root() / v).is_dir():   # legacy：scenarios 相对
+            results.append({"name": k, "kind": "anchor-warn", "ok": True,
+                            "checks": [f"[anchor:{k}] 本地不存在（远端布局锚点?）: {v}"]})
 
     n_fail = sum(1 for r in results if not r["ok"])
     print(f"{'=' * 66}")

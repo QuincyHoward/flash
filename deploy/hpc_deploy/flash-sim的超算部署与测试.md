@@ -227,9 +227,9 @@ flash/flash_run/remote/test/
 
 | 场景 | 目录 | 说明 |
 |---|---|---|
-| `ch_center` | `flash/scenarios/public/center_evolution/ch_center/` | LaserSlab1D，CH 靶 + He 侧，双束 351nm 相向入射 |
-| `grad_dens_sandwich` | `flash/scenarios/public/sandwich/grad_dens_sandwich/` | HE-CH-Si-CH-HE 渐变密度 |
-| `thin_layer_sandwich_si` | `flash/scenarios/public/sandwich/thin_layer_sandwich/` | Si/CH/He 三层靶 |
+| `ch_center` | `flash/scenarios/public/LaserCompression_twoside/center_evolution/ch_center/` | LaserSlab1D，CH 靶 + He 侧，双束 351nm 相向入射 |
+| `grad_dens_sandwich` | `flash/scenarios/public/LaserCompression_twoside/sandwich/grad_dens_sandwich/` | HE-CH-Si-CH-HE 渐变密度 |
+| `thin_layer_sandwich_si` | `flash/scenarios/public/LaserCompression_twoside/sandwich/thin_layer_sandwich/` | Si/CH/He 三层靶 |
 
 ### 8.3 阶段 B 的作业脚本补丁（`patch_job.py`，**不用 sed**）
 

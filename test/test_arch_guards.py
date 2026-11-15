@@ -14,6 +14,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+from flash._core.credentials.hpc_config import _LEGACY_ROUTE_KEY
 
 sys_path_root = Path(__file__).resolve().parent
 for _ in range(12):
@@ -214,7 +215,7 @@ def test_identity01_hardcoded_username_and_hpc_account(tmp_path):
     """R-ID-01（2026-10-27 去硬编码）：Windows 用户名/超算账号/仓库绝对路径。"""
     repo = _make_repo(tmp_path, {
         "deploy/bad_identity.py": """
-            REMOTE_HOME = "/publicfs01/fs1-e/home/scfa2696"
+            REMOTE_HOME = "/publicfs01/fs1-e/home/legacy-user"
             PY = r"C:\\\\Users\\\\Administrator\\\\.workbuddy\\\\python.exe"
             ROOT = r"E:\\\\PhySimX\\\\PhySimX\\\\simulation\\\\flash_test"
         """,
@@ -240,7 +241,7 @@ def test_identity01_whitelists_legacy_compat_files(tmp_path):
     """功能兼容映射（旧账号别名→中性路由键）在白名单文件中不判失败。"""
     repo = _make_repo(tmp_path, {
         "flash/_core/credentials/hpc_config.py": (
-            '_LEGACY_ROUTE_KEY = {"scfa2696": "nc_e", "sch0348": "bscc_t6"}\n'
+            '_LEGACY_ROUTE_KEY = ' + repr(dict(_LEGACY_ROUTE_KEY)) + '\n'
         ),
     })
     assert "R-ID-01" not in _codes(repo)

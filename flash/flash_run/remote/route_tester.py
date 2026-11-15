@@ -15,12 +15,12 @@ SSH 多路由延迟测试与自动选择最佳线路
 
 用法:
     from flash.flash_run.remote.route_tester import (
-        RouteTester, ROUTES_SCFA2696, ROUTES_SCH0348
+        RouteTester, ROUTES_NC_E, ROUTES_BSCC_T6
     )
 
     tester = RouteTester()
-    results = tester.test_all_routes(ROUTES_SCFA2696)
-    best = tester.get_best_route(ROUTES_SCFA2696)
+    results = tester.test_all_routes(ROUTES_NC_E)
+    best = tester.get_best_route(ROUTES_NC_E)
 """
 
 import subprocess
@@ -49,8 +49,8 @@ def _build_routes(ssh_name: str) -> List[Dict[str, Any]]:
         return []
 
 
-ROUTES_SCFA2696: List[Dict[str, Any]] = _build_routes("flash_ssh")
-ROUTES_SCH0348: List[Dict[str, Any]] = _build_routes("flash_ssh_2")
+ROUTES_NC_E: List[Dict[str, Any]] = _build_routes("flash_ssh")
+ROUTES_BSCC_T6: List[Dict[str, Any]] = _build_routes("flash_ssh_2")
 
 
 @dataclass
@@ -332,33 +332,33 @@ class RouteTester:
         # 1. 优先使用凭据中存储的 route_key (兼容历史账号名)
         if cred_data:
             rk = cred_data.get("route_key", "")
-            if rk in ("nc_e", "scfa2696"):
-                return ROUTES_SCFA2696
-            elif rk in ("bscc_t6", "sch0348"):
-                return ROUTES_SCH0348
+            if rk == "nc_e" or _LEGACY_ROUTE_KEY.get(rk) == "nc_e":
+                return ROUTES_NC_E
+            elif rk == "bscc_t6" or _LEGACY_ROUTE_KEY.get(rk) == "bscc_t6":
+                return ROUTES_BSCC_T6
 
         # 2. 按名称模式匹配
         name_lower = cred_name.lower()
         if "nc-e" in name_lower:
-            return ROUTES_SCFA2696
+            return ROUTES_NC_E
         # flash_ssh (第一个账户) → NC-E
         if cred_name == "flash_ssh":
-            return ROUTES_SCFA2696
+            return ROUTES_NC_E
         # flash_ssh_N → BSCC-T6
-        return ROUTES_SCH0348
+        return ROUTES_BSCC_T6
 
     @staticmethod
     def resolve_route_key(cred_name: str, cred_data: Optional[Dict[str, Any]] = None) -> str:
         """解析凭据对应的路由 key。
 
         Returns:
-            "nc_e" 或 "bscc_t6" (历史 "scfa2696"/"sch0348" 自动归一化)
+            "nc_e" 或 "bscc_t6" (历史账号名经 hpc_config._LEGACY_ROUTE_KEY 自动归一化)
         """
         if cred_data:
             rk = cred_data.get("route_key", "")
-            if rk in ("scfa2696", "nc_e"):
+            if rk == "nc_e" or _LEGACY_ROUTE_KEY.get(rk) == "nc_e":
                 return "nc_e"
-            if rk in ("sch0348", "bscc_t6"):
+            if rk == "bscc_t6" or _LEGACY_ROUTE_KEY.get(rk) == "bscc_t6":
                 return "bscc_t6"
         if cred_name == "flash_ssh" or "nc-e" in cred_name.lower():
             return "nc_e"
@@ -440,9 +440,9 @@ def main():
     if len(_sys.argv) > 1:
         target = _sys.argv[1].lower()
         if "bscc" in target or "bscc_t6" in target:
-            routes, label = ROUTES_SCH0348, "BSCC-T6"
+            routes, label = ROUTES_BSCC_T6, "BSCC-T6"
         else:
-            routes, label = ROUTES_SCFA2696, "NC-E"
+            routes, label = ROUTES_NC_E, "NC-E"
 
         print(f"测试 {label} 的路由...")
         best = test_and_select_best_route(target if "@" in target else label, routes)
@@ -464,7 +464,7 @@ def main():
         report: List[Tuple[str, Optional[Dict[str, Any]]]] = []
         for name in names:
             meta = accounts.get(name, {})
-            routes = RouteTester.routes_for_account(name, None) or ROUTES_SCFA2696
+            routes = RouteTester.routes_for_account(name, None) or ROUTES_NC_E
             print(f"\n[{name}: {meta.get('ssh_username', '')}]")
             best = test_and_select_best_route(
                 meta.get("ssh_username") or name, routes

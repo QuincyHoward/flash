@@ -13,9 +13,9 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import fixedwidth as fw
-from eosop_pro.core import fortran_numbers as fn
-from eosop_pro.core import textio
+from eosop_pro.core.numbers import fixedwidth as fw
+from eosop_pro.core.numbers import fortran_numbers as fn
+from eosop_pro.core.text import textio
 
 
 def test_mpqeos_header_is_parsed_by_L2_not_fixed_width():

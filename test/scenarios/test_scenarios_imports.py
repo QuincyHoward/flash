@@ -27,24 +27,38 @@ if str(_PARENT) not in sys.path:
 
 
 def test_scenarios_package_import():
-    """测试 scenarios 顶级包导入
+    """测试 scenarios 顶级包导入 + 全场景模块可导入
 
     ★ 2026-10-21 目录重组: 公开场景平铺层已整理进 flash/scenarios/public/
-    (commit 3752b77)，测试同步改为从 public 导入。
-    ★ plasma_preparation / collision_compression 是**占位目录**（.gitignore
-    白名单未跟踪，fresh clone 不存在），与私有场景同理容错: 缺失则提示后跳过。
+    (commit 3752b77)。
+    ★ 2026-11-11 收纳改造: 测试改为 **discovery 驱动**——遍历
+    iter_scene_manifests() 逐个导入场景模块，失败显式抛出。
+    旧写法 ``__import__(f"flash.scenarios.public.{sub}")`` + try/except
+    静默吞 ImportError，场景目录移动后 pytest 仍全绿（测不出断点），已废弃；
+    且字面量包路径本身与"场景任意收纳"目标相悖。
+    占位目录（plasma_preparation 等）无 scene.json，天然不被 discovery 扫描。
     """
     from flash.scenarios import base, registry
 
     assert base.SimulationScenario is not None
     assert registry.get_scenario is not None
 
-    for sub in ("plasma_preparation", "collision_compression", "center_evolution"):
-        try:
-            __import__(f"flash.scenarios.public.{sub}")
-        except ImportError as e:
-            print(f"ℹ 公开场景包 {sub} 缺失 (fresh clone 占位目录未入库), 跳过: {e}")
-    print("✔ scenarios 顶级包导入成功")
+    import importlib
+
+    from flash.scenarios.core.scene_paths import repo_root
+    from flash.scenarios.core.scene_reg.discovery import iter_scene_manifests
+
+    n_engine = n_script = 0
+    for meta in iter_scene_manifests():
+        if meta.kind in ("engine", "main"):
+            importlib.import_module(meta.module)   # 失败显式抛出（不静默吞）
+            n_engine += 1
+        elif meta.kind == "script":
+            assert (repo_root() / meta.script).is_file(), \
+                f"script 场景 {meta.name} 脚本不存在: {meta.script}"
+            n_script += 1
+    print(f"✔ scenarios 顶级包导入成功；discovery 场景模块导入: "
+          f"engine/main {n_engine} 个, script {n_script} 个")
 
 
 def test_registry_list():

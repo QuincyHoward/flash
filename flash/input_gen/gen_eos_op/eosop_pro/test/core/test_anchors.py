@@ -18,9 +18,9 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import anchors as an
-from eosop_pro.core import fortran_numbers as fn
-from eosop_pro.core import textio
+from eosop_pro.core.infer import anchors as an
+from eosop_pro.core.numbers import fortran_numbers as fn
+from eosop_pro.core.text import textio
 
 
 def test_header_numbers_must_not_leak_into_payload():

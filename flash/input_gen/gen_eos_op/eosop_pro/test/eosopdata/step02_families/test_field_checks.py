@@ -90,14 +90,22 @@ _SOURCE_WHITELIST: dict[str, "frozenset[str] | None"] = {
     "multi_inverted_eos": frozenset({"rho", "de", "P", "E", "e0_cold",
                                      "de_energy", "T"}),
     #   MULTI SESAME docx「参数单位制」节逐字单位（primary document）
-    "multi_opacity": frozenset({"rho", "Te", "kappa"}),
-    #   同 docx logloglog 节；Z 段（NZ kind）语义待核 -> uk
+    "multi_opacity": frozenset({"rho", "Te", "kappa", "Z"}),
+    #   同 docx logloglog 节；Z 段（NZ kind）= 2026-11-14 族校准裁定
+    #   log10(zbar)（parser-measured）
     "hyades_eos": frozenset({"rho", "Te", "P", "E", "kappa"}),
     "hyades_opacity": frozenset({"rho", "Te", "P", "E", "kappa"}),
     "sesame_dat": frozenset({"rho", "Te", "P", "E", "kappa"}),
     #   Hyades doc 逐字单位；raw_tail 无源 -> uk
     "mpqeos": frozenset({"rho", "Te", "P", "E"}),
     #   MPQeos/SESAME 节单位+换算式；Z 段自述负值待核（R3）-> uk
+    "feos_native": frozenset({"rho", "Te", "P", "Pe", "Pi", "PTF",
+                              "E", "Ee", "Ei", "ETF",
+                              "S", "Se", "Si", "STF",
+                              "F", "Fe", "Fi", "FTF",
+                              "Qtot", "Q0", "Q1"}),
+    #   2026-11-15 布局定案：FE-01_TABTOOLS.C::write_FEOS_format 源码锚点
+    #   （16 块 + Qtot + Q0/Q1，kind=source code）；兜底 `*` 保持 uk,uv
     "ledcop_atomic": frozenset({"rho", "Te", "Ross", "Planck"}),
     #   文件头第 3 行 'Opacities in cm**2/gm, T in keV, density in gm/cc'
     "ledcop_zeff": frozenset({"rho", "Te", "NoFree", "AvSqFree"}),
@@ -125,15 +133,29 @@ def test_source_confirmation_matches_whitelist():
 
 
 def test_second_tier_all_uv_except_cn4():
-    """人工核查：除 cn4 外**所有族所有条目** checked=False（显示 uv）。"""
+    """人工核查状态锁定：checked 条目集合必须与裁定完全一致。
+
+    - cn4（ionmix）：全族 checked（2026-09-15 裁定）
+    - multi_inverted_eos：除兜底 `*` 外全部 checked（2026-11-14 裁定，
+      mat_CELIA/CH_ieos 操作者视图交叉验证）
+    - multi_opacity：rho/Te/kappa（docx 裁定）+ Z（2026-11-14 45 元素
+      族校准裁定 log10(zbar)）checked；兜底 `*` 保持 uk,uv
+    - 其余族：所有条目 checked=False（显示 uv）
+    """
+    EXPECTED_CHECKED = {
+        "multi_inverted_eos": {"rho", "de", "P", "E", "e0_cold", "de_energy", "T"},
+        "multi_opacity": {"rho", "Te", "kappa", "Z"},
+    }
     for fam, entries in FIELD_CHECKS.items():
         if fam == "ionmix":
             continue
+        expected = EXPECTED_CHECKED.get(fam, set())
         for fld, fc in entries.items():
-            expect(not fc.checked,
-                   f"{fam}.{fld} 不应标记 checked（只有 cn4 完成人工核查）")
-            expect_eq(tags_label(fc), "uv" if fc.doc == DOC_DOCUMENTED
-                      else "uk, uv",
+            expect_eq(fc.checked, fld in expected,
+                      f"{fam}.{fld} checked 状态与裁定不符"
+                      f"（应为 {'checked' if fld in expected else 'uv'}）")
+            expect_eq(tags_label(fc), "" if fc.checked else
+                      ("uv" if fc.doc == DOC_DOCUMENTED else "uk, uv"),
                       f"{fam}.{fld} 标记折叠不符（doc={fc.doc}）")
 
 
@@ -145,8 +167,10 @@ def test_tags_label_folding_rules():
     expect_eq(tags_label(field_check("ledcop_atomic", "Te")), "uv")
     expect_eq(tags_label(field_check("coldopacity", "miu")), "uv")
     expect_eq(tags_label(field_check("hugoniot", "P")), "uv")
+    # 有源（一级说明文档）+ 已核查 -> 省略（2026-11-14 裁定）
+    expect_eq(tags_label(field_check("multi_inverted_eos", "P")), "")
+    expect_eq(tags_label(field_check("multi_opacity", "kappa")), "")
     # 有源（一级说明文档）+ 未核查 -> 只显示 uv
-    expect_eq(tags_label(field_check("multi_inverted_eos", "P")), "uv")
     expect_eq(tags_label(field_check("hyades_eos", "P")), "uv")
     expect_eq(tags_label(field_check("mpqeos", "P")), "uv")
     expect_eq(tags_label(field_check("snop_input", "X1")), "uv")
@@ -156,6 +180,8 @@ def test_tags_label_folding_rules():
     expect_eq(tags_label(field_check("derived_axes", "n_e")), "uv")
     # 无源 + 未核查 -> uk, uv
     expect_eq(tags_label(field_check("mpqeos", "Z")), "uk, uv")
+    # feos_native 布局已定案（2026-11）：命名块 kind=code -> uv；兜底仍 uk,uv
+    expect_eq(tags_label(field_check("feos_native", "Qtot")), "uv")
     expect_eq(tags_label(field_check("feos_native", "raw_values")), "uk, uv")
 
 
@@ -231,11 +257,10 @@ def test_control_dictionary_doc_in_sync():
     人工核查翻 ``checked`` 后，重跑
     ``python -m eosop_pro.registry.field_checks`` 再生成。
     """
-    # 与生成器同源的确定性锚点：field_checks.py 上溯 3 层 = 仓库根
-    # （.../eosop_pro/eosop_pro/registry/field_checks.py -> .../eosop_pro/）
+    # 与生成器同源的确定性锚点：field_checks.py 上溯 2 层 = 项目根（包根）
+    # （.../gen_eos_op/eosop_pro/registry/field_checks.py -> .../gen_eos_op/eosop_pro/）
     import eosop_pro.registry.field_checks as _fcm
-    _repo_root = os.path.dirname(os.path.dirname(
-        os.path.dirname(os.path.abspath(_fcm.__file__))))
+    _repo_root = os.path.dirname(os.path.dirname(os.path.abspath(_fcm.__file__)))
     doc = os.path.join(_repo_root, DICT_DOC_RELPATH.replace("/", os.sep))
     expect(os.path.isfile(doc), f"字典文档缺失: {doc}")
     with open(doc, encoding="utf-8", newline="") as f:
@@ -245,9 +270,11 @@ def test_control_dictionary_doc_in_sync():
               "python -m eosop_pro.registry.field_checks 再生成")
 
 
-def test_checked_families_is_only_ionmix():
-    expect_eq(checked_families(), ("ionmix",),
-              f"checked 族应只有 ionmix，实得 {checked_families()}")
+def test_checked_families_exact_set():
+    """checked 族集合锁定：ionmix（cn4）+ 2026-11-14 裁定的两个 MULTI 族。"""
+    expect_eq(checked_families(),
+              ("ionmix", "multi_inverted_eos", "multi_opacity"),
+              f"checked 族集合与裁定不符，实得 {checked_families()}")
 
 
 if __name__ == "__main__":

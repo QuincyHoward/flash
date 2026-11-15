@@ -13,11 +13,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parents[2]   # .../gen_eos_op（使 import eosop_pro 生效）
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from eosop_pro.cli import main  # noqa: E402
+from eosop_pro.pipeline.cli import main  # noqa: E402
 
 
 if __name__ == "__main__":

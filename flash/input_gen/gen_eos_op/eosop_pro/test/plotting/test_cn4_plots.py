@@ -32,9 +32,9 @@ from _runner import expect, expect_eq, expect_in, main
 import numpy as np
 
 from eosop_pro.parsers.cn4_io import load_cn4
-from eosop_pro.plotting import cn4_plots as P
+from eosop_pro.plotting.cn4 import cn4_plots as P
 from eosop_pro.parsers.cn4_io import CN4ParseError
-from eosop_pro.plotting.style import ASCII_RE, all_text_ascii
+from eosop_pro.plotting.style.style import ASCII_RE, all_text_ascii
 
 # ── 测试数据: 仓库内自带的 CH 生成数据（C6H1 混合，原子量可解析） ──
 # 本文件位于 test/plotting/ -> 上溯 4 级到 gen_eos_op
@@ -68,7 +68,7 @@ def test_axes_registry_complete():
 
 def test_display_scale_matches_units_module():
     """显示单位换算因子必须来自 units.py，不是本地硬编码。"""
-    from eosop_pro.plotting import units as U
+    from eosop_pro.plotting.style import units as U
     expect_eq(P.display_scale("p_ion"), U.P_JCM3_TO_MBAR)
     expect_eq(P.display_scale("dpion_dt"), U.P_JCM3_TO_MBAR)
     expect_eq(P.display_scale("e_ion"), U.E_JG_TO_ERG_G)

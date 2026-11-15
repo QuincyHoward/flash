@@ -108,7 +108,7 @@ def test_kind_from_filename_token():
 
 
 def test_layout_detector_rejects_unknown_counts():
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     raised = False
     try:
         f1.detect_layout(10, 10, 3)
@@ -118,7 +118,7 @@ def test_layout_detector_rejects_unknown_counts():
 
 
 def test_header_must_have_four_numbers():
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     raised = False
     try:
         f1.parse_header("1 2 3")

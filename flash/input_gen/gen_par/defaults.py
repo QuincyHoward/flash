@@ -18,8 +18,8 @@ PARAMS_1D = {
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
     "cvisc": 0.1,  # coefficient for artificial viscosity
-    "diff_eleFlCoef": 0.06,
-    "diff_eleFlMode": "fl_larsen",
+    "diff_eleFlCoef": 0.08,
+    "diff_eleFlMode": "fl_minmax",
     "diff_eleXlBoundaryType": "neumann",
     "diff_eleXrBoundaryType": "neumann",
     "diff_thetaImplct": 1.0,
@@ -157,8 +157,8 @@ PARAMS_2D = {
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
     "cvisc": 0.1,  # coefficient for artificial viscosity
-    "diff_eleFlCoef": 0.06,
-    "diff_eleFlMode": "fl_larsen",
+    "diff_eleFlCoef": 0.08,
+    "diff_eleFlMode": "fl_minmax",
     "diff_eleXlBoundaryType": "neumann",
     "diff_eleXrBoundaryType": "neumann",
     "diff_eleYlBoundaryType": "neumann",
@@ -325,8 +325,8 @@ PARAMS_3D = {
     "checkpointFileIntervalTime": 1.0,
     "checkpointFileNumber": 0,
     "cvisc": 0.1,  # coefficient for artificial viscosity
-    "diff_eleFlCoef": 0.06,
-    "diff_eleFlMode": "fl_larsen",
+    "diff_eleFlCoef": 0.08,
+    "diff_eleFlMode": "fl_minmax",
     "diff_eleXlBoundaryType": "neumann",
     "diff_eleXrBoundaryType": "neumann",
     "diff_eleYlBoundaryType": "vacuum",

@@ -19,8 +19,8 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import byteclass as bcl
-from eosop_pro.core.errors import BinarySuspect
+from eosop_pro.core.text import byteclass as bcl
+from eosop_pro.core.text.errors import BinarySuspect
 
 
 def test_readme_txt_is_gb18030_not_utf8():
@@ -42,7 +42,7 @@ def test_readme_txt_is_gb18030_not_utf8():
 
 
 def test_readme_txt_chinese_is_readable_after_gb18030():
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
 
     doc = textio.read_text(config.MATTER_README)
     expect_eq(doc.encoding, "gb18030")

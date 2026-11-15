@@ -27,9 +27,9 @@ from _runner import expect, expect_eq, main
 
 from eosop_pro import config
 from eosop_pro.parsers import multi_opacity as f2
-from eosop_pro.registry.material import MaterialRegistry
-from eosop_pro.registry.zeff_inventory import ZeffInventory
-from eosop_pro.registry.zeff_registry import KIND_Z, KIND_Z2, ZeffRegistry
+from eosop_pro.registry.material.material import MaterialRegistry
+from eosop_pro.registry.zeff.zeff_inventory import ZeffInventory
+from eosop_pro.registry.zeff.zeff_registry import KIND_Z, KIND_Z2, ZeffRegistry
 
 
 def _reg():

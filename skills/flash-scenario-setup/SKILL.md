@@ -39,6 +39,7 @@ description: SNB（多群非局域热传导）与 FL-SH 场景的全流程设置
 ```
 
 - `+uhd3t`（3T）—— SNB 作用在 tele 方程上；`+mgd` 的 `mgd_meshgroups=N` **必须 == par 的 `rt_mgdNumGroups=N`**；`rt_mgdBounds` 需 N+1 个边界。
+- ★ **SNB 电子能群 ≠ 辐射 MGD 群**：SNB 电子群是源码硬编码的 **19 群**（`multigp=20` 为**边界节点数**，`E_1=0`、`E_2=0.1 eV` 起每十进 3 群、上界 ≈100.009 keV；1D/2D 各一份定义），**无 par 开关**；`mgd_meshgroups` / `rt_mgdNumGroups` 只管辐射光子群（本仓 10 群、0.1–1e5 eV），改它不会改变 SNB 群数。逐群边界表与单位换算见 `flash/scenarios/private/SNB/SNB/docs/10_源码公式说明.md` §3.1.1。
 - 全体物种 cn4 表**群数一致**；表温度下限须覆盖初值温度。
 - 场景覆盖 F90 放 `<TREE>/source/Simulation/SimulationMain/<SimName>/`（放错位置**静默不生效**，看 objdir 软链接指向）。
 - SNB 场景 9 个覆盖 F90 清单与自包含验收（部署单元 17 文件 + sha256 指纹）见 `references/SNB_FLASH_reference.md`。

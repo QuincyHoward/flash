@@ -1,218 +1,239 @@
-run_comment = "sandwich_txn 1D Simulation - Auto-generated"
-log_file    = "lasslab.log"
-basenm      = "lasslab_"
+run_comment = "sandwich_txn 1D Simulation - Auto-generated (1D template)"  # run description
+log_file    = "lasslab.log"                                                  # runtime log file name
+basenm      = "lasslab_"                                                     # basename for all output files
 
-    # res_min=0.0137um (lref=10)
-    # res_max=7.0312um (lref=1)
 
-##############################
-#  I/O PARAMETERS
-##############################
+##########################
+#                        #
+#     I/O PARAMETERS            #
+#                        #
+##########################
 
-checkpointFileIntervalTime     = 1000
-checkpointFileIntervalStep     = 100
-plotFileIntervalStep           = 1000
-plotFileNumber                 = 0
-restart                        = .false.
-checkpointFileNumber           = 0
-plot_var_1                     = dens
-plot_var_2                     = depo
-plot_var_3                     = tele
-plot_var_4                     = tion
-plot_var_5                     = trad
-plot_var_6                     = ye  
-plot_var_7                     = sumy
-plot_var_8                     = cham
-plot_var_9                     = targ
-plot_var_10                    = poly
+checkpointFileIntervalTime = 1000                                            # checkpoint interval [s]
+checkpointFileIntervalStep = 100                                             # checkpoint interval [steps]
+plotFileNumber = 0                                                           # first plotfile number
+plotFileIntervalStep = 1000                                                  # plotfile interval [steps]
+plot_var_1 = "dens"                                                          # plotfile output variable whitelist #1
+plot_var_2 = "depo"                                                          # plotfile output variable whitelist #2
+plot_var_3 = "tele"                                                          # plotfile output variable whitelist #3
+plot_var_4 = "tion"                                                          # plotfile output variable whitelist #4
+plot_var_5 = "trad"                                                          # plotfile output variable whitelist #5
+plot_var_6 = "ye  "                                                          # plotfile output variable whitelist #6
+plot_var_7 = "sumy"                                                          # plotfile output variable whitelist #7
+plot_var_8 = "cham"                                                          # plotfile output variable whitelist #8
+plot_var_9 = "targ"                                                          # plotfile output variable whitelist #9
+plot_var_10 = "poly"                                                         # plotfile output variable whitelist #10
+restart = .false.                                                            # restart from checkpoint?
+checkpointFileNumber = 0                                                     # first checkpoint file number
 
-##############################
-#  RADIATION/OPACITY PARAMETERS
-##############################
+##########################
+#                        #
+#     RADIATION/OPACITY PARAMETERS#
+#                        #
+##########################
 
-op_chamAbsorb                  = op_tabpa
-op_chamEmiss                   = op_tabpe
-op_chamFileName                = Z02_1.00-20260708_0851.cn4
-op_chamFileType                = ionmix4
-op_chamTrans                   = op_tabro
-op_targAbsorb                  = op_tabpa
-op_targEmiss                   = op_tabpe
-op_targFileName                = Z14_1.00-20260708_0850.cn4
-op_targFileType                = ionmix4
-op_targTrans                   = op_tabro
-rt_dtFactor                    = 0.02
-rt_mgdBounds_1                 = 0.1
-rt_mgdBounds_2                 = 1
-rt_mgdBounds_3                 = 10
-rt_mgdBounds_4                 = 100
-rt_mgdBounds_5                 = 1000
-rt_mgdBounds_6                 = 10000
-rt_mgdBounds_7                 = 100000
-rt_mgdFlCoef                   = 1
-rt_mgdFlMode                   = fl_harmonic
-rt_mgdNumGroups                = 6
-rt_mgdXlBoundaryType           = vacuum
-rt_mgdXrBoundaryType           = vacuum
-rt_useMGD                      = .true.
-op_polyAbsorb                  = op_tabpa
-op_polyEmiss                   = op_tabpe
-op_polyTrans                   = op_tabro
-op_polyFileType                = ionmix4
-op_polyFileName                = Z06_0.50-Z01_0.50-20260708_0850.cn4
+op_chamAbsorb = "op_tabpa"                                                   # cham opacity absorption mode
+op_chamEmiss = "op_tabpe"                                                    # cham opacity emission mode
+op_chamFileName = "Z02_1.00-20260708_0851.cn4"                               # cham opacity opacity table file
+op_chamFileType = "ionmix4"                                                  # cham opacity opacity file type
+op_chamTrans = "op_tabro"                                                    # cham opacity transmission mode
+op_targAbsorb = "op_tabpa"                                                   # targ opacity absorption mode
+op_targEmiss = "op_tabpe"                                                    # targ opacity emission mode
+op_targFileName = "Z14_1.00-20260708_0850.cn4"                               # targ opacity opacity table file
+op_targFileType = "ionmix4"                                                  # targ opacity opacity file type
+op_targTrans = "op_tabro"                                                    # targ opacity transmission mode
+rt_dtFactor = 0.02                                                           # radiation timestep limiter factor
+rt_mgdBounds_1 = 0.1                                                         # MGD radiation group boundary 1
+rt_mgdBounds_2 = 1                                                           # MGD radiation group boundary 2
+rt_mgdBounds_3 = 10                                                          # MGD radiation group boundary 3
+rt_mgdBounds_4 = 100                                                         # MGD radiation group boundary 4
+rt_mgdBounds_5 = 1000                                                        # MGD radiation group boundary 5
+rt_mgdBounds_6 = 1.000000000000000e+04                                       # MGD radiation group boundary 6
+rt_mgdBounds_7 = 1.000000000000000e+05                                       # MGD radiation group boundary 7
+rt_mgdFlCoef = 1                                                             # MGD flux limiter coefficient
+rt_mgdFlMode = "fl_harmonic"                                                 # MGD flux limiter mode
+rt_mgdNumGroups = 6                                                          # number of MDS radiation groups
+rt_mgdXlBoundaryType = "vacuum"                                              # MGD left boundary type
+rt_mgdXrBoundaryType = "vacuum"                                              # MGD right boundary type
+rt_useMGD = .true.                                                           # enable multi-group diffusion
+op_polyAbsorb = "op_tabpa"                                                   # poly opacity absorption mode
+op_polyEmiss = "op_tabpe"                                                    # poly opacity emission mode
+op_polyTrans = "op_tabro"                                                    # poly opacity transmission mode
+op_polyFileType = "ionmix4"                                                  # poly opacity opacity file type
+op_polyFileName = "Z06_0.50-Z01_0.50-20260708_0850.cn4"                      # poly opacity opacity table file
 
-##############################
-#  LASER PARAMETERS / Energy Deposition
-##############################
+##########################
+#                        #
+#     LASER PARAMETERS          #
+#                        #
+##########################
 
-ed_crossSectionFunctionType_1  = uniform
-ed_gradOrder                   = 2
-ed_gridType_1                  = regular1D
-ed_gridnRadialTics_1           = 512
-ed_laserIOMaxNumberOfPositions = 10000
-ed_laserIOMaxNumberOfRays      = 128
-ed_maxRayCount                 = 10000
-ed_numberOfBeams               = 2
-ed_numberOfPulses              = 1
-ed_numberOfRays_1              = 1
-ed_numberOfSections_1          = 4
-ed_useLaserIO                  = .false.
-ed_time_1_1                    = 0
-ed_power_1_1                   = 0
-ed_time_1_2                    = 3e-10
-ed_power_1_2                   = 318300000000000
-ed_time_1_3                    = 1e-09
-ed_power_1_3                   = 318300000000000
-ed_time_1_4                    = 1.3e-09
-ed_power_1_4                   = 0
-ed_lensX_1                     = -0.1
-ed_targetX_1                   = 0
-ed_pulseNumber_1               = 1
-ed_wavelength_1                = 0.351
-ed_lensX_2                     = 0.1
-ed_targetX_2                   = 0
-ed_pulseNumber_2               = 1
-ed_wavelength_2                = 0.351
-ed_crossSectionFunctionType_2  = uniform
-ed_numberOfRays_2              = 1
-ed_gridType_2                  = regular1D
-ed_gridnRadialTics_2           = 512
+ed_crossSectionFunctionType_1 = "uniform"                                    # beam 1 cross-section profile
+ed_gradOrder = 2                                                             # laser deposition gradient order
+ed_gridType_1 = "regular1D"                                                  # beam 1 ray grid type
+ed_gridnRadialTics_1 = 512                                                   # beam 1 radial tics count
+ed_laserIOMaxNumberOfPositions = 10000                                       # laser IO max positions
+ed_laserIOMaxNumberOfRays = 128                                              # laser IO max rays
+ed_maxRayCount = 10000                                                       # max rays per block for tracing
+ed_numberOfBeams = 2                                                         # number of laser beams
+ed_numberOfPulses = 1                                                        # number of laser pulses
+ed_numberOfRays_1 = 1                                                        # beam 1 number of rays
+ed_numberOfSections_1 = 4                                                    # beam 1 pulse power sections
+ed_useLaserIO = .false.                                                      # enable laser ray IO
+ed_time_1_1 = 0.0                                                            # laser pulse time, beam 1 section 1 [s]
+ed_power_1_1 = 0.0                                                           # laser pulse power, beam 1 section 1 [W/cm2]
+ed_time_1_2 = 3.000000000000000e-10                                          # laser pulse time, beam 1 section 2 [s]
+ed_power_1_2 = 3.183000000000000e+14                                         # laser pulse power, beam 1 section 2 [W/cm2]
+ed_time_1_3 = 9.999999999999999e-10                                          # laser pulse time, beam 1 section 3 [s]
+ed_power_1_3 = 3.183000000000000e+14                                         # laser pulse power, beam 1 section 3 [W/cm2]
+ed_time_1_4 = 1.300000000000000e-09                                          # laser pulse time, beam 1 section 4 [s]
+ed_power_1_4 = 0.0                                                           # laser pulse power, beam 1 section 4 [W/cm2]
+ed_lensX_1 = -0.1                                                            # beam 1 lens position [cm]
+ed_targetX_1 = 0                                                             # beam 1 target position [cm]
+ed_pulseNumber_1 = 1                                                         # beam 1 pulse number
+ed_wavelength_1 = 0.351                                                      # beam 1 wavelength [um]
+ed_lensX_2 = 0.1                                                             # beam 2 lens position [cm]
+ed_targetX_2 = 0                                                             # beam 2 target position [cm]
+ed_pulseNumber_2 = 1                                                         # beam 2 pulse number
+ed_wavelength_2 = 0.351                                                      # beam 2 wavelength [um]
+ed_crossSectionFunctionType_2 = "uniform"                                    # beam 2 cross-section profile
+ed_numberOfRays_2 = 1                                                        # beam 2 number of rays
+ed_gridType_2 = "regular1D"                                                  # beam 2 ray grid type
+ed_gridnRadialTics_2 = 512                                                   # beam 2 radial tics count
 
-##############################
-#  CONDUCTION PARAMETERS
-##############################
+##########################
+#                        #
+#     CONDUCTION PARAMETERS     #
+#                        #
+##########################
 
-diff_eleFlCoef                 = 0.06
-diff_eleFlMode                 = fl_larsen
-diff_eleXlBoundaryType         = neumann
-diff_eleXrBoundaryType         = neumann
-diff_thetaImplct               = 1
-diff_useEleCond                = .true.
+diff_eleFlCoef = 0.08                                                        # electron flux limiter coefficient
+diff_eleFlMode = "fl_minmax"                                                 # electron flux limiter mode
+diff_eleXlBoundaryType = "neumann"                                           # electron conduction left BC
+diff_eleXrBoundaryType = "neumann"                                           # electron conduction right BC
+diff_thetaImplct = 1                                                         # implicitness factor (1 = fully implicit)
+diff_useEleCond = .true.                                                     # enable electron conduction
+useConductivity = .true.                                                     # enable conductivity unit
+useDiffuse = .true.                                                          # enable diffusion units
 
-##############################
-#  HEAT EXCHANGE PARAMETERS
-##############################
+##########################
+#                        #
+#     HEAT EXCHANGE PARAMETERS  #
+#                        #
+##########################
 
-useHeatexchange                = .true.
-hx_dtFactor                    = 1e+100
+useHeatexchange = .true.                                                     # enable electron-ion heat exchange
 
-##############################
-#  EOS PARAMETERS
-##############################
+##########################
+#                        #
+#     EOS PARAMETERS            #
+#                        #
+##########################
 
-eosModeInit                    = dens_temp_gather
-eos_chamEosType                = eos_gam
-eos_chamSubType                = ionmix4
-eos_chamTableFile              = Z02_1.00-20260708_0851.cn4
-eos_targEosType                = eos_tab
-eos_targSubType                = ionmix4
-eos_targTableFile              = Z14_1.00-20260708_0850.cn4
-eos_useLogTables               = .false.
-smallt                         = 1
-smallx                         = 1e-99
-eos_polyEosType                = eos_tab
-eos_polySubType                = ionmix4
-eos_polyTableFile              = Z06_0.50-Z01_0.50-20260708_0850.cn4
+eosModeInit = "dens_temp_gather"                                             # initial EOS mode (e.g. dens_temp_gather)
+eos_chamEosType = "eos_gam"                                                  # cham EOS type
+eos_chamSubType = "ionmix4"                                                  # cham EOS subtype
+eos_chamTableFile = "Z02_1.00-20260708_0851.cn4"                             # cham EOS table file
+eos_targEosType = "eos_tab"                                                  # targ EOS type
+eos_targSubType = "ionmix4"                                                  # targ EOS subtype
+eos_targTableFile = "Z14_1.00-20260708_0850.cn4"                             # targ EOS table file
+eos_useLogTables = .false.                                                   # EOS tables use log interpolation
+smallt = 1                                                                   # minimum temperature floor
+smallx = 1.000000000000000e-99                                               # minimum mass fraction floor
+eos_polyEosType = "eos_tab"                                                  # poly EOS type
+eos_polySubType = "ionmix4"                                                  # poly EOS subtype
+eos_polyTableFile = "Z06_0.50-Z01_0.50-20260708_0850.cn4"                    # poly EOS table file
 
-##############################
-#  HYDRO PARAMETERS
-##############################
+##########################
+#                        #
+#     HYDRO PARAMETERS          #
+#                        #
+##########################
 
-useHydro                       = .true.
-order                          = 3
-slopeLimiter                   = minmod
-LimitedSlopeBeta               = 1
-charLimiting                   = .true.
-use_avisc                      = .true.
-cvisc                          = 0.1
-use_flattening                 = .false.
-use_steepening                 = .false.
-use_upwindTVD                  = .false.
-RiemannSolver                  = hllc
-entropy                        = .false.
-shockDetect                    = .true.
-use_hybridOrder                = .true.
-xl_boundary_type               = outflow
-xr_boundary_type               = outflow
+LimitedSlopeBeta = 1                                                         # Slope parameter for the "limited" slope by Toro
+RiemannSolver = "hllc"                                                       # Riemann solver (Roe, HLL, HLLC, LLF, Marquina, hybrid)
+charLimiting = .true.                                                        # Characteristic limiting vs. Primitive limiting
+cvisc = 0.1                                                                  # coefficient for artificial viscosity
+entropy = .false.                                                            # Entropy fix for the Roe solver
+order = 3                                                                    # Interpolation order (first/second/third/fifth order)
+shockDetect = .true.                                                         # shock detection sensor (used by use_hybridOrder)
+slopeLimiter = "minmod"                                                      # Slope limiters (minmod, mc, vanLeer, hybrid, limited)
+useHydro = .true.                                                            # enable hydrodynamics
+use_avisc = .true.                                                           # use artificial viscosity (originally for PPM)
+use_flattening = .false.                                                     # use flattening (dissipative) (originally for PPM)
+use_hybridOrder = .true.                                                     # Enforce Riemann density jump
+use_steepening = .false.                                                     # use contact steepening (originally for PPM)
+use_upwindTVD = .false.                                                      # use upwind biased TVD slope for PPM (need nguard=6)
+xl_boundary_type = "outflow"                                                 # left domain boundary condition
+xr_boundary_type = "outflow"                                                 # right domain boundary condition
 
-##############################
-#  INITIAL CONDITIONS
-##############################
+##########################
+#                        #
+#     INITIAL CONDITIONS        #
+#                        #
+##########################
 
-ms_chamA                       = 4.002602
-ms_chamZ                       = 2
-ms_targA                       = 28.0855
-ms_targZ                       = 14
-ms_targZMin                    = 0.02
-sim_teleCham                   = 290.11375
-sim_teleTarg                   = 290.11375
-sim_tionCham                   = 290.11375
-sim_tionTarg                   = 290.11375
-sim_tradCham                   = 290.11375
-sim_tradTarg                   = 290.11375
-sim_telePoly                   = 290.11375
-sim_tionPoly                   = 290.11375
-sim_tradPoly                   = 290.11375
-sim_rhoTarg                    = 2.3
-sim_rhoPoly                    = 1
-sim_rhoFoam                    = 0.294
-sim_rhoCham                    = 1e-06
-sim_targHeight                 = 4.6e-05
-sim_polyHeight                 = 0.000146
-sim_foamHeight                 = 0.005146
-ms_polyA                       = 6.5
-ms_polyZ                       = 3.5
+ms_chamA = 4.002602                                                          # cham atomic weight
+ms_chamZ = 2                                                                 # cham atomic number
+ms_targA = 28.0855                                                           # targ atomic weight
+ms_targZ = 14                                                                # targ atomic number
+ms_targZMin = 0.02                                                           # targ minimum mean ionization
+sim_teleCham = 290.11375                                                     # cham initial electron temperature [K]
+sim_teleTarg = 290.11375                                                     # targ initial electron temperature [K]
+sim_tionCham = 290.11375                                                     # cham initial ion temperature [K]
+sim_tionTarg = 290.11375                                                     # targ initial ion temperature [K]
+sim_tradCham = 290.11375                                                     # cham initial radiation temperature [K]
+sim_tradTarg = 290.11375                                                     # targ initial radiation temperature [K]
+sim_telePoly = 290.11375                                                     # poly initial electron temperature [K]
+sim_tionPoly = 290.11375                                                     # poly initial ion temperature [K]
+sim_tradPoly = 290.11375                                                     # poly initial radiation temperature [K]
+sim_rhoTarg = 2.3                                                            # targ initial density [g/cm3]
+sim_rhoPoly = 1                                                              # poly initial density [g/cm3]
+sim_rhoFoam = 0.294                                                          # foam initial density [g/cm3]
+sim_rhoCham = 1.000000000000000e-06                                          # cham initial density [g/cm3]
+sim_targHeight = 4.600000000000000e-05                                       # layer geometry: targ height [cm]
+sim_polyHeight = 1.460000000000000e-04                                       # layer geometry: poly height [cm]
+sim_foamHeight = 5.146000000000000e-03                                       # layer geometry: foam height [cm]
+ms_polyA = 6.5                                                               # poly atomic weight
+ms_polyZ = 3.5                                                               # poly atomic number
 
-##############################
-#  TIME PARAMETERS
-##############################
+##########################
+#                        #
+#     TIME PARAMETERS           #
+#                        #
+##########################
 
-tstep_change_factor            = 1.1
-cfl                            = 0.2
-dt_diff_factor                 = 1e+100
-tmax                           = 1.6e-09
-dtmin                          = 1e-16
-dtinit                         = 1e-16
-dtmax                          = 1e-09
-nend                           = 10000000
+cfl = 0.2                                                                    # CFL number
+dt_diff_factor = 1.000000000000000e+100                                      # diffusion timestep limiter factor
+hx_dtFactor = 1.000000000000000e+100                                         # heat-exchange timestep limiter factor
+nend = 10000000                                                              # maximum number of steps
+rt_dtFactor = 0.02                                                           # radiation timestep limiter factor
+tstep_change_factor = 1.1                                                    # timestep growth factor per step
+tmax = 1.600000000000000e-09                                                 # simulation end time [s]
+dtinit = 1.000000000000000e-16                                               # initial time step [s]
+dtmin = 1.000000000000000e-16                                                # minimum time step [s]
+dtmax = 1.000000000000000e-09                                                # maximum time step [s]
 
-##############################
-#  MESH PARAMETERS
-##############################
+##########################
+#                        #
+#     MESH PARAMETERS           #
+#                        #
+##########################
 
-geometry                       = cartesian
-xmin                           = -0.045
-xmax                           = 0.045
-nblockx                        = 8
-lrefine_max                    = 10
-lrefine_min                    = 1
-refine_var_1                   = dens
-refine_var_2                   = tele
+geometry = "cartesian"                                                       # domain geometry (cartesian/cylindrical/spherical)
+refine_var_1 = "dens"                                                        # AMR refinement criterion variable
+refine_var_2 = "tele"                                                        # AMR refinement criterion variable #2
+xmin = -0.045                                                                # domain left edge [cm]
+xmax = 0.045                                                                 # domain right edge [cm]
+nblockx = 8                                                                  # number of blocks along x
+lrefine_max = 10                                                             # res = dir_delta/(nxb*nblock*2^(lrefine_max-1)) = 1.373291e-06 cm
+lrefine_min = 1                                                              # res = dir_delta/(nxb*nblock*2^(lrefine_min-1)) = 7.031250e-04 cm
 
-##############################
-#  ADDITIONAL PARAMETERS
-##############################
+##########################
+#                        #
+#     ADDITIONAL PARAMETERS     #
+#                        #
+##########################
 
-useConductivity                = .true.
-useDiffuse                     = .true.
-useEnergyDeposition            = .true.
-useOpacity                     = .true.
+useEnergyDeposition = .true.                                                 # enable laser energy deposition unit
+useOpacity = .true.                                                          # enable opacity unit

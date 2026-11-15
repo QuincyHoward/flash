@@ -69,7 +69,11 @@ def test_batch_plots_produced():
 
 
 def test_report_covers_grid_fields_and_check_status():
-    """``_report.txt`` 必须含网格行 / 字段核查行（含 tags=uk/uv 认证标记）/ 溯源行。"""
+    """``_report.txt`` 必须含网格行 / 字段核查行 / 溯源行。
+
+    2026-11-14 裁定后 F1 全族 checked -> 字段行不再携带 tags=uk/uv 标记
+    （已核查省略），改为断言字段行含 meaning 溯源。
+    """
     r = run_family_plots(FAMILY, PATTERNS, atomwt=ATOMWT)
     if r is None:
         return
@@ -77,8 +81,7 @@ def test_report_covers_grid_fields_and_check_status():
     txt = open(r["reports"][0], encoding="utf-8").read()
     expect_in("axis ", txt, "报告缺网格（axis）行")
     expect_in("field ", txt, "报告缺字段（field）行")
-    expect_in("tags=", txt, "报告缺认证标记（uk|uv）")
-    expect_in("uv", txt, "报告缺未核查（uv）标记")
+    expect_in("meaning=", txt, "报告缺字段 meaning（checked 后 tags 省略，溯源靠 meaning）")
     expect_in("source_relpath", txt, "报告缺溯源行")
 
 

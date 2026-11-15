@@ -2,7 +2,7 @@
 
 > **文档状态**：审核稿 v1.0（2026-11-06）
 > **最后核对**：2026-11-06
-> **适用仓库**：`E:/PhySimX/PhySimX/simulation/flash_test/sandwich/flash`（gitee.com/physimx/flash，master）
+> **适用仓库**：`simulation/flash_test/sandwich/flash`（gitee.com/physimx/flash，master）
 > **目标**：将 flash-sim 相关 Agent skills 沉淀到仓库内部，随 git 分发，使 WorkBuddy / Claude Code / Codex / OpenCode 等各类 Agent 可直接阅读执行。
 
 ---
@@ -17,7 +17,7 @@
 |---|---|---|
 | `sandwich/flash`（主工作区） | 无自有 skill；`temp/FLASH-Expert/` 有上游 18 skill | `temp/` 已 gitignore，不随 git 分发 |
 | `layer3/flash`（旧副本，2026-10-29） | `.workbuddy/skills/flash-scenario-family/SKILL.md` 等 | 仅 1 个存活 skill，含硬编码路径；本项目级副本不随 git 分发 |
-| `C:\Users\Administrator\.workbuddy\skills\`（用户级） | 约 20 个 FLASH 相关 skill | 用户级目录天然不随项目分发，他人无法获得 |
+| `~/.workbuddy/skills/`（用户级） | 约 20 个 FLASH 相关 skill | 用户级目录天然不随项目分发，他人无法获得 |
 
 同时存在多处过时引用：`docs/skills-map.md` 有 3 处死链/失实路径；physimx-* 系列 9 个 skill 存在双重 frontmatter；`flash-scenario-family` 硬编码 `/root/QC/FLASH/...`；迁移日志显示曾有 43 个 skill 被删除但索引未清理。
 

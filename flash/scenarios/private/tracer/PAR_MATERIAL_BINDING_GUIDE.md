@@ -436,7 +436,7 @@ VTi1 这一行就是原始缺陷的判据：修复前该层按 CH 的 6.509/3.5 
 | 症状 | 根因 | 修复 |
 |---|---|---|
 | `场景包 center_evolution 加载失败: No module named ...` | `scenarios/__init__.py` 的包列表仍是旧一级名 | 改为 `("public", "flash_demo", "private")` |
-| `ch_center` 进了注册表却显示"加载失败" | `register()` 的 `module_path` 缺 `public` | `flash.scenarios.public.center_evolution.ch_center` |
+| `ch_center` 进了注册表却显示"加载失败" | `register()` 的 `module_path` 缺 `public` | `flash.scenarios.public.LaserCompression_twoside.center_evolution.ch_center` |
 | 两个 sandwich 场景根本没注册 | `sandwich/__init__.py` **不导入子包** | 补容错导入（同 center_evolution 风格） |
 
 另修：`public/__init__.py` 原是空文件 → 补 4 个专题子包的容错导入；

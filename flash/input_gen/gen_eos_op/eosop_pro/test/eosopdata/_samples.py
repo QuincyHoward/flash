@@ -132,7 +132,7 @@ def find_parseable_many(family: str, patterns: tuple[str, ...],
         v = _SAMPLE_CACHE[key]
         return v if v is None or isinstance(v, list) else None
 
-    from eosop_pro.registry.dispatch import FAMILY_PARSERS
+    from eosop_pro.registry.identify.dispatch import FAMILY_PARSERS
     fn = FAMILY_PARSERS.get(family)
     if fn is None:
         _SAMPLE_CACHE[key] = None

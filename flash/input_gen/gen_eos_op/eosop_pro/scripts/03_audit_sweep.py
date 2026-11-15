@@ -26,11 +26,11 @@ import argparse
 import sys
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parents[2]   # .../gen_eos_op（使 import eosop_pro 生效）
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from eosop_pro import batch  # noqa: E402
+from eosop_pro.pipeline import batch  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

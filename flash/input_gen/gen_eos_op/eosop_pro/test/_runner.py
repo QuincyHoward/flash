@@ -30,7 +30,10 @@ from typing import Any, Callable
 
 # ── 项目根 bootstrap（本文件位于 <ROOT>/test/_runner.py） ────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_ROOT = os.path.dirname(_HERE)
+_ROOT = os.path.dirname(_HERE)          # .../gen_eos_op/eosop_pro（包根）
+_PKG_PARENT = os.path.dirname(_ROOT)    # .../gen_eos_op（使 ``import eosop_pro`` 生效）
+if _PKG_PARENT not in sys.path:
+    sys.path.insert(0, _PKG_PARENT)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 # 让 ``import eosop_pro`` 与顶层 ``import config`` 都能工作

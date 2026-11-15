@@ -30,8 +30,8 @@ from pathlib import Path
 
 from eosop_pro import config
 from eosop_pro.parsers.cn4_io import load_cn4
-from eosop_pro.plotting import cn4_plots
-from eosop_pro.plotting.cn4_plots import (
+from eosop_pro.plotting.cn4 import cn4_plots
+from eosop_pro.plotting.cn4.cn4_plots import (
     AXES, SUPPORTED_QUANTITIES, OPACITY_NAMES,
     axis_label, display_scale,
 )
@@ -105,7 +105,7 @@ def test_opacity_names_map_to_real_attributes():
 
 def test_display_scale_comes_from_units_module():
     """显示换算因子必须来自 ``units`` 模块（单一来源），不在此硬编码。"""
-    from eosop_pro.plotting import units
+    from eosop_pro.plotting.style import units
     expect_eq(display_scale("p_ion"), units.P_JCM3_TO_MBAR)
     expect_eq(display_scale("e_ele"), units.E_JG_TO_ERG_G)
     expect_eq(display_scale("cv_ion"), units.CV_TO_ERG_G_EV)
@@ -311,7 +311,7 @@ def test_plot_style_meets_ppt_requirements():
 
 def test_all_text_ascii_guard_exists():
     """``plotting.style`` 必须提供 ASCII 守卫（强制全英文出图，防 PPT 乱码）。"""
-    from eosop_pro.plotting import style
+    from eosop_pro.plotting.style import style
     for name in ("all_text_ascii", "assert_ascii", "style_report"):
         expect(hasattr(style, name), f"缺 {name}")
 
@@ -320,7 +320,7 @@ def test_ascii_guard_rejects_non_ascii_text():
     """守卫须能识别图中的非 ASCII 文本（``all_text_ascii(fig)`` 返回 ``(ok, bad)``）。"""
     import matplotlib
     matplotlib.use("Agg")
-    from eosop_pro.plotting import style
+    from eosop_pro.plotting.style import style
 
     plt = style._apply_rcparams() if hasattr(style, "_apply_rcparams") else None
     if plt is None:                                # 回退：手工取 pyplot
@@ -353,14 +353,14 @@ def test_generated_figures_are_pure_ascii():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from eosop_pro.plotting import style
-    from eosop_pro.plotting.cn4_paths import apply_style
+    from eosop_pro.plotting.style import style
+    from eosop_pro.plotting.cn4.cn4_paths import apply_style
 
     t = _tbl()
     apply_style()
 
     # 热图：直接复现内部调用，拿到 fig 再检查
-    from eosop_pro.plotting.cn4_plots import (
+    from eosop_pro.plotting.cn4.cn4_plots import (
         _resolve_quantity, _prepare_axes, _plot_heatmap, axis_label,
     )
     field, qlabel, zlog = _resolve_quantity(t, "zbar", None, 1)

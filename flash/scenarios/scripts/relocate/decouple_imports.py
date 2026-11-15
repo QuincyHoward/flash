@@ -106,6 +106,10 @@ RULES = [
     ("R6_gen_module_name",
      _R.compile(r'(return )["\']flash\.scenarios\.[\w.]+\.gen_flash_inputs["\']'),
      r'\1f"{__package__}.gen_flash_inputs"'),
+
+    ("R6b_gen_module_assign",
+     _R.compile(r'(gen_mod\s*=\s*)f["\']flash\.scenarios\.[\w.]+\.gen_flash_inputs["\']'),
+     r'\1f"{__package__}.gen_flash_inputs"'),
 ]
 
 

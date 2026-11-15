@@ -28,6 +28,9 @@ Python API:
 from __future__ import annotations
 
 import re
+from flash._core.credentials.hpc_config import _LEGACY_ROUTE_KEY
+
+_LEGACY_ACCTS = "|".join(_LEGACY_ROUTE_KEY)  # 历史账号名仅存于 hpc_config 白名单文件
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -165,8 +168,8 @@ RULES: tuple[Rule, ...] = (
          "场景核数默认值 → flash.scenarios.core.scene_reg.device_defaults；"
          "场景超算提交声明 → flash.scenarios.core.hpc.hpc_job；"
          "通用提交实现 → flash.flash_run.remote.job_submit"),
-    Rule("R-ID-01", "identity",
-         r"Administrator|scfa2696"
+Rule("R-ID-01", "identity",
+         r"Administrator|" + _LEGACY_ACCTS +
          r"|[A-Za-z]:[\\\\/]+Users|[A-Za-z]:[\\\\/]+PhySimX"
          r"|/mnt/e/PhySimX|ProgramsPATH|/mnt/d/WSL",
          "身份/位置硬编码泄漏（2026-10-27 全库去硬编码）：Windows 用户名、"

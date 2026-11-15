@@ -4,7 +4,7 @@ description: FLASH 三模式运行体系（wsl/hpc-remote/hpc-insitu）：模式
 ---
 
 > 最后核对：2026-11-06 · commit 54a9f69
-> §9 底层 API 速查自旧版同名技能校正并入（2026-11-06；旧 scfa2696 机名硬编码、`physimx_sim.flash.*` 前缀已废弃）
+> §9 底层 API 速查自旧版同名技能校正并入（2026-11-06；旧 <ACCOUNT> 机名硬编码、`physimx_sim.flash.*` 前缀已废弃）
 
 # FLASH 三模式运行与超算部署
 
@@ -118,7 +118,7 @@ done
 | `FlashEnvManager` | 同上 `:307` | 具名环境管理器：`list_environments()` / `get(name)`；凭据经 `flash._core.credentials`，勿硬编码用户名 |
 | `FlashResourceConfig` | `flash/flash_run/env/resource_config.py` | 维度感知资源分配（`classify_device` + Local/HPC DimensionConfig） |
 | `FlashRemoteDeploy` | `flash/flash_run/remote/remote_deploy.py:74` | `connect()` / `execute()` / `upload(local, remote)` / `download(remote, local)` / `file_exists()` / `install_flash()` / `submit_job()` / `check_job(job_id)` / `cancel_job()`；构造时自动选路 |
-| `RouteTester` | `flash/flash_run/remote/route_tester.py` | `test_all_routes(ROUTES_*)` / `get_best_route(ROUTES_*)`；路由表 `ROUTES_SCFA2696`（凭据 `flash_ssh`）/ `ROUTES_SCH0348`（凭据 `flash_ssh_2`） |
+| `RouteTester` | `flash/flash_run/remote/route_tester.py` | `test_all_routes(ROUTES_*)` / `get_best_route(ROUTES_*)`；路由表 `ROUTES_NC_E`（凭据 `flash_ssh`）/ `ROUTES_BSCC_T6`（凭据 `flash_ssh_2`） |
 | 作业链 | `flash/flash_run/remote/slurm_control.py` | 见 §4（LocalExecutor/RemoteExecutor + run_job_chain） |
 
 ⚠️ 旧 API 名称已变更：`submit_sbatch→submit_job`、`poll_job→check_job`、`find_best_route→get_best_route`；

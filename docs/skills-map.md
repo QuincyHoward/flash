@@ -35,7 +35,7 @@
 | `flash-input-gen` | `flash/input_gen/README.md`, `gen_par/README.md`, `gen_checker/README.md` | `flash/input_gen/` 全部 gen_* 子包；references/api-reference.md |
 | `flash-newpara` | `flash/input_gen/gen_newpara/README.md`, `RP_Reference.md` | `flash/input_gen/gen_newpara/`, `test/newpara/` |
 | `flash-grid-refine-constraint` | `flash/input_gen/gen_otherf90s/README.md` | `flash/input_gen/gen_Grid_markRefineDerefine/generator.py` |
-| `flash-eos-op` | `flash/input_gen/gen_eos_op/README.md` | `flash/input_gen/gen_eos_op/`（eosop_pro/ionmix/eos_op_data） |
+| `flash-eos-op` | `flash/input_gen/gen_eos_op/README.md`, `gen_eos_op/eosop_pro/docs/README.md` | `flash/input_gen/gen_eos_op/`（eosop_pro/ionmix/feos/eos_op_data） |
 | `flash-flychk-history` | — | `flash/input_gen/gen_flychk_his/` |
 | `flash-hpc-fetch` | — | `scripts/02_hpc/` |
 | `flash-data-extract` | `flash/output_pro/FLASH物理量说明.md` | `flash/output_pro/loader/`, `flash/output_pro/extraction_modes.py`, `flash/output_pro/parallel.py` |
@@ -45,6 +45,7 @@
 | `flash-param-lookup` | `docs/reference/param_index_flash48.md` | 联网 Flash Center rpDoc_4p8（references/param_index.tsv 本地 4050 参数索引） |
 | `flash-readme-sync` | `scripts/08_docs/check_docs.py` | 全仓 117+ README（豁免 PlasmaPy/_legacy_diags/pytest_cache/backup） |
 | `flash-skill-sync` | `AGENTS.md`, `skills/README.md` | 全部 `skills/*/SKILL.md`（22 个，边界基线 2026-11-06 定案） |
+| `flash-git-publish` | `docs/GIT_WORKFLOW.md` | `scripts/03_git_publish/`（git_push/git_pull/publish_pypi、credentials.enc 凭据体系） |
 
 ## Docs → Skills
 
@@ -69,7 +70,7 @@
 | `temp/FLASH-Expert/`（上游 18 skill，gitignored） | flash-knowledge / flash-pitfalls / param_index 的吸收源；git pull 更新通道 |
 | 用户级 `~/.workbuddy/skills/`（不随项目分发） | 部分内容已重写并入本仓 skills/（scenario-setup、flychk-history、hpc-fetch、data-extract、backup-verify）；对应条目以本仓为准 |
 | `layer3/flash` 工作副本（旧，2026-10-29） | flash-scenario-family 与 SNB reference 的素材源；以本仓 sandwich 为唯一事实源 |
-| 用户级 skills 副本：`C:\Users\Administrator\Desktop\skills` 与 `C:\Users\Administrator\.workbuddy - 副本\skills`（两者 diff 零差异） | 2026-11-06 吸收源：6 个新技能 + 4 处并入（见文首二次吸收说明）；原件保留为历史存档 |
+| 用户级 skills 副本：`Desktop/skills` 与 `.workbuddy - 副本/skills`（Windows 用户目录）（两者 diff 零差异） | 2026-11-06 吸收源：6 个新技能 + 4 处并入（见文首二次吸收说明）；原件保留为历史存档 |
 | `simulation/flash/.workbuddy/skills/`（旧仓） | input-gen-generator 并入 flash-input-gen；output_processors-usage 并入 flash-output-analysis；flash-orchestrator-activator 跳过（失效） |
 | `flash/flash_src/docs/src_finding/`（已移至 `flash/temp_delete/docs/src_finding/`） | 7 份方程↔源码对照文档 2026-11-06 完整迁入 flash-knowledge/references/src_finding/ |
 | FLASH4.8 源码树（仓外 `simulation/flash/flash_src/FLASH4.8/FLASH4.8/source/`） | src_finding 文档与 flash-knowledge 锚点的核验对象；仓外只读，不入 git |

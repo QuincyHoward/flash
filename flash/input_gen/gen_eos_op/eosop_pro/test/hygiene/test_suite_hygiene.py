@@ -303,8 +303,7 @@ def test_wrappers_reference_existing_cli_subcommands():
     """``scripts/*.py`` 的 ``main([[...]])`` 子命令必须都在 cli 里注册。"""
     import re
 
-    from eosop_pro import cli as mcli
-
+    from eosop_pro.pipeline import cli as mcli
     src = Path(mcli.__file__).read_text(encoding="utf-8")
     registered = set(re.findall(r'add_parser\(\s*"([a-z-]+)"', src))
     expect(registered, "应解析出已注册子命令")

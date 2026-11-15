@@ -35,7 +35,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parents[2]   # .../gen_eos_op（使 import eosop_pro 生效）
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 

@@ -27,8 +27,8 @@ from _runner import expect, expect_eq, expect_in, main
 from eosop_pro import config
 from eosop_pro.parsers import hyades_eos as f3
 from eosop_pro.parsers import multi_opacity as f2
-from eosop_pro.plotting import qa_plots
-from eosop_pro.plotting.style import (ASCII_RE, all_text_ascii, apply_style,
+from eosop_pro.plotting.qa import qa_plots
+from eosop_pro.plotting.style.style import (ASCII_RE, all_text_ascii, apply_style,
                                         style_report)
 
 

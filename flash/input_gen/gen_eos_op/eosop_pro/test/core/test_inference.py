@@ -24,11 +24,11 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import columnprofile as cp
-from eosop_pro.core import fortran_numbers as fn
-from eosop_pro.core import lineprofile as lp
-from eosop_pro.core.envelope import DEFAULT_ENVELOPE, Envelope, check_values
-from eosop_pro.core.inference import TEMPLATES, infer_file, infer_layout
+from eosop_pro.core.profile import columnprofile as cp
+from eosop_pro.core.numbers import fortran_numbers as fn
+from eosop_pro.core.profile import lineprofile as lp
+from eosop_pro.core.infer.envelope import DEFAULT_ENVELOPE, Envelope, check_values
+from eosop_pro.core.infer.inference import TEMPLATES, infer_file, infer_layout
 
 
 # ── ② 行剖面 ───────────────────────────────────────────────────
@@ -113,7 +113,7 @@ def test_columnprofile_packed_negatives_falls_back():
 
 
 def test_columnprofile_real_files():
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
     for rel, expected in (("mat_Al-1.0/FEOS/Al.feos.301", 15),
                           ("mat_He/Untitled.304", 16)):
         d = textio.read_text(config.MATTER(rel))

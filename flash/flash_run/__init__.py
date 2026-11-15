@@ -25,8 +25,8 @@ _LAZY = {
     "get_resource_config": (".env.resource_config", "get_resource_config"),
     "RouteTester": (".remote.route_tester", "RouteTester"),
     "test_and_select_best_route": (".remote.route_tester", "test_and_select_best_route"),
-    "ROUTES_SCFA2696": (".remote.route_tester", "ROUTES_SCFA2696"),
-    "ROUTES_SCH0348": (".remote.route_tester", "ROUTES_SCH0348"),
+    "ROUTES_NC_E": (".remote.route_tester", "ROUTES_NC_E"),
+    "ROUTES_BSCC_T6": (".remote.route_tester", "ROUTES_BSCC_T6"),
 }
 
 __all__ = list(_LAZY)

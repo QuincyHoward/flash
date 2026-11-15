@@ -1,6 +1,6 @@
 """非 cn4 各族的**彩图绘制**测试（全英文、字体 > 18pt、PPT 演讲级）。
 
-被测量的绘图入口（``eosop_pro.plotting.qa_plots``）
+被测量的绘图入口（``eosop_pro.plotting.qa.qa_plots``）
 ----------------------------------------------------
 ==============================  =====================================
 函数                            适用表
@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(_d)))       # repo root
 from eosopdata._samples import find_parseable, tmp_dir             # noqa: E402
 
 from eosop_pro import config                                      # noqa: E402
-from eosop_pro.plotting.labels import field_label                 # noqa: E402
+from eosop_pro.plotting.style.labels import field_label                 # noqa: E402
 
 #: 各族样品模式（与 test_family_extract.py 一致）。
 SAMPLE_PATTERNS = {
@@ -101,7 +101,7 @@ def test_plot_style_constants_meet_ppt_requirements():
 
 def test_apply_style_forces_ascii_font_stack():
     """``apply_style`` 应设置 ASCII 字体栈（防 LaTeX 缺字导致方块）。"""
-    from eosop_pro.plotting.style import apply_style
+    from eosop_pro.plotting.style.style import apply_style
     import matplotlib
     matplotlib.use("Agg")
     plt = apply_style()
@@ -116,7 +116,7 @@ def test_apply_style_forces_ascii_font_stack():
 # ── 二维不透明度热图 ────────────────────────────────────────────
 def test_opacity_heatmap_renders_for_ledcop_atomic():
     """``ledcop_atomic`` 的 Ross/Planck 应能画热图并落盘。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap
     t = _first("ledcop_atomic")
     if t is None:
         return
@@ -132,7 +132,7 @@ def test_opacity_heatmap_renders_for_ledcop_atomic():
 
 def test_opacity_heatmap_renders_for_multi_opacity():
     """``multi_opacity``（多群）应能画热图。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap
     t = _first("multi_opacity")
     if t is None:
         return
@@ -147,7 +147,7 @@ def test_opacity_heatmap_renders_for_multi_opacity():
 
 def test_opacity_heatmap_renders_for_sesame_opacity_dat():
     """``sesame_dat`` 样品（真实是 hyades OPACITY 表）应能画热图。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap
     t = _first("sesame_dat")
     if t is None:
         return
@@ -167,14 +167,14 @@ def _close(fig) -> None:
     figure 会累积到后续模块的 ``test_directory_batch_no_figure_leak``
     （期望全局 figure 数 == 0），造成跨文件假失败。
     """
-    from eosop_pro.plotting.qa_plots import _plt
+    from eosop_pro.plotting.qa.qa_plots import _plt
     _plt().close(fig)
 
 
 def test_all_2d_opacity_families_produce_nonempty_png():
     """汇总：所有可画二维图的族都应产出非空 PNG，并逐一 ASCII 合规。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap, plot_zeff
-    from eosop_pro.plotting.style import all_text_ascii
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap, plot_zeff
+    from eosop_pro.plotting.style.style import all_text_ascii
     made = 0
     for fam in ("ledcop_atomic", "multi_opacity", "sesame_dat"):
         t = _first(fam)
@@ -205,7 +205,7 @@ def test_all_2d_opacity_families_produce_nonempty_png():
 # ── EOS 等密度线 ────────────────────────────────────────────────
 def test_eos_isobars_render_for_mpqeos():
     """``mpqeos``（``rho``/``Te`` 基）应能画等密度线。"""
-    from eosop_pro.plotting.qa_plots import plot_eos_isobars
+    from eosop_pro.plotting.qa.qa_plots import plot_eos_isobars
     t = _first("mpqeos")
     if t is None:
         return
@@ -220,7 +220,7 @@ def test_eos_isobars_render_for_mpqeos():
 
 def test_eos_isobars_render_for_hyades_eos():
     """``hyades_eos`` 应能画等密度线。"""
-    from eosop_pro.plotting.qa_plots import plot_eos_isobars
+    from eosop_pro.plotting.qa.qa_plots import plot_eos_isobars
     t = _first("hyades_eos")
     if t is None:
         return
@@ -240,7 +240,7 @@ def test_eos_isobars_rejects_table_without_Te_axis():
     这不是缺陷 —— F1 表的温度在**场**里（``T``）而非轴上。本测试把该
     行为**显式锁定**，避免将来误判为 bug 而错误"修复"。
     """
-    from eosop_pro.plotting.qa_plots import plot_eos_isobars
+    from eosop_pro.plotting.qa.qa_plots import plot_eos_isobars
     t = _first("multi_inverted_eos")
     if t is None:
         return
@@ -257,7 +257,7 @@ def test_eos_isobars_rejects_table_without_Te_axis():
 # ── 一维曲线 ────────────────────────────────────────────────────
 def test_loglog_curve_renders_for_coldopacity():
     """``coldopacity``（1D）应能画 log-log 曲线。"""
-    from eosop_pro.plotting.qa_plots import plot_loglog_curve
+    from eosop_pro.plotting.qa.qa_plots import plot_loglog_curve
     t = _first("coldopacity")
     if t is None:
         return
@@ -279,7 +279,7 @@ def test_loglog_curve_renders_for_coldopacity():
 
 def test_loglog_curve_renders_for_hugoniot():
     """``hugoniot`` 的 ``P`` vs ``Rho`` 应能画 log-log 曲线。"""
-    from eosop_pro.plotting.qa_plots import plot_loglog_curve
+    from eosop_pro.plotting.qa.qa_plots import plot_loglog_curve
     t = _first("hugoniot")
     if t is None:
         return
@@ -303,7 +303,7 @@ def test_loglog_curve_renders_for_hugoniot():
 
 def test_generic_curve_multicolumn_renders():
     """``generic_curve`` 多列数据应至少能画一列。"""
-    from eosop_pro.plotting.qa_plots import plot_loglog_curve
+    from eosop_pro.plotting.qa.qa_plots import plot_loglog_curve
     t = _first("generic_curve")
     if t is None:
         return
@@ -327,7 +327,7 @@ def test_generic_curve_multicolumn_renders():
 # ── 图对象结构断言 ──────────────────────────────────────────────
 def test_rendered_figure_has_title_and_axes_labels():
     """出图必须带 title + x/y label（否则不满足演讲级要求）。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap
     t = _first("ledcop_atomic")
     if t is None:
         return
@@ -345,7 +345,7 @@ def test_rendered_figure_has_title_and_axes_labels():
 
 def test_rendered_tick_labels_meet_min_fontsize():
     """刻度/标题字号必须 > 18pt（实测量取）。"""
-    from eosop_pro.plotting.qa_plots import plot_opacity_heatmap
+    from eosop_pro.plotting.qa.qa_plots import plot_opacity_heatmap
     t = _first("ledcop_atomic")
     if t is None:
         return
@@ -367,8 +367,8 @@ def test_rendered_tick_labels_meet_min_fontsize():
 
 def test_save_fig_rejects_non_ascii_text():
     """``save_fig`` 应拒绝含非 ASCII 的图（守护绘图规约）。"""
-    from eosop_pro.plotting.qa_plots import save_fig, _plt
-    from eosop_pro.plotting.style import apply_style
+    from eosop_pro.plotting.qa.qa_plots import save_fig, _plt
+    from eosop_pro.plotting.style.style import apply_style
     apply_style()
     P = _plt()
     fig, ax = P.subplots()

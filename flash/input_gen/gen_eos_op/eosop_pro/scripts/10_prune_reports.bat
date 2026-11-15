@@ -3,7 +3,7 @@ REM Step 10: keep only the newest report batch per kind
 REM Double-clickable one-step launcher. ASCII-only (Windows cmd GBK safe).
 REM Line endings are CRLF on purpose: cmd.exe wants CRLF for multi-line blocks.
 setlocal
-set ROOT=%~dp0..
+set ROOT=%~dp0..\..
 set VENV=%USERPROFILE%\.workbuddy\binaries\python\envs\default
 set PYEXE=%VENV%\Scripts\python.exe
 if not exist "%PYEXE%" (
@@ -11,6 +11,6 @@ if not exist "%PYEXE%" (
   pause ^& exit /b 1
 )
 cd /d "%ROOT%"
-"%PYEXE%" -m eosop_pro.cli prune-reports %*
+"%PYEXE%" -m eosop_pro.pipeline.cli prune-reports %*
 echo.
 pause

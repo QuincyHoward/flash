@@ -28,7 +28,7 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.core import textio
+from eosop_pro.core.text import textio
 
 
 def _doc(rel: str) -> textio.TextDoc:

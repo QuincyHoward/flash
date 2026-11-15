@@ -105,7 +105,7 @@ def test_dos_eof_marker_noted():
 
 
 def test_header_must_have_five_numbers():
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     raised = False
     try:
         f3.parse_header_line("41 13 26.982 2.7568")

@@ -69,29 +69,66 @@ SHORT_TMAX = 1.0e-11
 SHORT_DTMAX = 1.0e-13
 
 #: public 场景定义
-SCENES = {
+#:
+#: ★ 2026-11-11 可移植化：gen/input_dir 不再字面量硬编码 —— 运行期经
+#:   discovery ``resolve_scene_meta()`` 按场景名解析 scene_dir（支持别名键，
+#:   场景目录收纳/移动免疫），拼出仓库根相对 POSIX 路径后嵌入远端 bash。
+#:   表内仅存场景名与场景特有声明（desc/input_dirname/par/nproc）。
+SCENES: dict[str, dict] = {
     "ch_center": {
         "desc": "LaserSlab1D CH 靶（双束 351nm 激光相向入射）",
-        "gen": "flash/scenarios/public/center_evolution/ch_center/gen_flash_inputs.py",
-        "input_dir": "flash/scenarios/public/center_evolution/ch_center/flash_input",
+        "input_dirname": "flash_input",
         "par": "laserslab_chcenter.par",
         "nproc": 4,
     },
     "grad_dens_sandwich": {
         "desc": "HE-CH-Si-CH-HE 渐变密度夹层",
-        "gen": "flash/scenarios/public/sandwich/grad_dens_sandwich/gen_flash_inputs.py",
-        "input_dir": "flash/scenarios/public/sandwich/grad_dens_sandwich/sim_input",
+        "input_dirname": "sim_input",
         "par": "grid_rede.par",
         "nproc": 7,
     },
     "thin_layer_sandwich_si": {
         "desc": "Si/CH/He 三层薄靶",
-        "gen": "flash/scenarios/public/sandwich/thin_layer_sandwich/gen_flash_inputs.py",
-        "input_dir": "flash/scenarios/public/sandwich/thin_layer_sandwich/sim_input_si",
+        "input_dirname": "sim_input_si",
         "par": "grid_rede.par",
         "nproc": 7,
     },
 }
+
+
+def _scene_repo_rel(scene_key: str, sub: str) -> str:
+    """经 discovery 解析 ``<场景目录>/<sub>`` 的仓库根相对 POSIX 路径。
+
+    ★ R-LAYER-01（部署层不得静态 import 场景层）：deploy → flash_run → _core
+      是合法依赖方向，``flash.scenarios.core`` 属场景层 ⇒ 本函数经**子进程**
+      查询场景层（deploy 编排场景层的仓库既定模式，同 test_toolchain 门禁），
+      本模块内不出现静态 import。
+    """
+    import subprocess
+
+    code = (
+        "from pathlib import Path\n"
+        "from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta\n"
+        f"d = Path(resolve_scene_meta({scene_key!r}).source).parent / {sub!r}\n"
+        f"print(d.resolve().relative_to(Path(r'{REPO_ROOT}')).as_posix())\n"
+    )
+    r = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True,
+        encoding="utf-8", errors="replace", cwd=str(REPO_ROOT), timeout=120,
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"场景 {scene_key!r} 解析失败: {r.stderr[-300:]}")
+    return r.stdout.strip().replace("\\", "/")
+
+
+def _resolve_scene_paths() -> None:
+    """SCENES 各条目注入 gen / input_dir（仓库根相对 POSIX，移动免疫）。"""
+    for key, cfg in SCENES.items():
+        cfg["gen"] = _scene_repo_rel(key, "gen_flash_inputs.py")
+        cfg["input_dir"] = _scene_repo_rel(key, cfg["input_dirname"])
+
+
+_resolve_scene_paths()
 
 
 def build_remote_script(scenes: list[str], phase_b: bool, lock_file: str = "",

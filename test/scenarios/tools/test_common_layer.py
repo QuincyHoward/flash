@@ -61,6 +61,22 @@ class TestAnchors:
         assert p.is_absolute()
         assert p.name == "t001"
 
+    def test_anchor_v2_scene_name_addressing(self):
+        """★ 2026-11-11 v2 锚点：场景名寻址经 discovery 解析，移动自动跟随。
+
+        断言不变量：锚点解析结果 == 场景经 discovery 的**实时位置**
+        （场景目录移动/改名后两者同步变化，不写死目录名）。
+        """
+        from pathlib import Path
+
+        from flash.scenarios.core.scene_reg.discovery import resolve_scene_meta
+
+        for key, scene in (("tracer.OneCH_ml", "OneCH_ml"), ("tracer.VTi", "VTi1")):
+            p = anchor(key)
+            live = Path(resolve_scene_meta(scene).source).parent
+            assert p.is_absolute() and p.is_dir()
+            assert p == live, f"{key}: 锚点 {p} != 场景实时位置 {live}"
+
     def test_anchor_missing_key_raises(self):
         with pytest.raises(KeyError, match="未知场景锚点"):
             anchor("no.such.anchor")

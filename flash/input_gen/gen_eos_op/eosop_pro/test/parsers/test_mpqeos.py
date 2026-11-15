@@ -23,8 +23,8 @@ from _runner import expect, expect_eq, main
 
 from eosop_pro import config
 from eosop_pro.parsers import mpqeos as f4
-from eosop_pro.core import fixedwidth as fw
-from eosop_pro.core import fortran_numbers as fn
+from eosop_pro.core.numbers import fixedwidth as fw
+from eosop_pro.core.numbers import fortran_numbers as fn
 
 
 def _p(rel):
@@ -54,8 +54,8 @@ def test_unit_conversion_is_exact_factor():
 
     不依赖量级经验判断，而是从原始 payload 重算后逐点比对。
     """
-    from eosop_pro.core import textio
-    from eosop_pro.core import fixedwidth as fw
+    from eosop_pro.core.text import textio
+    from eosop_pro.core.numbers import fixedwidth as fw
 
     t = _p("mat_Al-1.0/FEOS/Al.feos.301")
     doc = textio.read_text(config.MATTER("mat_Al-1.0/FEOS/Al.feos.301"))
@@ -87,7 +87,7 @@ def test_temperature_kelvin_to_ev():
 
 def test_header_slicing_by_fixed_width_is_provably_wrong():
     """反证：定宽 16 切分把字段切坏 → 证明必须用 L2 正则。"""
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
     doc = textio.read_text(config.MATTER("mat_Al-1.0/FEOS/Al.feos.301"))
     bad = fw.slice_fields(doc.lines[0], width=fw.WIDTH_MPQEOS, count=4)
     expect_eq(bad, ["37170301", "2.70000000e+00 1", ".92000000e+02 6.", "90000000e+01"])
@@ -101,7 +101,7 @@ def test_header_slicing_by_fixed_width_is_provably_wrong():
 
 def test_payload_width_inferred_per_file():
     """同族字段宽不同：Al=15、He=16。"""
-    from eosop_pro.core import textio
+    from eosop_pro.core.text import textio
     d1 = textio.read_text(config.MATTER("mat_Al-1.0/FEOS/Al.feos.301"))
     p1 = [ln for ln in d1.lines[1:] if ln.strip()]
     expect_eq(fw.infer_payload_width(p1, 4), 15)

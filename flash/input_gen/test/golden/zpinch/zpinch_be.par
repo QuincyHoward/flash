@@ -1,0 +1,290 @@
+run_comment = "ZPinch Be-liner geometry verification (1D cyl UG, tmax=1e-12s)"  # run description
+log_file    = "zpbe.log"                                                        # runtime log file name
+basenm      = "zpbe_"                                                           # basename for all output files
+
+##########################
+#                        #
+#     I/O PARAMETERS     #
+#                        #
+##########################
+
+checkpointFileIntervalTime = 1.0e-12                                            # checkpoint interval [s] (= tmax, final state)
+checkpointFileIntervalStep = 100                                                # checkpoint interval [steps]
+plotFileNumber = 0                                                              # first plotfile number
+plotFileIntervalStep = 1                                                        # plotfile every step (geometry check)
+plot_var_1 = "dens"                                                             # plotfile output variable whitelist #1
+plot_var_2 = "pres"                                                             # plotfile output variable whitelist #2
+plot_var_3 = "tele"                                                             # plotfile output variable whitelist #3
+plot_var_4 = "tion"                                                             # plotfile output variable whitelist #4
+plot_var_5 = "trad"                                                             # plotfile output variable whitelist #5
+plot_var_6 = "fill"                                                             # plotfile output variable whitelist #6 (DD gas)
+plot_var_7 = "line"                                                             # plotfile output variable whitelist #7 (Be liner)
+plot_var_8 = "vacu"                                                             # plotfile output variable whitelist #8 (vacuum tracer)
+plot_var_9 = "magz"                                                             # plotfile output variable whitelist #9 (B_z face)
+restart = .false.                                                               # restart from checkpoint?
+checkpointFileNumber = 0                                                        # first checkpoint file number
+
+##########################
+#                        #
+#     RADIATION/OPACITY  #
+#     PARAMETERS         #
+#                        #
+##########################
+
+# MGD 6 群 (官方 stock): 0.1 → 1e5 eV, 10**等距
+rt_mgdNumGroups = 6                                                             # number of MGD radiation groups
+rt_mgdBounds_1  = 1.0e-01                                                       # MGD radiation group boundary 1 [eV]
+rt_mgdBounds_2  = 1.0e+00                                                       # MGD radiation group boundary 2 [eV]
+rt_mgdBounds_3  = 1.0e+01                                                       # MGD radiation group boundary 3 [eV]
+rt_mgdBounds_4  = 1.0e+02                                                       # MGD radiation group boundary 4 [eV]
+rt_mgdBounds_5  = 1.0e+03                                                       # MGD radiation group boundary 5 [eV]
+rt_mgdBounds_6  = 1.0e+04                                                       # MGD radiation group boundary 6 [eV]
+rt_mgdBounds_7  = 1.0e+05                                                       # MGD radiation group boundary 7 [eV]
+rt_mgdFlMode    = "fl_harmonic"                                                 # controls flux limiter mode
+rt_mgdFlCoef    = 1.0                                                           # flux limiter coefficient
+rt_mgdThetaImplct = 0.5                                                         # implicitness factor
+rt_mgdXlBoundaryType = "reflecting"                                             # r=0 反射 (零通量)
+rt_mgdXrBoundaryType = "vacuum"                                                 # 外边界真空
+rt_mgdYlBoundaryType = "reflecting"
+rt_mgdYrBoundaryType = "reflecting"
+rt_mgdZlBoundaryType = "reflecting"
+rt_mgdZrBoundaryType = "reflecting"
+
+meshCopyCount = 1                                                               # mesh copies
+
+useOpacity     = .true.                                                         # enable opacity unit
+op_tableEnergyTolerance = 1.0e-4                                                # opacity table energy tolerance
+op_fillAbsorb   = "op_tabpa"                                                    # fill (DD) absorption opacity
+op_fillEmiss    = "op_tabpe"                                                    # fill (DD) emission opacity
+op_fillTrans    = "op_tabro"                                                    # fill (DD) transport opacity
+op_fillFileType = "ionmix4"                                                     # fill opacity file type
+op_fillFileName = "DD-006-imx.cn4"                                              # fill opacity table (FLASH 分发 6 群表)
+op_lineAbsorb   = "op_tabpa"                                                    # line (Be) absorption opacity
+op_lineEmiss    = "op_tabpe"                                                    # line (Be) emission opacity
+op_lineTrans    = "op_tabro"                                                    # line (Be) transport opacity
+op_lineFileType = "ionmix4"                                                     # line opacity file type
+op_lineFileName = "Be-006-imx.cn4"                                              # line opacity table (FLASH 分发 6 群表)
+op_vacuAbsorb   = "op_constant"                                                 # vacuum absorption (constant)
+op_vacuEmiss    = "op_constant"                                                 # vacuum emission (constant)
+op_vacuTrans    = "op_tabro"                                                    # vacuum transport opacity
+op_vacuFileType = "ionmix4"                                                     # vacuum opacity file type
+op_vacuFileName = "Be-006-imx.cn4"                                              # vacuum opacity table
+op_vacuAbsorbConstant = 0.                                                      # no absorption
+op_vacuEmissConstant = 0.                                                       # no emission
+
+##########################
+#                        #
+#     CONDUCTION / MHD   #
+#     PARAMETERS         #
+#                        #
+##########################
+
+useDiffuse      = .true.                                                        # enable diffusion units
+useConductivity = .true.                                                        # enable conductivity unit
+diff_useEleCond = .true.                                                        # electron thermal conduction
+diff_eleFlMode  = "fl_larsen"                                                   # electron flux limiter mode
+diff_eleFlCoef  = 0.06                                                          # electron flux limiter coefficient
+diff_thetaImplct = 0.5                                                          # implicitness factor
+diff_useIonCond = .true.                                                        # ion thermal conduction
+diff_ionFlMode  = "fl_larsen"                                                   # ion flux limiter mode
+diff_ionFlCoef  = 0.065                                                         # ion flux limiter coefficient
+diff_ionThetaImplct = 0.5                                                       # implicitness factor
+diff_eleXlBoundaryType = "neumann"
+diff_eleXrBoundaryType = "neumann"
+diff_eleYlBoundaryType = "neumann"
+diff_eleYrBoundaryType = "neumann"
+diff_eleZlBoundaryType = "neumann"
+diff_eleZrBoundaryType = "neumann"
+diff_ionXlBoundaryType = "neumann"
+diff_ionXrBoundaryType = "neumann"
+diff_ionYlBoundaryType = "neumann"
+diff_ionYrBoundaryType = "neumann"
+diff_ionZlBoundaryType = "neumann"
+diff_ionZrBoundaryType = "neumann"
+
+killdivb    = .true.                                                            # magnetic field divergence cleaning
+useMagneticResistivity = .true.                                                 # enable magnetic resistivity
+resistivitySolver = "implicit"                                                  # implicit resistivity solver
+resistivityForm = "perpendicular"                                               # resistivity form
+diff_magThetaImplct = 0.5                                                       # magnetic diffusion implicitness
+diff_magFlMode = "fl_none"                                                      # magnetic flux limiter mode
+diff_magFlCoef = 1.0                                                            # magnetic flux limiter coefficient
+diff_magzXlBoundaryType = "neumann"                                             # B_z 内边界
+diff_magzXrBoundaryType = "circuit"                                             # B_z 外边界 = Circuit 驱动
+diff_magzYlBoundaryType = "neumann"
+diff_magzYrBoundaryType = "neumann"
+diff_magzZlBoundaryType = "neumann"
+diff_magzZrBoundaryType = "neumann"
+gr_hypreSolverType = "HYPRE_GMRES"                                              # HYPRE solver type
+gr_hypreMaxIter = 1000                                                          # HYPRE max iterations
+gr_hypreMaxIterMag = 1000                                                       # HYPRE max iterations (magnetic)
+gr_hyprereltol = 1.e-6                                                          # HYPRE relative tolerance
+gr_hyprereltolMag = 1.e-6                                                       # HYPRE relative tolerance (magnetic)
+gr_hypreUseMagFloor = .false.                                                   # magnetic floor off (★0 同源铁律)
+gr_hypreMagFloor = 0.0                                                          # magnetic floor value
+res_vacSpec = "vacu"                                                            # vacuum species for resistivity
+res_vacDens = 1.e10                                                             # vacuum density threshold
+res_vacFrac = 0.5                                                               # vacuum fraction threshold
+res_vacRes = 1.e12                                                              # vacuum resistivity [cm2/s]
+conserveAngField = .true.                                                       # conserve angular field
+conserveAngMom = .false.                                                        # conserve angular momentum
+useDiffuseComputeDtTherm       = .FALSE.                                        # dt from thermal diffusion off
+useDiffuseComputeDtMagnetic    = .FALSE.                                        # dt from magnetic diffusion off
+useDiffuseComputeDtSpecies     = .FALSE.                                        # dt from species diffusion off
+useDiffuseComputeDtVisc        = .FALSE.                                        # dt from viscosity off
+useDiffuseSpecies              = .FALSE.                                        # species diffusion off
+useDiffuseVisc                 = .FALSE.                                        # viscosity diffusion off
+E_modification  = .true.                                                        # high-order E-field construction
+energyFix       = .true.                                                        # energy fix
+ForceHydroLimit = .false.                                                       # pure hydro limit (B=0)
+prolMethod      = "balsara_prol"                                                # prolongation method
+use_Hall = .false.                                                              # Hall MHD off
+hy_biermannSource = .false.                                                     # Biermann source off
+use_biermann      = .false.                                                     # Biermann battery off
+use_biermann1T    = .false.                                                     # Biermann 1T off
+hy_fullSpecMsFluxHandling = .true.                                              # species mass flux handling
+usePlasmaState = .true.                                                         # PlasmaState utility (logLambda)
+
+##########################
+#                        #
+#     HEAT EXCHANGE      #
+#     PARAMETERS         #
+#                        #
+##########################
+
+useHeatexchange = .true.                                                        # electron-ion heat exchange
+hx_dtFactor = 1.0e+100                                                          # heat exchange dt limit off
+
+##########################
+#                        #
+#     EOS PARAMETERS     #
+#                        #
+##########################
+
+eosModeInit      = "dens_temp_gather"                                           # initial EOS mode
+eos_useLogTables = .false.                                                      # EOS tables use log interpolation
+eos_maxNewton    = 10000                                                        # max Newton iterations
+eos_tolerance    = 1.e-5                                                        # EOS convergence tolerance
+
+##########################
+#                        #
+#     HYDRO PARAMETERS   #
+#                        #
+##########################
+
+useHydro = .true.                                                               # enable hydrodynamics
+order            = 2                                                            # interpolation order
+slopeLimiter     = "mc"                                                         # slope limiter
+LimitedSlopeBeta = 1.                                                           # limited slope parameter
+charLimiting     = .true.                                                       # characteristic limiting
+use_avisc        = .true.                                                       # artificial viscosity
+cvisc            = 0.1                                                          # artificial viscosity coefficient
+use_flattening   = .false.                                                      # flattening off
+use_steepening   = .false.                                                      # contact steepening off
+use_upwindTVD    = .false.                                                      # upwind TVD off
+RiemannSolver    = "HLLD"                                                       # MHD Riemann solver
+entropy          = .false.                                                      # entropy fix off
+shockDetect      = .false.                                                      # shock detection off
+use_hybridOrder  = .false.                                                      # hybrid order off
+
+# 1D 圆柱 (r): x = r (轴上 axisymmetric), 外边界 nocurrent (Circuit 配套)
+xl_boundary_type = "axisymmetric"                                               # r=0 对称轴
+xr_boundary_type = "nocurrent"                                                  # 外边界 (无电流穿透)
+yl_boundary_type = "outflow"
+yr_boundary_type = "outflow"
+zl_boundary_type = "outflow"
+zr_boundary_type = "outflow"
+
+##########################
+#                        #
+#     INITIAL CONDITIONS #
+#                        #
+##########################
+
+# ── 密度构型 (官方 stock, rhoType=0 阶跃三区) ──
+sim_rhoType = 0                                                                 # 0: step-function (solid liner)
+sim_fill_dens = 30.e-03                                                         # fill (DD gas) density [g/cc]
+sim_fill_minDens = 1.e-05                                                       # fill min density
+sim_fill_ctr = 0.                                                               # Gaussian center (rhoType 1/2/11)
+sim_fill_sigma = 1.0                                                            # Gaussian width
+sim_fill_tele = 1160452.21                                                      # fill electron temperature [K] (100 eV 预热)
+sim_fill_tion = 1160452.21                                                      # fill ion temperature [K]
+sim_fill_trad = 1160452.21                                                      # fill radiation temperature [K]
+sim_fill_maxTemp = 1.e12                                                        # fill max temperature
+sim_fill_minTemp = 1.e-12                                                       # fill min temperature
+ms_fillA = 2.014                                                                # fill (D2) atomic weight
+ms_fillZ = 1.0                                                                  # fill atomic number
+eos_fillEosType = "eos_tab"                                                     # fill EOS type
+eos_fillSubType = "ionmix4"                                                     # fill EOS subtype
+eos_fillTableFile = "DD-006-imx.cn4"                                            # fill EOS table (FLASH 分发)
+
+sim_line_dens = 1.848                                                           # liner (Be) density [g/cc]
+sim_line_minDens = 1.e-06                                                       # liner min density (also vacuum floor)
+sim_line_ctr = 1.0                                                              # Gaussian center
+sim_line_sigma = 0.8                                                            # Gaussian width
+sim_innerRadius = 0.29                                                          # liner inner radius [cm]
+sim_thickness = 0.058                                                           # liner thickness [cm] (0.29→0.348)
+sim_pert = 0.                                                                   # density perturbation amplitude (0=纯净构型)
+sim_seed = 1                                                                    # random seed
+sim_line_tele = 5802.26105                                                      # liner electron temperature [K] (0.5 eV)
+sim_line_tion = 5802.26105                                                      # liner ion temperature [K]
+sim_line_trad = 5802.26105                                                      # liner radiation temperature [K]
+sim_line_maxTemp = 1.e12                                                        # liner max temperature
+sim_line_minTemp = 1.e-12                                                       # liner min temperature
+ms_lineA = 9.012                                                                # liner (Be) atomic weight
+ms_lineZ = 4.                                                                   # liner atomic number
+eos_lineEosType = "eos_tab"                                                     # liner EOS type
+eos_lineSubType = "ionmix4"                                                     # liner EOS subtype
+eos_lineTableFile = "Be-006-imx.cn4"                                            # liner EOS table (FLASH 分发)
+
+sim_vacu_dens = 1.e-05                                                          # vacuum density [g/cc]
+sim_vacu_tele = 5802.26105                                                      # vacuum electron temperature [K]
+sim_vacu_tion = 5802.26105                                                      # vacuum ion temperature [K]
+sim_vacu_trad = 5802.26105                                                      # vacuum radiation temperature [K]
+sim_vacu_maxTemp = 5802.26105                                                   # vacuum max temperature (锁定 0.5 eV)
+sim_vacu_minTemp = 5802.26105                                                   # vacuum min temperature (锁定 0.5 eV)
+ms_vacuA = 9.012                                                                # vacuum tracer atomic weight (Be 表)
+ms_vacuZ = 4.                                                                   # vacuum tracer atomic number
+eos_vacuEosType = "eos_tab"                                                     # vacuum EOS type
+eos_vacuSubType = "ionmix4"                                                     # vacuum EOS subtype
+eos_vacuTableFile = "Be-006-imx.cn4"                                            # vacuum EOS table
+
+# ── Circuit 电流驱动 (CircuitMain/FileInput) ──
+circ_currFile = "current.dat"                                                   # current waveform file (ns vs. MA)
+
+# ── 轨迹输出 (官方 stock) ──
+sim_trajOutputInterval = 1.e-10                                                 # trajectory output interval [s]
+sim_trajOutputIntervalNearStag = 1.e-11                                         # near-stagnation interval [s]
+sim_rNearStag = 0.145                                                           # near-stagnation radius [cm]
+
+##########################
+#                        #
+#     TIME PARAMETERS    #
+#                        #
+##########################
+
+cfl            = 0.9                                                            # CFL factor
+rt_dtFactor    = 1.0e+100                                                       # radiation dt limit off
+hx_dtFactor    = 1.0e+100                                                       # heat exchange dt limit off
+tmax = 1.000000000000000e-12                                                    # simulation end time [s] ★ 极短几何验证
+dtmin          = 1.0e-16                                                        # minimum timestep [s]
+dtinit         = 1.000000000000000e-14                                          # initial timestep [s]
+dtmax          = 1.000000000000000e-12                                          # maximum timestep [s]
+nend           = 200                                                            # maximum number of steps
+tstep_change_factor = 1.2                                                      # timestep growth factor
+
+##########################
+#                        #
+#     MESH PARAMETERS    #
+#                        #
+##########################
+
+geometry = "cylindrical"                                                        # domain geometry (1D r)
+xmin = 0.0                                                                      # domain left edge (对称轴) [cm]
+xmax = 0.5                                                                      # domain right edge (r_max) [cm]
+iGridSize = 128                                                                 # uniform grid cells (nxb * iprocs)
+jGridSize = 1                                                                   # y cells (1D)
+kGridSize = 1                                                                   # z cells (1D)
+iProcs = 8                                                                      # processes along x (== NPROCS)
+jProcs = 1                                                                      # processes along y
+kProcs = 1                                                                      # processes along z

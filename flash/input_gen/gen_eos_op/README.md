@@ -1,6 +1,6 @@
 # gen_eos_op — EOS/Opacity 数据生成器与子体系
 
-> 最后核对：2026-11-05 · commit 7e04857 · 维护规则：改动 generator.py 注册表后必须同步 §4 材料表
+> 最后核对：2026-11-15（eosop_pro docs 整合 temp_docs → docs/ 根；feos_native 布局定案） · 维护规则：改动 generator.py 注册表后必须同步 §4 材料表
 
 ## 1. 职责定位
 
@@ -80,14 +80,21 @@ g.list_discovered_files()                      # 磁盘全部 .cn4（含未注�
 ```
 gen_eos_op/
 ├── generator.py + gen_eos_op/README.md(本文) + eos_op_data/   ← 表文件管理（本指南）
-├── eosop_pro/          matter++ 数据 → 统一解析/网格 → 双轨 HDF5（~60 模块 + 16 篇 docs）
+├── eosop_pro/          matter++ 数据 → 统一解析/网格 → 双轨 HDF5（深度功能树：
+│                       core[text/numbers/profile/infer+config+docsrc] / parsers /
+│                       registry[identify/material/schema/zeff] / convert / grid /
+│                       writer / plotting[cn4/qa/style] / pipeline[batch+cli] / ops；
+│                       唯一 CLI 入口 python -m eosop_pro.pipeline.cli）
 │                       → 详见 eosop_pro/README.md
-├── ionmix/ionmix/      IONMIX 输入生成（src/Ionmix_run）+ .cn4 后处理参考实现（eosop_pro/core）
-│                       → 详见 ionmix/ionmix/README.md；用户指南 docs/IONMIX用户指南.md(1274 行)
+├── ionmix/             IONMIX 输入生成与运行（ionmix_run/ Python + src/ionmix/ Fortran，abjt_03）
+│                       → cn4 命名含群数后缀 _{n}g；详见 ionmix/README.md、ionmix_run/IONMIX用户指南.md(1281 行)
+├── feos/               FEOS EOS 表生成（Faik 16.7，feos_run/ Python + src/FEOS/ C++）
+│                       → .feos（仅 EOS，无不透明度）→ feos_to_cn4 转 cn4（零填充不透明度，
+│                         EOS-only 用途）；详见 feos/README.md、feos_run/FEOS用户指南.md
 └── src/multi_src/      MULTI 格式历史资料（multi_src/README.md + 03_anchors 锚点库）
 ```
 
-数据流转：`ionmix`（生成 .cn4）→ `eos_op_data/`（注册/复制）→ `eosop_pro`（解析/网格/HDF5）→ 场景 `.par` 装配消费 `.eosmeta.json`。
+数据流转：`ionmix`（生成 .cn4，EOS+不透明度）/ `feos`（生成 .feos→转 cn4，仅 EOS 零填充）→ `eos_op_data/`（注册/复制）→ `eosop_pro`（解析/网格/HDF5）→ 场景 `.par` 装配消费 `.eosmeta.json`。
 
 ## 7. 新材料接入
 
@@ -109,8 +116,8 @@ gen_eos_op/
 
 ## 9. 导航
 
-上级：[../README.md](../README.md)（input_gen） · 子体系：[eosop_pro/README.md](eosop_pro/README.md)、[ionmix/ionmix/README.md](ionmix/ionmix/README.md)、[src/multi_src/README.md](src/multi_src/README.md)
+上级：[../README.md](../README.md)（input_gen） · 子体系：[eosop_pro/README.md](eosop_pro/README.md)、[ionmix/README.md](ionmix/README.md)、[feos/README.md](feos/README.md)、[src/multi_src/README.md](src/multi_src/README.md)
 
 ---
 **文档版本**: 3.0（注册表与磁盘对齐实测重写；子体系导航补全）
-**最后核对**: 2026-11-05 · **维护**: PhySimX Team
+**最后核对**: 2026-11-15（eosop_pro docs 体系整合：temp_docs 并入 docs/ 根） · **维护**: PhySimX Team

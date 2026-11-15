@@ -17,6 +17,9 @@ FLASH 仿真输入文件生成器 v2.0 (自包含)
   gen_checker/ploter/ - 绘图 (PulsePlotter, DensityPlotter, RayPlotter)
   gen_flychk_his/     - FLASH 剖面 → FLYCHK history 输入 zip
                         (FlychkHistoryGenerator, 多区域/多数据源)
+  gen_sim_adjustevo/  - Simulation_adjustEvolution.F90 生成 (ZPinch 系, 隔离)
+  gen_par/zpinch_par.py - ZPinch par 生成 (build_zpinch_par, 隔离文件,
+                        不经本包 __init__ 导出, 调用方显式 import)
 
 统一接口:
   create_input_files(): 一键生成所有 FLASH 输入文件

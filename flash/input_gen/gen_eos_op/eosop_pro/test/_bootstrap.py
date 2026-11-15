@@ -78,8 +78,9 @@ def ensure_paths(start: str | os.PathLike[str] | None = None) -> list[str]:
     added: list[str] = []
     root = test_dir(start)
     repo = os.path.dirname(root)
+    pkg_parent = os.path.dirname(repo)   # .../gen_eos_op（使 ``import eosop_pro`` 生效）
     here = os.path.dirname(os.path.abspath(start)) if start else root
-    for p in (here, root, repo):
+    for p in (here, root, repo, pkg_parent):
         if p and p not in sys.path:
             sys.path.insert(0, p)
             added.append(p)

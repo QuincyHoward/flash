@@ -13,7 +13,7 @@
 
 
 # 查看运行时间状态等 北京
-sacct -u sch0348 -S 2025-08-25 -E 2025-09-10 \
+sacct -u hello -S 2025-08-25 -E 2025-09-10 \
       --format=jobid,jobname,partition,alloccpus,start,end,elapsed,state -X
 
 #

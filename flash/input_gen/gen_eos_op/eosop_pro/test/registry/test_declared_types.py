@@ -21,9 +21,9 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, expect_in, main
 
 from eosop_pro import config
-from eosop_pro.registry import declared_types as dt
-from eosop_pro.registry.annotation_store import AnnotationStore
-from eosop_pro.registry.material import MaterialRegistry
+from eosop_pro.registry.schema import declared_types as dt
+from eosop_pro.registry.schema.annotation_store import AnnotationStore
+from eosop_pro.registry.material.material import MaterialRegistry
 
 
 def _idx():
@@ -274,7 +274,7 @@ def test_thermos_path_rule_includes_ideal_gas_eos():
 
 def test_the_four_dispatch_fixes_end_to_end():
     """★ 端到端：4 类分派错误修复后，10 个 conflict 全部变为正确解析。"""
-    from eosop_pro.registry.dispatch import parse_declared
+    from eosop_pro.registry.identify.dispatch import parse_declared
 
     cases = {
         "mat_CPC/AU.INV": ("multi_inverted_eos", (123, 100)),

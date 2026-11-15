@@ -1,6 +1,6 @@
 # eosop_pro
 
-> 最后核对：2026-11-06 · commit 20337b6 · 维护规则：改动 eosop_pro/ 代码后同步本文模块要点
+> 最后核对：2026-11-14 · commit ba2981e（其后含深度功能树重组，以代码为准） · 维护规则：改动 eosop_pro/ 代码后同步本文模块要点
 
 
 > `Multi1D++Portable20241128/matter++` 的物质数据（EOS / 不透明度 / Z̄ / NLTE /
@@ -18,11 +18,9 @@
 | 解析覆盖率 | **992 / 1214 = 81.7%**（其余 222 为登记跳过） |
 | **问题文件** | **0** |
 | 闸口 | `已解析 + 已跳过 == 文件总数` ✅ |
-| 审计耗时 | 144.7 s（全量） |
-| 交叉验证 | `identify` 比对 997 文件 → `conflict` **0**（首轮 10） |
-| 下游 | `convert-all` 992 个 h5 / 335.3 MiB / **0 失败** |
-| 测试 | `all tests passed across 30 file(s)`（**393 个测试**） |
-| 格式族 | 6 大族 / 15 个解析器 |
+| 交叉验证 | `identify` 比对 → `conflict` **0** |
+| 测试 | **54 文件 / 691 测试全绿**（零依赖运行器 `test/run_all.py`） |
+| 格式族 | 6 大族 / 16 个解析器 |
 
 ---
 
@@ -38,55 +36,68 @@ scripts\run_all.bat
 
 单步启动器（双击即可）：`scripts\01_extract_docs.bat` … `scripts\09_infer_unknown.bat`。
 
-命令行等价：
+命令行等价（**唯一 CLI 入口**：`python -m eosop_pro.pipeline.cli`）：
 
 ```bash
-<venv>/Scripts/python.exe -m eosop_pro.cli extract-docs
-<venv>/Scripts/python.exe -m eosop_pro.cli inventory
-<venv>/Scripts/python.exe -m eosop_pro.cli audit
-<venv>/Scripts/python.exe -m eosop_pro.cli zeff
-<venv>/Scripts/python.exe -m eosop_pro.cli identify
-<venv>/Scripts/python.exe -m eosop_pro.cli convert-all --limit 20
-<venv>/Scripts/python.exe -m eosop_pro.cli plot-all --limit 12
-<venv>/Scripts/python.exe -m eosop_pro.cli infer-unknown
-<venv>/Scripts/python.exe -m eosop_pro.cli prune-reports       # 报告只留最新一批
-<venv>/Scripts/python.exe test/run_all.py
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli extract-docs
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli inventory
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli audit
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli zeff
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli identify
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli convert-all --limit 20
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli plot-all --limit 12
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli infer-unknown
+<venv>/Scripts/python.exe -m eosop_pro.pipeline.cli prune-reports  # 报告只留最新一批
+<venv>/Scripts/python.exe eosop_pro\test\run_all.py                # 或 cd eosop_pro 后 test/run_all.py
 ```
 
 单文件排查：
 
 ```bash
-python -m eosop_pro.cli parse  mat_Al-1.0/AL_eos                # 声明式解析摘要
-python -m eosop_pro.cli infer  mat_Au-1.0/AU_op03r              # 零先验反演报告
-python -m eosop_pro.cli h5     mat_Al-1.0/AL_eos --out al.h5    # 单表双轨 h5
-python -m eosop_pro.cli convert mat_Al-1.0/AL_eos \
-        --to hyades_eos --out al_from_f1.dat --invert             # F1 → F3
-python -m eosop_pro.cli targets                                 # 可转换目标清单
+python -m eosop_pro.pipeline.cli parse  mat_Al-1.0/AL_eos                # 声明式解析摘要
+python -m eosop_pro.pipeline.cli infer  mat_Au-1.0/AU_op03r              # 零先验反演报告
+python -m eosop_pro.pipeline.cli h5     mat_Al-1.0/AL_eos --out al.h5    # 单表双轨 h5
+python -m eosop_pro.pipeline.cli convert mat_Al-1.0/AL_eos \
+        --to hyades_eos --out al_from_f1.dat --invert                     # F1 → F3
+python -m eosop_pro.pipeline.cli targets                                 # 可转换目标清单
 ```
 
 ---
 
-## 目录
+## 目录（深度功能树，逐层按功能划分）
 
 ```
-eosop_pro/
-├─ eosop_pro/             Python 包
-│  ├─ config.py             ★ 唯一常量来源（路径/阈值/网格/压缩/绘图），禁止别处硬编码
-│  ├─ cli.py                14 个子命令（唯一动作实现）
-│  ├─ batch.py              批处理编排：inventory / audit / convert-all / plot-all / infer
-│  ├─ docsrc.py             说明文档抽取（doc/docx/pptx/xlsx/xmind/pdf/txt）
-│  ├─ reporting.py          CSV/MD/JSON 报告写出
-│  ├─ core/                 L1 字节 → L2 数值 → L3 结构 → 阶段 B 反演
-│  ├─ parsers/              15 个格式族解析器
-│  ├─ registry/             声明类型 / 材料 / 单位 / Z̄ 注册表
-│  ├─ convert/              跨格式转换（read A → ParsedTable → write B）
-│  ├─ grid/                 统一网格与插值
-│  ├─ writer/               HDF5 双轨写出
-│  └─ plotting/             PPT 级 QA 出图（全英文）
-├─ scripts/                 8 个薄包装 py + 11 个双击 bat
-├─ test/                    28 个测试文件（零依赖运行器）
-├─ docs/                    17 篇技术文档 + extracted/（抽取的说明书原文）
-└─ outputs/                 h5 / plots / reports / logs
+eosop_pro/                 包根 = 项目根（扁平化布局）
+├─ __init__.py             包入口（re-export config，保住 from eosop_pro import config）
+├─ core/                   基础层（格式无关）
+│  ├─ config.py            ★ 唯一常量来源（路径/阈值/网格/压缩/绘图），禁止别处硬编码
+│  ├─ docsrc.py            说明文档抽取（doc/docx/pptx/xlsx/xmind/pdf/txt）
+│  ├─ text/                文本字节级读取：textio / byteclass / hashing / errors / snapshot
+│  ├─ numbers/             Fortran 数值解析：fortran_numbers / fixedwidth
+│  ├─ profile/             行剖面 / 列剖面：lineprofile / columnprofile
+│  └─ infer/               盲读推断（阶段 B）：inference / envelope / anchors / annotations / guess
+├─ parsers/                 16 个格式族解析器 + base（ParsedTable 公共容器）
+│  ├─ formats/              每解析器一份格式说明（<解析器名>.md，含 uk/uv 标记）
+│  └─ test/                 产物核查套件（解析统计 + 代表性图像，人工核查用）
+├─ registry/                注册表层
+│  ├─ identify/             identify（两阶段比对）/ dispatch（声明分发）
+│  ├─ material/             material / material_base / eos_list（材料注册表三源）
+│  ├─ schema/               declared_types / annotation_store / database_index
+│  ├─ zeff/                 zeff_registry / zeff_inventory / units_registry
+│  └─ field_checks.py       字段控制字典（与 docs/eosop变量控制字典.md 逐字同步）
+├─ convert/                 跨格式转换（read A → ParsedTable → write B）
+├─ grid/                    统一网格与插值
+├─ writer/                  HDF5 双轨写出
+├─ plotting/                PPT 级 QA 出图（全英文）
+│  ├─ cn4/                  cn4 专系：paths / plots / timeseries / fit / thermo
+│  ├─ qa/                   qa_plots / gridmap（任意族共用热图原语）
+│  └─ style/                labels / units / style
+├─ pipeline/                编排层：batch.py（批处理）+ cli.py（唯一 CLI 入口）
+├─ ops/                     运行维护：reporting（报告写出）/ prune（保留策略）
+├─ scripts/                 10 个薄包装 py + 12 个双击 bat
+├─ test/                    54 个测试文件（零依赖运行器 run_all.py）
+├─ docs/                    文档索引 README + 13 篇正式文档 + archive/
+└─ outputs/                 h5 / plots / reports / logs（gitignore）
 ```
 
 ---
@@ -113,7 +124,7 @@ mat_Al-1.0/AL_eos.feos         →  文件名说 .feos，内容却是 F1 反演 
 用「计数守恒 × 网格单调 × 物理包络」求解布局：
 
 ```bash
-$ python -m eosop_pro.cli infer mat_Al-1.0/AL_eos
+$ python -m eosop_pro.pipeline.cli infer mat_Al-1.0/AL_eos
 状态: ok
 自洽候选 (1):
   - f1_with_e0(d1=66,d2=74,ng=1) payload=9974 mono=True env=True score=2.00
@@ -135,13 +146,20 @@ $ python -m eosop_pro.cli infer mat_Al-1.0/AL_eos
 | F1 MULTI 反演 EOS | `multi_inverted_eos` | 53 | `(rho, de)` | **Kelvin**（→eV） |
 | F2 MULTI 不透明度/Z̄/NLTE | `multi_opacity` | **391** | `(rho, Te)` log10 | **eV** |
 | F3 Hyades / SESAME | `hyades_eos` / `hyades_opacity` | 99 + 36 | `(rho, Te)` | **keV**（→eV） |
-| F4 FEOS / MPQeos | `mpqeos` / `feos_native` / `feos_tabdata` / `feos_aux` | 190 | `(rho, Te)` | **Kelvin**（→eV） |
+| F4 FEOS / MPQeos | `mpqeos` / `feos_native` / `feos_tabdata` / `feos_aux` | 190 | `(rho, Te)` | **Kelvin/keV**（→eV）；`.feos` 原生为 **eV** |
 | F5 LEDCOP / ATOMIC | `ledcop_atomic` / `ledcop_zeff` | 31 | `(rho, Te)` log10 | **keV**（→eV） |
 | F6 其他 | `coldopacity` / `hugoniot` / `ionmix` / `snop_input` / `generic_curve` | 270 | 混合 | 声明决定 |
 
 ★ **同一物理量在不同族里单位不同**（`Kelvin` / `eV` / `keV`），
 所以单位走**独立四级仲裁链**（`companion > inline > envelope > config_default`），
 每条裁决带 `source` 与 `evidence`，写进 h5 与报告。
+
+★ **cn4 原生直通**（`parsers/cn4_io.py`）：`convert_cn4_to_cn4` 默认
+`verbatim=True` —— 数据区逐字节直通（仅头部按表字段复刻），
+保证 cn4→cn4 往返 byte-identical。原因：BADGER-TOPS 系列文件**同一文件内
+混用两种 e12.6 尾数风格**（`0.ddddddE±dd` 与 `d.ddddddE±dd`）并以
+`-Infinity` 字面量表示负无穷，逐值重排无法复刻。显式传 `mantissa_style=`
+或 `write_opacities=False` 时退回逐值重排路径。
 
 ---
 
@@ -189,8 +207,9 @@ legend ≥ 18 pt、linewidth ≥ 2、markersize ≥ 8（由测试断言）。
 
 ## 配置
 
-**唯一常量来源**是 `eosop_pro/config.py`，其他模块不得硬编码
-（由 `test/hygiene/test_config_single_source.py` 用 `ast` 扫源码强制）。
+**唯一常量来源**是 `eosop_pro/core/config.py`，其他模块不得硬编码
+（由 `test/hygiene/test_config_single_source.py` 用 `ast` 扫源码强制；
+`from eosop_pro import config` 经包入口 re-export 继续可用）。
 
 任意项可用环境变量覆盖（前缀 `MULTI_EOSOP_`）：
 
@@ -199,7 +218,7 @@ MULTI_EOSOP_MATTER_DIR=/path/to/matter++ \
 MULTI_EOSOP_N_X_UNIFIED=256 \
 MULTI_EOSOP_EXTRAPOLATION=clamp \
 MULTI_EOSOP_MONOTONIC_POLICY=average \
-  python -m eosop_pro.cli h5 mat_Al-1.0/AL_eos --out al.h5
+  python -m eosop_pro.pipeline.cli h5 mat_Al-1.0/AL_eos --out al.h5
 ```
 
 ---
@@ -211,8 +230,11 @@ MULTI_EOSOP_MONOTONIC_POLICY=average \
    `--multigroup` 显式开启。
 3. **`generic_curve` 94 个** —— 这是**降级**而非成功：
    收下了列式数值，但轴与场只标 `x`/`colN`，单位 `unknown`。
-4. **`feos_native` 的数据块列序待定** —— FEOS PDF §16.2 抽取有连字伪影，
-   不猜列语义，数值存 `raw_values`（风险 R3）。
+4. **`feos_native` 已定案（2026-11）** —— 16 块 + Qtot + Q 由
+   `FE-01_TABTOOLS.C::write_FEOS_format` 定案解码（R3 废除）；
+   详见 `parsers/formats/feos_native.md`。已知边界：matter++
+   `mat_Others/SiO2.feos`（3 位指数粘连变体）拒收；简并角落
+   （低 T × 低 ρ）压力反演电离度可超 Z（数据性质，notes 告警）。
 5. **`ionmix` 列语义待定** —— 本地无 IONMIX 格式文档。
 6. **PDF 文本层** —— CID 字体抽不出（如部分中文文献），如实记 warning，
    不转述未读内容。
@@ -224,7 +246,7 @@ MULTI_EOSOP_MONOTONIC_POLICY=average \
 
 ## 文档
 
-完整技术文档在 [`docs/`](docs/README.md)（17 篇）。
+完整技术文档在 [`docs/`](docs/README.md)（13 篇，位于 `docs/` 根）。
 建议先读：
 
 | 想做什么 | 读 |

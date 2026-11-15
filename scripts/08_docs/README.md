@@ -1,6 +1,6 @@
 # scripts/08_docs — 文档体系工具
 
-> 最后核对：2026-11-05 · commit 7e04857
+> 最后核对：2026-11-15 · commit 97d5e5d
 
 **一句话职责**：为全仓 README/GUIDE 文档体系提供「信息采集」与「防回归校验」两个只读工具，是文档防腐化机制的执行者。
 
@@ -31,5 +31,7 @@ python scripts/08_docs/check_docs.py
 ## 维护规则
 
 文档元信息块中的「commit 短 hash」是核对锚点：`git diff <hash>..HEAD -- <目录>` 即可判断文档是否已落后于代码。模块清单表的「行数」列偏差 >30% 时 `check_docs` 输出 WARN 提示重读。
+
+全仓 README 的「自底向上、先读代码后写文档」维护流程见 `flash-readme-sync` skill；每次批量改 README 后应跑一次全仓门禁（`python scripts/08_docs/check_docs.py`）。
 
 **上级导航**：[../README.md](../README.md)（仓库 scripts 工具区索引）

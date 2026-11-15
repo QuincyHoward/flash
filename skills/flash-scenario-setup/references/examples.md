@@ -90,9 +90,9 @@ x-t 时空图必须 pcolormesh（见 flash-output-analysis §2）；批处理用
 
 ```python
 from flash.flash_run.remote.remote_deploy import FlashRemoteDeploy
-from flash.flash_run.remote.route_tester import RouteTester, ROUTES_SCFA2696
+from flash.flash_run.remote.route_tester import RouteTester, ROUTES_NC_E
 
-route = RouteTester().get_best_route(ROUTES_SCFA2696)   # ⚠️ get_best_route（旧 find_best_route 已改名）
+route = RouteTester().get_best_route(ROUTES_NC_E)   # ⚠️ get_best_route（旧 find_best_route 已改名）
 deploy = FlashRemoteDeploy(credential="flash_ssh")      # 构造时自动选路
 deploy.connect()
 deploy.upload("./simulations/power_scan", "~/flash_jobs/power_scan/")

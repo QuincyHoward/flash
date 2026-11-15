@@ -71,7 +71,7 @@ def test_all_coldopacity_files():
 
 
 def test_header_mismatch_raises():
-    import eosop_pro.core.errors as errs
+    import eosop_pro.core.text.errors as errs
     raised = False
     try:
         co.parse_two_line_header(["Eph\tmiu", "eV"])

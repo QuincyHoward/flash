@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""step02 —— ``feos_native`` 族（F4 FEOS 原生 *.feos）批量出图与 **raw 序列图契约**。
+"""step02 —— ``feos_native`` 族（F4 FEOS 原生 *.feos）批量出图与**解码块场图契约**。
 
 统一绘图模块 gridmap；产物落 ``_out/feos_native/``。
 
@@ -7,45 +7,32 @@
 ------------------------------------------------
 1. 网格点 —— ``_out/XX_<table_key>/_report.txt`` 的 ``axis`` 行给出
    点数 / 范围 / 单调性 / log-uniform。
-   ⚠️ 本族已知格式特征：``.feos`` 头部声明的 NR/NT 比真实网格**多 1**
-   （尾部一个 ``0.0`` 哨兵）；解析器 ``feos_native.grid_length()`` 用
-   严格递增前缀裁剪 —— 报告 axis 行的 N 即**裁剪后**网格数；
-2. 物理量物理意义 —— ⚠️ **payload 当前不可解码**（见下）；
-3. 单位 —— 头部声明 ``format:FEOS (cgs + eV)``；
-4. 认证标记 —— 全部条目无可指认一级来源（FEOS PDF 抽取伪影在案，
-   见字典来源详述）+ 未核查 -> ``tags=uk,uv``。
+   ⚠️ 本族格式特征（2026-11 定案）：``.feos`` 声明 NR/NT = 真实点数 + 1
+   （**前导** ``Qstart=0.0`` 哨兵计入声明值）；解析器确定性切分后修剪 ——
+   报告 axis 行的 N 即**修剪后**真实网格数；
+2. 物理量物理意义 —— ✅ **16 块 + Qtot + Q 已定案解码**
+   （FE-01_TABTOOLS.C::write_FEOS_format，R3 废除）；
+3. 单位 —— 原生 cgs + eV（压强 dyn/cm2、能量/自由能 erg/g、熵 erg/g/eV）；
+4. 认证标记 —— 全部命名条目 kind=source code（源码锚点）+ 未人工核查
+   -> ``tags=uv``。
 
-⚠️ raw 序列图契约（2026-09-15 晚，用户规约"数值可读即可画"确立）
+⚠️ 契约升级（2026-11-15，替代已废除的 raw 序列图契约）
 ----------------------------------------------------
-解析器对全部 29 个 feos 文件都只产出 ``raw_values``
-（meaning = "Undecoded payload (PDF extraction artefacts; column
-semantics not recoverable)"）—— payload 的**列语义与排布无法从现有
-PDF 文档恢复**，因此带物理意义的场彩图仍不可能。
-
-但按用户规约"即使物理量意义及单位未知，也应能读取数值、绘制数值"，
-gridmap 对语义映射不可行的字段画 **raw values vs element index**
-序列图（``raw_values_raw_vs_index.png``，图上标注 semantics unknown），
-不再静默零图。每族处理前 ``max_files=3`` 个可解析 ``.feos`` 文件，
-故 ``n_plots >= 1``（每表 1 张 raw 序列图）。
-
-数学佐证（payload 长度 = 声明NR × nTe × 18 个量）：
-
-* Al.feos：192 × 69 × 18 = 238464 ✓
-* B/Ba/Bi/Cl/Co/Cr/Dy/F/K/N.feos 等：123 × 101 × 18 = 223614 ✓
-* Cerium.feos：123 × 97 × 18 = 214758 ✓
-
-18 个量的身份（P/E/...？）与排布（块优先 / 行优先 / 交错？）仍无文档
-依据 —— raw 序列图**只展示数值分布**，绝不给轴赋予物理语义。将来若从
-上游文档恢复列语义并升级解析器，本测试需同步改约（补场彩图契约）。
+旧契约因"payload 列序未定（R3）"只能画 raw vs index 序列图。
+布局由 C 源码定案后，解析器输出 16 个命名二维块（P,E,S,F|Pe,Ee,Se,Fe|
+Pi,Ei,Si,Fi|PTF,ETF,STF,FTF）+ Qtot + Q0..，gridmap 直接画**物理场彩图**
+（轴 = 修剪后真实网格 rho × Te）。每族处理前 ``max_files=3`` 个可解析
+``.feos`` 文件，故 ``n_plots >= 1``。
 
 本族特有：``.feos`` 候选顺序 ``[feos_native, multi_inverted_eos]`` ——
 ``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` 字节相同（名 FEOS 实 SESAME），
-走 F1 回退，与本族无关。
+走 F1 回退，与本族无关。已知边界：``mat_Others/SiO2.feos`` 为 3 位指数
+粘连变体（``e+001``），解析器拒收（旧版同样拒收，非回归）。
 
 产出（落 ``step02_families/_out/feos_native/``）
 ----------------------------------------
-``XX_<table_key>/raw_values_raw_vs_index.png``（raw 序列图）/
-``_report.txt``（轴网格 + raw_values uk/uv 认证标注 + 出图清单）/
+``XX_<table_key>/<field>_*.png``（解码块物理场彩图）/
+``_report.txt``（轴网格 + 字段 uv 认证标注 + 出图清单）/
 ``source_data/*.feos``（原始数据副本，核查对照用）。
 """
 
@@ -65,7 +52,7 @@ from _runner import expect, expect_eq, expect_in, main            # noqa: E402
 sys.path.insert(0, os.path.dirname(_d))                        # test/
 sys.path.insert(0, os.path.dirname(os.path.dirname(_d)))       # repo root
 
-# ★ payload 未解码、无电离度场，ne-T 不可导 —— 保持 None 即可。
+# ★ 16 块已定案解码；ne-T 派生（需 atomwt/zbar 映射）暂不启用 —— 保持 None。
 ATOMWT = None
 
 from eosopdata.step02_families._family_plot_common import (   # noqa: E402
@@ -75,8 +62,8 @@ FAMILY = "feos_native"
 PATTERNS = FAMILY_PATTERNS[FAMILY]
 
 
-def test_axes_documented_and_raw_sequence_plotted():
-    """轴网格照常入报告；raw_values 标记 uk/uv；raw 序列图必须产出。"""
+def test_axes_documented_and_decoded_field_plotted():
+    """轴网格照常入报告；解码块字段标记 uv；物理场彩图必须产出。"""
     r = run_family_plots(FAMILY, PATTERNS, atomwt=ATOMWT)
     if r is None:
         return                                  # 样品不在 -> skip（惰性发现）
@@ -84,14 +71,14 @@ def test_axes_documented_and_raw_sequence_plotted():
     txt = open(r["reports"][0], encoding="utf-8").read()
     expect_in("axis 'rho'", txt, "报告缺 rho 轴核查行")
     expect_in("axis 'Te'", txt, "报告缺 Te 轴核查行")
-    expect_in("raw_values", txt, "报告缺 raw_values（未解码 payload）字段行")
-    expect_in("tags=uk,uv", txt, "raw_values 应无源（uk）且未核查（uv）")
-    expect_in("uv", txt, "raw_values 应未核查（uv）")
-    # ── raw 序列图契约：payload 未解码 -> 无物理语义彩图，但数值可画 ──
+    expect_in("field ", txt, "报告缺字段（field）行")
+    expect_in("Pi", txt, "报告应含解码块 Pi（16 块定案解码）")
+    expect_in("Qtot", txt, "报告应含 Qtot（平均电离）")
+    expect_in("tags=uv", txt, "解码块应为源码认证（非 uk）且未人工核查（uv）")
+    # ── 解码块场图契约：布局定案 -> 物理场彩图 ──
     expect(r["n_plots"] >= 1,
-           f"feos_native 应至少产出 raw 序列图（数值可读即可画），"
-           f"实得 {r['n_plots']} 张; skipped={r['skipped'][:3]}")
-    expect_in("raw_vs_index", txt, "报告出图清单应含 raw_vs_index 序列图")
+           f"feos_native 应至少产出一个解码块场图，实得 {r['n_plots']} 张; "
+           f"skipped={r['skipped'][:3]}")
     from pathlib import Path
     for p in r["plots"]:
         fp = Path(p)
