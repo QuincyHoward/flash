@@ -62,19 +62,25 @@ def _generators():
 
 
 def _official_bytes(name: str) -> bytes | None:
-    """读取官方 FLASH 源（CRLF→LF 归一）；不可读返回 None。
+    """读取官方 FLASH 源（CRLF→LF、尾部换行归一）；不可读返回 None。
 
     Windows: ``wsl bash -c cat ~/QC/...``；WSL / 超算: 本地 FLASH 树直接读。
     旧的 ``Path("/proc/version").exists()`` 判据把任何 Linux 都当成 WSL，
     导致超算调用不存在的 wsl 命令报 FileNotFoundError —— 已废弃。
+    ★ 超算 FLASH 分发有 3 个文件末尾多一个空行（实测），统一为单个 \\n，
+      其余字节严格保留，避免跨机器行尾差异被误判为 golden 不一致。
     """
     if shutil.which("wsl"):
         r = subprocess.run(
             ["wsl", "bash", "-c", f"cat ~/{OFFICIAL_REL.as_posix()}/{name}"],
             capture_output=True, timeout=60)
-        return r.stdout.replace(b"\r\n", b"\n") if r.returncode == 0 else None
-    p = Path.home() / OFFICIAL_REL / name
-    return p.read_bytes().replace(b"\r\n", b"\n") if p.is_file() else None
+        data = r.stdout if r.returncode == 0 else None
+    else:
+        p = Path.home() / OFFICIAL_REL / name
+        data = p.read_bytes() if p.is_file() else None
+    if data is None:
+        return None
+    return data.replace(b"\r\n", b"\n").rstrip(b"\n") + b"\n"
 
 
 def _golden_bytes(name: str) -> bytes:
@@ -144,5 +150,7 @@ class TestOfficialSourceCrossCheck:
             pytest.skip(
                 f"{name}: golden 私有基准未随仓库分发（生成器对账由 "
                 f"test_output_matches_golden_bytes 回退官方源覆盖）")
-        assert gold.read_text(encoding="utf-8") == official.decode("utf-8", errors="replace"), \
+        gold_text = gold.read_text(encoding="utf-8").rstrip("\n") + "\n"
+        official_text = official.decode("utf-8", errors="replace")
+        assert gold_text == official_text, \
             f"{name} golden 与官方源文件不一致"
