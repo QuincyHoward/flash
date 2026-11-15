@@ -12,6 +12,7 @@ clone 的 dry-run 不落盘，可直接对真实仓库树断言行为；
 """
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -33,11 +34,28 @@ def _scene_dir(scene_key: str) -> Path:
     return Path(meta.source).parent
 
 
+def _env() -> dict:
+    """子进程注入仓库根到 PYTHONPATH 首位。
+
+    ``python <脚本绝对路径>`` 启动时 sys.path[0] 是脚本所在目录，
+    仓库根不在其中；若 site-packages 装了同名旧版 ``flash`` 包，
+    ``import flash.scenarios.core`` 会命中旧包而报 ModuleNotFoundError。
+    注入后测试自完备，不依赖外部 runner 是否设置过 PYTHONPATH。
+    """
+    env = os.environ.copy()
+    sep = os.pathsep
+    paths = [p for p in env.get("PYTHONPATH", "").split(sep) if p]
+    if str(_REPO) not in paths:
+        paths.insert(0, str(_REPO))
+    env["PYTHONPATH"] = sep.join(paths)
+    return env
+
+
 def _run(script: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [str(_PY), str(script), *args],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
-        cwd=str(_REPO), timeout=300,
+        cwd=str(_REPO), timeout=300, env=_env(),
     )
 
 
@@ -83,7 +101,7 @@ class TestGates:
         r = subprocess.run(
             [str(_PY), "-m", "flash.scenarios.core.entry.cli", "list"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
-            cwd=str(_REPO), timeout=300,
+            cwd=str(_REPO), timeout=300, env=_env(),
         )
         assert r.returncode == 0
         # 36 场景 + 表头 2 行
