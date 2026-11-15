@@ -103,14 +103,20 @@ def find_project_root() -> Path:
 
 
 def build_test_env(project_root: Path) -> dict:
-    """构建环境变量: 设置 PYTHONPATH 让 import flash 可用。"""
+    """构建环境变量: 设置 PYTHONPATH 让 import flash 在子进程中同样可用。
+
+    门禁类测试以 `python <script.py>` 启动子进程, 其 sys.path[0] 是脚本自身
+    目录而非仓库根; 只注入「父目录」时 import flash 会落到同名旧包或命名
+    空间包, 报 No module named flash.scenarios.core。故必须把仓库根一并注入。
+    分隔符用 os.pathsep: Windows 为 ';', 超算 Linux 为 ':'。
+    """
     test_env = os.environ.copy()
-    parent_path = str(project_root.parent)
     existing = test_env.get("PYTHONPATH", "")
-    paths = [p for p in existing.split(";") if p] if existing else []
-    if parent_path not in paths:
-        paths.insert(0, parent_path)
-    test_env["PYTHONPATH"] = ";".join(paths)
+    paths = [p for p in existing.split(os.pathsep) if p] if existing else []
+    for p in (str(project_root.parent), str(project_root)):
+        if p not in paths:
+            paths.insert(0, p)
+    test_env["PYTHONPATH"] = os.pathsep.join(paths)
     return test_env
 
 
