@@ -11,6 +11,9 @@ test_plasmapy_bridge.py — 方案 A (PlasmaPy 适配层) 测试
        - PlasmaPy vs 项目基准常数 (临界密度 9.05e21 cm⁻³ @ 0.351 μm)
        - κ_e^SH 的 T^(5/2) 标度检验
   3. 降级路径: HAS_PLASMAPY=False 时物理量函数抛 RuntimeError(带安装指引)。
+     ★ 2026-11-15: 无 plasmapy 的环境（WSL py3.10 / 超算 py3.10 venv）由
+       ``_plasmapy_gate`` 跳过 11 个依赖型用例，仅保留降级路径用例，避免
+       「优雅降级」设计被测试误判为 11 个失败。
 
 运行: pytest test/test_plasmapy_bridge.py -v -s
 """
@@ -27,6 +30,17 @@ if pb.HAS_PLASMAPY:
     import astropy.units as u_  # 仅 plasmapy 存在时测试使用
 else:  # pragma: no cover
     u_ = None
+
+
+@pytest.fixture(autouse=True)
+def _plasmapy_gate(request):
+    """无 plasmapy 时跳过依赖型用例；降级路径用例始终执行。
+
+    plasmapy 2026.2.0 要求 py>=3.12，py3.10 环境（WSL / 超算备用 venv）
+    按方案 A「优雅降级」不安装，此时 11 个公式对账用例不应报失败。
+    """
+    if not pb.HAS_PLASMAPY and request.node.name != "test_graceful_degradation":
+        pytest.skip("plasmapy/astropy 未安装（方案 A 优雅降级）")
 
 
 # ------------------------------------------------------------------

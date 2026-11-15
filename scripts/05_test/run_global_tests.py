@@ -157,8 +157,10 @@ def run_one_suite(
 
     passed = (r.returncode == 0)
     if not passed and not critical:
-        warn(f"{label} 测试失败 (非关键, 继续执行)")
-        passed = True
+        # 非关键套件失败：继续执行后续套件，但必须计入最终状态。
+        # 旧实现把 passed 改回 True，导致 output 11 个 failed 仍显示
+        # 「✅ 通过 / 全部通过」—— 掩盖真实失败（2026-11-15 实测）。
+        warn(f"{label} 测试失败 (非关键, 继续执行，仍计入最终失败)")
     return (passed, elapsed)
 
 

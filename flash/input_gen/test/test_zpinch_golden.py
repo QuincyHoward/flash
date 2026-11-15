@@ -2,14 +2,27 @@
 
 基准: flash/input_gen/test/golden/zpinch/（8 文件，来自官方 magnetoHD/ZPinch
 逐字快照 + 极短验证定版 par）。
-对账三方: 生成器输出 ↔ golden 基准 ↔ (可选) WSL 官方源文件。
+对账三方: 生成器输出 ↔ golden 基准 ↔ (可选) 官方 FLASH 源文件。
+
+★ 2026-11-15 三环境可移植化: golden 中 5 个无扩展名/``*.F90`` 文件被
+  ``.gitignore`` 排除（FLASH 分发源码不入库），只存在于开发机。WSL / 超算
+  重建仓库后缺失 ⇒ 相关用例回退到**本地官方 FLASH 源**（实测 LF 归一后与
+  golden 逐字节一致）；Windows 则经 wsl 命令读取同一官方源。
 """
 
+from __future__ import annotations
+
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
 GOLD_DIR = Path(__file__).resolve().parent / "golden" / "zpinch"
+
+#: 官方 FLASH 源相对家目录的位置（Windows 经 wsl 读；WSL / 超算直接读本地树）
+OFFICIAL_REL = Path(
+    "QC/FLASH/FLASH4.8/source/Simulation/SimulationMain/magnetoHD/ZPinch")
 
 BYTE_IDENTICAL_FILES = [
     "Config",
@@ -48,6 +61,33 @@ def _generators():
     }
 
 
+def _official_bytes(name: str) -> bytes | None:
+    """读取官方 FLASH 源（CRLF→LF 归一）；不可读返回 None。
+
+    Windows: ``wsl bash -c cat ~/QC/...``；WSL / 超算: 本地 FLASH 树直接读。
+    旧的 ``Path("/proc/version").exists()`` 判据把任何 Linux 都当成 WSL，
+    导致超算调用不存在的 wsl 命令报 FileNotFoundError —— 已废弃。
+    """
+    if shutil.which("wsl"):
+        r = subprocess.run(
+            ["wsl", "bash", "-c", f"cat ~/{OFFICIAL_REL.as_posix()}/{name}"],
+            capture_output=True, timeout=60)
+        return r.stdout.replace(b"\r\n", b"\n") if r.returncode == 0 else None
+    p = Path.home() / OFFICIAL_REL / name
+    return p.read_bytes().replace(b"\r\n", b"\n") if p.is_file() else None
+
+
+def _golden_bytes(name: str) -> bytes:
+    """golden 基准；私有基准未随仓库分发时回退官方 FLASH 源（逐字等价）。"""
+    p = GOLD_DIR / name
+    if p.is_file():
+        return p.read_bytes()
+    official = _official_bytes(name)
+    if official is None:
+        pytest.skip(f"{name}: golden 未随仓库分发且官方 FLASH 源不可用")
+    return official
+
+
 def _parse_par(text: str) -> dict:
     """解析 par 键值（剥 # 注释、按 = 切、strip；值保留字面量）。"""
     out = {}
@@ -66,7 +106,7 @@ def _parse_par(text: str) -> dict:
 class TestGoldenByteIdentical:
     @pytest.mark.parametrize("name", BYTE_IDENTICAL_FILES)
     def test_output_matches_golden_bytes(self, name):
-        gold = (GOLD_DIR / name).read_bytes()
+        gold = _golden_bytes(name)
         if name == "Makefile":
             from flash.input_gen.gen_makefile import MakefileGenerator
             content = MakefileGenerator().generate()
@@ -92,21 +132,17 @@ class TestGoldenByteIdentical:
 
 
 class TestOfficialSourceCrossCheck:
-    """与 WSL 官方源文件对账（CRLF→LF 归一后逐字节；WSL 不可用则跳过）。"""
+    """与官方 FLASH 源文件对账（CRLF→LF 归一后逐字节；源/基准不可读则跳过）。"""
 
     @pytest.mark.parametrize("name", OFFICIAL_SRC_FILES)
     def test_official_source_matches_golden(self, name):
-        import shutil
-        import subprocess
-        if shutil.which("wsl") is None and not Path("/proc/version").exists():
-            pytest.skip("WSL 不可用")
-        wsl_path = ("~/QC/FLASH/FLASH4.8/source/Simulation/SimulationMain/"
-                    "magnetoHD/ZPinch/" + name)
-        r = subprocess.run(
-            ["wsl", "bash", "-c", f"cat {wsl_path}"],
-            capture_output=True, timeout=60)
-        if r.returncode != 0:
-            pytest.skip(f"官方源文件不可读: {name}")
-        official = r.stdout.decode("utf-8", errors="replace").replace("\r\n", "\n")
-        gold = (GOLD_DIR / name).read_text(encoding="utf-8")
-        assert gold == official, f"{name} golden 与官方源文件不一致"
+        official = _official_bytes(name)
+        if official is None:
+            pytest.skip(f"官方 FLASH 源不可读: {name}")
+        gold = GOLD_DIR / name
+        if not gold.is_file():
+            pytest.skip(
+                f"{name}: golden 私有基准未随仓库分发（生成器对账由 "
+                f"test_output_matches_golden_bytes 回退官方源覆盖）")
+        assert gold.read_text(encoding="utf-8") == official.decode("utf-8", errors="replace"), \
+            f"{name} golden 与官方源文件不一致"

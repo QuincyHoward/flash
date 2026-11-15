@@ -6,6 +6,7 @@ test_insitu_runner.py — hpc-insitu 编排单测（2026-10-22）
 构造 chk/plt/日志文件验证 fetch_policy chk-only 过滤与就地移动。
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -77,11 +78,38 @@ def test_collect_local_missing_objdir(tmp_path):
 
 # ── resolve_hpc_python ───────────────────────────────────
 
-def test_resolve_hpc_python_falls_back_to_sys(monkeypatch, tmp_path):
+def _isolate_venv_root(monkeypatch, tmp_path):
+    """把 venv 解析的根隔离到临时目录。
+
+    ``resolve_hpc_python()`` 委托 ``env/venv_paths.repo_root()``，后者默认从
+    **venv_paths.py 自身位置**向上探测，与 ``ir.__file__`` 无关。只 patch
+    ``ir.__file__`` 时，超算/WSL 仓库根若存在 ``.venv-hpc-nce`` 就会被误命中，
+    「无 venv」用例拿到宿主 venv 而非 sys.executable（2026-11-15 实测红灯）。
+    """
     monkeypatch.delenv("FLASH_VENV_DIR", raising=False)
-    # 无 .venv-hpc-nce 的环境 → sys.executable 兜底
+    monkeypatch.delenv("FLASH_HPC_VENV_NAME", raising=False)
     monkeypatch.setattr(ir, "__file__", str(tmp_path / "x" / "insitu_runner.py"))
+    monkeypatch.setattr("flash.flash_run.env.venv_paths.repo_root",
+                        lambda: tmp_path)
+
+
+def test_resolve_hpc_python_falls_back_to_sys(monkeypatch, tmp_path):
+    _isolate_venv_root(monkeypatch, tmp_path)
+    # 无 .venv-hpc-nce 的环境 → sys.executable 兜底（三平台一致）
     assert ir.resolve_hpc_python() == sys.executable
+
+
+def test_resolve_hpc_python_prefers_project_venv(monkeypatch, tmp_path):
+    """项目 venv 存在时必须优先（防止为过用例而把回退逻辑改成恒定兜底）。"""
+    _isolate_venv_root(monkeypatch, tmp_path)
+    venv = tmp_path / ".venv-hpc-nce"
+    exe = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"")
+    # Windows 上 kind="hpc" 不探测本地 venv，须显式指定（唯一事实源既有约定）
+    if os.name == "nt":
+        monkeypatch.setenv("FLASH_VENV_DIR", str(venv))
+    assert ir.resolve_hpc_python() == str(exe)
 
 
 # ── run_insitu（mock 作业链）────────────────────────────
