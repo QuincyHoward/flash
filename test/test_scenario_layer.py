@@ -128,11 +128,11 @@ def test_scene_hpc_job_setup_args_include_common_baseline():
     assert "ed_maxPulseSections=240" in args
 
 
-def test_scene_hpc_job_gen_script_exists():
-    """★ 声明的生成脚本必须真实存在（否则提交时才炸）。"""
+def test_scene_hpc_job_gen_script_exists(require_declared_dir):
+    """★ 声明的生成脚本必须真实存在；输入目录按私有资产规则判定。"""
     from flash.scenarios.core.hpc.hpc_job import list_scene_hpc_jobs
 
     root = Path(__file__).resolve().parent.parent
     for decl in list_scene_hpc_jobs():
         assert (root / decl.gen_script).is_file(), decl.gen_script
-        assert (root / decl.input_rel_dir).is_dir(), decl.input_rel_dir
+        require_declared_dir(root, decl.input_rel_dir, decl.name)

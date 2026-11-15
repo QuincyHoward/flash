@@ -8,7 +8,8 @@
   ① 锚点表全解析 —— v2 条目（``<场景名>::<相对路径>``）经 discovery 按名
      解析必须成功（场景被删/改名即红灯）；目录本地缺失仅 WARN（远端布局
      锚点属正常）；legacy 条目（SNB 组，目标无 scene.json 无法按名寻址）
-     断言本地目录存在 —— 被移走即红灯，提醒 manifest 化。
+     对受版本控制的目录断言存在 —— 被移走即红灯；纯私有资产（.gitignore
+     排除、部署端不提供）缺失仅 WARN，见 conftest.require_declared_dir。
   ② hpc 提交声明路径有效性 —— list_scene_hpc_jobs() 每条 input_rel_dir /
      gen_script 相对仓库根必须存在（scene.json hpc 节 ``./`` 相对形式 +
      discovery 解析，移动自动跟随；此断言防回归到硬编码字面量）。
@@ -42,11 +43,11 @@ def test_anchors_v2_resolve_by_scene_name():
         print(f"  [v2] {k} -> {p}" + (f"  (WARN: {warn})" if warn else ""))
 
 
-def test_anchors_legacy_targets_exist_locally():
-    """legacy 条目（SNB 组）目标本地必须存在。
+def test_anchors_legacy_targets_exist_locally(require_declared_dir):
+    """legacy 条目（SNB 组）目标本地必须存在（私有资产按 conftest 规则 WARN）。
 
     legacy = 无法按场景名寻址的历史遗留（private/SNB 全树无 scene.json）。
-    目录被移走 → 本用例红灯，提醒把 SNB 资源目录 manifest 化或同步改表。
+    受版本控制的目录被移走 → 红灯，提醒把 SNB 资源目录 manifest 化或同步改表。
     """
     from flash.scenarios.core.anchors import anchors_table, resolve_anchor
 
@@ -55,33 +56,31 @@ def test_anchors_legacy_targets_exist_locally():
     assert legacy_keys, "SNB legacy 锚点缺失（已全部 manifest 化？可更新本用例）"
     for k in legacy_keys:
         p, _ = resolve_anchor(k)
-        assert p.is_dir(), (
-            f"legacy 锚点 {k} → {p} 不存在：该目录被移动/删除。"
-            f"legacy 值不会随移动自动跟随，请把目标 manifest 化（scene.json）"
-            f"或同步更新 _scene_anchors.json")
+        require_declared_dir(_REPO, str(p.relative_to(_REPO)), f"legacy 锚点 {k}")
         print(f"  [legacy] {k} -> {p}")
 
 
 # ── ② hpc 提交声明路径有效性 ──────────────────────────────
 
-def test_hpc_job_paths_exist_relative_to_repo():
-    """每条超算提交声明的 input_rel_dir / gen_script 相对仓库根必须存在。
+def test_hpc_job_paths_exist_relative_to_repo(require_declared_dir):
+    """每条超算提交声明的 input_rel_dir / gen_script 相对仓库根必须有效。
 
     声明唯一事实源 = scene.json ``hpc`` 节（``./`` 相对形式经 discovery
     解析为仓库根相对路径）→ 场景目录移动后此断言自动跟随；
     若有人回退为硬编码字面量，移动场景后本用例即红灯。
+    ``gen_script`` 是代码，严格断言存在；``input_rel_dir`` 可能是私有
+    运行数据目录（部署端不提供），由 conftest 的 require_declared_dir 判定。
     """
     from flash.scenarios.core.hpc.hpc_job import list_scene_hpc_jobs
 
     jobs = list_scene_hpc_jobs()
     assert jobs, "无任何超算提交声明（manifest hpc 节全部丢失？）"
     for j in jobs:
-        input_dir = _REPO / j.input_rel_dir
         gen = _REPO / j.gen_script
-        assert input_dir.is_dir(), (
-            f"{j.name}: input_rel_dir 不存在: {j.input_rel_dir}（声明路径与场景"
+        assert gen.is_file(), (
+            f"{j.name}: gen_script 不存在: {j.gen_script}（声明路径与场景"
             f"实际位置脱钩？检查 scene.json hpc 节是否为 './' 相对形式）")
-        assert gen.is_file(), f"{j.name}: gen_script 不存在: {j.gen_script}"
+        require_declared_dir(_REPO, j.input_rel_dir, j.name)
         print(f"  [hpc] {j.name}: {j.input_rel_dir}")
 
 

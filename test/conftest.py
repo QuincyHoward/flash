@@ -25,6 +25,45 @@ if str(_PARENT) not in sys.path:
 
 
 @pytest.fixture(scope="module")
+def require_declared_dir():
+    """声明目录存在性检查器：区分「受版本控制的资产」与「私有运行数据」。
+
+    ★ 2026-11-15 三环境一致性：场景声明的 ``input_rel_dir`` / legacy 锚点
+      指向的目录有一部分被 ``.gitignore`` 排除（SNB ``variants``、各
+      ``flash_input/`` 里的 cn4/chk 等，合计可达数十 GB），只存在于开发机。
+      超算等部署端重建仓库后不带这些私有数据是**正常**的，旧断言一律红灯
+      导致全局测试无法通过；而把这些资产逐个上传既不可持续也不合规。
+
+      现在：目录存在 → 通过；缺失但 ``git ls-files`` 显示该路径下有受版本
+      控制的文件 → 仍红灯（代码树不完整）；缺失且索引为空 → WARN 放行
+      （声明路径本身仍由 discovery/相对形式断言保证，护栏不降级）。
+    """
+    import subprocess
+    import warnings
+
+    def _check(root, rel: str, label: str = "") -> None:
+        p = Path(root) / rel
+        if p.is_dir():
+            return
+        try:
+            r = subprocess.run(["git", "ls-files", "--", rel],
+                               cwd=str(root), capture_output=True,
+                               text=True, timeout=60)
+            tracked = [x for x in (r.stdout or "").splitlines() if x.strip()]
+        except (OSError, subprocess.SubprocessError):
+            tracked = []  # 无 git 的环境无法判定，按私有资产处理
+        if tracked:
+            raise AssertionError(
+                f"{label} 受版本控制的目录缺失: {rel}"
+                f"（索引含 {len(tracked)} 个文件，如 {tracked[0]}）")
+        warnings.warn(
+            f"{label} 私有资产未随仓库分发（.gitignore 排除），部署端可不提供: {rel}",
+            UserWarning, stacklevel=2)
+
+    return _check
+
+
+@pytest.fixture(scope="module")
 def flash_simulator():
     """创建FlashSimulator mock实例。"""
     try:
