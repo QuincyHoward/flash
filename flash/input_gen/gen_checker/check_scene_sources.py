@@ -246,10 +246,16 @@ _IDENTITY_WHITELIST_FILES = frozenset({
 
 
 def _git_tracked_files(repo: Path) -> list[Path] | None:
-    """仓库全部 git 跟踪文件；git 不可用/非 git 目录时返回 None。"""
+    """仓库全部 git 跟踪文件；git 不可用/非 git 目录时返回 None。
+
+    用 subprocess 的 cwd= 而非 `git -C`：`-C` 是 Git 1.8.5 才加入的选项，
+    超算登录节点为 1.8.3.1，会报 `Unknown option: -C`；此时返回 None 会让
+    identity scope 退回全盘 rglob，把 .venv-*/site-packages 里的第三方
+    dist-info/*.json 误判为 R-ID-01 违规（实测 544 处）。
+    """
     import subprocess
     try:
-        out = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"],
+        out = subprocess.run(["git", "ls-files", "-z"], cwd=str(repo),
                              capture_output=True, timeout=60)
         if out.returncode != 0:
             return None
