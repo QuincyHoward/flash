@@ -3,7 +3,7 @@ name: flash-git-publish
 description: 仓库推送/拉取/发版/PyPI 发布一站式流程（scripts/03_git_publish 工具组）：git_push.py 一键推送（Gitee+超算、--tags 发版）、git_pull.py 安全拉取、publish_pypi.py 发布、凭据体系（credentials.enc）与 403 排障。需要同步 Gitee、拉取远端、打标签发版、发布 PyPI 时使用。触发词：推送、push、拉取、pull、同步 Gitee、发布 PyPI、打标签、tag、发版、403、token 未授权。
 ---
 
-> 最后核对：2026-11-06 · commit 68905eb（0.2.1 发布实操验证：Gitee 分支+标签、PyPI 双 PASSED）
+> 最后核对：2026-11-15 · commit 6b565a0（历史改写强推 + Gitee GC 实操）
 
 # 仓库推送 / 拉取 / 发版（flash-git-publish）
 
@@ -72,6 +72,36 @@ python scripts/03_git_publish/publish_pypi.py                  # 正式发布 py
 PyPI token 也可配进 credentials 体系 `flash._core.credentials.pypi`）。
 产物同名版本不可重传——发版前确认 pyproject version 已递增。
 
+### 5. 历史改写与强制推送（高危，2026-11-15 实操）
+
+仅在**用户明确授权**且已完整备份后执行。`git rm --cached` 只改 HEAD 树，历史大对象仍在，
+Gitee 页面「仓库大小」不会下降；要瘦身必须改写历史 + 强推 + **网页端 Git GC** 三步。
+
+```bash
+# ① 改写前备份（仓库外）：mirror / bundle / 工作区副本 / 远端 refs 快照
+git clone --mirror <repo> <bak>/flash-mirror.git
+git -C <repo> bundle create <bak>/flash-all.bundle --all
+git -C <repo> ls-files --cached --others --exclude-standard -z > <bak>/publish_manifest.z
+git -C <repo> ls-remote --heads --tags origin > <bak>/remote_refs_before.txt
+
+# ② 保留索引地压缩某提交之后的历史（切勿先 read-tree --empty / rm -r --cached .）
+git -C <repo> reset --soft <BASE_SHA>     # 只移 HEAD，索引/工作区不动
+git -C <repo> add -A                      # 不带 -f；被忽略的未跟踪产物不会进
+git -C <repo> commit -F <bak>/commit_msg.txt
+
+# ③ 显式 lease 强推（本机 tracking ref 不落盘，裸 --force-with-lease 会 stale info）
+git <AUTH_PREFIX> -C <repo> push --force-with-lease=refs/heads/master:<OLD_SHA> origin master
+```
+
+- **最大坑**：`git ls-files -ci --exclude-standard` 的「已跟踪但被忽略」文件，在**清空索引后**会变成
+  「未跟踪 + 被忽略」，`git add -A` 全部跳过（本仓实测 84/84 丢失，78 个是场景脚本）。
+  `reset --soft` 保留索引可完全避开；绝不用 `git add -A -f`。
+- **不要**用 `git_push.py` 代做强推：其内部 `git add -A` + 删除护栏会因有意删除而 `sys.exit(2)`，
+  且用裸 `--force`。`<AUTH_PREFIX>` 用 `_git_auth.py::auth_prefix()` 生成（Windows 下须 `tr -d '\r'`）。
+- **Gitee 官方收尾**：push 后须本人在项目配置页运行 **Git GC**；GC 前体积先反增属正常；
+  GNK 对大仓库仅 3 次推送机会，不做试探性推送；PR/Release/旧分支/旧标签引用会阻止 GC。
+- 改写后通知协作者**重新克隆**；保留 reflog/ORIG_HEAD 直到确认 GC 成功（回滚依据）。
+
 ## 护栏与铁律
 
 1. **凭据绝不硬编码**：一切 token 走 credentials.enc 或 ~/.pypirc；origin URL 不含凭据
@@ -80,6 +110,7 @@ PyPI token 也可配进 credentials 体系 `flash._core.credentials.pypi`）。
 4. SNB 分享红线：`private/` 下 gitignored 内容不得入库；推送前敏感扫描
    （`git diff | grep -i "password\|token\|账号"` 无新增侧命中）
 5. PyPI 不可撤回：正式发布前先 `--check`，必要时先 `--test` 发 TestPyPI
+6. **历史改写 / force push 必须用户确认 + 完整备份 + 显式 lease**；禁止裸 `--force`、禁止试探性推送
 
 ## 常见坑
 

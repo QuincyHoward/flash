@@ -1,6 +1,6 @@
 # scripts/03_git_publish — Git 推送 / 发版 / 手工 Git 速查
 
-> 最后核对：2026-11-15 · commit 97d5e5d
+> 最后核对：2026-11-15 · commit 6b565a0
 
 **职责**：Gitee 推送与拉取、标签发版、PyPI 发布、远端文件体积统计；同时作为**手工 Git 操作**的指令速查入口（含「从 Gitee 删除文件/文件夹但保留本地」的完整流程）。
 
@@ -128,6 +128,20 @@ git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objec
 | 推送后远端似乎没变 | `git fetch origin` 后核对 `origin/master` 哈希 |
 
 ## 4. 清理任务（2026-11-15，已执行）
+
+> **第二阶段：历史改写瘦身（2026-11-15 13:03，已执行）**
+> 为清除历史对象里的 4 个 npz（54.06 MiB），按用户授权把 **0.2.1 之后的 28 个提交压缩为 1 个新提交**
+> `6b565a0`（父 `68905eb` = 0.2.1），以显式 lease 强推 `origin/master`（`d3ac606..6b565a0`，forced update）。
+> 保留 0.2.1 及更早 60 个提交；本地 3 个标签、远端 16 个标签与 `flat_flash` 分支 SHA **全部未变**。
+> 新历史 61 提交 / 2362 文件；4 个 npz blob 已不可达，30 个清单文件未回带，84 个场景脚本与 14 个 cn4/feos 保留。
+> 路线是 `git reset --soft 0.2.1` → `git add -A` → `git commit` → `git push --force-with-lease=refs/heads/master:<SHA>`：
+> **必须保留索引**，若先清空索引再 `add -A`，84 个「已跟踪但被忽略」的场景脚本会全部丢失。
+> 改写前完整备份在仓库外 `../flash_sim_runs/backup_rewrite_20261115/`（mirror / bundle / worktree 2362 文件 / 远端 refs 快照）。
+>
+> ⚠ **Gitee 页面体积不会自动下降**：需本人到项目配置页手动运行 **Git GC**；GC 前数字会先反增，GNK 对大仓库仅 3 次推送机会，
+> PR / Release 引用会阻止 GC。远端另有 13 个指向本地已不存在对象的旧标签及 `flat_flash` 分支，
+> 会让部分旧对象保持可达；若 GC 后体积仍偏高，需另行授权清理这些引用（本次未动）。
+> 协作者须删除旧克隆后重新 `git clone`，不可直接 `git pull`。
 
 > **执行状态（2026-11-15 11:13）**：已按下方命令执行完毕，提交 `d3ac606` 推送至 `origin/master`（`97d5e5d..d3ac606`）。
 > 远端三类模式命中 **0**；30 个文件全部**仅解除跟踪、本地保留**；当前树由 2384 文件 / 111.63 MiB 降至 2354 文件 / 57.45 MiB（**-54.18 MiB，-48.5%**）。
