@@ -116,7 +116,7 @@ def check_count(actual: int, expected: int, *, path: str, header_raw: str,
 #: 每项 = (布局名, 公式函数 f(nr, nt, ne, ng) -> 期望总数)
 PAYLOAD_LAYOUTS: dict[str, Any] = {
     # F1 反演 EOS：4 头 + 2*nr + ne + 2*nr*ne
-    "multi_inverted_eos": lambda nr, nt, ne, ng: 4 + 2 * nr + ne + 2 * nr * ne,
+    "multi_eos": lambda nr, nt, ne, ng: 4 + 2 * nr + ne + 2 * nr * ne,
     # F2 灰度不透明度：4 头 + nr + nt + nr*nt
     "multi_opacity_gray": lambda nr, nt, ne, ng: 4 + nr + nt + nr * nt,
     # F2 多群：4 头 + nr + nt + ng*nr*nt

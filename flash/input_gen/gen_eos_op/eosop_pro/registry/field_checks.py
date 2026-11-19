@@ -67,7 +67,7 @@ colorbar / x/y 轴一律 ``Name (unit, <tags>)`` 形式（无标记则只写
 ------------------
 * ``ionmix``（cn4）：全 18 块 ``source code``（abjt_03.f OWTF 逐块
   write 注释 + IONMIX 用户指南 §5.4 双佐证）+ ``checked=True``；
-* ``multi_inverted_eos`` / ``mpqeos``（rho,Te,P,E）/ ``multi_opacity``
+* ``multi_eos`` / ``mpqeos``（rho,Te,P,E）/ ``multi_opacity``
   （rho,Te,kappa,Z；Z 为 2026-11-14 族校准裁定 log10(zbar)）/
   ``hyades_*``/``sesame_dat``（rho,Te,P,E,kappa）/
   ``ledcop_zeff``（rho,Te,NoFree,AvSqFree）/ ``snop_input``
@@ -205,7 +205,7 @@ def tags_label(fc: FieldCheck) -> str:
 
     * 无来源 + 未核查 -> ``"uk, uv"``
     * 有来源 + 未核查 -> ``"uv"``
-    * 有来源 + 已核查 -> ``""``（**标记整体省略**；当前 cn4 / multi_inverted_eos / multi_opacity）
+    * 有来源 + 已核查 -> ``""``（**标记整体省略**；当前 cn4 / multi_eos / multi_opacity）
     * 无来源 + 已核查 -> ``"uk"``（诚实边界：核查过但来源不可指认，
       不冒充全通过 —— 正常流程不应出现，出现即字典登记有缺陷）
     """
@@ -257,7 +257,7 @@ def dump_markdown(title: str = "eosop 变量控制字典") -> str:
         "> 条目的 `checked=True`（或补 `source`），再重跑上述命令同步本文档。",
         "> 标记规约（2026-09-15）：只有 `uk`（无来源确认）/ `uv`（未人工",
         "> 核查）两个标记；两者都通过则**省略**（当前 cn4 /",
-        "> multi_inverted_eos / multi_opacity，2026-11-14 裁定）。",
+        "> multi_eos / multi_opacity，2026-11-14 裁定）。",
         "> 标签双轨（2026-09-15 晚）：每条目含**短标签**（物理量简写，",
         "> 绘图默认）与**长标签**（meaning，报告/核查）两个设置，显示时",
         "> 都带 uk/uv 标记。",
@@ -361,7 +361,7 @@ _IONMIX_C4: dict[str, FieldCheck] = {
 
 
 # ================================================================
-# F1 multi_inverted_eos —— 一级文档 doc/MULTI使用的SESAME数据文件格式.docx
+# F1 multi_eos —— 一级文档 doc/MULTI使用的SESAME数据文件格式.docx
 # 「参数单位制」节逐字声明全部单位（2026-09-15 从 docs/20 下探到一级出处）
 # 2026-11-14 人工裁定：操作者视图交叉验证确认（用户查看工具给出的
 # mat_CELIA/CH_ieos 边界/维度与解析器输出逐项吻合，单位换算链自洽 ——
@@ -375,32 +375,32 @@ _OPS_XCHECK_20261114 = (
     "维度/单位换算链逐项吻合，parsers/test/test_multi/test_celia_combined.py 实测）"
 )
 
-_MULTI_INVERTED_EOS: dict[str, FieldCheck] = {
+_MULTI_EOS: dict[str, FieldCheck] = {
     "rho":   FieldCheck(
         "Mass density axis (linear)", "g/cm3", True, KIND_DOC,
         _SRC_MULTI_SESAME + "：'r[nr]  密度(g/cc)'；同文明文'因变量和自变量都"
         "没有使用对数坐标系，而是使用线性坐标系'；解析器 parsers/"
-        "multi_inverted_eos.py:234-236 同值实现。" + _OPS_XCHECK_20261114
+        "multi_eos_reader.py:234-236 同值实现。" + _OPS_XCHECK_20261114
         + "：轴末端 20880 g/cm3 与视图一致。", short="rho"),
     "de":    FieldCheck(
         "Specific internal energy axis (above cold curve)", "Mbar*cm3/g",
         True, KIND_DOC,
         _SRC_MULTI_SESAME + "：'de[ne]  能量(能量列表，与冷能量的差距, "
-        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:238-240。"
+        "单位Mbar*cm3/g)'；解析器 parsers/multi_eos_reader.py:238-240。"
         + _OPS_XCHECK_20261114 + "：de 轴（视图 '100 energies'）末端 "
         "3.13208e16 erg/g ÷1e12 与原生值吻合。", short="de"),
     "P":     FieldCheck(
         "Pressure P(rho, de+e0)", "Mbar", True, KIND_DOC,
         _SRC_MULTI_SESAME + "：'P[ne*nr]  压力 P[(0~nr-1)+nr*i]为密度为"
         "r[0~nr-1]，能量de[i]+e0[0~ nr-1]时的压力，单位为Mbar'；解析器 "
-        "parsers/multi_inverted_eos.py:242-245。" + _OPS_XCHECK_20261114
+        "parsers/multi_eos_reader.py:242-245。" + _OPS_XCHECK_20261114
         + "：原生 max 4.8908e8 Mbar = 视图 4.89e20 dyne/cm2 ÷1e12"
         "（视图单位标注为换算后显示值）。", short="P"),
     "E":     FieldCheck(
         "Specific internal energy (de + e0_cold)", "Mbar*cm3/g", True,
         KIND_DOC,
         _SRC_MULTI_SESAME + "：de 为'与冷能量的差距'，总比能 = de + e0；"
-        "解析器 parsers/multi_inverted_eos.py:249-259 合成（无 e0 布局以 "
+        "解析器 parsers/multi_eos_reader.py:249-259 合成（无 e0 布局以 "
         "de 为基准并显式注记）。" + _OPS_XCHECK_20261114 + "：原生 max "
         "3.502e4 = (de_max+e0_max)/1e12 = 视图 (3.13208e16+3.70145e15 "
         "erg/g)/1e12，合成关系数值吻合。", short="E"),
@@ -408,20 +408,20 @@ _MULTI_INVERTED_EOS: dict[str, FieldCheck] = {
         "Cold curve specific energy (1-D over rho)", "Mbar*cm3/g", True,
         KIND_DOC,
         _SRC_MULTI_SESAME + "：'e0[nr]  冷能量(密度对应的冷能量列表，"
-        "单位Mbar*cm3/g)'；解析器 parsers/multi_inverted_eos.py:247-252。"
+        "单位Mbar*cm3/g)'；解析器 parsers/multi_eos_reader.py:247-252。"
         + _OPS_XCHECK_20261114 + "：视图 e0(erg/g) 边界 3.70145e15 ÷1e12 "
         "量级吻合。", short="e0_cold"),
     "de_energy": FieldCheck(
         "Energy-axis spacing (same array as axis de)", "Mbar*cm3/g", True,
         KIND_DOC,
         "能量轴 de 另注册为一维场以便出图；单位继承 de 的 " +
-        _SRC_MULTI_SESAME + " 声明；解析器 parsers/multi_inverted_eos.py:"
+        _SRC_MULTI_SESAME + " 声明；解析器 parsers/multi_eos_reader.py:"
         "266-268。" + _OPS_XCHECK_20261114 + "（随 de 一并确认）。", short="de"),
     "T":     FieldCheck(
         "Temperature field T(rho, de+e0) (file in Kelvin, parser converts)",
         "eV", True, KIND_DOC,
         _SRC_MULTI_SESAME + "：'T[ne*nr] 密度为r[0~nr-1]，能量de[i]+e0[0~ "
-        "nr-1]时的温度（Kelvin）'；解析器 parsers/multi_inverted_eos.py:"
+        "nr-1]时的温度（Kelvin）'；解析器 parsers/multi_eos_reader.py:"
         "261-264 乘 config.EV_PER_K 转 eV（常数单一来源）。"
         + _OPS_XCHECK_20261114 + "：原生 max 3.714e8 K ×8.617e-5 ≈ 32003 eV"
         " = 视图 32001.1 eV —— 视图的 eV 标注为换算后显示值，Kelvin 原生"
@@ -859,7 +859,7 @@ _DERIVED_AXES: dict[str, FieldCheck] = {
 #: （含 ``"*"`` 兜底）。
 FIELD_CHECKS: dict[str, dict[str, FieldCheck]] = {
     "ionmix": _IONMIX_C4,
-    "multi_inverted_eos": _MULTI_INVERTED_EOS,
+    "multi_eos": _MULTI_EOS,
     "multi_opacity": _MULTI_OPACITY,
     "hyades_eos": _HYADES,
     "hyades_opacity": _HYADES,

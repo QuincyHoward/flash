@@ -58,7 +58,7 @@ FAMILY_PATTERNS: dict[str, tuple[str, ...]] = {
     "mpqeos": ("*.301",),
     "hyades_eos": ("qeos_*",),
     "feos_native": ("*.feos",),
-    "multi_inverted_eos": ("AL_eos",),
+    "multi_eos": ("AL_eos",),
     "ledcop_atomic": ("Al.txt",),
     "ledcop_zeff": ("*.NoFree",),
     "multi_opacity": ("*.planck",),

@@ -23,7 +23,7 @@ import _runner  # noqa: F401
 from _runner import expect, expect_eq, main
 
 from eosop_pro import config
-from eosop_pro.parsers import multi_inverted_eos as f1
+from eosop_pro.parsers import multi_eos_reader as f1
 
 
 def _p(rel):

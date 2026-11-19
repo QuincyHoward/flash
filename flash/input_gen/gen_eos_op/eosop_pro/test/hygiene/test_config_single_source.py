@@ -76,10 +76,13 @@ ALLOW = {
 
 #: 不参与扫描的顶层目录（test/ 内的断言容差、参考常量字面量属合法用法；
 #: 扁平化后 PACKAGE_ROOT = 包根会扫到 test/，需显式排除以保持原语义）
+#: convert/refs_temp/：暂存参考实现（2026-11-15 README 定性"待裁定吸收，
+#: 不属生产产出"），其内部硬编码常量不按生产纪律约束。
 SKIP_DIRS = {
     "test",
     "outputs",
     "__pycache__",
+    "refs_temp",
 }
 
 

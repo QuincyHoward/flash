@@ -35,7 +35,7 @@ scenarios/
 │   ├── UltraLaser/              # 超强激光（占位）
 │   ├── SimulationMain/          # 规划中（暂空）
 │   └── temp_delete/             # 待删区（含 runs_* 运行产物）
-├── private/           # 私有科研场景区（SNB / Sandwich / tracer 家族，不对外介绍）
+├── private/           # 私有科研场景区（不对外介绍， 感兴趣可以阅读交流）
 ├── flash_demo/        # 演示场景区（hello_flash / demo_local / demo_hpc）
 ├── core/              # 场景系统核心（engine 运行引擎 · hpc 提交 · entry CLI · scene_reg 发现）
 ├── common/            # 场景公共工具（时间控制等）

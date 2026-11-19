@@ -24,7 +24,7 @@ Pi,Ei,Si,Fi|PTF,ETF,STF,FTF）+ Qtot + Q0..，gridmap 直接画**物理场彩图
 （轴 = 修剪后真实网格 rho × Te）。每族处理前 ``max_files=3`` 个可解析
 ``.feos`` 文件，故 ``n_plots >= 1``。
 
-本族特有：``.feos`` 候选顺序 ``[feos_native, multi_inverted_eos]`` ——
+本族特有：``.feos`` 候选顺序 ``[feos_native, multi_eos]`` ——
 ``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` 字节相同（名 FEOS 实 SESAME），
 走 F1 回退，与本族无关。已知边界：``mat_Others/SiO2.feos`` 为 3 位指数
 粘连变体（``e+001``），解析器拒收（旧版同样拒收，非回归）。

@@ -63,7 +63,7 @@
 > 2026-11-15 已定案：布局以 `feos/feos_run/FEOS用户指南.md` §5.2 + FE-01 源码为权威，
 > `parsers/feos_native.py` 全解码（16 块 + Qtot + Q），raw 序列图契约撤销，见 20 手册 §5.2
 > **跨格式互转**：`convert` 注册表已含 **cn4（默认目标）** / multi_opacity / hyades_eos /
-> multi_inverted_eos / h5 —— `convert(t, out)` 默认出 cn4，`target=...` 可指定其他
+> multi_eos / h5 —— `convert(t, out)` 默认出 cn4，`target=...` 可指定其他
 > **本地 git**：本地仓库已提交；Gitee 推送见 [18](archive/18_Gitee推送.md)
 
 ---

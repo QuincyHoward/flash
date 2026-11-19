@@ -1,4 +1,4 @@
-"""multi_inverted_eos 产物核查 —— 解析统计 + 代表性图像（人工核查用）。
+"""multi_eos 产物核查 —— 解析统计 + 代表性图像（人工核查用）。
 
 样品：matter++/mat_Al-1.0/AL_eos（F1 MULTI SESAME 倒置表）。
 四类测试：解析统计 / 代表性图像 / 控制字典一致性 / (rho, de) 布局互证。
@@ -9,22 +9,22 @@ from _runner import expect, expect_eq, main
 from _common import out_dir, write_summary, log, sample_or_skip, try_plot, table_stats
 from eosopdata._samples import find_parseable
 
-_FAMILY = "multi_inverted_eos"
+_FAMILY = "multi_eos"
 _PATTERNS = ("AL_eos",)
 
 
-def test_multi_inverted_eos_parse_statistics():
+def test_multi_eos_parse_statistics():
     sample = find_parseable(_FAMILY, _PATTERNS)
     if not sample_or_skip(sample):
         return
     path, tables = sample
     lines = table_stats(path, tables)
-    write_summary("multi_inverted_eos", lines)
+    write_summary("multi_eos", lines)
     log("\n".join(lines))
     expect(len(tables) >= 1, "至少解析出 1 张表")
 
 
-def test_multi_inverted_eos_representative_plots():
+def test_multi_eos_representative_plots():
     """F1 自变量是 (rho, de)（无 Te 轴）→ isobars 不适用，走 gridmap 兜底
     （2D 场画在其原生 (de, rho) 平面并注明）。"""
     sample = find_parseable(_FAMILY, _PATTERNS)
@@ -32,7 +32,7 @@ def test_multi_inverted_eos_representative_plots():
         return
     path, tables = sample
     t = tables[0]
-    out = out_dir("multi_inverted_eos")
+    out = out_dir("multi_eos")
     try:
         from eosop_pro.plotting.qa.gridmap import plot_table_all_fields
         rep = plot_table_all_fields(tables, str(out), family=_FAMILY)
@@ -42,7 +42,7 @@ def test_multi_inverted_eos_representative_plots():
         log(f"  SKIP-plot: gridmap_all_fields -> {type(exc).__name__}: {exc}")
 
 
-def test_multi_inverted_eos_dictionary_consistency():
+def test_multi_eos_dictionary_consistency():
     from eosop_pro.registry.field_checks import FIELD_CHECKS, tags_label
     expect(_FAMILY in FIELD_CHECKS, f"{_FAMILY} 应已注册字段控制字典")
     entries = FIELD_CHECKS[_FAMILY]
@@ -59,7 +59,7 @@ def test_multi_inverted_eos_dictionary_consistency():
               "未登记名兜底条目应为 uk, uv")
 
 
-def test_multi_inverted_eos_layout_crosscheck():
+def test_multi_eos_layout_crosscheck():
     """布局互证：轴为 (rho, de)；P 场形状 = (ne, nr)；计数守恒。"""
     sample = find_parseable(_FAMILY, _PATTERNS)
     if not sample_or_skip(sample):

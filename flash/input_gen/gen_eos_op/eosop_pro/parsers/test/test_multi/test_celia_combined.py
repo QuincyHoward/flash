@@ -4,7 +4,7 @@
 单文件裸跑 ``python eosop_pro/parsers/test/test_multi/test_celia_combined.py``。
 
 被测文件（matter++/mat_CELIA/）：
-- ``CH_ieos``      multi_inverted_eos (F1)：首行数值表头 ``7590 / 0 / 101 / 100``
+- ``CH_ieos``      multi_eos (F1)：首行数值表头 ``7590 / 0 / 101 / 100``
 - ``C_AN.PLANCK``  multi_opacity (F2)：首行 ``1 / PLANCK 1 / 20 / 20``（单群灰；
   material.base 中同时充当 MID201 的 PLANCK 与 ROSSELAND）
 - ``material.base`` MID201 段 REM 备注（POLYSTYRENE / SESAME 7590 / MURAKAMI 1990 /
@@ -54,7 +54,7 @@ def _load_eos():
     if not _CH_IEOS.exists():
         _CACHE["eos"] = None
         return None
-    from eosop_pro.parsers.multi_inverted_eos import parse_all
+    from eosop_pro.parsers.multi_eos_reader import parse_all
     tables = parse_all(str(_CH_IEOS))
     _CACHE["eos"] = (_CH_IEOS, tables)
     return _CACHE["eos"]
@@ -107,7 +107,7 @@ def test_ch_ieos_parse():
         log("  SKIP: mat_CELIA/CH_ieos 不存在")
         return
     path, tables = sample
-    from eosop_pro.parsers.multi_inverted_eos import parse_header
+    from eosop_pro.parsers.multi_eos_reader import parse_header
     hdr = parse_header(path.read_text(encoding="utf-8", errors="replace").splitlines()[0])
     expect_eq(int(round(hdr["table_id"])), OP_CH["table_id"], "table_id = SESAME 7590")
     expect_eq(int(hdr["nr"]), OP_CH["nr"], "nr=101")
@@ -240,7 +240,7 @@ def test_combined_plots():
 
 def _plots_all(tables, outdir):
     from eosop_pro.plotting.qa.gridmap import plot_table_all_fields
-    return plot_table_all_fields(tables, str(outdir), family="multi_inverted_eos")
+    return plot_table_all_fields(tables, str(outdir), family="multi_eos")
 
 
 def test_cn4_comparison_stub():
@@ -308,7 +308,7 @@ def _build_report() -> Path:
   pre.inp {{ background: #f4f4f4; padding: .6em; font-size: .85em; overflow-x: auto; }}
 </style></head><body>
 <h1>mat_CELIA（CH 聚苯乙烯 MID201）集成核查报告</h1>
-<p>生成: {datetime.datetime.now():%Y-%m-%d %H:%M:%S} ｜ 被测: CH_ieos (F1 multi_inverted_eos) +
+<p>生成: {datetime.datetime.now():%Y-%m-%d %H:%M:%S} ｜ 被测: CH_ieos (F1 multi_eos) +
    C_AN.PLANCK (F2 multi_opacity) ｜ 独立测试（不接 run_all）</p>
 
 <section><h2>1. 溯源备注（material.base MID201 段 REM，逐字）</h2>

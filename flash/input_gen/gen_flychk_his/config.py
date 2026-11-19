@@ -32,7 +32,9 @@ from . import units
 #   - rho / ne / ni 三者最多出现其一
 BASE_COLUMNS: Tuple[str, ...] = ("time", "size", "te", "ti", "tr")
 DENSITY_COLUMNS: Tuple[str, ...] = ("rho", "ne", "ni")
-ALLOWED_COLUMNS: Tuple[str, ...] = BASE_COLUMNS + DENSITY_COLUMNS
+# FLYCHK "fhot file" 模式: 双麦氏热电子组分 (hot-electron fraction / temperature)
+HOT_COLUMNS: Tuple[str, ...] = ("fhot", "thot")
+ALLOWED_COLUMNS: Tuple[str, ...] = BASE_COLUMNS + DENSITY_COLUMNS + HOT_COLUMNS
 REQUIRED_COLUMNS: Tuple[str, ...] = ("time", "te")
 
 DEFAULT_COLUMNS: Tuple[str, ...] = ("time", "size", "te", "ti", "tr", "rho")
@@ -180,6 +182,7 @@ class FlychkHisConfig:
         return {
             "time": "s", "size": "cm", "te": "eV", "ti": "eV", "tr": "eV",
             "rho": "g/cm^3", "ne": "cm^-3", "ni": "cm^-3",
+            "fhot": "1", "thot": "eV",
         }[column]
 
     def source_unit(self, field_name: str, default: str) -> str:
@@ -210,6 +213,11 @@ class FlychkHisConfig:
             errors.append(
                 f"rho/ne/ni 只能出现一种，当前包含 {dens_present}"
                 "（FLYCHK runfile 仅接受单一密度基准）"
+            )
+        hot_present = [c for c in cols if c in HOT_COLUMNS]
+        if len(hot_present) == 1:
+            errors.append(
+                f"fhot/thot 必须成对出现（'fhot file' 模式），当前只有 {hot_present}"
             )
         if len(set(cols)) != len(cols):
             errors.append(f"columns 存在重复项: {cols}")
@@ -382,6 +390,7 @@ def _a_ok(cfg: FlychkHisConfig) -> bool:
 
 __all__ = [
     "FlychkHisConfig", "ValidationReport", "ConfigError",
-    "ALLOWED_COLUMNS", "BASE_COLUMNS", "DENSITY_COLUMNS", "REQUIRED_COLUMNS",
+    "ALLOWED_COLUMNS", "BASE_COLUMNS", "DENSITY_COLUMNS", "HOT_COLUMNS",
+    "REQUIRED_COLUMNS",
     "DEFAULT_COLUMNS", "AGG_MODES", "SIZE_MODES",
 ]

@@ -17,7 +17,7 @@
 ⚠️ 关于 ``.feos``
 -----------------
 ``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` **字节相同**（名为 FEOS、实为 SESAME）。
-阶段 A 按 ``Readme.txt`` 声明取候选顺序 ``[feos_native, multi_inverted_eos]``，
+阶段 A 按 ``Readme.txt`` 声明取候选顺序 ``[feos_native, multi_eos]``，
 依次尝试；失败回退**记录在案**。这仍属"按声明候选尝试"，
 真正的**内容识别**（行剖面/列剖面/计数反演/包络）留待阶段 B。
 """
@@ -45,7 +45,7 @@ __all__ = [
 
 # ── 家族（解析器）名 ────────────────────────────────────────────
 FAMILIES = (
-    "multi_inverted_eos",   # F1 反演 EOS（4×15）
+    "multi_eos",   # F1 反演 EOS（4×15）
     "multi_opacity",        # F2 灰度 / 多群不透明度、Zeff、EPS（4×15）
     "hyades_eos",           # F3 Hyades EOS（5×15，含 L 公式）
     "hyades_opacity",       # F3' SESAME 不透明度（同一 L 公式）
@@ -89,19 +89,19 @@ EXT_MAP: dict[str, tuple[tuple[str, ...], str | None]] = {
     #       SiO2/eos_21.sesame  [0,1,43,1765] → 153645 == 38411 行 × 4 + 1
     #       Ta2O5/PowerLaw...SESAME [0.12,1,3,19] → 143 == 36 行(3/4 列混排)
     #   所以**把真正有解析器的族放第一位**；``sesame_dat`` 只作语义标记保留。
-    ".sesame": (("multi_inverted_eos", "sesame_dat", "hyades_eos",
+    ".sesame": (("multi_eos", "sesame_dat", "hyades_eos",
                  "generic_curve"), None),
     # ★ ``.inv`` = INVerted（MULTI 术语）。实测 mat_CPC/{AU,BE}.INV：
     #   L0 = ' 1.00003010e+07 0.00000000e+00 1.23000000e+02 1.00000000e+02'
     #   → [SESAME id, 0.0, nr=123, ne=100]，6238 行 × 4 = 24952
     #   F1/with_e0(123,100) = 24950 + 2 尾部 ✓（其余布局都差得远）
-    ".inv": (("multi_inverted_eos", "feos_aux"), "EOS_TOTAL"),
+    ".inv": (("multi_eos", "feos_aux"), "EOS_TOTAL"),
     ".ini": (("generic_curve",), "AUX"),
     ".snop": (("snop_input",), "AUX"),
     ".mexport": (("feos_aux",), "AUX"),
     ".cst": (("feos_aux",), "AUX"),
     ".par": (("feos_aux",), "AUX"),
-    ".feos": (("feos_native", "multi_inverted_eos"), None),
+    ".feos": (("feos_native", "multi_eos"), None),
     ".planck": (("multi_opacity",), "PLANCK"),
     ".ross": (("multi_opacity",), "ROSSELAND"),
     ".zeff": (("multi_opacity",), "ZEFF"),
@@ -165,6 +165,16 @@ _SKIP_NAMES = frozenset({
     "atomicweighttable.txt", "bulkmodulus.xlsx", "nofs",
     "opbe.inhalt", "snop.inhalt",
 })
+
+#: 已知损坏文件冻结清单（2026-11-15 ``hyades/sesame/`` 全量审计裁定，用户确认
+#: "忽略 + 告警"）：解析器能拦截（截断指数 token → ParseError），但 generic_curve
+#: 兜底可能以 ok_unverified 接管并产出**错值表**（eos_332 末值错 13 个量级），
+#: 故在声明层显式跳过。文件名小写 → 告警理由。
+_KNOWN_CORRUPT: dict[str, str] = {
+    "eos_332.dat": (
+        "known corrupt: 末行残缺指数 token ' 7.4E'（真值疑为 7.4E+13），"
+        "F3 解析器显式拒绝；用户裁定忽略+告警（审计脚本 parsers/test/audit_sesame_dat.py）"),
+}
 
 #: 文件名里含空格且像"说明句"的（实测：``Ta2O5_1G_MULTI from unknown source``、
 #: ``No EOS data, but Opacity in OpacityThermos.txt``）→ 是笔记不是数据
@@ -285,6 +295,22 @@ def declare(relpath: str | Path, *, registry: MaterialRegistry | None = None,
             dt.evidence = f"ext={ext or '(none)'} name={fname}"
         return dt
 
+    # 0.5) 已知损坏 / 空文件冻结拦截（2026-11-15 sesame/ 审计；防 generic_curve
+    #      兜底把错值/无值文件冒充成 ok_unverified 表）
+    if low in _KNOWN_CORRUPT:
+        dt.families = ["skip"]
+        dt.source = "skip_rule"
+        dt.evidence = _KNOWN_CORRUPT[low]
+        return dt
+    try:
+        if (config.MATTER_DIR / rel).stat().st_size == 0:
+            dt.families = ["skip"]
+            dt.source = "skip_rule"
+            dt.evidence = "empty file (0 bytes)"
+            return dt
+    except OSError:
+        pass
+
     # 1) 复合扩展名 -----------------------------------------------
     ext_fams: list[str] = []
     cext = _is_compound_ext(fname)
@@ -354,7 +380,7 @@ def declare(relpath: str | Path, *, registry: MaterialRegistry | None = None,
             #   两个第 2 字段正好是 Mo / U 的**实测固体密度**（10.22 / 19.1），
             #   计数 18 == F1/with_e0(2,2)，与 doc 里 AU_IDEAL_GAS 的布局逐一对应
             #   → 它们是 F1 理想气体表，不是不透明度。
-            dt.families = ["multi_opacity", "multi_inverted_eos", "generic_curve"]
+            dt.families = ["multi_opacity", "multi_eos", "generic_curve"]
             dt.source = "path"
             dt.evidence = "path contains 'Thermos'"
         elif "atomics" in plow or "atomic" in plow:
@@ -381,7 +407,7 @@ def declare(relpath: str | Path, *, registry: MaterialRegistry | None = None,
 
     # 5) 默认候选（Readme.txt：「其他按照默认的 SESAME 数据库格式」） ──
     if not dt.families:
-        dt.families = ["multi_inverted_eos", "multi_opacity", "sesame_dat"]
+        dt.families = ["multi_eos", "multi_opacity", "sesame_dat"]
         dt.source = "default"
         dt.evidence = "Readme.txt default (SESAME 4x15)"
 

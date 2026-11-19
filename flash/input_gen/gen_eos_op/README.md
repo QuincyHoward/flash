@@ -2,6 +2,8 @@
 
 > 最后核对：2026-11-15（eosop_pro docs 整合 temp_docs → docs/ 根；feos_native 布局定案） · 维护规则：改动 generator.py 注册表后必须同步 §4 材料表
 
+各种元素信息链接：[元素周期表](https://ptable.com/?lang=zh-hans#%E6%80%A7%E8%B4%A8)
+
 ## 1. 职责定位
 
 管理 FLASH 仿真的 EOS（物态方程）/不透明度数据文件（ionmix4 `.cn4` 格式）：别名感知的表文件查找/复制、辐射能群（grupbd）一致性校验、`.eosmeta.json` 元数据写出。**本目录同时是 EOS/不透明度数据子体系的根**——含 `.cn4` 后处理（eosop_pro）、IONMIX 输入生成（ionmix）、MULTI 格式资料（src），见 §6 导航。

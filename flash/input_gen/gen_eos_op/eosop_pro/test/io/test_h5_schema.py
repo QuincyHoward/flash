@@ -32,7 +32,7 @@ from eosop_pro.convert import (convert, get_target, list_targets,
                                  write_h5_single)
 from eosop_pro.grid.unified_grid import build_all_grids
 from eosop_pro.parsers import hyades_eos as f3
-from eosop_pro.parsers import multi_inverted_eos as f1
+from eosop_pro.parsers import multi_eos_reader as f1
 from eosop_pro.parsers import multi_opacity as f2
 from eosop_pro.writer import h5_schema as S
 from eosop_pro.writer.h5_writer import write_material_h5
@@ -45,7 +45,7 @@ def _tmp():
 # ── 转换接口本身 ───────────────────────────────────────────────
 def test_targets_registered():
     names = {t.name for t in list_targets()}
-    for n in ("cn4", "multi_opacity", "hyades_eos", "multi_inverted_eos",
+    for n in ("cn4", "multi_opacity", "hyades_eos", "multi_eos",
               "h5"):
         expect(n in names, f"应注册目标 {n}，实测 {names}")
     for t in list_targets():
@@ -91,11 +91,11 @@ def test_roundtrip_hyades_eos():
         expect(rel < 1e-6, f"P 往返相对偏差 {rel:.3e}")
 
 
-def test_roundtrip_multi_inverted_eos():
+def test_roundtrip_multi_eos():
     src = f1.parse(config.MATTER("mat_Al-1.0/AL_eos"), "AL_eos")
     with _tmp() as td:
         out = Path(td) / "rt_eos"
-        convert(src, out, target="multi_inverted_eos")
+        convert(src, out, target="multi_eos")
         back = f1.parse(out, out.name)
         # F1 的自变量是 (rho, de)，没有 Te 轴 → 用 de 长度比较
         expect_eq((back.nr, len(back.axes["de"])), (src.nr, len(src.axes["de"])))

@@ -17,8 +17,13 @@
 - `read_payload_doc(path, *, skip_lines, blank_counter)` —— 读文件跳头部，**仅 payload 区**走 L2 数值提取
 - `TwoDim.shape/get` —— 无 numpy 的二维场小工具
 
-### cn4_io.py —— IONMIX `.cn4` 读写内核（全包最大模块）
-`.cn4`（CONRAD 格式）的完整读写。布局权威来源是本地 FORTRAN 源码 `abjt_03.f` 的 `SUBROUTINE OWTF`（isw(21)!=0 分支，逐条 write 语句核对）+ `docs/IONMIX用户指南.md` §5.4。文件布局：4 行头部（`ntemp,ndens` / `izgas` / `fracsp` / `ngrups`）+ 18 个数据块（温度、数密度、12 个二维 EOS 场、群边界、3 个三维群不透明度），数据区 `4e12.6` 定宽。循环嵌套：2D 温度内循环/密度外循环 → `(ndens, ntemp)`；3D 群外循环 → `(ngrups, ndens, ntemp)`。计数守恒公式 `ntemp + ndens + 12*ntemp*ndens + (ngrups+1) + 3*ngrups*ntemp*ndens`，不符抛 `CN4ParseError`。
+### cn4_io.py —— IONMIX `.cn4` 读内核（写侧已迁 `convert/cn4_write.py`）
+`.cn4`（CONRAD 格式）的**读取**。布局权威来源是本地 FORTRAN 源码 `abjt_03.f` 的 `SUBROUTINE OWTF`（isw(21)!=0 分支，逐条 write 语句核对）+ `docs/IONMIX用户指南.md` §5.4。文件布局：4 行头部（`ntemp,ndens` / `izgas` / `fracsp` / `ngrups`）+ 18 个数据块（温度、数密度、12 个二维 EOS 场、群边界、3 个三维群不透明度），数据区 `4e12.6` 定宽。循环嵌套：2D 温度内循环/密度外循环 → `(ndens, ntemp)`；3D 群外循环 → `(ngrups, ndens, ntemp)`。计数守恒公式 `ntemp + ndens + 12*ntemp*ndens + (ngrups+1) + 3*ngrups*ntemp*ndens`，不符抛 `CN4ParseError`。
+
+⚠️ 职责边界（2026-11-15 解耦迁移）：本模块只管**读**（parse/load/CN4Table/`cn4_to_parsed_tables` 桥）；
+全部**写/转**逻辑（`write_cn4`/`parsed_tables_to_cn4`/`convert_foreign_to_cn4`/`convert_cn4_to_cn4`
++ Fortran 格式化辅助）已迁至 [`convert/cn4_write.py`](../convert/cn4_write.py)（convert → parsers
+单向依赖），本层不得反向 import。
 
 核心要点：
 - **mantissa style 机制**：实测两种 `e12.6` 尾数风格并存——`"leading0"`（Ionmix 产物，`0.100000E+00`）与 `"dotted"`（BADGER-TOPS 系列，`1.000000E-01`）。`parse_cn4` 嗅探后记入 notes；`write_cn4(mantissa_style=...)` 按源风格复刻，保证 byte-identical 往返。负值实测为 13 列（`-.370029E-04`），写出侧不得为凑 12 列缩位
@@ -29,18 +34,16 @@
 - **跨族组装**：`parsed_tables_to_cn4(..., allow_foreign=True)` 接受任意族 ParsedTable，缺失场写 NaN 占位、**单位不换算**、单温总 EOS 均分到 ion/ele 槽并记 notes；`convert_foreign_to_cn4()` 为用户级入口
 - **CLI**：`python -m eosop_pro.parsers.cn4_io <file.cn4> [out.cn4]`（打印 summary/计数/原子量来源，可顺带写出）
 
-关键 API：
+关键 API（读侧）：
 - `parse_cn4(filepath, *, atomwt=None) -> CN4Table`（别名 `load_cn4`；`CN4Data = CN4Table`）
-- `write_cn4(table, out_path, *, write_opacities=True, mantissa_style=None, verbatim=False) -> Path`
-- `convert_cn4_to_cn4(src, dst, **opts) -> Path` —— 默认 verbatim 直通的往返
 - `cn4_to_parsed_tables(table, relpath="") -> list` —— 拆成 4 张表（EOS + Ross/Planck_abs/Planck_ems）
-- `parsed_tables_to_cn4(tables, *, izgas, fracsp, atomwt=None, allow_foreign=False) -> CN4Table`
-- `convert_foreign_to_cn4(src, dst, *, izgas, fracsp, atomwt=None, **opts) -> Path`
 - `parse_header(lines) -> dict`、`expected_number_count(ntemp, ndens, ngrups) -> int`、`load_cn4_dir(dirpath) -> list`
+- 写侧 API（`write_cn4`/`convert_cn4_to_cn4`/`parsed_tables_to_cn4`/`convert_foreign_to_cn4`）见 `convert/cn4_write.py`
 
 用法示例：
 ```python
-from eosop_pro.parsers.cn4_io import load_cn4, write_cn4
+from eosop_pro.parsers.cn4_io import load_cn4
+from eosop_pro.convert.cn4_write import write_cn4   # 写侧在 convert/
 
 tbl = load_cn4(r"E:/data/Ionmix/he-imx-005.cn4")
 print(tbl.summary())          # 组分/维度/网格范围
@@ -56,8 +59,8 @@ p = write_cn4(tbl, "out.cn4") # 逐值重排写出（verbatim=True 则数据区�
 ### multi_opacity.py —— F2：MULTI 不透明度/Zeff/NLTE/EPS（4×15 定宽）
 ★ 最大族。多群文件是 `ng` 个独立子表串联，每个子表自带完整表头 + `(E_lo, E_hi)` 边界线 + rho/T 网格 + 值；行 1 的 `f2` 是类型枚举（4=Rosseland、6=ZEFF、7=Planck）或文本标签（`PLANCK M`/`ROSSLAN M`，注意拼写）。`opbe` 类多 KIND 串联由 `parse_all` 拆多张表。rho/T/值均为 log10 存储；T 单位 eV，但 ZEFF 表存在 eV/keV 两套，须由 `unit_hint` 声明。独立变量：`rho`（g/cm3）×`Te`（eV）。典型用法：`from eosop_pro.parsers.multi_opacity import parse_all` → `MUGROUP/PLANCK/ZEFF` 等 kind 的表。
 
-### multi_inverted_eos.py —— F1：MULTI 反演 EOS（默认 SESAME 族）
-每块 4 数表头 `table_id rho0 nr ne`；两种 payload 布局（`with_e0` 含冷能 / `no_e0`）由计数守恒唯一反解（`detect_layout`），多块同表头串联拆多张表。**自变量是 (rho, de)，T 是因变量场**——这正是 "Inverted" 的含义；要 (rho, Te) 网格需经 `convert.invert_eos` 反演。单位：rho g/cm3 线性、de/e0/P Mbar 系、T Kelvin→eV。典型用法：`from eosop_pro.parsers.multi_inverted_eos import parse`。
+### multi_eos_reader.py —— F1：MULTI 反演 EOS（默认 SESAME 族）
+每块 4 数表头 `table_id rho0 nr ne`；两种 payload 布局（`with_e0` 含冷能 / `no_e0`）由计数守恒唯一反解（`detect_layout`），多块同表头串联拆多张表。**自变量是 (rho, de)，T 是因变量场**——这正是 "Inverted" 的含义；要 (rho, Te) 网格需经 `convert.invert_eos` 反演。单位：rho g/cm3 线性、de/e0/P Mbar 系、T Kelvin→eV。典型用法：`from eosop_pro.parsers.multi_eos_reader import parse`。
 
 ### hyades_eos.py —— F3：Hyades/SESAME ASCII（5×15 定宽）
 行 0 自由文本注释（材料名 + SESAME 号），行 1 = `id zbar abar rho0 L`（`L = 2+NR+NT+2*NR*NT`），行 2 起 payload。EOS 文件两数组为 [P, E]；`opc_*` 为 [Rosseland, Planck] 且按"Planck 槽位全零"自动判序。末尾补零显式记为 `raw_tail`。单位：rho g/cm3、T keV→eV、P dyne/cm2、E erg/g。独立变量：`rho`×`Te`。典型用法：`from eosop_pro.parsers.hyades_eos import parse_all`。
@@ -129,7 +132,7 @@ python eosop_pro/parsers/test/run_all.py      # 全量 + 汇总 log（_out/test_
 |---|---|---|---|---|
 | cn4（IONMIX） | cn4_io.py + ionmix.py | .cn4 | IONMIX/CONRAD（abjt_03.f） | ✅ 全字段已核查（唯一标记省略族；仅 deion_dn/deele_dn 源码 not sure → unknown） |
 | cnr（IONMIX legacy） | cnr_io.py + ionmix.py | .cnr | 同上（仅源码） | ⚠️ 只读不可转 cn4；头部 4 网格参数 inferred；部分文件 op2tr/op2tp unknown |
-| F1 MULTI 反演 EOS | multi_inverted_eos.py | .dat/.inv/.sesame | MULTI（本地 docx） | ✅ 支持（T Kelvin→eV） |
+| F1 MULTI 反演 EOS | multi_eos_reader.py | .dat/.inv/.sesame | MULTI（本地 docx） | ✅ 支持（T Kelvin→eV） |
 | F2 MULTI 不透明度/Z̄/NLTE | multi_opacity.py | .dat（Thermos 树） | MULTI | ✅ 支持（★391 文件最大族；ZEFF eV/keV 双套陷阱；NZ 段 uk,uv） |
 | F3 Hyades/SESAME | hyades_eos.py（3 族） | .dat（hyades 树）/sesame | Hyades、LANL SESAME | ✅ 支持（raw_tail uk,uv） |
 | F4a MPQeos | mpqeos.py | .301/.304/.305 | JWGU MPQeos | ✅ 支持（Z 段 uk,uv） |

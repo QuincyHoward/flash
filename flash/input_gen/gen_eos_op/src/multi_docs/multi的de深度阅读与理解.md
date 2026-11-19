@@ -287,7 +287,7 @@ $$
 
 ## 6. 两种 payload 布局的实测验证
 
-用 `eosop_pro.parsers.multi_inverted_eos.parse_all` 载入三个代表文件（2026-11-14 实测，WSL python3）：
+用 `eosop_pro.parsers.multi_eos_reader.parse_all` 载入三个代表文件（2026-11-14 实测，WSL python3）：
 
 | 文件 | 布局 | $n_\rho$ | $n_{de}$ | 验证式 | 结果 |
 |---|---|:---:|:---:|---|---|
@@ -331,7 +331,7 @@ $$
 
 ## 8. 与 cn4 / FLASH 的双向转换公式
 
-> 既有裁定与实现：`eosop_pro/parsers/formats/multi_inverted_eos.md` §4.1（no_e0 布局裁定，commit 13f8504）；转换 API `eosop_pro/convert/invert_eos.py`（`to_de_grid`、`cn4_eos_to_rho_base`）与 `convert/writers_multi.py`（`write_multi_inverted_eos_from_cn4`）。本节为公式汇总。
+> 既有裁定与实现：`eosop_pro/parsers/formats/multi_eos.md` §4.1（no_e0 布局裁定，commit 13f8504）；转换 API `eosop_pro/convert/invert_eos.py`（`to_de_grid`、`cn4_eos_to_rho_base`）与 `convert/writers_multi.py`（`write_multi_eos_from_cn4`）。本节为公式汇总。
 
 ### 8.1 cn4 → MULTI F1
 
@@ -431,5 +431,5 @@ $$
 | IONMIX 源码 | `ionmix/Ionmix_run/outputfiles/cn4/gen_hohlraum10/Z06_0.50-Z01_0.50-20261108_2013/abjt_03.f`（energy：L1910–2188；owtf cn4 块：L4642–4756） |
 | 项目规格书 | `src/multi_docs/MultiEOSOP格式说明.md`（§3.2.2、§4.1.3–4.2.4、§5.1–5.2） |
 | 实测文件 | `src/Multi1D++Portable20241128/matter++/{mat_CELIA/CH_ieos, mat_Al-1.0/AL_eos, mat_Au-1.0/AU_eosd}` |
-| 解析器实现 | `eosop_pro/parsers/multi_inverted_eos.py`、`eosop_pro/convert/invert_eos.py`、`eosop_pro/convert/writers_multi.py` |
-| 既有裁定 | `eosop_pro/parsers/formats/multi_inverted_eos.md` §4.1 |
+| 解析器实现 | `eosop_pro/parsers/multi_eos_reader.py`、`eosop_pro/convert/invert_eos.py`、`eosop_pro/convert/writers_multi.py` |
+| 既有裁定 | `eosop_pro/parsers/formats/multi_eos.md` §4.1 |

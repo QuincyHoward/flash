@@ -40,8 +40,8 @@ class BuilderError(ValueError):
     """表格构建失败。"""
 
 
-# FLYCHK 各列的合法下限 (物理>0)
-_POSITIVE_COLUMNS = ("te", "ti", "tr", "rho", "ne", "ni", "size")
+# FLYCHK 各列的合法下限 (物理>0; fhot 允许 0, 单独按 [0,1] 校验)
+_POSITIVE_COLUMNS = ("te", "ti", "tr", "rho", "ne", "ni", "size", "thot")
 
 
 # ══════════════════════════════════════════════════════════
@@ -200,6 +200,11 @@ def build_table(rs: RegionSeries, cfg: FlychkHisConfig) -> HistoryTable:
             arr, n_cl = _clamp(arr, 1.0, np.inf)
         elif col == "size":
             arr, n_cl = _clamp(arr, cfg.size_floor, np.inf)
+        elif col == "fhot":
+            arr, n_cl = _clamp(arr, 0.0, 1.0)
+        elif col == "thot":
+            # 热电子温度可高于常规 te_ceil，仅做正性保护
+            arr, n_cl = _clamp(arr, cfg.te_floor, np.inf)
         else:
             n_cl = 0
         if n_cl:
@@ -326,6 +331,14 @@ def validate_table(table: HistoryTable, cfg: Optional[FlychkHisConfig] = None,
     for c in _POSITIVE_COLUMNS:
         if c in data and np.any(data[c] <= 0):
             errors.append(f"列 '{c}' 存在非正值 (min={data[c].min():.3e})")
+    if "fhot" in data:
+        f = data["fhot"]
+        if np.any(f < 0.0) or np.any(f > 1.0):
+            errors.append(
+                f"列 'fhot' 必须 ∈ [0,1] (实际 [{f.min():.3e},{f.max():.3e}])")
+    hot_cols = [c for c in ("fhot", "thot") if c in cols]
+    if len(hot_cols) == 1:
+        errors.append(f"fhot/thot 必须成对出现（'fhot file' 模式），当前只有 {hot_cols}")
 
     if table.n_steps > max_steps_warn:
         warnings.append(

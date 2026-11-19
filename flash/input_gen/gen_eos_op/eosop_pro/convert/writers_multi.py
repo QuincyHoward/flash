@@ -21,8 +21,8 @@ from .. import config
 from ..parsers.base import ParsedTable
 
 __all__ = [
-    "write_multi_opacity", "write_hyades_eos", "write_multi_inverted_eos",
-    "write_multi_inverted_eos_from_cn4", "write_multi_opacity_from_cn4",
+    "write_multi_opacity", "write_hyades_eos", "write_multi_eos",
+    "write_multi_eos_from_cn4", "write_multi_opacity_from_cn4",
     "fmt15", "fmt16", "dump_values",
 ]
 
@@ -221,7 +221,7 @@ def write_hyades_eos(table: ParsedTable, out_path: Path, *,
 
 
 # ── F1：反演 EOS ───────────────────────────────────────────────
-def write_multi_inverted_eos(table: ParsedTable, out_path: Path, *,
+def write_multi_eos(table: ParsedTable, out_path: Path, *,
                              newline: str = "\n") -> Path:
     """逆变换 F1：有 ``e0_cold`` 则写 ``with_e0`` 布局，否则 ``no_e0``。"""
     if "de" not in table.axes:
@@ -258,7 +258,7 @@ def _cn4_unit_convert(table):
     return table
 
 
-def write_multi_inverted_eos_from_cn4(eos_table, out_path: Path, *,
+def write_multi_eos_from_cn4(eos_table, out_path: Path, *,
                                       n_de: int = 60,
                                       de_axis=None,
                                       table_id: float | None = None,
@@ -287,7 +287,7 @@ def write_multi_inverted_eos_from_cn4(eos_table, out_path: Path, *,
     from ..parsers.base import ParsedTable as _PT
     out = _PT(
         table_key=f"{tbl.table_key}_on_de",
-        kind=tbl.kind, family="multi_inverted_eos",
+        kind=tbl.kind, family="multi_eos",
         source_relpath=tbl.source_relpath,
         table_id=tbl.table_id,
         layout_rule="cn4 -> F1 no_e0 (de=E_total; IONMIX 零点=冷态)",
@@ -312,7 +312,7 @@ def write_multi_inverted_eos_from_cn4(eos_table, out_path: Path, *,
     out.fields["T"] = [float(x) for x in res.fields["T"].reshape(-1)]
     out.field_shape["T"] = (res.fields["T"].shape[0], res.fields["T"].shape[1])
     out.field_units["T"] = "eV"
-    return write_multi_inverted_eos(out, out_path, newline=newline)
+    return write_multi_eos(out, out_path, newline=newline)
 
 
 _CN4_OPAC_LABEL = {

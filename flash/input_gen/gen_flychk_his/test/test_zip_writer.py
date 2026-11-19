@@ -97,12 +97,22 @@ class TestFormatContract:
 
     def test_full_runfile(self, out_dir):
         m = self._members(out_dir, ["time", "size", "te", "ti", "tr", "rho"])
+        # ★ 不得含独立的 "history" 模式行: FLYCHK CX 会报
+        #   "$$$ too few arguments for command #10 ( 3)" (非致命但掩盖真实错误)
         assert m["runfile.txt"] == (
-            "z 22\ninitial ss\nevolve ss\nhistory\nopacity file\nti file\n"
+            "z 22\ninitial ss\nevolve ss\nopacity file\nti file\n"
             "tr file\nhistory history_Ti_Z22_input.txt rho\nend\n"
         )
+        assert "history\n" not in m["runfile.txt"].split("\n\n")
         assert m["history_Ti_Z22_input.txt"].splitlines()[0] == \
             "time size te ti tr rho"
+
+    def test_no_standalone_history_mode_line(self, out_dir):
+        """裸 'history' 行不存在 (每个 history 行都带文件名+密度列)。"""
+        m = self._members(out_dir, ["time", "size", "te", "ti", "tr", "rho"])
+        for ln in m["runfile.txt"].splitlines():
+            if ln.strip().startswith("history"):
+                assert len(ln.split()) >= 3
 
     @pytest.mark.parametrize("columns,dens_line", [
         (["time", "te", "rho"], "history history_Ti_Z22_input.txt rho"),

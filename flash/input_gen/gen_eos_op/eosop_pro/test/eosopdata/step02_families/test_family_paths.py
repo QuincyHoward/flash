@@ -47,7 +47,7 @@ SAMPLE_PATTERNS = {
     "mpqeos": ("*.301",),
     "hyades_eos": ("qeos_*",),
     "feos_native": ("*.feos",),
-    "multi_inverted_eos": ("AL_eos",),
+    "multi_eos": ("AL_eos",),
     "ledcop_atomic": ("Al.txt",),
     "ledcop_zeff": ("*.NoFree",),
     "multi_opacity": ("*.planck",),
@@ -58,7 +58,7 @@ SAMPLE_PATTERNS = {
 }
 
 #: 能转成 cn4（含完整 EOS）的族 —— 即"可画物理路径"的族。
-#: ``multi_inverted_eos`` 被**设计性拒绝**（其轴 ``de`` 是比能而非温度，
+#: ``multi_eos`` 被**设计性拒绝**（其轴 ``de`` 是比能而非温度，
 #: 无法映射到 cn4 的 ``(T, n_ion)`` 网格）；不透明度族/一维族无 EOS 总表。
 CONVERTIBLE = ("mpqeos", "hyades_eos", "feos_native", "sesame_dat")
 
@@ -76,7 +76,7 @@ def _to_cn4(fam):
     tables = _first(fam)
     if not tables:
         return None
-    from eosop_pro.parsers.cn4_io import parsed_tables_to_cn4
+    from eosop_pro.convert.cn4_write import parsed_tables_to_cn4
     try:
         return parsed_tables_to_cn4(list(tables), izgas=[AL_Z],
                                     fracsp=list(AL_FRAC),
@@ -497,17 +497,17 @@ def test_pv_diagram_runs_on_converted_table():
 
 
 # ── 设计性拒绝（锁定行为，防误判为 bug） ─────────────────────────
-def test_multi_inverted_eos_is_rejected_by_design():
-    """⚠️ ``multi_inverted_eos`` 的轴是 ``de``（比能）而非 ``Te`` ——
+def test_multi_eos_is_rejected_by_design():
+    """⚠️ ``multi_eos`` 的轴是 ``de``（比能）而非 ``Te`` ——
     无法映射到 cn4 的 ``(T, n_ion)`` 网格，故 ``parsed_tables_to_cn4``
     应**明确拒绝**而非产出物理上错误的表。本测试锁定该行为。
     """
-    tables = _first("multi_inverted_eos")
+    tables = _first("multi_eos")
     if not tables:
         return
     expect("de" in tables[0].axes,
-           "前提失效：multi_inverted_eos 的轴不再是 de")
-    from eosop_pro.parsers.cn4_io import parsed_tables_to_cn4
+           "前提失效：multi_eos 的轴不再是 de")
+    from eosop_pro.convert.cn4_write import parsed_tables_to_cn4
     raised = False
     try:
         parsed_tables_to_cn4(list(tables), izgas=[AL_Z], fracsp=list(AL_FRAC),

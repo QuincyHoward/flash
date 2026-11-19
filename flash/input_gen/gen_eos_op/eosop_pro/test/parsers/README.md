@@ -11,5 +11,5 @@ parsers/ —— parsers/ 层测试（多格式解析器：hugoniot/coldopacity/i
 - `test_ionmix.py`
 - `test_ledcop.py`
 - `test_mpqeos.py`
-- `test_multi_inverted_eos.py`
+- `test_multi_eos.py`
 - `test_multi_opacity.py`

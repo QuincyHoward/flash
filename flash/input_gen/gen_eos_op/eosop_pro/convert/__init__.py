@@ -8,7 +8,7 @@
   3 群不透明度；缺数据 NaN 占位；``izgas`` 必需、单元素 ``fracsp`` 可省）
 * ``multi_opacity``       逆变换 F2（灰度 / 多群子表串联）
 * ``hyades_eos``          逆变换 F3（``L=2+nr+nt+2·nr·nt``，T 以 keV 写出）
-* ``multi_inverted_eos``  逆变换 F1（``with_e0`` / ``no_e0``）
+* ``multi_eos``  逆变换 F1（``with_e0`` / ``no_e0``）
 * ``h5``                  单表 HDF5（双轨）
 
 用法（"默认转 cn4，其他类型也可设置"）
@@ -32,7 +32,7 @@ from .base import (DEFAULT_TARGET, ConvertTarget, REGISTRY, convert,
                    convert_tables, get_default_target, get_target,
                    list_targets, register, set_default_target)
 from .writers_cn4 import write_cn4_single
-from .writers_multi import (write_hyades_eos, write_multi_inverted_eos,
+from .writers_multi import (write_hyades_eos, write_multi_eos,
                             write_multi_opacity)
 
 __all__ = [
@@ -111,9 +111,9 @@ register(ConvertTarget(
 ))
 
 register(ConvertTarget(
-    name="multi_inverted_eos",
+    name="multi_eos",
     description="MULTI 反演 EOS（F1，4×15 定宽；自变量为 (rho, de)）",
-    writer=write_multi_inverted_eos,
+    writer=write_multi_eos,
     requires=("EOS_TOTAL", "EOS_ELECTRON", "EOS_ION"),
     requires_fields=("P", "T"),
     notes="有 e0_cold 时写 with_e0 布局，否则写 no_e0",

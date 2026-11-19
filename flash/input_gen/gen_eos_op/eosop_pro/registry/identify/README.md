@@ -14,13 +14,13 @@
 按**声明式**候选族依次尝试解析。候选族来自 `declared_types`（扩展名 / 路径 /
 命名 token / 注册表 / 伴随注释），按候选顺序尝试、**成功即停**，并把「第几个
 候选成功」记进 `dispatch_rule`。经典案例：`mat_Al-1.0/AL_eos.feos` 声明
-`feos_native` 但内容实为 SESAME，第一候选计数守恒失败后回退 `multi_inverted_eos`
+`feos_native` 但内容实为 SESAME，第一候选计数守恒失败后回退 `multi_eos`
 ——回退**不是猜测**，而是按声明候选顺序尝试且完整记录在案。每个文件产出一条
 `ParseSnapshot`；mismatch/异常**不静默**。
 
 关键 API：
 - `FAMILY_PARSERS: dict[str, Callable]` —— 声明族 → 各解析器 `parse_all` 的映射
-  （F1 multi_inverted_eos / F2 multi_opacity / F3 hyades_eos·hyades_opacity·
+  （F1 multi_eos / F2 multi_opacity / F3 hyades_eos·hyades_opacity·
   sesame_dat / F4 mpqeos·feos_native·feos_tabdata·feos_aux / coldopacity /
   hugoniot / ionmix / ledcop_atomic / ledcop_zeff / snop_input / generic_curve）
 - `parse_declared(relpath, declared, *, registry=None, store=None,
@@ -55,7 +55,7 @@ from eosop_pro.registry.schema.declared_types import declare
 from eosop_pro.registry.identify.dispatch import parse_declared
 from eosop_pro.registry.identify.identify import identify
 
-d = declare("mat_Al-1.0/AL_eos.feos")          # 声明候选 [feos_native, multi_inverted_eos]
+d = declare("mat_Al-1.0/AL_eos.feos")          # 声明候选 [feos_native, multi_eos]
 out = parse_declared("mat_Al-1.0/AL_eos.feos", d)
 print(out.snapshot.family, out.snapshot.dispatch_rule)   # 实际家族 + 第几候选成功
 

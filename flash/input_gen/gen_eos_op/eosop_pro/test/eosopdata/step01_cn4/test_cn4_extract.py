@@ -28,9 +28,10 @@ from _runner import expect, expect_eq, expect_in, main
 import numpy as np
 
 from eosop_pro.parsers.cn4_io import (
-    N_BLOCKS, load_cn4, parse_cn4, write_cn4,
-    cn4_to_parsed_tables, parsed_tables_to_cn4,
+    N_BLOCKS, load_cn4, parse_cn4,
+    cn4_to_parsed_tables,
 )
+from eosop_pro.convert.cn4_write import write_cn4, parsed_tables_to_cn4
 from eosop_pro.parsers.cn4_io import (
     BLOCK_SPEC, OPACITY_SPEC, FIXED_WIDTH, ELEMENT_ATOMWT, CN4ParseError,
 )

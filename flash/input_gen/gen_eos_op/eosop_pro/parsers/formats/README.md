@@ -11,7 +11,7 @@
 | [ionmix.md](ionmix.md) | F6 IONMIX | `.cn4`/`.cnr`（abjt_03.f 逐块 18/7 块），密度轴是**数密度 cm^-3**，P/E 为 SI 派生 J/cm3、J/g |
 | [cn4_io.md](cn4_io.md) | F6 `.cn4` 读写内核 | cn4 全 18 块读写 + byte-identical 往返、mantissa style、NaN 占位 |
 | [cnr_io.md](cnr_io.md) | F6 `.cnr` 只读内核 | legacy 7 块格式（用户指南未文档化），ntrad 由计数守恒反解 |
-| [multi_inverted_eos.md](multi_inverted_eos.md) | F1 | MULTI 反演 EOS，自变量 (rho, de)、T 是因变量，with_e0/no_e0 双布局 |
+| [multi_eos.md](multi_eos.md) | F1 | MULTI 反演 EOS，自变量 (rho, de)、T 是因变量，with_e0/no_e0 双布局 |
 | [multi_opacity.md](multi_opacity.md) | F2 | MULTI 不透明度多群子表串联；ZEFF 表 eV/keV 双套陷阱 |
 | [hyades_eos.md](hyades_eos.md) | F3 | Hyades/SESAME 5×15 定宽；CGS 原生 dyne/cm2、erg/g |
 | [mpqeos.md](mpqeos.md) | F4a | `.301/.304/.305` SESAME 包装表，GPa→Mbar、MJ/kg→Mbar*cm3/g |

@@ -10,7 +10,7 @@
 ## 模块
 
 ### __init__.py —— 导出面 + 目标注册
-导入即注册 5 个目标：`cn4`（**默认目标** DEFAULT_TARGET）、`multi_opacity`、`hyades_eos`、`multi_inverted_eos`、`h5`。每个目标带 `requires`（KIND 门控）/ `requires_fields` / `requires_axes`，缺场或缺轴时跳过并给说明，不写坏文件。
+导入即注册 5 个目标：`cn4`（**默认目标** DEFAULT_TARGET）、`multi_opacity`、`hyades_eos`、`multi_eos`、`h5`。每个目标带 `requires`（KIND 门控）/ `requires_fields` / `requires_axes`，缺场或缺轴时跳过并给说明，不写坏文件。
 
 关键 API（`__all__` 导出面）：
 - `convert(table, out_path, target=None, **opts) -> Path` —— 单表转换；`target=None` 走默认 cn4
@@ -32,8 +32,14 @@ F1 存的是 P(rho, de)/T(rho, de)，要做 (rho, Te) 统一网格必须对每�
 - `to_Te_grid(table, Te_targets, *, fields=("P","E","T"), log_value=("P",)) -> InversionResult`
 - `InversionResult` —— `Te/rho/fields`（name -> (n_Te, n_rho) ndarray）+ `coverage` 属性、notes
 
+### cn4_write.py —— cn4 写侧内核（2026-11-15 自 parsers/cn4_io.py 迁入）
+cn4 全部**写/转**逻辑的单一归属：`write_cn4`（CN4Table → .cn4 文件，verbatim 直通/逐值重排双模式、
+两种 e12.6 尾数风格复刻）、`parsed_tables_to_cn4`（任意族 ParsedTable → CN4Table 组装）、
+`convert_foreign_to_cn4`（用户级跨族入口）、`convert_cn4_to_cn4`（规范化往返）+ Fortran 格式化辅助。
+依赖方向 convert → parsers 单向（读侧 `parse_cn4`/`CN4Table` 仍在 `parsers/cn4_io.py`）。
+
 ### writers_cn4.py —— cn4 目标写出器（注册表桥梁）
-单表进、一份 cn4 出：内部走 `parsers.cn4_io.parsed_tables_to_cn4(..., allow_foreign=True)` + `write_cn4`。表内没有的二维场/不透明度块一律 **NaN 占位**（不写 0——0 是合法物理值）；组成信息**不猜**：`izgas` 必须显式给出，`fracsp` 仅单元素时默认 `[1.0]`；单温总 EOS 由组装层 1:1 均分到 ion/ele 槽保证守恒；**单位不换算**，换算责任在调用方。多表材料（如 LEDCOP 独立不透明度表）请用 `parsers.cn4_io.convert_foreign_to_cn4`。
+单表进、一份 cn4 出：内部走 `convert.cn4_write.parsed_tables_to_cn4(..., allow_foreign=True)` + `write_cn4`。表内没有的二维场/不透明度块一律 **NaN 占位**（不写 0——0 是合法物理值）；组成信息**不猜**：`izgas` 必须显式给出，`fracsp` 仅单元素时默认 `[1.0]`；单温总 EOS 由组装层 1:1 均分到 ion/ele 槽保证守恒；**单位不换算**，换算责任在调用方。多表材料（如 LEDCOP 独立不透明度表）请用 `convert.cn4_write.convert_foreign_to_cn4`。
 
 关键 API：
 - `write_cn4_single(table, out_path, *, izgas=None, fracsp=None, atomwt=None, **opts) -> Path`
@@ -44,7 +50,7 @@ F1 存的是 P(rho, de)/T(rho, de)，要做 (rho, Te) 统一网格必须对每�
 关键 API：
 - `write_multi_opacity(table, out_path, *, field=None, newline="\n") -> Path` —— 灰度与多群子表串联
 - `write_hyades_eos(table, out_path, *, zbar=1.0, abar=1.0, rho0=1.0, comment=None, newline="\r\n", invert=False) -> Path` —— 源表是 (rho,de) 基时须 `invert=True`（自动反演，Te 轴取源 T 场范围、log10 等距、点数同 ne）
-- `write_multi_inverted_eos(table, out_path, *, newline="\n") -> Path`
+- `write_multi_eos(table, out_path, *, newline="\n") -> Path`
 - `fmt15(v) / fmt16(v)` —— Fortran/C 风格 15/16 字符科学计数（含 `1.#INF` 处理）
 - `dump_values(path, values, *, per_line=4, fmt=fmt15, newline="\n")` —— 定宽多列写数值
 

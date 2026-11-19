@@ -1,5 +1,12 @@
 """F1 —— MULTI「反演 EOS」解析器（默认 SESAME 族，4×15 定宽）。
 
+⚠️ 职责边界（2026-11-15 重命名消歧）：本模块是**只读解析器**
+（文件 → ParsedTable，FAMILY = ``multi_eos``）。
+模块名 ``multi_eos_reader`` 只标"MULTI 族 EOS 读取"（与 ``multi_opacity.py`` 对称），
+避开 invert/convert 字面混淆；格式本身叫「反演 EOS」（自变量 (rho, de)），
+但反演/跨格式写出都在 :mod:`eosop_pro.convert`
+（``convert/invert_eos.py`` + ``convert/writers_multi.py``），勿在本层添加写侧逻辑。
+
 格式（实测）
 ------------
 每个**块**以一行 4 数表头开始::
@@ -63,7 +70,7 @@ from .base import ParsedTable
 __all__ = ["FAMILY", "parse", "parse_all", "parse_header", "detect_layout",
            "LAYOUTS", "HEADER_FIELDS"]
 
-FAMILY = "multi_inverted_eos"
+FAMILY = "multi_eos"
 HEADER_FIELDS = ("table_id", "rho0", "nr", "ne")
 
 #: 布局名 → payload 段列表（``n`` 为网格个数，``n2`` 为 nr*ne）

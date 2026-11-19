@@ -72,9 +72,15 @@ from .preview import plot_input_preview, plot_region_overview
 from .regions import RegionError, RegionSpec, parse_region, resolve_regions
 from .sources import Snapshot, SnapshotSeries, load_series, synthetic_ch_ti_slab
 from .writer import FlychkHistoryWriter, GenerationReport, RegionResult, WriterError
-from .zip_writer import (FORMAT_CONTRACT_ID, WRITER_ID, HistoryZipWriter,
-                         ZipWriterError, render_data, render_runfile,
-                         verify_history_zip, write_history_zip)
+from .zip_writer import (FE_CONTRACT_ID, FORMAT_CONTRACT_ID, WRITER_ID,
+                         HistoryZipWriter, ZipWriterError, render_data,
+                         render_runfile, verify_history_zip,
+                         write_history_zip)
+from .gen_fe_file import (
+    FeExplicitSeries, FeFile, FeFileError, FeModel,
+    build_fe_file, fe_filename_for, maxwell_fe, render_fe_text,
+    validate_fe_file, write_history_zip_with_fe,
+)
 
 __version__ = "0.1.0"
 
@@ -438,6 +444,9 @@ def describe_interfaces() -> str:
         f"zipfiles 中转",
         f"[写出]    自包含 zip 写出器 (zip_writer, 仅标准库) + 回读自检 self_check\n"
         f"          格式契约: {FORMAT_CONTRACT_ID} (FLYCHK history 模式)",
+        f"[fe]      gen_fe_file 子包: 非麦克斯韦电子分布 (EEDF/beam) fe 文件\n"
+        f"          FeModel(解析) / FeExplicitSeries(显式) → build_fe_file →\n"
+        f"          write_history_zip_with_fe (zip 第三成员, runfile 加 fe file 行)",
         "=" * 76,
     ]
     return "\n".join(lines)
@@ -468,4 +477,9 @@ __all__ = [
     "generate_history_zip", "generate_history_zips",
     "generate_history_report", "build_history_table", "history_table_text",
     "inspect_source", "describe_interfaces",
+    # fe 非麦克斯韦电子分布 (gen_fe_file 子包)
+    "FeModel", "FeExplicitSeries", "FeFile", "FeFileError",
+    "maxwell_fe", "build_fe_file", "validate_fe_file", "render_fe_text",
+    "fe_filename_for", "write_history_zip_with_fe",
+    "FE_CONTRACT_ID",
 ]

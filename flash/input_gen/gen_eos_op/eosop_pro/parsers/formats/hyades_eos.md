@@ -118,6 +118,24 @@ print(t.field2d("P")[0][:5])   # [i_Te][j_rho] 视图
 4. 行 1 自由文本仅作注释/锚点（`sesame_number`、`qeos_comment`），不参与计数。
 5. 跨族铁律（20 手册 §0.3/§10）：本族 T 文件内 **keV**（其余族多为 eV/K）；P/E 为 CGS（F1/F4 是 Mbar 系）——混用会差 10^12 量级。
 
+### 4.1 实测变体与冻结清单（2026-11-15 sesame/ 全量审计，详见 20 手册 §4.3）
+
+- **F3b 三数组变体**（8 文件，`L = 2+nr+nt+3*nr*nt`）：第三数组语义未定，以 `X3`（unit=unknown）中性登记；kind 布局判定为 `n_arrays ∈ {2,3}`（计数唯一区分）。
+- **截断指数 token**（`eos_332.dat` 末行 ` 7.4E`）：payload 非数值残留检查（`fn.has_letters`）→ ParseError 显式拒绝；声明层 `_KNOWN_CORRUPT` 冻结 skip——**绝不产出静默错值表**（用户裁定"忽略+告警"）。
+- **宽度变体**：`CSi2.5_eos.dat`（13 字符/字段、小写 e）、`EOS_Al10Au3.DAT`（14 字符数值）——`fn.extract_numbers` 正则与宽度无关，无需特判；后者注释行无 SESAME#/QEOS 模式 → notes 登记。
+- **nt=1 退化表**（`eos_541.dat`）：维度闸门放宽至 nt>=1 + notes 登记。
+
+### 4.2 id 语义与 kind 判定优先级（2026-11-15 加固）
+
+文件名 `eos_<id>.dat` 的 `id` 是 **Hyades 材料编号**（非 LANL 库号）。kind 判定优先级：
+
+1. 文件名 token `_eos_e` / `_eos_i`（历史行为，最高优先）
+2. `eos_<id>.dat` 命名 + **id ∈ [2001,2999] → `EOS_ELECTRON`**、**[3001,3999] → `EOS_ION`**（编号约定逐字出处：`Hyades 数据格式说明.doc`；保守边界：仅命名匹配且 id≥1000 才改 kind）
+3. id ∈ [1001,1999]（灰度不透明度编号）→ 不自动改 kind，仅 notes 登记
+4. 其余 → `EOS_TOTAL`
+
+文件名编号与表头 `id` 不一致时 notes 显式登记（语义存疑）。⚠️ h5 表路径随 kind 变化（如 `/tables/EOS_ELECTRON_2044`），固化断言见 `test/parsers/test_hyades_eos.py::test_flow_id_semantics` 与 `test/eosopdata/step02_families/test_family_extract.py::test_sesame_flow_files_kind_semantics`。
+
 ## 5. 溯源
 
 | 等级 | 记号 | 依据 | 本地定位（gen_eos_op 相对路径） |

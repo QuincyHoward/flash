@@ -19,12 +19,20 @@ zip 成员（顺序固定）:
        z {z}
        initial ss
        evolve ss
-       history
        opacity file                     # 仅当含 size 列
        ti file                          # 仅当含 ti 列
        tr file                          # 仅当含 tr 列
+       fhot file                        # 仅当含 fhot/thot 列 (双麦氏热电子)
+       fe file {fe_filename}            # 仅当含 fe 成员
        history {datafile} rho|ne|ni     # 密度列三选一
        end
+
+   ★★ **不得出现独立的 ``history`` 模式行** (即没有文件名的裸 ``history``)。
+     NIST 手册 §history 要求 history 命令带 ≥2 个参数 (数据文件名 + 密度列名);
+     裸 ``history`` 会让 FLYCHK CX 报
+     ``$$$ too few arguments for command #10 ( 3)``。
+     该报错**非致命** (服务端随后照常计算并写出 outfile.dat), 但会**掩盖**真正的
+     失败原因, 徒增排查难度。行序对齐服务端自生成的 ``run_file``。
 
 2. ``history_{element}_Z{z}_input.txt`` — 数据文件::
 
@@ -49,10 +57,14 @@ from .builder import HistoryTable
 
 # 格式契约标识（写入 manifest, 便于下游核对）
 FORMAT_CONTRACT_ID = "flychk-history-v1"
+# 含 fe (非麦克斯韦电子分布) 附加成员时的契约标识 (见 gen_fe_file 子包)
+FE_CONTRACT_ID = "flychk-history-fe-v1"
 WRITER_ID = "flash.input_gen.gen_flychk_his"
 
 BASE_COLUMNS = ("time", "size", "te", "ti", "tr")
 DENSITY_COLUMNS = ("rho", "ne", "ni")
+# FLYCHK "fhot file" 模式: 数据文件含 fhot/thot 两列时 runfile 必须声明 "fhot file"
+HOT_COLUMNS = ("fhot", "thot")
 
 
 class ZipWriterError(RuntimeError):
@@ -63,16 +75,32 @@ class ZipWriterError(RuntimeError):
 # 文本渲染 (纯函数, 便于单测/人工核对)
 # ══════════════════════════════════════════════════════════
 def render_runfile(element: str, z: int, columns: Sequence[str],
-                   data_filename: str) -> str:
-    """渲染 ``runfile.txt`` 内容。"""
+                   data_filename: str,
+                   fe_filename: Optional[str] = None) -> str:
+    """渲染 ``runfile.txt`` 内容。
+
+    ``fe_filename`` 给出时追加 ``fe file <名>`` 行 (FLYCHK 非麦克斯韦电子
+    分布), 位置在文件类关键字 (opacity/ti/tr/fhot file) 之后、
+    ``history <datafile> <mode>`` 之前 (与文件类关键字聚簇)。
+
+    ★★ **不生成独立的 ``history`` 模式行**: NIST 手册 §history 要求 history
+      命令带 ≥2 个参数 (数据文件名 + 密度列名), 裸 ``history`` 会触发
+      ``$$$ too few arguments for command #10 ( 3)`` (非致命, 但掩盖真实错误)。
+      实站验证: 2026-11-19 于 https://nlte.nist.gov/FLY/ 提交 Ti (Z=22) 历史模式
+      仿真, FLYCHK CX version 7 Aug 2018。
+    """
     cols = set(columns)
-    lines = [f"z {int(z)}", "initial ss", "evolve ss", "history"]
+    lines = [f"z {int(z)}", "initial ss", "evolve ss"]
     if "size" in cols:
         lines.append("opacity file")
     if "ti" in cols:
         lines.append("ti file")
     if "tr" in cols:
         lines.append("tr file")
+    if "fhot" in cols or "thot" in cols:
+        lines.append("fhot file")
+    if fe_filename:
+        lines.append(f"fe file {fe_filename}")
     for mode in ("rho", "ne", "ni"):
         if mode in cols:
             lines.append(f"history {data_filename} {mode}")
@@ -110,6 +138,11 @@ def validate_columns(columns: Sequence[str], rows: Sequence[Sequence[float]],
             "columns 必须包含 rho/ne/ni 之一：FLYCHK runfile 通过"
             " 'history <datafile> <mode>' 关联数据文件，缺密度列时数据文件不会被读取"
         )
+    hot_present = [c for c in cols if c in HOT_COLUMNS]
+    if len(hot_present) == 1:
+        raise ZipWriterError(
+            f"fhot/thot 必须成对出现（'fhot file' 模式），当前只有 {hot_present}"
+        )
     n = len(cols)
     for i, row in enumerate(rows):
         if len(row) != n:
@@ -139,27 +172,44 @@ class HistoryZipWriter:
     compress: bool = True
 
     # ── 主接口 ──────────────────────────────────────────────
-    def write(self, table: HistoryTable, output_path: str) -> Path:
-        """由 `HistoryTable` 写出 zip (element/z 取自 table.meta)。"""
+    def write(self, table: HistoryTable, output_path: str,
+              fe_text: Optional[str] = None,
+              fe_filename: Optional[str] = None) -> Path:
+        """由 `HistoryTable` 写出 zip (element/z 取自 table.meta)。
+
+        ``fe_text``/``fe_filename`` 必须同时给出, 此时 zip 追加第三成员
+        (fe 非麦克斯韦电子分布数据文件), runfile 增加 ``fe file <名>`` 行。
+        """
         return self.generate_history_zip(
             element=table.element, z=table.z,
             columns=list(table.columns),
             data_rows=[list(r) for r in table.rows],
             output_path=str(output_path),
+            fe_text=fe_text, fe_filename=fe_filename,
         )
 
     def generate_history_zip(self, element: str = "Ti", z: int = 22,
                              columns: Optional[List[str]] = None,
                              data_rows: Optional[List[List[float]]] = None,
-                             output_path: Optional[str] = None) -> Path:
-        """写出 FLYCHK history 输入 zip，返回路径。"""
+                             output_path: Optional[str] = None,
+                             fe_text: Optional[str] = None,
+                             fe_filename: Optional[str] = None) -> Path:
+        """写出 FLYCHK history 输入 zip，返回路径。
+
+        含 fe 时成员顺序固定: runfile.txt → history 数据 → fe 数据文件
+        (FLYCHK 按成员名取文件, 物理顺序不影响解析, 固定仅为可测性)。
+        """
         cols = list(columns or ["time", "size", "te", "ti", "tr", "rho"])
         rows = [[float(v) for v in r] for r in
                 (data_rows or [[1e-12, 1e-4, 500.0, 480.0, 450.0, 1e-3]])]
         validate_columns(cols, rows, element=element, z=z)
+        if (fe_text is None) != (fe_filename is None):
+            raise ZipWriterError(
+                "fe_text 与 fe_filename 必须同时给出或同时为 None")
 
         data_name = data_filename_for(element, z)
-        runfile = render_runfile(element, z, cols, data_name)
+        runfile = render_runfile(element, z, cols, data_name,
+                                 fe_filename=fe_filename)
         data = render_data(cols, rows)
 
         out = Path(output_path) if output_path else \
@@ -169,20 +219,35 @@ class HistoryZipWriter:
         with zipfile.ZipFile(str(out), "w", mode) as zf:
             zf.writestr("runfile.txt", runfile)
             zf.writestr(data_name, data)
+            if fe_text is not None:
+                zf.writestr(fe_filename, fe_text)
         return out
 
     # ── 自校验 ──────────────────────────────────────────────
     @staticmethod
-    def expected_members(element: str, z: int) -> List[str]:
-        return ["runfile.txt", data_filename_for(element, z)]
+    def expected_members(element: str, z: int,
+                         fe_filename: Optional[str] = None) -> List[str]:
+        members = ["runfile.txt", data_filename_for(element, z)]
+        if fe_filename:
+            members.append(fe_filename)
+        return members
 
-    def verify_zip(self, table: HistoryTable, zip_path: str) -> Dict[str, Any]:
+    def verify_zip(self, table: HistoryTable, zip_path: str,
+                   fe_text: Optional[str] = None,
+                   fe_filename: Optional[str] = None) -> Dict[str, Any]:
         """读取刚写出的 zip 并与表内容逐字符核对（自包含完整性检查）。
+
+        ``fe_text``/``fe_filename`` 给出时追加 fe 成员存在性 / 内容 /
+        runfile ``fe file`` 行三项检查。
 
         Returns:
             {"ok": bool, "members": [...], "checks": {...}, "detail": ...}
         """
-        expected_members = self.expected_members(table.element, table.z)
+        if (fe_text is None) != (fe_filename is None):
+            raise ZipWriterError(
+                "fe_text 与 fe_filename 必须同时给出或同时为 None")
+        expected_members = self.expected_members(table.element, table.z,
+                                                 fe_filename=fe_filename)
         res: Dict[str, Any] = {"ok": False, "members": [], "checks": {}}
         path = Path(zip_path)
         if not path.is_file():
@@ -197,9 +262,19 @@ class HistoryZipWriter:
                 return res
             runfile = zf.read("runfile.txt").decode("utf-8")
             data = zf.read(expected_members[1]).decode("utf-8")
+            fe_member_content = None
+            if fe_filename:
+                fe_member_content = zf.read(fe_filename).decode("utf-8")
         res["checks"]["runfile_content"] = runfile == render_runfile(
-            table.element, table.z, table.columns, expected_members[1])
+            table.element, table.z, table.columns, expected_members[1],
+            fe_filename=fe_filename)
         res["checks"]["data_matches_table"] = data == table.to_text()
+        if fe_filename:
+            res["checks"]["fe_member_exists"] = fe_member_content is not None
+            res["checks"]["fe_content"] = fe_member_content == fe_text
+            res["checks"]["runfile_fe_line"] = \
+                f"fe file {fe_filename}" in runfile.splitlines()
+            res["checks"]["fe_contract"] = FE_CONTRACT_ID
         res["checks"]["format_contract"] = FORMAT_CONTRACT_ID
         res["checks"]["n_steps"] = table.n_steps
         res["ok"] = all(bool(v) for k, v in res["checks"].items()
@@ -224,5 +299,5 @@ __all__ = [
     "HistoryZipWriter", "ZipWriterError", "write_history_zip",
     "verify_history_zip", "render_runfile", "render_data",
     "validate_columns", "data_filename_for",
-    "FORMAT_CONTRACT_ID", "WRITER_ID",
+    "FORMAT_CONTRACT_ID", "FE_CONTRACT_ID", "WRITER_ID", "HOT_COLUMNS",
 ]

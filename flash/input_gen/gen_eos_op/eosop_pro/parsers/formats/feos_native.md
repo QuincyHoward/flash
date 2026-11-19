@@ -85,7 +85,7 @@ print(t.n_numbers_seen == t.n_numbers_expected)  # 计数公式闭合
 
 跨包消费：`feos/feos_run/feos_to_cn4.py` 复用本模块 `decode/FeosTable/FEOS_BLOCKS/positive_indices`（布局知识单一事实源），仅做单位换算（×1e-7/×1e-4）、zbar=Qtot/Xtot 归一与 cn4 组装。
 
-`.feos` 分派候选顺序 `[feos_native, multi_inverted_eos]`：`mat_Al-1.0/AL_eos.feos` 名为 FEOS 实为 SESAME（与 `AL_eos` 字节相同）回退 F1；`hyades/**.dat.feos` 让位 hyades 族。
+`.feos` 分派候选顺序 `[feos_native, multi_eos]`：`mat_Al-1.0/AL_eos.feos` 名为 FEOS 实为 SESAME（与 `AL_eos` 字节相同）回退 F1；`hyades/**.dat.feos` 让位 hyades 族。
 
 ## 4. 陷阱与已知边界
 

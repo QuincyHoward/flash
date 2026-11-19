@@ -26,6 +26,22 @@
 ``Opacity/opc_1031.dat`` 2931      (31, 46)        Polyethylene
 =====================  ==========  ==============  ==============================
 
+★ F3b —— 三数组变体（2026-11-15 sesame/ 全量审计发现，8 文件）
+--------------------------------------------------------------
+``eos_31/171/201/221/251/271/321/342.dat`` 实测满足 **``L = 2 + NR + NT + 3*NR*NT``**：
+在 P、E 之外还有**第三个 (NR,NT) 数组**，语义经数值探测与 MATLAB 源码检索均未定
+（量纲既非 E/P 的直接函数，也无读取端源码），暂以字段 ``X3``（unit=unknown）中性登记。
+编号约定（逐字出处：``doc/Hyades 数据格式说明.doc``）：文件名 ``eos_<id>.dat`` 中
+id < 998 常规单温、2001-2999 电子流（→ kind=EOS_ELECTRON）、3001-3999 离子流
+（→ kind=EOS_ION）、1001-1999 灰度不透明度（不自动改 kind，仅登记）。
+
+★ 截断指数 token（2026-11-15 审计发现）
+--------------------------------------
+``eos_332.dat`` 末行实测残缺 token `` 7.4E``：``FORTRAN_NUM_RE`` 只匹配出 ``7.4``
+（指数段被丢弃）→ 计数守恒但**末值错 13 个量级**（静默错值）。故 payload 提取后
+必须做非数值残留检查（:func:`fn.has_letters`），含字母即抛 :class:`ParseError`
+（用户裁定：该文件忽略 + 告警，绝不带错值出表）。
+
 ★ 两个 (NR×NT) 数组的含义
 --------------------------
 * EOS 文件（``eos_*``）：``[P, E]``
@@ -40,6 +56,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from .. import config
@@ -50,12 +67,21 @@ from ..core.text.textio import read_text
 from .base import ParsedTable
 
 __all__ = ["FAMILY", "parse", "parse_all", "parse_header_line", "solve_dims",
-           "DOS_EOF"]
+           "DOS_EOF", "ID_FLOWS", "X3_FIELD"]
 
 FAMILY = "hyades_eos"
 
 #: DOS 文件结束标记（实测出现在 ``hyades/sesame/eos_*.dat`` 末行）
 DOS_EOF = "\x1a"
+
+#: 三数组变体的第三数组字段名（语义未定，中性登记；见模块 docstring「F3b」）
+X3_FIELD = "X3"
+
+#: Hyades 材料编号约定（逐字出处：``doc/Hyades 数据格式说明.doc``）：
+#: id → kind 映射仅作用于 ``eos_<id>.dat`` 命名且 id ≥ 1000 的文件（保守边界）。
+ID_FLOWS = ((2001, 2999, "EOS_ELECTRON", "电子流"),
+            (3001, 3999, "EOS_ION", "离子流"),
+            (1001, 1999, None, "灰度不透明度"))
 
 
 def solve_dims(length: int) -> list[tuple[int, int]]:
@@ -96,6 +122,8 @@ def parse_header_line(line: str) -> dict:
 def _first_two(lines: list[str]) -> tuple[str, str]:
     """返回前两行（第 0 行是注释、第 1 行是数字表头）。"""
     idx = [i for i, ln in enumerate(lines) if ln.strip()]
+    if not idx:
+        raise ParseError("F3: empty file (no non-blank lines)")
     if len(idx) < 2:
         raise ParseError("F3 needs at least 2 non-blank lines")
     return lines[idx[0]], lines[idx[1]]
@@ -111,18 +139,46 @@ def parse_all(path: str | Path, relpath: str = "", *,
 
     is_opacity = _looks_opacity(rel, c0)
     kind = "OPACITY" if is_opacity else "EOS_TOTAL"
+    id_notes: list[str] = []
     if not is_opacity:
         base = Path(rel).name.lower()
         if "_eos_e" in base:
             kind = "EOS_ELECTRON"
         elif "_eos_i" in base:
             kind = "EOS_ION"
+        else:
+            m = re.fullmatch(r"eos_(\d+)\.dat", base)
+            if m:
+                fid = int(m.group(1))
+                if fid != hdr["id"]:
+                    id_notes.append(
+                        f"⚠️ 文件名编号 {fid} != 表头 id {hdr['id']}（语义存疑，"
+                        f"kind 判定以文件名编号为准）")
+                if fid >= 1000:
+                    for lo, hi, k, tag in ID_FLOWS:
+                        if lo <= fid <= hi:
+                            if k is not None:
+                                kind = k
+                            id_notes.append(
+                                f"编号约定（Hyades 数据格式说明.doc）：id={fid} "
+                                f"属 {tag}" + (f" → kind={k}" if k else "（不自动改 kind）"))
+                            break
 
     # 行 0 是注释；payload 从行 1 之后的数字开始（含 NR/ NT）
     # 注意：行 1 的 5 个数里 L 只是长度声明，真正的数组从 NR NT 开始
     first_idx = lines.index(c1)
     payload_lines = lines[first_idx + 1:]
-    values_all = fn.extract_numbers("\n".join(payload_lines))
+    payload_text = "\n".join(payload_lines)
+    # ★ 截断指数 token 拦截（2026-11-15 审计发现 eos_332.dat ` 7.4E` 静默错值）：
+    # FORTRAN_NUM_RE 对 `7.4E` 只匹配出 7.4，计数守恒但末值错 13 个量级。
+    # 数值 token 剥离后残留字母（DOS EOF \x1a 不是字母，不受影响）→ 显式失败。
+    if fn.has_letters(payload_text):
+        residue = " ".join(fn.non_numeric_residue(payload_text).split())
+        raise ParseError(
+            "F3 payload has truncated/non-numeric token "
+            f"(residue after stripping numbers: {residue[:60]!r})",
+            path=rel, header_raw=c1)
+    values_all = fn.extract_numbers(payload_text)
     n_blank = sum(1 for ln in payload_lines if not ln.strip())
     has_eof_marker = any(DOS_EOF in ln for ln in payload_lines)
 
@@ -138,19 +194,28 @@ def parse_all(path: str | Path, relpath: str = "", *,
     if len(values) < 2:
         raise ParseError("F3 payload too short", path=rel, header_raw=c1)
     nr, nt = int(round(values[0])), int(round(values[1]))
-    if not (2 <= nr <= 50000 and 2 <= nt <= 50000):
+    if not (2 <= nr <= 50000 and 1 <= nt <= 50000):
         raise ParseError(f"F3 implausible dims nr={nr} nt={nt}",
                          path=rel, header_raw=c1)
-    expect = 2 + nr + nt + 2 * nr * nt
-    if expect != L:
+    n2 = nr * nt
+    # ★ 双布局判别（2026-11-15 审计发现）：标准 2 数组（P,E）与三数组变体
+    # （P,E,X3，8 个实测文件）计数公式仅差 nr*nt，可唯一区分。
+    expect = 2 + nr + nt + 2 * n2
+    expect3 = 2 + nr + nt + 3 * n2
+    if L == expect:
+        n_arrays = 2
+    elif L == expect3:
+        n_arrays = 3
+    else:
         raise CountMismatch(L, expect, path=rel, header_raw=c1)
 
     p = 2
     rho = values[p:p + nr]; p += nr
     T_keV = values[p:p + nt]; p += nt
-    n2 = nr * nt
     a1 = values[p:p + n2]; p += n2
     a2 = values[p:p + n2]; p += n2
+    a3 = values[p:p + n2] if n_arrays == 3 else None
+    p += n2 if n_arrays == 3 else 0
     if p != len(values):  # pragma: no cover
         raise ParseError(f"F3 cursor mismatch {p} != {len(values)}",
                          path=rel, header_raw=c1)
@@ -162,7 +227,8 @@ def parse_all(path: str | Path, relpath: str = "", *,
         source_relpath=rel,
         table_id=hdr["id"],
         header_raw=c1,
-        layout_rule="F3: L = 2 + nr + nt + 2*nr*nt",
+        layout_rule=f"F3: L = 2 + nr + nt + {n_arrays}*nr*nt"
+                    + ("（三数组变体）" if n_arrays == 3 else ""),
     )
     # 计数守恒：seen 含补零，expected 也必须含补零，否则会把「已定性并记录的填充」
     # 误报成 count_mismatch（这是实测踩过的坑）。
@@ -198,6 +264,13 @@ def parse_all(path: str | Path, relpath: str = "", *,
         table.field_shape["E"] = (nt, nr)
         table.field_units["E"] = "erg/g"
         table.field_log10["E"] = False
+        if n_arrays == 3:
+            # F3b 三数组变体：第三数组语义经数值探测与 MATLAB 源码检索均未定，
+            # 中性登记（unit unknown；字典经 `*` 兜底条目标注 uk,uv）。
+            table.fields[X3_FIELD] = a3
+            table.field_shape[X3_FIELD] = (nt, nr)
+            table.field_units[X3_FIELD] = "unknown"
+            table.field_log10[X3_FIELD] = False
 
     table.unit_source = "format:F3 (rho g/cm3, T keV->eV, P dyne/cm2, E erg/g)"
     sols = solve_dims(L)
@@ -210,6 +283,16 @@ def parse_all(path: str | Path, relpath: str = "", *,
         f"id={hdr['id']} zbar={hdr['zbar']} abar={hdr['abar']} rho0={hdr['rho0']} "
         f"L={hdr['L']} n_blank_in_payload={n_blank}"
     )
+    if n_arrays == 3:
+        table.notes.append(
+            f"F3b 三数组变体（L = 2+nr+nt+3*nr*nt）：第三数组以 {X3_FIELD} 登记，"
+            "语义未定（数值探测与 MATLAB 源码检索无果；2026-11-15 sesame/ 全量审计"
+            "共 8 文件：eos_31/171/201/221/251/271/321/342.dat）")
+    if nt == 1:
+        table.notes.append(
+            "⚠️ 单温度点退化表（nt=1）：实测 eos_541.dat（L=204=2+67+1+2*67*1），"
+            "维度闸门已放宽至 nt>=1")
+    table.notes.extend(id_notes)
     if tail_vals:
         table.fields["raw_tail"] = tail_vals
         table.field_shape["raw_tail"] = (len(tail_vals),)
@@ -228,6 +311,9 @@ def parse_all(path: str | Path, relpath: str = "", *,
         m2 = an.find(c0, "qeos_comment")
         if m2:
             table.notes.append(f"comment declares {m2.group(1)}")
+        else:
+            table.notes.append(
+                f"comment line: no SESAME#/QEOS pattern (raw: {c0.strip()[:60]!r})")
     return [table]
 
 

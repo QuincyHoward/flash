@@ -46,6 +46,8 @@ COLUMN_FIELD: Dict[str, str] = {
     "rho": "dens",
     "ne": "nele",
     "ni": "nion",
+    "fhot": "fhot",             # hot-electron fraction (dimensionless, [0,1])
+    "thot": "thot",             # hot-electron temperature (eV)
 }
 
 # 缺列时的回退链 (记录在 meta, 不静默)
@@ -57,6 +59,8 @@ COLUMN_FALLBACK: Dict[str, Tuple[str, ...]] = {
     "ni": ("nion",),
     "te": ("tele",),
     "size": (),
+    "fhot": (),
+    "thot": (),
 }
 
 

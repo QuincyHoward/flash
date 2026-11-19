@@ -9,7 +9,7 @@
 能力                          族
 ============================  =====================================
 2D EOS 场                     ``mpqeos`` / ``hyades_eos`` /
-                              ``feos_native`` / ``multi_inverted_eos``
+                              ``feos_native`` / ``multi_eos``
 2D 不透明度 / Zeff            ``ledcop_atomic`` / ``ledcop_zeff`` /
                               ``multi_opacity`` / ``sesame_dat``
 1D 曲线                       ``coldopacity`` / ``generic_curve`` /
@@ -41,7 +41,7 @@ SAMPLE_PATTERNS = {
     "mpqeos": ("*.301",),
     "hyades_eos": ("qeos_*",),
     "feos_native": ("*.feos",),
-    "multi_inverted_eos": ("AL_eos",),
+    "multi_eos": ("AL_eos",),
     "ledcop_atomic": ("Al.txt",),
     "ledcop_zeff": ("*.NoFree",),
     "multi_opacity": ("*.planck",),
@@ -60,7 +60,7 @@ ALIAS_FAMILIES = {
 }
 
 #: 有二维场的族（可画彩图）
-FAMILIES_2D = ("mpqeos", "hyades_eos", "feos_native", "multi_inverted_eos",
+FAMILIES_2D = ("mpqeos", "hyades_eos", "feos_native", "multi_eos",
                "ledcop_atomic", "ledcop_zeff", "multi_opacity", "sesame_dat")
 
 #: 只有一维轴的族（可画曲线）
@@ -254,7 +254,7 @@ def test_eos_families_expose_a_pressure_or_energy_field():
     """EOS 族必须至少含压强或比能类场（否则不是 EOS 表）。"""
     want = ("p_ion", "p_ele", "P", "Pion", "Pele", "e_ion", "e_ele",
             "E", "Eion", "Eele", "eint", "u")
-    for fam in ("mpqeos", "hyades_eos", "feos_native", "multi_inverted_eos"):
+    for fam in ("mpqeos", "hyades_eos", "feos_native", "multi_eos"):
         tables = _first(fam)
         if tables is None:
             continue
@@ -530,6 +530,37 @@ def test_field_shape_metadata_is_consistent():
             break
     if checked == 0:
         return
+
+
+def test_sesame_flow_files_kind_semantics():
+    """2026-11-15 sesame/ 审计加固：``eos_<id>.dat`` 流编号 → kind 语义。
+
+    编号约定出处：``doc/Hyades 数据格式说明.doc``（2001-2999 电子流 /
+    3001-3999 离子流）。h5 表路径随 kind 变化，故在此固化断言。
+    """
+    from eosop_pro import config
+    from eosop_pro.parsers import hyades_eos as f3
+    te = f3.parse(config.MATTER("hyades/sesame/eos_2044.dat"),
+                  "hyades/sesame/eos_2044.dat")
+    expect_eq(te.kind, "EOS_ELECTRON", f"2044 电子流，实测 {te.kind}")
+    ti = f3.parse(config.MATTER("hyades/sesame/eos_3044.dat"),
+                  "hyades/sesame/eos_3044.dat")
+    expect_eq(ti.kind, "EOS_ION", f"3044 离子流，实测 {ti.kind}")
+    ts = f3.parse(config.MATTER("hyades/sesame/eos_41.dat"),
+                  "hyades/sesame/eos_41.dat")
+    expect_eq(ts.kind, "EOS_TOTAL", "id<998 保持 EOS_TOTAL")
+
+
+def test_sesame_three_array_variant_has_x3_field():
+    """F3b 三数组变体（L = 2+nr+nt+3*nr*nt）：第三数组以 X3（unit=unknown）登记。"""
+    from eosop_pro import config
+    from eosop_pro.parsers import hyades_eos as f3
+    t = f3.parse(config.MATTER("hyades/sesame/eos_31.dat"),
+                 "hyades/sesame/eos_31.dat")
+    expect_eq((t.nr, t.nt), (65, 32))
+    expect_in("X3", list(t.fields))
+    expect_eq(t.field_units["X3"], "unknown")
+    expect_in("3*nr*nt", t.layout_rule)
 
 
 if __name__ == "__main__":

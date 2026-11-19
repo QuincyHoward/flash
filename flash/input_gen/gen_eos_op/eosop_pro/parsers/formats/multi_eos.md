@@ -1,9 +1,9 @@
-# multi_inverted_eos.py —— MULTI 反演 EOS（F1）
+# multi_eos_reader.py —— MULTI 反演 EOS（F1）
 
 > **适用仿真软件**：MULTI（默认 SESAME 族输入）| **官方链接**：无已核实官方 URL（uv），本地权威：`src/Multi1D++Portable20241128/doc/MULTI使用的SESAME数据文件格式.docx`（抽取文本原存 docs/extracted/MULTI使用的SESAME数据文件格式__ooxml-word__3e289d7f.txt，2026-11-06 已清理）
-> **概要**：4×15 定宽文本表（反演 EOS：自变量 (rho, de)，T 为因变量场），解析产出 `ParsedTable`（`family="multi_inverted_eos"`）| **标记规约**：与《[eosop变量控制字典](../../docs/eosop变量控制字典.md)》同步（uk=无来源确认/uv=未人工核查）；格式权威版本 = [20 手册 §2](../../docs/20_格式规格与物理量单位手册.md)
+> **概要**：4×15 定宽文本表（反演 EOS：自变量 (rho, de)，T 为因变量场），解析产出 `ParsedTable`（`family="multi_eos"`）| **标记规约**：与《[eosop变量控制字典](../../docs/eosop变量控制字典.md)》同步（uk=无来源确认/uv=未人工核查）；格式权威版本 = [20 手册 §2](../../docs/20_格式规格与物理量单位手册.md)
 >
-> **定位说明（解析 vs 转换）**：本页 = **解析器文档**（对应 `parsers/multi_inverted_eos.py`，读 F1 → ParsedTable）；
+> **定位说明（解析 vs 转换）**：本页 = **解析器文档**（对应 `parsers/multi_eos_reader.py`，读 F1 → ParsedTable）；
 > **转换**（cn4 → F1 正演反演、F1 → (rho,Te) 反演）实现在 `convert/writers_multi.py` + `convert/invert_eos.py`，
 > 公式与算法口径见 [../../convert/转换公式详解.md](../../convert/转换公式详解.md)。
 
@@ -67,7 +67,7 @@ table_id   rho0(未用)   nr   ne
 
 ## 2. 物理量与单位
 
-摘录字典 multi_inverted_eos 族条目（完整来源详述见[字典](../../docs/eosop变量控制字典.md)；来源均为一级文档 `MULTI使用的SESAME数据文件格式.docx`）。**2026-11-14 人工裁定**：全族 7 条目经操作者视图交叉验证转 checked（标记省略，见 §2.1）：
+摘录字典 multi_eos 族条目（完整来源详述见[字典](../../docs/eosop变量控制字典.md)；来源均为一级文档 `MULTI使用的SESAME数据文件格式.docx`）。**2026-11-14 人工裁定**：全族 7 条目经操作者视图交叉验证转 checked（标记省略，见 §2.1）：
 
 | 字段 | 物理意义 | 单位 | 来源类型 | 标记 |
 |---|---|---|---|---|
@@ -104,10 +104,10 @@ table_id   rho0(未用)   nr   ne
 - `parse_header(line: str) -> dict` —— 块表头 4 数（`table_id`/`rho0`/`nr`/`ne`）
 - `detect_layout(nr: int, ne: int, n_payload: int) -> tuple[str, int]` —— 由实测 payload 数反解布局，返回 `(布局名, 尾部多余个数)`
 - `LAYOUTS = {"with_e0": ("rho","de","e0","P","T"), "no_e0": ("rho","de","P","T")}`、`HEADER_FIELDS = ("table_id","rho0","nr","ne")`
-- `FAMILY = "multi_inverted_eos"`；异常：`eosop_pro.core.text.errors.ParseError`
+- `FAMILY = "multi_eos"`；异常：`eosop_pro.core.text.errors.ParseError`
 
 ```python
-from eosop_pro.parsers.multi_inverted_eos import parse_all
+from eosop_pro.parsers.multi_eos_reader import parse_all
 
 tables = parse_all(r"E:/data/multi/mat_Al-1.0/AL_eos", "multi/mat_Al-1.0/AL_eos")
 t = tables[0]
@@ -126,7 +126,7 @@ print(t.summary())              # 轴 rho(g/cm3) × de(Mbar*cm3/g)；场 P/E/T
 
 ## 4.1 cn4 来源转换口径（2026-11-14 裁定）
 
-`eosop_pro.convert.writers_multi.write_multi_inverted_eos_from_cn4` 支持从 cn4（IONMIX）直接生成 F1 文件，**固定 `no_e0` 布局**：
+`eosop_pro.convert.writers_multi.write_multi_eos_from_cn4` 支持从 cn4（IONMIX）直接生成 F1 文件，**固定 `no_e0` 布局**：
 
 - **de 口径**：`de ≡ E_total = e_ion + e_ele`。依据：① 一手 docx 仅保证文件层面 `E_total = de + e0`（"pressures at energy de[i]+e0"、"e0=冷能量"）；② IONMIX 能量零点构造性位于冷态（T=0 时 E≡0），故 cn4 侧 E_c≡0，`de` 即文献口径 `E−E_c`（SESAME 301−306 分表之差），不引入假冷曲线（`e0(ρ)=E(ρ,T_min)` 的 with_e0 变体留作可选，未默认实现）。
 - **单位链**：P：J/cm³ ÷1e5 → Mbar；E：J/g ÷1e5 → Mbar·cm³/g；T：eV（writer 按 MULTI 约定写 Kelvin）。

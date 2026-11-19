@@ -87,7 +87,7 @@ def test_every_step02_family_registered():
 # None = 该族全部条目有源；frozenset = 仅列出的条目（其余无源 -> uk）。
 _SOURCE_WHITELIST: dict[str, "frozenset[str] | None"] = {
     "ionmix": None,          # 全 18 块：abjt_03.f 行号 + IONMIX 指南（source code）
-    "multi_inverted_eos": frozenset({"rho", "de", "P", "E", "e0_cold",
+    "multi_eos": frozenset({"rho", "de", "P", "E", "e0_cold",
                                      "de_energy", "T"}),
     #   MULTI SESAME docx「参数单位制」节逐字单位（primary document）
     "multi_opacity": frozenset({"rho", "Te", "kappa", "Z"}),
@@ -136,14 +136,14 @@ def test_second_tier_all_uv_except_cn4():
     """人工核查状态锁定：checked 条目集合必须与裁定完全一致。
 
     - cn4（ionmix）：全族 checked（2026-09-15 裁定）
-    - multi_inverted_eos：除兜底 `*` 外全部 checked（2026-11-14 裁定，
+    - multi_eos：除兜底 `*` 外全部 checked（2026-11-14 裁定，
       mat_CELIA/CH_ieos 操作者视图交叉验证）
     - multi_opacity：rho/Te/kappa（docx 裁定）+ Z（2026-11-14 45 元素
       族校准裁定 log10(zbar)）checked；兜底 `*` 保持 uk,uv
     - 其余族：所有条目 checked=False（显示 uv）
     """
     EXPECTED_CHECKED = {
-        "multi_inverted_eos": {"rho", "de", "P", "E", "e0_cold", "de_energy", "T"},
+        "multi_eos": {"rho", "de", "P", "E", "e0_cold", "de_energy", "T"},
         "multi_opacity": {"rho", "Te", "kappa", "Z"},
     }
     for fam, entries in FIELD_CHECKS.items():
@@ -168,7 +168,7 @@ def test_tags_label_folding_rules():
     expect_eq(tags_label(field_check("coldopacity", "miu")), "uv")
     expect_eq(tags_label(field_check("hugoniot", "P")), "uv")
     # 有源（一级说明文档）+ 已核查 -> 省略（2026-11-14 裁定）
-    expect_eq(tags_label(field_check("multi_inverted_eos", "P")), "")
+    expect_eq(tags_label(field_check("multi_eos", "P")), "")
     expect_eq(tags_label(field_check("multi_opacity", "kappa")), "")
     # 有源（一级说明文档）+ 未核查 -> 只显示 uv
     expect_eq(tags_label(field_check("hyades_eos", "P")), "uv")
@@ -273,7 +273,7 @@ def test_control_dictionary_doc_in_sync():
 def test_checked_families_exact_set():
     """checked 族集合锁定：ionmix（cn4）+ 2026-11-14 裁定的两个 MULTI 族。"""
     expect_eq(checked_families(),
-              ("ionmix", "multi_inverted_eos", "multi_opacity"),
+              ("ionmix", "multi_eos", "multi_opacity"),
               f"checked 族集合与裁定不符，实得 {checked_families()}")
 
 

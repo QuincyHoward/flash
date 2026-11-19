@@ -42,15 +42,16 @@ from eosop_pro.parsers.cn4_io import (                         # noqa: E402
     NAN_PLACEHOLDER_FIELD,
     OPACITY_SPEC,
     cn4_to_parsed_tables,
-    convert_cn4_to_cn4,
-    convert_foreign_to_cn4,
     expected_number_count,
     is_nan_placeholder,
     load_cn4,
+    _sniff_mantissa_style,
+)
+from eosop_pro.convert.cn4_write import (                      # noqa: E402
+    convert_cn4_to_cn4,
+    convert_foreign_to_cn4,
     parsed_tables_to_cn4,
     write_cn4,
-)
-from eosop_pro.parsers.cn4_io import (                             # noqa: E402
     _FOREIGN_FIELD_ALIASES,
     _FOREIGN_OPACITY_ALIASES,
     _FOREIGN_RHO_AXES,
@@ -59,7 +60,6 @@ from eosop_pro.parsers.cn4_io import (                             # noqa: E402
     _detect_mantissa_style,
     _fmt_e12_6,
     _fortran_e12_6,
-    _sniff_mantissa_style,
 )
 
 LINE_WIDTH = 48

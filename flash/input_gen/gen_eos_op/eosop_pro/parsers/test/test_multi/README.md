@@ -6,11 +6,11 @@
 
 对 `src/Multi1D++Portable20241128/matter++/mat_CELIA/` 的两个数据文件做**组合**集成测试，
 与用户提供的查看工具边界标注（POLYSTYRENE / SESAME 7590 / MURAKAMI 1990 / MFP 公式）
-做语义交叉验证。被测解析器：`multi_inverted_eos.py`（F1）+ `multi_opacity.py`（F2）。
+做语义交叉验证。被测解析器：`multi_eos_reader.py`（F1）+ `multi_opacity.py`（F2）。
 
 | 文件 | 族 | 数值表头（数据文件无文本头，REM 备注在 material.base） |
 |---|---|---|
-| `CH_ieos`（无扩展名） | multi_inverted_eos | `7590 / 0 / 101 / 100`；尾部 2 个未声明数值 → raw_tail |
+| `CH_ieos`（无扩展名） | multi_eos | `7590 / 0 / 101 / 100`；尾部 2 个未声明数值 → raw_tail |
 | `C_AN.PLANCK` | multi_opacity | `1 / PLANCK 1 / 20 / 20`（单群灰；material.base 中 PLANCK 与 ROSSELAND 双角色指向它） |
 
 ## 运行
@@ -92,7 +92,7 @@ report.html、summary.txt）。
 
 - `invert_eos.to_de_grid` — (rho,Te)→(rho,de) 正演反演（`to_Te_grid` 的逆）
 - `invert_eos.cn4_eos_to_rho_base` / `cn4_opac_to_rho_base` — nion(cm⁻³)→rho(g/cm³) 轴适配
-- `writers_multi.write_multi_inverted_eos_from_cn4` — cn4→F1（no_e0）
+- `writers_multi.write_multi_eos_from_cn4` — cn4→F1（no_e0）
 - `writers_multi.write_multi_opacity_from_cn4` — cn4→F2（log10 κ + 群边界）
 
 ---

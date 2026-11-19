@@ -50,12 +50,13 @@ def write_cn4_single(table: ParsedTable, out_path: Path, *,
         CN4ParseError: 缺 ``izgas`` / 多元素缺 ``fracsp`` / 无 EOS 总表
         ValueError: 传入 ``invert=True``（cn4 无需 (rho,de)->(rho,Te) 反演）
     """
-    from ..parsers.cn4_io import CN4ParseError, parsed_tables_to_cn4, write_cn4
+    from ..parsers.cn4_io import CN4ParseError
+    from .cn4_write import parsed_tables_to_cn4, write_cn4
 
     if opts.pop("invert", None):
         raise ValueError(
             "cn4 目标不支持 invert（cn4 自变量本就是 (Te, nion)；"
-            "invert 仅用于 multi_inverted_eos 的 (rho, de) 布局）")
+            "invert 仅用于 multi_eos 的 (rho, de) 布局）")
     if opts.pop("skip_axes_check", None) is not None:
         # convert() 的具名参数不会走到这里；防御性吞掉显式误传
         raise ValueError("skip_axes_check 由 convert() 自身处理，勿传给 writer")

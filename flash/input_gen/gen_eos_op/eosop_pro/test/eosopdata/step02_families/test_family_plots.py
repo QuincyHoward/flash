@@ -47,7 +47,7 @@ SAMPLE_PATTERNS = {
     "mpqeos": ("*.301",),
     "hyades_eos": ("qeos_*",),
     "feos_native": ("*.feos",),
-    "multi_inverted_eos": ("AL_eos",),
+    "multi_eos": ("AL_eos",),
     "ledcop_atomic": ("Al.txt",),
     "ledcop_zeff": ("*.NoFree",),
     "multi_opacity": ("*.planck",),
@@ -234,14 +234,14 @@ def test_eos_isobars_render_for_hyades_eos():
 
 
 def test_eos_isobars_rejects_table_without_Te_axis():
-    """⚠️ 记录已知局限：``multi_inverted_eos`` 的轴是 ``(de, rho)`` 而非
+    """⚠️ 记录已知局限：``multi_eos`` 的轴是 ``(de, rho)`` 而非
     ``(rho, Te)``，``plot_eos_isobars`` 会 ``ValueError``。
 
     这不是缺陷 —— F1 表的温度在**场**里（``T``）而非轴上。本测试把该
     行为**显式锁定**，避免将来误判为 bug 而错误"修复"。
     """
     from eosop_pro.plotting.qa.qa_plots import plot_eos_isobars
-    t = _first("multi_inverted_eos")
+    t = _first("multi_eos")
     if t is None:
         return
     if "Te" in t.axes:

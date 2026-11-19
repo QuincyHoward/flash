@@ -69,7 +69,7 @@ def test_cn4_roundtrip_byte_identical():
     if src is None:
         log("  SKIP: eos_op_data 中未找到 .cn4 样例")
         return
-    from eosop_pro.parsers.cn4_io import convert_cn4_to_cn4
+    from eosop_pro.convert.cn4_write import convert_cn4_to_cn4
     out = out_dir("cn4_io")
     dst = out / f"roundtrip_{src.name}"
     convert_cn4_to_cn4(str(src), str(dst))

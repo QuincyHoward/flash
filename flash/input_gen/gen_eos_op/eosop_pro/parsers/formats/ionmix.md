@@ -65,7 +65,7 @@
 - `FAMILY = "ionmix"`；`CN4_SUPPORTED = (".cn4", ".cnr")`
 - 异常：`eosop_pro.core.text.errors.ParseError`
 
-若需按"一表一族"把 cn4 总表拆成 4 张（EOS + Ross/Planck_abs/Planck_ems），用 `cn4_io.cn4_to_parsed_tables`；反向组装用 `cn4_io.parsed_tables_to_cn4`。
+若需按"一表一族"把 cn4 总表拆成 4 张（EOS + Ross/Planck_abs/Planck_ems），用 `cn4_io.cn4_to_parsed_tables`；反向组装用 `cn4_write.parsed_tables_to_cn4`。
 
 ```python
 from eosop_pro.parsers.ionmix import parse_all

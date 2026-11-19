@@ -114,7 +114,7 @@ def test_feos_extension_yields_two_candidates():
     """★ ``.feos`` 给两个候选（Readme 声明 + 回退），因为 ``AL_eos.feos`` 名实不符。"""
     reg, store = _idx()
     d = dt.declare("mat_Al-1.0/AL_eos.feos", registry=reg, store=store)
-    expect_eq(d.families[:2], ["feos_native", "multi_inverted_eos"],
+    expect_eq(d.families[:2], ["feos_native", "multi_eos"],
               f"families={d.families}")
 
 
@@ -225,7 +225,7 @@ def test_inv_extension_is_f1_not_feos_aux():
     """
     for rel in ("mat_CPC/AU.INV", "mat_CPC/BE.INV"):
         d = dt.declare(rel)
-        expect_eq(d.family, "multi_inverted_eos", f"{rel} 应为 F1")
+        expect_eq(d.family, "multi_eos", f"{rel} 应为 F1")
         expect_in(".inv", dt.EXT_SPECIFIC,
                   "`.inv` 属语义唯一的扩展名，应在 EXT_SPECIFIC 里")
 
@@ -238,8 +238,8 @@ def test_sesame_extension_prefers_a_real_parser():
     旧实现把无解析器的 ``sesame_dat`` 放第一位 → 只能退化成 generic_curve。
     """
     d = dt.declare("SiO2/eos_21.sesame")
-    expect_eq(d.family, "multi_inverted_eos")
-    expect_eq(d.families.index("multi_inverted_eos"), 0)
+    expect_eq(d.family, "multi_eos")
+    expect_eq(d.families.index("multi_eos"), 0)
     expect_in("sesame_dat", d.families, "sesame_dat 应保留为语义标记")
 
 
@@ -253,7 +253,7 @@ def test_trailing_underscore_in_extension_is_stripped():
     expect_eq(dt._ext_of("Foo.FEOS___"), ".feos")
     expect_eq(dt._ext_of("Bar.dat"), ".dat")
     d = dt.declare("Ta2O5/PowerLawTa2O5_EOS.SESAME_")
-    expect_eq(d.family, "multi_inverted_eos")
+    expect_eq(d.family, "multi_eos")
     expect_eq(d.source, "extension")
 
 
@@ -268,7 +268,7 @@ def test_thermos_path_rule_includes_ideal_gas_eos():
     d = dt.declare("Thermos/mat_Mo/Mo_Ideal_Gas")
     expect_eq(d.source, "path")
     expect_eq(d.family, "multi_opacity", "第一候选仍应是不透明度（Thermos 多数）")
-    expect_in("multi_inverted_eos", d.families,
+    expect_in("multi_eos", d.families,
               "理想气体 EOS 必须有 F1 作为回退候选")
 
 
@@ -277,16 +277,16 @@ def test_the_four_dispatch_fixes_end_to_end():
     from eosop_pro.registry.identify.dispatch import parse_declared
 
     cases = {
-        "mat_CPC/AU.INV": ("multi_inverted_eos", (123, 100)),
-        "mat_CPC/BE.INV": ("multi_inverted_eos", (123, 100)),
-        "Thermos/mat_Mo/Mo_Ideal_Gas": ("multi_inverted_eos", (2, 2)),
-        "Thermos/mat_U/U_IdealGas_EOS": ("multi_inverted_eos", (2, 2)),
-        "Thermos/mat_W/W_Ideal_Gas": ("multi_inverted_eos", (2, 2)),
-        "SiO2/eos_21.sesame": ("multi_inverted_eos", (43, 1765)),
-        "SiO2/eos_22.sesame": ("multi_inverted_eos", (36, 1792)),
-        "Ta2O5/PowerLawTa2O5_EOS.SESAME": ("multi_inverted_eos", (3, 19)),
-        "Ta2O5/PowerLawTa2O5_EOS.SESAME_": ("multi_inverted_eos", (5, 26)),
-        "mat_Au/Au_2003POPHammerRosen_EOS.SESAME": ("multi_inverted_eos", (6, 31)),
+        "mat_CPC/AU.INV": ("multi_eos", (123, 100)),
+        "mat_CPC/BE.INV": ("multi_eos", (123, 100)),
+        "Thermos/mat_Mo/Mo_Ideal_Gas": ("multi_eos", (2, 2)),
+        "Thermos/mat_U/U_IdealGas_EOS": ("multi_eos", (2, 2)),
+        "Thermos/mat_W/W_Ideal_Gas": ("multi_eos", (2, 2)),
+        "SiO2/eos_21.sesame": ("multi_eos", (43, 1765)),
+        "SiO2/eos_22.sesame": ("multi_eos", (36, 1792)),
+        "Ta2O5/PowerLawTa2O5_EOS.SESAME": ("multi_eos", (3, 19)),
+        "Ta2O5/PowerLawTa2O5_EOS.SESAME_": ("multi_eos", (5, 26)),
+        "mat_Au/Au_2003POPHammerRosen_EOS.SESAME": ("multi_eos", (6, 31)),
     }
     for rel, (fam, dims) in cases.items():
         out = parse_declared(rel, dt.declare(rel))

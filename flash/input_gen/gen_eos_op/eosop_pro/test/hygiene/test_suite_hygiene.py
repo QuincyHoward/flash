@@ -336,6 +336,11 @@ def test_python_sources_do_not_contain_crlf():
                 continue
             if "source_data" in p.parts:
                 continue
+            # 豁免：convert/refs_temp/ 是**暂存参考实现**（作者 w3116 探索期脚本，
+            # 2026-11-15 README 定性"待裁定吸收，不属生产产出"），其行尾保持
+            # 原样逐字节保真——与 source_data 同一豁免逻辑。
+            if "refs_temp" in p.parts:
+                continue
             if crlf in p.read_bytes():
                 bad.append(str(p.relative_to(config.PROJECT_ROOT)).replace("\\", "/"))
     expect(not bad, f"以下文本文件含 CRLF（应为 LF）：\n  " + "\n  ".join(bad[:10]))

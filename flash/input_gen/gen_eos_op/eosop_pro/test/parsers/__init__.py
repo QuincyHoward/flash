@@ -1,6 +1,6 @@
 """Parsers 测试子包。
 
-包含: test_coldopacity.py, test_feos_native.py, test_generic_curve.py, test_hugoniot.py, test_hyades_eos.py, test_ionmix.py, test_ledcop.py, test_mpqeos.py, test_multi_inverted_eos.py, test_multi_opacity.py
+包含: test_coldopacity.py, test_feos_native.py, test_generic_curve.py, test_hugoniot.py, test_hyades_eos.py, test_ionmix.py, test_ledcop.py, test_mpqeos.py, test_multi_eos.py, test_multi_opacity.py
 """
 
 # ── 让子目录内的测试文件仍能 ``import _runner`` ──────────────────

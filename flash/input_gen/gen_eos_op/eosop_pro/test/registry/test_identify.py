@@ -1,7 +1,7 @@
 """B2 —— 「声明类型 vs 内容反演」比对测试。
 
 ★ 核心用例：``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` **字节相同**（名为 FEOS、实为 SESAME）。
-声明规则按 ``Readme.txt`` 给出 ``feos_native`` 优先，**内容反演给出 ``multi_inverted_eos``**
+声明规则按 ``Readme.txt`` 给出 ``feos_native`` 优先，**内容反演给出 ``multi_eos``**
 → 必须判为 ``order_mismatch``（声明优先级被内容证据推翻）。
 
 ⚠️ 反演「无结论」**不计为冲突**：多群子表串联等结构本就超出扁平模板的表达力。
@@ -28,8 +28,8 @@ def test_al_eos_feos_is_order_mismatch():
     """★ 名实不符的经典案例：靠**内容**抓出来。"""
     c = identify("mat_Al-1.0/AL_eos.feos")
     expect_eq(c.declared_first, "feos_native", "声明规则给出的第一候选")
-    expect("multi_inverted_eos" in c.declared_families, "候选回退列表应含 F1")
-    expect_eq(c.inferred_family, "multi_inverted_eos", "内容反演结果")
+    expect("multi_eos" in c.declared_families, "候选回退列表应含 F1")
+    expect_eq(c.inferred_family, "multi_eos", "内容反演结果")
     expect_eq(c.agreement, "order_mismatch")
     expect_eq(c.inferred_dims, (66, 74), "反演维数应与 AL_eos 一致")
     expect(any("推翻" in n for n in c.notes), f"应说明原因，实测 {c.notes}")
@@ -169,7 +169,7 @@ def test_dispatch_fixes_drop_conflict_count():
         expect(c.agreement in ("agree", "agree_structure", "order_mismatch"),
                f"{rel} 分类异常：{c.agreement}")
         s = parse_declared(rel, dt.declare(rel)).snapshot
-        expect_eq(s.family, "multi_inverted_eos", f"{rel} 实际解析家族")
+        expect_eq(s.family, "multi_eos", f"{rel} 实际解析家族")
         expect_eq(s.status, "ok", f"{rel} 实际状态")
 
 

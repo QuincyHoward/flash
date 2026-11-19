@@ -75,7 +75,6 @@
 # 调试 / 运行产物 (根目录, 不提交)
 # 必须放在 !*.* / !*/ 之后, 否则被反忽略覆盖
 # ==============================
-temp_delete/
 # 项目专属虚拟环境（start_flash.py 使用；.venv 为 IDE 标准命名，默认）
 .venv/
 # 按平台区分的 venv（09-10）：Windows 用 .venv-win，Linux/WSL 用 .venv-linux。
@@ -103,6 +102,9 @@ wsl_run.log
 **/tmp
 **/temp_delete/
 
+**/*temp*/
+**/*temp*.*
+
 **/*copy*/
 **/*Copy*/
 **/*COPY*/
@@ -118,6 +120,12 @@ wsl_run.log
 **/*[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/
 #测试报告文件夹
 **/reports/
+**/*report*/
+**/*report*.*
+**/*report.*
+**/*comp*/
+**/plots/
+**/out*/
 
 **/Multi1D*/
 **/Multi1D*.rar

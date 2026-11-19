@@ -14,7 +14,7 @@
 ==============================  ===========================================================
 ``multi_opacity`` (F2)          ``matlab/outputMULTIOpacity.m``（``%15.7e``×4，log10，keV→eV×1000）
 ``hyades_eos`` (F3)             ``matlab/outputHyadesEOS.m``（``%15.8e``×5，L=2+nr+nt+2nr·nt，T keV）
-``multi_inverted_eos`` (F1)     ``doc/FEOS/...`` + F1 解析器（4 数头，``with_e0``/``no_e0``）
+``multi_eos`` (F1)     ``doc/FEOS/...`` + F1 解析器（4 数头，``with_e0``/``no_e0``）
 ``h5``                          :mod:`eosop_pro.writer.h5_writer`（双轨：native + unified）
 ==============================  ===========================================================
 

@@ -43,11 +43,11 @@ import matplotlib.pyplot as plt
 
 from eosop_pro import config
 from eosop_pro.parsers.cn4_io import parse_cn4, cn4_to_parsed_tables
-from eosop_pro.parsers.multi_inverted_eos import parse_all as f1_parse
+from eosop_pro.parsers.multi_eos_reader import parse_all as f1_parse
 from eosop_pro.parsers.multi_opacity import parse_all as f2_parse
 from eosop_pro.convert.invert_eos import to_Te_grid
 from eosop_pro.convert.writers_multi import (
-    write_multi_inverted_eos_from_cn4,
+    write_multi_eos_from_cn4,
     write_multi_opacity_from_cn4,
 )
 from eosop_pro.grid.monotonic import make_log_uniform
@@ -91,7 +91,7 @@ def _ensure_convert():
     _cn4_path, cn4, tables = src
     eos, ross, pabs, _pems = tables
     meta = {"cn4_path": _cn4_path, "cn4": cn4, "tables": tables}
-    meta["f1_path"] = write_multi_inverted_eos_from_cn4(
+    meta["f1_path"] = write_multi_eos_from_cn4(
         eos, _OUT / "CH_from_cn4_eos", n_de=_N_DE,
         table_id=7590)   # SESAME 7590 = polystyrene（与 mat_CELIA/CH_ieos 同编号惯例）
     meta["f2_ross_path"] = write_multi_opacity_from_cn4(

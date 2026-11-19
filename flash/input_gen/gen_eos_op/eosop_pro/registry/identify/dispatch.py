@@ -5,7 +5,7 @@
 * 候选族来自 :mod:`declared_types`（扩展名 / 路径 / 命名 token / 注册表 / 伴随注释）。
 * 按候选顺序依次尝试；**成功即停**，并把「第几个候选成功」记进 ``dispatch_rule``。
 * ``.feos`` 的第一候选 ``feos_native`` 会因为计数守恒失败而回退到
-  ``multi_inverted_eos``（``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` 字节相同，
+  ``multi_eos``（``mat_Al-1.0/AL_eos.feos`` 与 ``AL_eos`` 字节相同，
   是"名实不符"的经典案例）—— 回退**不是猜测**，而是"按声明候选顺序尝试"，
   且完整记录在案。
 * 每个文件产出一条 :class:`ParseSnapshot`；mismatch/异常**不静默**。
@@ -33,7 +33,7 @@ from ...parsers import (
     ledcop_atomic as p_ledcop_atomic,
     ledcop_zeff as p_ledcop_zeff,
     mpqeos as p_mpqeos,
-    multi_inverted_eos as p_f1,
+    multi_eos_reader as p_f1,
     multi_opacity as p_f2,
     snop_input as p_snop_input,
 )
@@ -46,7 +46,7 @@ __all__ = ["FAMILY_PARSERS", "parse_declared", "ParseOutcome"]
 #: 声明族 → 解析器的 ``parse_all``
 FAMILY_PARSERS: dict[str, Callable[..., list]] = {
     # F1
-    "multi_inverted_eos": p_f1.parse_all,
+    "multi_eos": p_f1.parse_all,
     # F2
     "multi_opacity": p_f2.parse_all,
     # F3（Hyades 布局；opacity 与 sesame_dat 共用同一解析器）

@@ -143,7 +143,7 @@ $ python -m eosop_pro.pipeline.cli infer mat_Al-1.0/AL_eos
 
 | 族 | 解析器 | 文件数 | 独立变量 | T 单位 |
 |---|---|---|---|---|
-| F1 MULTI 反演 EOS | `multi_inverted_eos` | 53 | `(rho, de)` | **Kelvin**（→eV） |
+| F1 MULTI 反演 EOS | `multi_eos` | 53 | `(rho, de)` | **Kelvin**（→eV） |
 | F2 MULTI 不透明度/Z̄/NLTE | `multi_opacity` | **391** | `(rho, Te)` log10 | **eV** |
 | F3 Hyades / SESAME | `hyades_eos` / `hyades_opacity` | 99 + 36 | `(rho, Te)` | **keV**（→eV） |
 | F4 FEOS / MPQeos | `mpqeos` / `feos_native` / `feos_tabdata` / `feos_aux` | 190 | `(rho, Te)` | **Kelvin/keV**（→eV）；`.feos` 原生为 **eV** |

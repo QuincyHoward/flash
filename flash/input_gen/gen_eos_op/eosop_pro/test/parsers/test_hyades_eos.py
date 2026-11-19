@@ -123,5 +123,103 @@ def test_l_is_cross_checked_against_dims():
            f"(nr,nt)=({t.nr},{t.nt}) 不在 L={L} 的解集 {sols[:6]} 中")
 
 
+# ── 2026-11-15 sesame/ 全量审计后的加固测试（审计脚本 parsers/test/audit_sesame_dat.py）──
+
+def test_csi25_variant_13char_lowercase_e():
+    """13 字符/字段 + 小写 e 变体（fn.extract_numbers 正则与宽度无关）。"""
+    t = _p("hyades/sesame/CSi2.5_eos.dat")
+    expect_eq((t.table_id, t.nr, t.nt), (1214, 57, 44))
+    expect_eq(t.n_numbers_seen, 5119, "L=5119 计数闭合")
+    expect("P" in t.fields and "E" in t.fields, f"fields={list(t.fields)}")
+
+
+def test_mixed_material_header_note():
+    """混合材料非标头（无 SESAME#/QEOS 模式）→ notes 显式登记，不静默。"""
+    t = _p("hyades/sesame/EOS_Al10Au3.DAT")
+    expect_eq((t.table_id, t.nr, t.nt), (1, 50, 50))
+    expect(any("no SESAME#/QEOS pattern" in n for n in t.notes),
+           f"应登记注释行无模式，实测 {t.notes[-2:]}")
+
+
+def test_truncated_exponent_token_rejected():
+    """★ eos_332 末行 ` 7.4E`：计数守恒但末值错 13 个量级 → 必须显式拒绝
+    （用户裁定：忽略 + 告警；分派层冻结清单 see declared_types._KNOWN_CORRUPT）。"""
+    import eosop_pro.core.text.errors as errs
+    raised = None
+    try:
+        _p("hyades/sesame/eos_332.dat")
+    except errs.ParseError as exc:
+        raised = str(exc)
+    expect(raised is not None, "eos_332 必须抛 ParseError（防静默错值）")
+    expect("truncated" in (raised or ""), f"消息应含 truncated，实测 {raised!r}")
+
+
+def test_empty_file_rejected():
+    import eosop_pro.core.text.errors as errs
+    raised = None
+    try:
+        _p("hyades/sesame/CSi2.5_from_lililing")
+    except errs.ParseError as exc:
+        raised = str(exc)
+    expect(raised is not None and "empty" in raised,
+           f"空文件应报 empty，实测 {raised!r}")
+
+
+def test_flow_id_semantics():
+    """编号约定（Hyades 数据格式说明.doc）：2001-2999 电子流 / 3001-3999 离子流。"""
+    te = _p("hyades/sesame/eos_2044.dat")
+    expect_eq(te.kind, "EOS_ELECTRON", f"2044 电子流，实测 {te.kind}")
+    ti = _p("hyades/sesame/eos_3044.dat")
+    expect_eq(ti.kind, "EOS_ION", f"3044 离子流，实测 {ti.kind}")
+    ts = _p("hyades/sesame/eos_41.dat")
+    expect_eq(ts.kind, "EOS_TOTAL", "id<998 保持 EOS_TOTAL")
+    expect(any("编号约定" in n for n in te.notes), f"notes 应登记约定，实测 {te.notes[-2:]}")
+
+
+def test_three_array_variant_x3():
+    """F3b 三数组变体：L = 2+nr+nt+3*nr*nt；第三数组以 X3 中性登记（语义未定）。"""
+    t = _p("hyades/sesame/eos_31.dat")
+    expect_eq((t.nr, t.nt), (65, 32))
+    expect_eq(t.n_numbers_seen - len(t.fields.get("raw_tail", [])), 6339)
+    expect("X3" in t.fields, f"fields={list(t.fields)}")
+    expect_eq(t.field_units["X3"], "unknown")
+    expect("3*nr*nt" in t.layout_rule, f"layout_rule={t.layout_rule}")
+    expect(any("语义未定" in n for n in t.notes), "notes 应登记语义未定")
+
+
+def test_single_temperature_degenerate_table():
+    """eos_541：nt=1 退化表（L=204=2+67+1+2*67*1），维度闸门放宽至 nt>=1。"""
+    t = _p("hyades/sesame/eos_541.dat")
+    expect_eq((t.nr, t.nt), (67, 1))
+    expect_eq(len(t.axes["Te"]), 1)
+    expect(any("nt=1" in n for n in t.notes), f"notes 应登记退化，实测 {t.notes[-2:]}")
+
+
+#: 全量扫 97 文件的冻结分类（与审计 JSON 同步；清单外任何失败 = FAIL）
+#: 依据：parsers/test/_out/sesame_audit.json（2026-11-15）
+_KNOWN_SKIP = ("eos_332.dat", "csi2.5_from_lililing")
+_KNOWN_F3_ERROR = ("eos_32.hug", "eos_41.hug", "eos_41.dat.par")  # 非 F3 直调对象
+
+
+def test_sesame_folder_full_sweep():
+    """97 文件全量：要么 F3 解析成功，要么命中冻结清单（审计结果固化）。"""
+    import eosop_pro.core.text.errors as errs
+    d = config.MATTER_DIR / "hyades" / "sesame"
+    files = sorted(d.iterdir())
+    expect_eq(len(files), 97, f"目录文件数应为 97，实测 {len(files)}")
+    n_ok = 0
+    for p in files:
+        if p.name.lower() in _KNOWN_SKIP or p.name.lower() in _KNOWN_F3_ERROR:
+            continue
+        try:
+            tables = f3.parse_all(p, f"hyades/sesame/{p.name}")
+        except (errs.ParseError, errs.CountMismatch) as exc:
+            raise AssertionError(f"清单外解析失败: {p.name}: {exc}") from exc
+        expect(len(tables) >= 1, f"{p.name} 应至少解析出 1 张表")
+        n_ok += 1
+    expect_eq(n_ok, 92, f"应恰有 92 个文件解析成功（97 - 2 skip - 3 非 F3 直调），"
+                        f"实测 {n_ok}")
+
+
 if __name__ == "__main__":
     raise SystemExit(main(globals()))

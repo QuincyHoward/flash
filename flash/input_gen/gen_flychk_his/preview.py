@@ -41,6 +41,8 @@ _AXIS_FOR_COLUMN = {
     "ne": ("Density (cm$^{-3}$)", "Electron number density"),
     "ni": ("Density (cm$^{-3}$)", "Ion number density"),
     "size": ("Size (cm)", "Plasma size (path length)"),
+    "thot": ("Temperature (eV)", "Hot-electron temperature Thot"),
+    "fhot": ("Fraction", "Hot-electron fraction fhot"),
 }
 
 
@@ -64,6 +66,8 @@ def plot_input_preview(table: HistoryTable, output_path,
     import matplotlib
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
+    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams["mathtext.fontset"] = "stix"
 
     cols = list(table.columns)
     elem = element or table.element
@@ -88,6 +92,13 @@ def plot_input_preview(table: HistoryTable, output_path,
     if has_size:
         panels.append(("Plasma size", "Size (cm)",
                        [("Path length", table.column("size"))]))
+    if "thot" in cols:
+        panels.append(("Hot-electron temperature", "Temperature (eV)",
+                       [("TE", table.column("te")),
+                        ("THOT", table.column("thot"))]))
+    if "fhot" in cols:
+        panels.append(("Hot-electron fraction", "Fraction",
+                       [("FHOT", table.column("fhot"))]))
     if not panels:
         raise ValueError(f"表中无可绘图列 (columns={cols})")
 
@@ -103,6 +114,8 @@ def plot_input_preview(table: HistoryTable, output_path,
                     label=lbl)
         if ylabel.startswith("Density") and len(series) == 1 and \
                 (np.nanmax(series[0][1]) / max(np.nanmin(series[0][1]), 1e-30)) > 1e2:
+            ax.set_yscale("log")
+        if pname == "Hot-electron fraction" and np.nanmin(series[0][1]) > 0:
             ax.set_yscale("log")
         ax.set_xlabel(tlabel, fontsize=STYLE["label"])
         ax.set_ylabel(ylabel, fontsize=STYLE["label"])
@@ -132,6 +145,8 @@ def plot_region_overview(tables: Dict[str, HistoryTable], output_path,
     import matplotlib
     matplotlib.use("Agg", force=True)
     import matplotlib.pyplot as plt
+    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams["mathtext.fontset"] = "stix"
 
     if not tables:
         raise ValueError("tables 为空")

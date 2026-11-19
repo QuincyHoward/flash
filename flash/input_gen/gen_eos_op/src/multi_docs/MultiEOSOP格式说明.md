@@ -11352,7 +11352,7 @@ function count_check(text, family):
 
     # 步骤 2：按族选计数公式
     switch family:
-        case "multi_inverted_eos":
+        case "multi_eos":
             if layout == "with_e0":  expected = 4 + 2*nr + ne + 2*nr*ne
             else:                    expected = 4 + nr + ne + 2*nr*ne
         case "multi_opacity_gray":   expected = 4 + nr + nt + nr*nt
@@ -11380,7 +11380,7 @@ function count_check(text, family):
 
 | 族 | 头部结构行 | 说明 |
 |---|---|---|
-| multi_inverted_eos | 首行 4 数 | `table_id rho0 nr ne` |
+| multi_eos | 首行 4 数 | `table_id rho0 nr ne` |
 | multi_opacity_gray | 首行 4 数 | `xxxx3nnn LABEL nr nt`（LABEL 非数字，不计入） |
 | multi_opacity_mg | 首 2 行 | `[表头 4 数][群边界 2 数]`，每子表重复 |
 | hyades_eos | 首 2 行 | 第 1 行纯文本、第 2 行 `id zbar abar rho0 L`（5 数） |
@@ -11407,7 +11407,7 @@ def lex_numbers(text: str):
     return [float(t.replace('D', 'E').replace('d', 'e'))
             for t in _ANY_NUM.findall(text)]
 
-def check_multi_inverted_eos(path: str):
+def check_multi_eos(path: str):
     with open(path, 'r', errors='replace') as fh:
         raw = fh.read()
     nums = lex_numbers(restore_packed_exp(raw))

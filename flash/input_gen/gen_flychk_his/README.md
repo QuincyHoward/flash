@@ -1,6 +1,6 @@
 # gen_flychk_his — FLASH 数据 → FLYCHK history 输入压缩包
 
-> 最后核对：2026-11-05 · commit 7e04857
+> 最后核对：2026-11-18 · commit 7e04857+fe
 
 
 **版本**: 0.1.0 · **最后更新**: 2026-09-10
@@ -160,6 +160,36 @@ generate_history_zip(source="series.npz", element="Ti", region="whole",
 若数据缺 `tion`/`trad`，自动回退到 `tele` 并在 manifest 的
 `column_fallback` 中记录。
 
+### 4b. 热电子模式 `fhot file`（双麦氏分布）
+
+FLYCHK history 支持在数据文件中给出热电子组分：列 `fhot`（热电子数占比，0–1，
+无量纲）与 `thot`（热电子温度，eV）。**两列必须成对出现**，此时 `runfile.txt`
+自动写出 `fhot file` 关键字；数据文件列名示例：
+
+```
+time size rho te ti tr fhot thot
+1.000000e-12 1.000000e-05 4.540000e+00 2.500000e-02 2.500000e-02 1.993320e-02 9.500000e-01 5.090210e+00
+```
+
+`build_table` 对 `fhot` 钳位到 [0,1]，`thot` 仅做正性保护（允许高于
+`te_ceil`）；`validate_table` 复核范围与成对性。若数据源自带 `fhot`/`thot`
+变量（npz/csv/json/快照字典等），完整 `generate_history_zip` 链路亦可直接提取。
+
+### 4c. 非麦克斯韦电子分布 `fe file`（EEDF/beam, gen_fe_file 子包）
+
+FLYCHK 支持非麦克斯韦电子能量分布（beam/EEDF）与背景热电子叠加计算。
+子包 **`gen_fe_file/`** 生成 fe 数据文件（解析模型 `FeModel` 或显式数组
+`FeExplicitSeries` 双模式），并经 `write_history_zip_with_fe` 并入 zip：
+
+- zip 第三成员 `fe_{element}_Z{z}_input.txt`，runfile 增加
+  `fe file fe_{element}_Z{z}_input.txt` 行（文件类关键字之后、history 数据行之前）；
+- 契约标识 `FE_CONTRACT_ID = "flychk-history-fe-v1"`（仅含 fe 时写入 verify 检查）；
+- 格式：首行 `时间步数 能量网格数`，第二行能量网格[eV]（≤500 点），
+  之后每时间步两行——**time[s] 与束密度[#/cm³] 同行** + fe(E) 值行（每行 ≤120 字符）；
+- `fe_text`/`fe_filename` 为可选参数，不给出时与旧版两成员 zip 逐字节相同。
+
+详见 `gen_fe_file/README.md`。
+
 ### 5) `size` 策略（FLYCHK 中表示等离子体尺度, cm）
 
 | 模式 | 含义 |
@@ -195,6 +225,7 @@ generate_history_zip(source="series.npz", element="Ti", region="whole",
 
 ```
 zip 成员顺序: runfile.txt , history_{element}_Z{z}_input.txt
+              （含 fe 附加成员时: + fe_{element}_Z{z}_input.txt, 见 gen_fe_file/）
 
 runfile.txt:
     z 22
@@ -204,6 +235,8 @@ runfile.txt:
     opacity file                     # 仅当含 size 列
     ti file                          # 仅当含 ti 列
     tr file                          # 仅当含 tr 列
+    fhot file                        # 仅当含 fhot/thot 列（双麦氏热电子）
+    fe file fe_Ti_Z22_input.txt      # 仅当显式给出 fe_text/fe_filename（非麦氏 EEDF）
     history history_Ti_Z22_input.txt rho    # 密度列名随 rho/ne/ni 变化
     end
 

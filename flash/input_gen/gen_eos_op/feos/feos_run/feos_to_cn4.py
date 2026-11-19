@@ -37,8 +37,9 @@ if _GEN_EOS_OP not in sys.path:
     sys.path.insert(0, _GEN_EOS_OP)
 
 from eosop_pro.parsers.base import ParsedTable                       # noqa: E402
-from eosop_pro.parsers.cn4_io import (                               # noqa: E402
-    parsed_tables_to_cn4, write_cn4, CN4ParseError)
+from eosop_pro.convert.cn4_write import (                            # noqa: E402
+    parsed_tables_to_cn4, write_cn4)   # 2026-11-15 写侧已迁 convert/cn4_write
+from eosop_pro.parsers.cn4_io import CN4ParseError                   # noqa: E402
 from eosop_pro.parsers.feos_native import (                          # noqa: E402
     FEOS_BLOCKS, FeosTable, decode, positive_indices)
 from eosop_pro.core.config import N_A as NA                          # noqa: E402

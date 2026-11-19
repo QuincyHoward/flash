@@ -93,20 +93,19 @@ N = ntemp + ndens + 12*ntemp*ndens + (ngrups+1) + 3*ngrups*ntemp*ndens
 
 ## 3. 解析器 API 与用法
 
-关键 API（签名经源码核实）：
+关键 API（签名经源码核实；**读侧**，写侧已迁 [`convert/cn4_write.py`](../../convert/cn4_write.py)）：
 
 - `parse_cn4(filepath, *, atomwt=None) -> CN4Table`（别名 `load_cn4`；`CN4Data = CN4Table`）
-- `write_cn4(table, out_path, *, write_opacities=True, mantissa_style=None, verbatim=False) -> Path`
-- `convert_cn4_to_cn4(src, dst, **opts) -> Path` —— 默认 verbatim 直通的往返
 - `cn4_to_parsed_tables(table, relpath="") -> list` —— 拆 4 张 `ParsedTable`（EOS_TOTAL + ROSSELAND/PLANCK/EMISSIVITY）
-- `parsed_tables_to_cn4(tables, *, izgas, fracsp, atomwt=None, allow_foreign=False) -> CN4Table`（跨族组装唯一入口）
-- `convert_foreign_to_cn4(src, dst, *, izgas, fracsp, atomwt=None, **opts) -> Path`
 - `parse_header(lines) -> dict`、`expected_number_count(ntemp, ndens, ngrups) -> int`、`load_cn4_dir(dirpath) -> list`
 - 异常：`CN4ParseError(ValueError)`
 - CLI：`python -m eosop_pro.parsers.cn4_io <file.cn4> [out.cn4]`
+- 写侧 API：`write_cn4` / `parsed_tables_to_cn4` / `convert_foreign_to_cn4` / `convert_cn4_to_cn4`
+  在 `eosop_pro.convert.cn4_write`（2026-11-15 解耦迁移；convert → parsers 单向依赖）
 
 ```python
-from eosop_pro.parsers.cn4_io import load_cn4, write_cn4
+from eosop_pro.parsers.cn4_io import load_cn4
+from eosop_pro.convert.cn4_write import write_cn4   # 写侧在 convert/
 
 tbl = load_cn4(r"E:/data/Ionmix/he-imx-005.cn4")
 print(tbl.summary())            # 组分/维度/网格范围

@@ -106,6 +106,43 @@ def test_hyades_dictionary_consistency():
               "尾部残余值无任何一级来源 -> 应为 uk, uv")
 
 
+# ── 2026-11-15 sesame/ 全量审计加固（变体直解析 + 截断拦截回归）──
+
+def test_variant_files_direct_parse():
+    """13 字符小写 e 变体与混合材料变体都应可解析（审计 Gate B 结论固化）。"""
+    from eosop_pro import config
+    from eosop_pro.parsers import hyades_eos as f3
+    t = f3.parse(config.MATTER("hyades/sesame/CSi2.5_eos.dat"),
+                 "hyades/sesame/CSi2.5_eos.dat")
+    expect_eq((t.table_id, t.nr, t.nt), (1214, 57, 44),
+              "CSi2.5_eos.dat 13字符/字段小写 e 变体")
+    t2 = f3.parse(config.MATTER("hyades/sesame/EOS_Al10Au3.DAT"),
+                  "hyades/sesame/EOS_Al10Au3.DAT")
+    expect_eq((t2.table_id, t2.nr, t2.nt), (1, 50, 50),
+              "混合材料 EOS_Al10Au3.DAT（14 字符数值变体）")
+
+
+def test_truncated_token_yields_no_half_table():
+    """eos_332（末行残缺 token ` 7.4E`，静默错值 13 个量级）：ParseError 且
+    **绝不产出半成品表**；分派层经 declared_types._KNOWN_CORRUPT 冻结为 skip。"""
+    import eosop_pro.core.text.errors as errs
+    from eosop_pro import config
+    from eosop_pro.parsers import hyades_eos as f3
+    raised = None
+    try:
+        f3.parse_all(config.MATTER("hyades/sesame/eos_332.dat"),
+                     "hyades/sesame/eos_332.dat")
+    except errs.ParseError as exc:
+        raised = str(exc)
+    expect(raised is not None and "truncated" in raised,
+           f"应显式拒绝（truncated），实测 {raised!r}")
+    from eosop_pro.registry.schema.declared_types import declare
+    dt = declare("hyades/sesame/eos_332.dat")
+    expect(dt.is_skipped, "声明层应冻结为 skip（防 generic_curve 接管错值）")
+    expect("known corrupt" in (dt.evidence or ""),
+           f"evidence 应含 known corrupt 告警，实测 {dt.evidence!r}")
+
+
 def test_hyades_eos_dims_crosscheck():
     """L 计数公式交叉校验：payload 维度 (nr, nt) 应满足 2*nr*nt+nr+nt+2 = L。"""
     from eosop_pro.parsers.hyades_eos import parse_header_line, solve_dims

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""step02 —— ``multi_inverted_eos`` 族（F1 MULTI 反演 EOS）批量出图。
+"""step02 —— ``multi_eos`` 族（F1 MULTI 反演 EOS）批量出图。
 
-统一绘图模块 gridmap；产物落 ``_out/multi_inverted_eos/``。
+统一绘图模块 gridmap；产物落 ``_out/multi_eos/``。
 
 人工核查要点（用户 2026-09-15 规约：逐类型挨个核查）
 ------------------------------------------------
@@ -22,7 +22,7 @@
 * 该行为已被 ``test_family_plots.py::test_eos_isobars_rejects_table_without_Te_axis``
   显式锁定 —— 若将来把 F1 归一化到 Te 轴，须同步改两处。
 
-产出（落 ``step02_families/_out/multi_inverted_eos/``）
+产出（落 ``step02_families/_out/multi_eos/``）
 ----------------------------------------
 ``XX_<table_key>/<field>_<y>-<x>.png``（原生 (de, rho) 平面彩图）/
 ``<field>_vs_*.png``（截断曲线）/ ``_report.txt``（核查报告）。
@@ -51,7 +51,7 @@ ATOMWT = None
 from eosopdata.step02_families._family_plot_common import (   # noqa: E402
     FAMILY_PATTERNS, run_family_plots)
 
-FAMILY = "multi_inverted_eos"
+FAMILY = "multi_eos"
 PATTERNS = FAMILY_PATTERNS[FAMILY]
 
 
