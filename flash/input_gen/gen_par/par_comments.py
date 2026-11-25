@@ -150,6 +150,31 @@ def lrefine_resolution_content(key: str, params: Dict[str, Any]) -> Optional[str
     return f"res = dir_delta/(nxb*nblock*2^({key}-1)) = {res:.6e} cm"
 
 
+def _ed_power_unit(params: Optional[Dict[str, Any]]) -> str:
+    """按几何与强度自动调整开关推断 ed_power 单位。
+
+    ed_adjustBeamsTargetIntensity=true 时，输入值为 3D 等效总功率 W
+    （1D/2D Cartesian 由 FLASH 内部换算）；否则：
+    1D → W/cm2；2D 非 3Din2D → W/cm；2D 3Din2D → W；3D → W。
+    """
+    if not params:
+        return "W/cm2"
+
+    def _on(key: str) -> bool:
+        flag = params.get(key, False)
+        if isinstance(flag, str):
+            return flag.strip().lower() in (".true.", "true", "1", "yes", "t")
+        return bool(flag)
+
+    if _on("ed_adjustBeamsTargetIntensity"):
+        return "W"
+    if "nblockz" in params:
+        return "W"
+    if "nblocky" in params:
+        return "W" if _on("ed_laser3Din2D") else "W/cm"
+    return "W/cm2"
+
+
 def inline_comment(key: str, params: Optional[Dict[str, Any]] = None) -> Optional[str]:
     """返回参数 key 的行尾注释内容 (不含 '#'); 无注释返回 None。
 
@@ -165,13 +190,18 @@ def inline_comment(key: str, params: Optional[Dict[str, Any]] = None) -> Optiona
         if params is None:
             return None
         return lrefine_resolution_content(key, params)
-    # 激光脉冲序列
-    m = re.fullmatch(r"ed_time_1_(\d+)", key)
+    # 激光脉冲序列（pulse 序号泛化；beam 1 保留原有措辞）
+    m = re.fullmatch(r"ed_time_(\d+)_(\d+)", key)
     if m:
-        return f"laser pulse time, beam 1 section {m.group(1)} [s]"
-    m = re.fullmatch(r"ed_power_1_(\d+)", key)
+        pulse, section = m.groups()
+        label = "beam" if pulse == "1" else "pulse"
+        return f"laser pulse time, {label} {pulse} section {section} [s]"
+    m = re.fullmatch(r"ed_power_(\d+)_(\d+)", key)
     if m:
-        return f"laser pulse power, beam 1 section {m.group(1)} [W/cm2]"
+        pulse, section = m.groups()
+        label = "beam" if pulse == "1" else "pulse"
+        return (f"laser pulse power, {label} {pulse} section {section} "
+                f"[{_ed_power_unit(params)}]")
     # 多光束泛化 (beam N, N >= 2; beam 1 由静态表与上面两条覆盖)
     m = re.fullmatch(
         r"ed_(lensX|targetX|pulseNumber|wavelength|crossSectionFunctionType"

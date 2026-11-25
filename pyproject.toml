@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 [project]
 name = "flash-sim"
 version = "0.2.1"
-description = "FLASH plasma simulation Python interface - third-party wrapper and workflow toolkit for FLASH 4.8 radiation-hydrodynamics code. NOT affiliated with the Flash Center for Computational Science. FLASH must be obtained separately from flash.rochester.edu."
+description = "FLASH plasma simulation Python interface - End-to-end Python interface and workflow toolkit for FLASH 4.8 radiation-hydrodynamics: parameter design, .par generation, build/run orchestration, HDF5 post-processing, and adaptive 1D/2D/3D visualization with physics analysis. For use with the FLASH engine distributed under its own license via flash.rochester.edu."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -15,7 +15,8 @@ authors = [
     {name = "PhySimX Contributors"},
     {name = "Quincy Howard", email = "quincy.hd@foxmail.com" },
 ]
-keywords = ["flash", "plasma", "simulation", "high-energy-density", "physics"]
+keywords = ["flash", "plasma", "simulation", "high-energy-density", "physics","simulation-workflow", "ICF",
+            "laboratory-astrophysics"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",

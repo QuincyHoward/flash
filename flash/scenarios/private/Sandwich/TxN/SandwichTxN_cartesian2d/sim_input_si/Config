@@ -1,0 +1,79 @@
+
+# 2D Cartesian CH/Si/CH, copied from 1D SandwichTxN template (2026-11-22)
+REQUIRES Driver
+REQUIRES physics/Hydro
+USESETUPVARS ThreeT
+IF ThreeT
+   REQUESTS physics/Diffuse/DiffuseMain/Unsplit
+   REQUESTS physics/sourceTerms/Heatexchange/HeatexchangeMain/Spitzer
+   REQUESTS physics/materialProperties/Conductivity/ConductivityMain/SpitzerHighZ
+ENDIF
+DATAFILES Z14_1.00-20260708_0850.cn4
+DATAFILES Z02_1.00-20260708_0851.cn4
+DATAFILES Z06_0.50-Z01_0.50-20260708_0850.cn4
+
+D sim_initGeom Use a spherical target if sphere, default to slab
+PARAMETER sim_initGeom STRING "slab" ["slab","sphere"]
+D sim_targetRadius Target transverse half-width
+PARAMETER sim_targetRadius REAL 0.065
+D sim_radialCore Transverse refinement core half-width
+PARAMETER sim_radialCore REAL 0.0425
+D sim_axialCore Axial refinement core half-thickness
+PARAMETER sim_axialCore REAL 4.5e-4
+D sim_targHeight Si half-thickness
+PARAMETER sim_targHeight REAL 0.46e-4
+D sim_polyHeight Dense CH outer half-thickness
+PARAMETER sim_polyHeight REAL 1.46e-4
+D sim_foamHeight CH foam outer half-thickness
+PARAMETER sim_foamHeight REAL 51.46e-4
+D sim_rhoTarg Initial Si density
+PARAMETER sim_rhoTarg REAL 2.3
+D sim_rhoPoly Initial dense CH density
+PARAMETER sim_rhoPoly REAL 1.0
+D sim_rhoFoam Initial CH foam density
+PARAMETER sim_rhoFoam REAL 0.294
+D sim_rhoCham Initial He density
+PARAMETER sim_rhoCham REAL 1e-6
+D sim_teleTarg initial temperature
+PARAMETER sim_teleTarg REAL 290.11375
+D sim_tionTarg initial temperature
+PARAMETER sim_tionTarg REAL 290.11375
+D sim_tradTarg initial temperature
+PARAMETER sim_tradTarg REAL 290.11375
+D sim_telePoly initial temperature
+PARAMETER sim_telePoly REAL 290.11375
+D sim_tionPoly initial temperature
+PARAMETER sim_tionPoly REAL 290.11375
+D sim_tradPoly initial temperature
+PARAMETER sim_tradPoly REAL 290.11375
+D sim_teleCham initial temperature
+PARAMETER sim_teleCham REAL 290.11375
+D sim_tionCham initial temperature
+PARAMETER sim_tionCham REAL 290.11375
+D sim_tradCham initial temperature
+PARAMETER sim_tradCham REAL 290.11375
+D sim_zminTarg target minimum zbar allowed
+PARAMETER sim_zminTarg REAL 0.0
+D sim_eosTarg target EOS type
+PARAMETER sim_eosTarg STRING "eos_tab" ["eos_tab","eos_gam"]
+D sim_eosCham chamber EOS type
+PARAMETER sim_eosCham STRING "eos_gam" ["eos_tab","eos_gam"]
+VARIABLE lase TYPE: PER_VOLUME
+D ms_polyA CH atomic mass
+PARAMETER ms_polyA REAL 6.5
+D ms_polyZ CH atomic number
+PARAMETER ms_polyZ REAL 3.5
+D eos_polyEosType Poly EOS type
+PARAMETER eos_polyEosType STRING "eos_tab" ["eos_tab","eos_gam"]
+D eos_polySubType Poly EOS subtype
+PARAMETER eos_polySubType STRING "ionmix4" ["ionmix4"]
+D eos_polyTableFile Poly EOS table
+PARAMETER eos_polyTableFile STRING "polystyrene-imx-008.cn4"
+D op_polyAbsorb Poly absorption opacity
+PARAMETER op_polyAbsorb STRING "op_tabpa"
+D op_polyEmiss Poly emission opacity
+PARAMETER op_polyEmiss STRING "op_tabpe"
+D op_polyTrans Poly transport opacity
+PARAMETER op_polyTrans STRING "op_tabro"
+D op_polyFileType Poly opacity file type
+PARAMETER op_polyFileType STRING "ionmix4"

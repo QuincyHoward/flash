@@ -215,10 +215,12 @@ $RECYCLE.BIN/
 # ---------- eosop_pro 运行 / 测试产物 ----------
 # (产物跟测试走: 各 step 内的 _out/ 与集中 _tmp/)
 # 注: output/ 与 *.h5/*.hdf5 已由上方规则覆盖, 此处只补未覆盖项
+# ★ _out/ 可能出现在任意测试层 (eosop_pro/test/ 与 eosop_pro/parsers/test/ 均有),
+#   故用 **/eosop_pro/**/_out/ 覆盖全部层级; 旧规则只匹配 test/ 直属子树, 已废除。
 **/eosop_pro/outputs/
 **/eosop_pro/docs/extracted/
 **/eosop_pro/test/_tmp/
-**/eosop_pro/test/**/_out/
+**/eosop_pro/**/_out/
 
 # ---------- IONMIX 参考实现内的运行产物 (CSV; PNG 已全局忽略) ----------
 **/ionmix/**/E4data/**/*.csv
@@ -260,6 +262,9 @@ $RECYCLE.BIN/
 *.sesame
 *.opj
 *.silo
+# FEOS 原始表 (单文件 ~3.5 MB, 属 feos_run 中间产物, 可由 .par 重新生成;
+# 发布包只随包提供 public 场景需要的 .cn4, .feos 一律不跟踪)
+*.feos
 
 # ----------------------------------------------------------------
 # 同步时判定"已被覆盖"故未重复的条目 (上游 → 本文件对应规则):
@@ -482,15 +487,25 @@ wheels/
 *~
 
 # --------------------------------------------------------------------
-# 1.9 自研 EOS 表例外 (Z*.cn4 = ionmix 自生成, 发布包必需; ★ 必须在 1.7 之后)
+# 1.9 public 场景 EOS 表精确白名单 (★ 必须在 1.7 之后)
 # --------------------------------------------------------------------
 # ==============================
-# 自研 EOS 表保留 (Z*.cn4 = ionmix 自生成, 发布包必需)
+# 只放行 public 场景实际引用的 6 张 cn4, 其余一律不跟踪
 # ==============================
-# 全局排除 *.cn4 (默认不发布); 唯一例外: Gen_eos_op_data/ 下以 Z 开头的
-# ionmix 自研表 (Z*.cn4, 随包分发, 场景运行必需)。其余 cn4 (含 sim_input*、
-# *-imx*、*-BADGER-* 等) 一律不分发。
-!**/Gen_eos_op_data/**/Z*.cn4
+# 全局排除 *.cn4 (FLASH License §3 + 体积约束)。旧规则
+# `!**/Gen_eos_op_data/**/Z*.cn4` 会把该目录下所有 Z*.cn4 全部放行
+# (含 private/tracer 与 FEOS 试验表), 与"只跟踪 public 所需"冲突, 已废除。
+# 白名单按引用关系维护:
+#   - 2026-07-08 三张 (6 群): LaserCompression_twoside/sandwich + center_evolution
+#   - 2026-11-08 三张 (10 群): Fusion/CH_Capsule、DCI_DoubleCone、
+#     Hohlraum_Spherical、Hohlraum_AuCH
+# 新增 public 表时在此逐条追加; private 场景表不要加入。
+!**/Gen_eos_op_data/Z02_1.00-20260708_0851/Z02_1.00-20260708_0851.cn4
+!**/Gen_eos_op_data/Z06_0.50-Z01_0.50-20260708_0850/Z06_0.50-Z01_0.50-20260708_0850.cn4
+!**/Gen_eos_op_data/Z14_1.00-20260708_0850/Z14_1.00-20260708_0850.cn4
+!**/Gen_eos_op_data/Z02_1.00-20261108_2013/Z02_1.00-20261108_2013.cn4
+!**/Gen_eos_op_data/Z06_0.50-Z01_0.50-20261108_2013/Z06_0.50-Z01_0.50-20261108_2013.cn4
+!**/Gen_eos_op_data/Z79_1.00-20261108_2014/Z79_1.00-20261108_2014.cn4
 
 # --------------------------------------------------------------------
 # 1.10 场景生成文件 (由 gen_flash_inputs.py 从 input_gen 生成, 不入库)
@@ -567,6 +582,8 @@ scripts/_gitee_link_test/
 # 测试运行产物（不入库，由测试自动生成）
 **/test_output.txt
 flash/output_processors/test/test_output/
+# output_pro 测试产物 (旧路径 output_processors 已废弃, 新路径需显式排除)
+flash/output_pro/test/test_output/
 
 # eosop_pro 绘图包 — 测试生成产物（不入库，本地可保留）
 # 注: 全局 *.html / *.log 已覆盖前两项, 此处显式列出以明确意图,
@@ -623,6 +640,8 @@ flash/scenarios/sandwich/**/*.png
 # ================================================================
 **/*.bak[0-9]*
 **/*.bak_*
+# 一次性探针/调试运行日志 (.out) 一律不入库; 旧零散规则保留作历史说明
+*.out
 flash/input_gen/gen_eos_op/src/**/*.out
 test/_extract_chk_params.out
 **/pipeline_*.out
@@ -857,6 +876,9 @@ tags
 #      flash/flash_run/env/)。精确反选该目录; 其余位置接受新语义 (见③)。 ----
 !flash/flash_run/env/
 !flash/flash_run/env/**
+# ---- ①a-补: env 源码包放行不等于产物放行; 精确重新忽略其内的字节码/缓存 ----
+flash/flash_run/env/**/__pycache__/
+flash/flash_run/env/**/*.py[cod]
 
 # ---- ①b flash 顶级 docs/ 恢复自由: docs/api|_build 原样块会命中 flash
 #      真实文档目录 (当前不存在, 预防性放行); PlasmaPy 子树内保持忽略 ----

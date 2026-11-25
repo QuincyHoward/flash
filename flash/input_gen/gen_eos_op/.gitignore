@@ -95,8 +95,9 @@ eosop_pro/**/*.h5
 eosop_pro/**/*.hdf5
 
 # eosop_pro 测试产物（产物跟测试走: 各 step 文件夹内的 _out/ 与集中 _tmp/）
+# ★ _out/ 会出现在任意测试层 (test/ 与 parsers/test/ 均有), 用 ** 覆盖全部
 eosop_pro/test/_tmp/
-eosop_pro/test/**/_out/
+eosop_pro/**/_out/
 
 # ionmix 参考实现内的运行产物
 ionmix/**/test/output/

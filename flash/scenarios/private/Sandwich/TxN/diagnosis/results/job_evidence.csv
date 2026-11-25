@@ -1,0 +1,15 @@
+run_id,job_id,source_file,line_no,category,keyword,snippet
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6810,abort,Newton-Raphson failed in multitemp," Newton-Raphson failed in multitemp, multitype Eos.F90"
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6811,abort,MODE_DENS_EI_ELE,MODE_DENS_EI_ELE
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6824,abort,"too many iterations, reached"," too many iterations, reached          50"
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6830,abort,DRIVER_ABORT: [Eos], DRIVER_ABORT: [Eos] Error: too many iterations in Newton-Raphson
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6831,abort,MPI_Abort,"application called MPI_Abort(MPI_COMM_WORLD, 1) - process 42"
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6832,abort,slurmstepd: error,slurmstepd: error: *** STEP 4971782.0 ON ia0416 CANCELLED AT 2026-11-24T19:47:06 ***
+950001,4971782,flash_SandwichTxN_cartesian2d_4971782.out,6836,abort,FLASH_JOB_DONE,FLASH_JOB_DONE
+950001,4971782,lasslab.log,4523,warning,[Heatexchange] Warning: Negative internal energy detected, [Heatexchange] Warning: Negative internal energy detected
+950001,4971782,lasslab.log,4591,warning,Further warnings suppressed, [Heatexchange] Note: Further warnings suppressed
+950001,4971782,lasslab02.log,35,warning,[hy_uhd_ragelike] Negative internal energies in 3T update, [ 11-24-2026  18:05:41.123 ] [hy_uhd_ragelike] Negative internal energies in 3T update
+950002,4971784,flash_SandwichTxN_cartesian2d_one_4971784.out,11363,abort,FLASH_JOB_DONE,FLASH_JOB_DONE
+950002,4971784,lasslab.log,4541,warning,[Heatexchange] Warning: Negative internal energy detected, [Heatexchange] Warning: Negative internal energy detected
+950002,4971784,lasslab.log,4714,warning,Further warnings suppressed, [Heatexchange] Note: Further warnings suppressed
+950002,4971784,lasslab03.log,35,warning,[hy_uhd_ragelike] Negative internal energies in 3T update, [ 11-24-2026  18:05:17.208 ] [hy_uhd_ragelike] Negative internal energies in 3T update

@@ -1,0 +1,26 @@
+{
+  "kind": "engine",
+  "description": "CH/Si/CH 三明治靶二维笛卡尔每侧单束正入射（共 2 束、1600J/束，45° 梯形收敛；1.6e12 W 3D等效输入，FLASH 自动转 W/cm；独立场景）",
+  "module": ".sandwich_txn_cartesian2d_one",
+  "attr": "scenario",
+  "name": "sandwich_txn_cartesian2d_one",
+  "sim_name": "sandwich_txn_cartesian2d_one",
+  "basenm": "lasslab_",
+  "hpc": {
+    "input_rel_dir": "./sim_input_si",
+    "gen_script": "./sandwich_txn_cartesian2d_one.py",
+    "flash_unit": "QC/grid_rede",
+    "par_file": "sandwich_txn_cartesian2d_one.par",
+    "setup_common": ["-2d", "+cartesian", "-nxb=12", "-nyb=8", "-maxblocks=8192", "+hdf5typeio", "species=cham,targ,poly", "+mtmmmt", "+laser", "+uhd3t", "+mgd", "mgd_meshgroups=10"],
+    "setup_extra": ["ed_maxBeams=2", "ed_maxPulseSections=240"],
+    "ntasks": 48,
+    "time_limit": "",
+    "flash_home_default": "$HOME/QC/FLASH/FLASH4.8",
+    "launcher": "srun",
+    "nodes": 1,
+    "archive_patterns": ["*chk*", "*plt*", "*.out", "*.log"],
+    "gen_mode": "local_upload",
+    "gen_args": ["gen", "--force"],
+    "env_profile": "nce_qc_flash_sim"
+  }
+}

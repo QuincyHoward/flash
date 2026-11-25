@@ -9,6 +9,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from flash.input_gen.gen_par.generator import ParGeneratorExtended, PARAM_COMMENTS
+from flash.input_gen.gen_par.par_comments import inline_comment
 from flash.scenarios.scripts.legacy._par_layers import CH_FLASH_PAR
 
 # 用户要求的注释 (期望值)
@@ -67,4 +68,21 @@ out = _ROOT / "test" / "gen_par_comment_check.par"
 with open(out, "w", encoding="utf-8") as f:
     f.write(content)
 print(f"\n样例 par 已写入: {out}")
+
+print("\n== 3) ed_power 单位注释按几何动态推断 ==")
+unit_cases = [
+    ("1D", {}, "W/cm2"),
+    ("2D cartesian", {"nblocky": 8}, "W/cm"),
+    ("2D cart auto-adjust", {"nblocky": 8, "ed_adjustBeamsTargetIntensity": True}, "W"),
+    ("2D R-Z 3Din2D", {"nblocky": 8, "ed_laser3Din2D": True}, "W"),
+    ("2D R-Z .true.", {"nblocky": 8, "ed_laser3Din2D": ".true."}, "W"),
+    ("3D", {"nblocky": 8, "nblockz": 4}, "W"),
+]
+for name, params, expect in unit_cases:
+    got = inline_comment("ed_power_1_2", params)
+    hit = f"[{expect}]" in (got or "")
+    print(f"  [{'OK ' if hit else 'DIFF'}] {name:16s} -> {got}")
+    if not hit:
+        ok = False
+
 print("RESULT:", "PASS" if ok and not missing and not no_comment else "FAIL")
