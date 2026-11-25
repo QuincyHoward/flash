@@ -26,11 +26,14 @@
   python git_push.py --status     # 查看 git 状态 (不推送)
   python git_push.py --tags 0.1.11  # 推送标签 (发版用; 凭据同走 helper)
 
-超算同步策略 (2026-10-24):
+超算同步策略 (2026-10-24, 2026-11-25 分叉策略修订):
   * 默认**随 Gitee 推送一并同步**到超算部署仓库；超算侧任何失败
-    （SSH 不可达 / 上传失败 / 分叉 / ff-only 冲突）**仅 WARN 提示，
+    （SSH 不可达 / 上传失败 / 工作区脏）**仅 WARN 提示，
     不改变退出码、不阻断主流程**——超算是便利副本，Gitee 才是事实源。
-  * 机制与部署链同源（deploy/hpc_deploy/sync_incremental.py）：
+  * 分叉处理（远端 tip 不是本地祖先）：不再直接跳过。打印警告后等待 10s,
+    期间按回车可取消; 无操作则按默认策略**强制同步** —— 本地全量 bundle →
+    远端 `git reset --hard _push_tmp`, 远端分叉 commit 与未提交修改会丢失。
+  * 正常快进机制与部署链同源（deploy/hpc_deploy/sync_incremental.py）：
     本地 `git bundle create`（增量 `<tip>..<branch>`）→ SFTP 上传 →
     远端 `git fetch <bundle> refs/heads/<branch>:refs/heads/_push_tmp`
     + `git merge --ff-only _push_tmp` + 删临时分支。
@@ -437,13 +440,39 @@ def push_to_gitee(branch=None, force=False, commit_msg=None, dry_run=False,
     # ── 5. 超算部署仓库同步（默认；失败仅 WARN，不阻断）──
     if push_hpc:
         if dry_run:
-            warn(f"[DRY-RUN] 将同步超算部署仓库: bundle({branch}) → fetch + ff-only merge")
+            warn(f"[DRY-RUN] 将同步超算部署仓库: bundle({branch}) → fetch + ff-only merge"
+                 "（分叉时等待 10s 后强制同步）")
         else:
             push_to_hpc(branch=branch, dry_run=False,
                         project_root=project_root)
 
     eprint()
     ok("全部完成!")
+
+
+def confirm_force_hpc_sync(branch: str, remote_tip: str, local_head: str) -> bool:
+    """超算分叉时等待 10s; 按回车取消, 无操作则确认强制同步。
+
+    Returns:
+        True  = 无操作或明确强制, 继续强制同步
+        False = 用户在等待窗口内输入了内容, 取消本次超算同步
+    """
+    warn(f"超算 {branch} 与本地已分叉（远端 tip {remote_tip[:12]} 不是本地祖先）")
+    warn(f"  强制同步会把超算 {branch} 重置为本地 {local_head[:12]}；"
+         "远端分叉 commit 与未提交修改将丢失")
+    if not sys.stdin.isatty():
+        info("非交互终端：无法按键取消，10 秒后自动强制同步")
+        time.sleep(10)
+        warn("10 秒等待结束，按默认策略强制同步")
+        return True
+    answer = input_with_timeout(
+        f"  {YELLOW}[?]{RESET} 10 秒内按回车取消强制同步（不操作则强制推送）: ",
+        timeout=10.0)
+    if answer is not None:
+        warn("已取消强制同步（收到输入），超算仓库保持原状")
+        return False
+    warn("10 秒无操作，按默认策略强制同步")
+    return True
 
 
 def push_to_hpc(branch=None, dry_run=False, tag=None,
@@ -457,8 +486,11 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
     `git merge --ff-only _push_tmp` + 删临时分支。
     不依赖超算访问外网（git 1.8.3 + https 直连 Gitee 不可靠）。
 
+    分叉时（远端 tip 非本地祖先）不再直接跳过：等待 10s，期间按回车可取消；
+    无操作则改用全量 bundle，并在远端 `git reset --hard _push_tmp` 强制同步。
+
     ★ 本函数**绝不 sys.exit**：超算是便利副本，Gitee 才是事实源——
-      任何失败（SSH 不可达 / 上传失败 / 分叉 / 工作区脏 / ff-only 冲突）
+      除强制同步外的失败（SSH 不可达 / 上传失败 / 工作区脏 / ff-only 冲突）
       只 WARN 提示并返回 False，调用方不因此改变退出码。
 
     Returns:
@@ -521,13 +553,18 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
 
                 # 分叉检测（远端 tip 必须是本地祖先，否则 ff-only 必败）
                 n_new = 0
+                force_sync = False
                 if have_tip:
                     r = run_git(["merge-base", "--is-ancestor", tip, branch],
                                 cwd=project_root, check=False)
                     if r.returncode != 0:
-                        warn(f"超算 {branch} 与本地已分叉（远端 tip {tip[:12]} "
-                             "不是本地祖先）——需人工处理，已跳过超算同步")
-                        return False
+                        lr = run_git(["rev-parse", branch],
+                                     cwd=project_root, check=False)
+                        local_tip = (lr.stdout or "").strip()
+                        if not confirm_force_hpc_sync(
+                                branch, tip, local_tip or "(unknown)"):
+                            return False
+                        force_sync = True
                     r = run_git(["rev-list", "--count", f"{tip}..{branch}"],
                                 cwd=project_root, check=False)
                     n_new = int(r.stdout.strip()) if (
@@ -542,14 +579,16 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
                     if not tag_ok:
                         warn(f"本地无标签 {tag}，仅同步分支")
 
-                if n_new == 0 and not tag_ok:
+                need_branch = force_sync or n_new > 0
+                if not need_branch and not tag_ok:
                     ok(f"超算仓库已是最新 ({branch} @ {tip[:12]})")
                     return True
 
-                # 本地 bundle：增量 range（+可选 tag ref）
+                # 本地 bundle：正常增量; 强制模式必须打包全量分支（远端要整体重置）
                 rev_args: list[str] = []
-                if n_new > 0:
-                    rev_args.append(f"{tip}..{branch}" if have_tip else branch)
+                if need_branch:
+                    rev_args.append(branch if force_sync else (
+                        f"{tip}..{branch}" if have_tip else branch))
                 if tag_ok:
                     rev_args.append(f"refs/tags/{tag}")
                 r = run_git(["bundle", "create", str(bundle)] + rev_args,
@@ -559,7 +598,8 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
                          + ((r.stderr or "").strip()[:200] or "(no stderr)"))
                     return False
                 size_mb = bundle.stat().st_size / 1e6
-                info(f"bundle {size_mb:.1f} MB（新增 {n_new} commit"
+                info(f"bundle {size_mb:.1f} MB（"
+                     + ("强制模式: 全量分支" if force_sync else f"新增 {n_new} commit")
                      + (f" + tag {tag}" if tag_ok else "") + "）")
 
                 # 上传（.part + 改名 + 双端 SHA256 校验）
@@ -576,21 +616,25 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
                     warn("跳过超算同步: 双端 bundle SHA256 不一致")
                     return False
 
-                # 远端 fetch + ff-only merge（禁 git -C；显式 refspec；
+                # 远端 fetch + (ff-only merge | 强制 reset)（禁 git -C；显式 refspec；
                 # 不管道，保证 && 链上的 rc 是真实退出码）
                 fetch_refs: list[str] = []
-                if n_new > 0:
+                if need_branch:
                     fetch_refs.append(f"refs/heads/{branch}:refs/heads/_push_tmp")
                 if tag_ok:
                     fetch_refs.append(f"refs/tags/{tag}:refs/tags/{tag}")
                 steps = [f"git fetch {remote_bundle} '{fr}' 2>&1"
                          for fr in fetch_refs]
-                if n_new > 0:
-                    steps.append("git merge --ff-only _push_tmp 2>&1")
+                if need_branch:
+                    if force_sync:
+                        warn("远端执行 git reset --hard _push_tmp（强制同步）")
+                        steps.append("git reset --hard _push_tmp 2>&1")
+                    else:
+                        steps.append("git merge --ff-only _push_tmp 2>&1")
                 steps.append("git rev-parse HEAD")
                 out, err, rc = s.run(
                     f"cd {pkg} && " + " && ".join(steps), timeout=600)
-                if n_new > 0:
+                if need_branch:
                     s.run(f"cd {pkg} && git branch -D _push_tmp 2>/dev/null",
                           timeout=60)
 
@@ -677,7 +721,8 @@ def main():
     parser.add_argument("--allow-deletes", action="store_true",
                         help="允许提交文件删除 (默认拦截: 防本机文件系统异常导致误删)")
     parser.add_argument("--no-hpc", action="store_true",
-                        help="跳过超算部署仓库同步（默认: Gitee 推送后一并同步，失败仅提示）")
+                        help="跳过超算部署仓库同步（默认: Gitee 推送后一并同步；"
+                             "分叉时等待 10s，无操作则强制同步）")
     parser.add_argument("--setup", action="store_true", help="进入凭据设置界面 (有交互)")
     parser.add_argument("--status", action="store_true", help="查看当前 git 状态 (不推送)")
     parser.add_argument("-r", "--root", default=None, help="项目根目录 (含 .git)")
