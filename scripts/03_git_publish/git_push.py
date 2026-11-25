@@ -489,6 +489,11 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
     分叉时（远端 tip 非本地祖先）不再直接跳过：等待 10s，期间按回车可取消；
     无操作则改用全量 bundle，并在远端 `git reset --hard _push_tmp` 强制同步。
 
+    ★ 浅克隆坑：本地为 shallow 时全量 bundle 不含边界父对象，远端若无相同
+      shallow 边界会在 fetch 连通性检查时报 "did not send all necessary objects"。
+      强制同步会先把本地 .git/shallow 上传到远端并写入其 .git/shallow
+      （原文件备份为 .git/shallow.flash_bak），再执行 fetch/reset。
+
     ★ 本函数**绝不 sys.exit**：超算是便利副本，Gitee 才是事实源——
       除强制同步外的失败（SSH 不可达 / 上传失败 / 工作区脏 / ff-only 冲突）
       只 WARN 提示并返回 False，调用方不因此改变退出码。
@@ -520,6 +525,12 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
     tmpdir = Path(tempfile.mkdtemp(prefix="flash_hpc_push_"))
     bundle = tmpdir / "flash_sim_push.bundle"
     remote_bundle = ""
+    remote_shallow = ""
+    sr = run_git(["rev-parse", "--git-path", "shallow"],
+                 cwd=project_root, check=False)
+    shallow_rel = (sr.stdout or "").strip() if sr.returncode == 0 else ""
+    local_shallow = (Path(project_root) / shallow_rel) if shallow_rel else (
+        project_root / ".git" / "shallow")
     try:
         with RemoteSession(credential_name=None, verbose=False) as s:
             try:
@@ -616,6 +627,25 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
                     warn("跳过超算同步: 双端 bundle SHA256 不一致")
                     return False
 
+                # 强制模式 + 本地浅克隆：远端必须先有相同 shallow 边界。
+                # 否则 bundle 不含边界父对象，fetch 连通性检查会报
+                # "did not send all necessary objects"。
+                if force_sync:
+                    if local_shallow.is_file():
+                        remote_shallow = f"{pkg}/flash_sim_push.shallow"
+                        if not s.upload(str(local_shallow), remote_shallow):
+                            warn("跳过超算同步: shallow 边界文件上传失败")
+                            return False
+                        s.run(
+                            f"cd {pkg} && "
+                            "[ -f .git/shallow ] && cp .git/shallow .git/shallow.flash_bak || true; "
+                            f"cat {remote_shallow} > .git/shallow", timeout=60)
+                        warn("强制同步: 远端已写入本地 shallow 边界"
+                             "（原文件备份为 .git/shallow.flash_bak）")
+                    else:
+                        # 本地已完整时清掉远端可能残留的 shallow 边界
+                        s.run(f"cd {pkg} && rm -f .git/shallow", timeout=60)
+
                 # 远端 fetch + (ff-only merge | 强制 reset)（禁 git -C；显式 refspec；
                 # 不管道，保证 && 链上的 rc 是真实退出码）
                 fetch_refs: list[str] = []
@@ -665,6 +695,11 @@ def push_to_hpc(branch=None, dry_run=False, tag=None,
                     try:
                         s.run(f"rm -f {remote_bundle} {remote_bundle}.part",
                               timeout=60)
+                    except Exception:  # noqa: BLE001
+                        pass
+                if remote_shallow:
+                    try:
+                        s.run(f"rm -f {remote_shallow}", timeout=60)
                     except Exception:  # noqa: BLE001
                         pass
     except Exception as exc:  # noqa: BLE001
